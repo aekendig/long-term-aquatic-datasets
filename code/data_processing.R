@@ -12,20 +12,48 @@ rm(list = ls())
 library(tidyverse)
 
 # import data
+ctrl_old <- read_csv("original-data/PrePMARS_IPMData.csv")
 ctrl <- read_csv("original-data/FWC_Herbicide_Treatments_mid2010-Oct2020.csv")
 gnis <- read_csv("original-data/LW_matching_Herbicide_lakes_with_GNIS.csv")
 qual <- read_csv("original-data/Lakewatch_1986-2019_TP_TN_Chl_Secchi_Color_Cond.csv")
 
 
+#### ID data ####
+
+# make all county information uppercase
+# remove "lake" from names
+gnis2 <- gnis %>%
+  mutate(County_FWC = toupper(County_FWC) %>%
+           str_replace("ST", "SAINT"),
+         County_LW = toupper(County_LW) %>%
+           str_replace("ST", "SAINT"),
+         Lake_LW = str_replace_all(Lake_LW, c(", Lake" = "", "Lake " = "", " Lake" = "")) %>%
+           toupper(),
+         AreaOfInterest = str_replace_all(AreaOfInterest, c(", Lake" = "", "Lake " = "", " Lake" = "")) %>%
+           toupper())
+
+# county overlap
+gnis2 %>%
+  filter(County_FWC != County_LW)
+# Apopka: in both counties
+# Isabell: in Polk, but on the edge of Highlands
+# Monroe: in both counties
+
+# lake overlap
+gnis2 %>%
+  filter(Lake_LW != AreaOfInterest) %>%
+  arrange(County_LW, Lake_LW) %>%
+  data.frame()
+# multiple GNIS values assigned to a single FWC lake
+  # Little Red Water in Highlands
+  # Blue in Polk County
+  # Rodman Reservoir in Putnam County
+# others are different spellings
+
+#### start here ####
+
+
 #### control data ####
-
-# unique AreaOfInterest
-unique(ctrl$AreaOfInterest) %>%
-  length() # 446
-
-# unique AreaOfInterest ID
-unique(ctrl$AreaOfInterestID) %>%
-  length() # 454
 
 # extract location info
 ctrl_loc <- ctrl %>%
@@ -40,49 +68,6 @@ ctrl_loc <- ctrl %>%
 # check for unique ID
 duplicated(ctrl_loc$AreaOfInterestID) %>%
   sum() # all unique
-
-duplicated(ctrl_loc$AreaOfInterest) %>%
-  sum() # 8 duplicates
-
-# duplicate AreaOfInterest names
-ctrl_AOI <- ctrl %>%
-  select(AreaOfInterest, AreaOfInterestID) %>%
-  unique() %>%
-  mutate(dup = duplicated(AreaOfInterest)) %>%
-  filter(dup == T) %>%
-  select(AreaOfInterest) %>%
-  unique()
-
-# counties per name
-ctrl_county <- ctrl %>%
-  select(AreaOfInterest, AreaOfInterestID, County) %>%
-  unique() %>%
-  group_by(AreaOfInterest) %>%
-  summarise(IDs = length(AreaOfInterestID),
-            Counties = length(County))
-
-ctrl_county %>%
-  filter(IDs != Counties)
-# county is unique like AreaOfInterestID for each AreaOfInterest
-
-ctrl_county %>%
-  filter(Counties > 1)
-# same lakes as ctrl_AOI
-
-# same lake in multiple counties or different lakes?
-ctrl %>%
-  filter(AreaOfInterest %in% ctrl_AOI$AreaOfInterest) %>%
-  select(AreaOfInterest, AreaOfInterestID, County) %>%
-  unique() %>%
-  arrange(AreaOfInterest)
-# Alligator: different
-# Butler: different
-# Cypress: different
-# Jackson: different
-# Minnehaha: different
-# Trout: different
-# Withlacoochee River: different
-# from Google maps, it looks like county lines are drawn around lakes
 
 # make county names all uppercase
 # add GNIS ID's to control data
