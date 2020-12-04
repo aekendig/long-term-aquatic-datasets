@@ -1,6 +1,6 @@
 #### info ####
 
-# goal: visualize herbicide activity
+# goal: visualize water quality data
 
 
 #### set-up ####
@@ -16,6 +16,10 @@ qual <- read_csv("original-data/Lakewatch_1986-2019_TP_TN_Chl_Secchi_Color_Cond.
 
 
 #### edit data ####
+
+# check for missing location data
+sum(is.na(qual$Lake))
+sum(is.na(qual$County))
 
 # add columns
 qual2 <- qual %>%

@@ -1,6 +1,6 @@
 #### info ####
 
-# goal: visualize herbicide activity
+# goal: visualize management activity
 
 
 #### set-up ####
@@ -96,6 +96,10 @@ ctrl %>%
 # Trout: different
 # Withlacoochee River: different
 # from Google maps, it looks like county lines are drawn around lakes
+
+# check for missing data
+sum(is.na(ctrl$County)) # 0
+sum(is.na(ctrl$AreaOfInterest)) # 0
 
 # managed species
 sort(unique(ctrl$species))

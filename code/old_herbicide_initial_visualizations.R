@@ -1,6 +1,6 @@
 #### info ####
 
-# goal: visualize herbicide activity from 97/98 to 2000
+# goal: visualize management activity from 97/98 to 2000
 
 
 #### set-up ####
@@ -13,31 +13,47 @@ library(tidyverse)
 library(fst)
 
 # import data
-mgmt <- read_fst("original-data/PrePMARS_IPMData.fst")
+ctrl_old <- read_fst("original-data/PrePMARS_IPMData.fst")
 
 
 #### edit data ####
 
 # species
-unique(mgmt$Species)
+unique(ctrl_old$Species)
 
 # two AOI columns
-mgmt %>%
+ctrl_old %>%
   filter(as.character(AOI) != as.character(AreaOfInterest)) %>%
   select(AOI, AreaOfInterest) %>%
   unique()
 # not identical, AreaOfInterest seems more accurate
 
-mgmt %>%
+ctrl_old %>%
   filter(is.na(AreaOfInterest))
 # 4 
+# also missing county
+# only one record of interest (floating plants)
+# all ID's are zero
 
-mgmt %>%
+ctrl_old %>%
   filter(is.na(AOI))
 # 0
 
+# isolate missing data
+(ctrl_old_miss <- ctrl_old %>%
+    filter(is.na(County) | is.na(AreaOfInterest)) %>%
+    data.frame())
+
+# check rest of data for AOI
+ctrl_old %>%
+  filter(AOI %in% ctrl_old_miss$AOI)
+
+ctrl_old %>%
+  filter(AreaOfInterest %in% ctrl_old_miss$AOI)
+# no other information
+
 # duplicate AreaOfInterest names
-mgmt_AOI <- mgmt %>%
+ctrl_old_AOI <- ctrl_old %>%
   mutate(AreaOfInterest = as.character(AreaOfInterest),
          AreaOfInterest = ifelse(is.na(AreaOfInterest), 
                                  as.character(AOI), 
@@ -50,8 +66,8 @@ mgmt_AOI <- mgmt %>%
   unique()
 
 # same lake in multiple counties or different lakes?
-mgmt %>%
-  filter(AreaOfInterest %in% mgmt_AOI$AreaOfInterest) %>%
+ctrl_old %>%
+  filter(AreaOfInterest %in% ctrl_old_AOI$AreaOfInterest) %>%
   select(AreaOfInterest, AreaOfInterestID, County) %>%
   unique() %>%
   arrange(AreaOfInterest)
@@ -66,9 +82,10 @@ mgmt %>%
 # Withlacoochee River: different
 
 # make Area ID a factor
-mgmt2 <- mgmt %>%
+ctrl_old2 <- ctrl_old %>%
+  filter(!is.na(AreaOfInterest)) %>%
   mutate(AreaOfInterest = as.character(AreaOfInterest),
-         AOIF = as.factor(ifelse(AreaOfInterest %in% mgmt_AOI$AreaOfInterest, 
+         AOIF = as.factor(ifelse(AreaOfInterest %in% ctrl_old_AOI$AreaOfInterest, 
                                  paste(AreaOfInterest, County, sep = "_"), 
                                  AreaOfInterest)),
          AOI_group = cut(as.numeric(AOIF), breaks = 8),
@@ -80,16 +97,16 @@ mgmt2 <- mgmt %>%
          floating = ifelse(managed_species == "floating", 1, 0))
 
 # check species grouping
-mgmt2 %>%
+ctrl_old2 %>%
   group_by(managed_species) %>%
   summarise(species = paste(unique(Species), collapse = ", "))
 
 # groups for pdf
-AOI_grp = sort(unique(mgmt2$AOI_group))
+AOI_grp = sort(unique(ctrl_old2$AOI_group))
 
 # years of dataset
-mgmt_years = tibble(Year = c(min(mgmt2$Year), max(mgmt2$Year))) %>%
-  expand_grid(mgmt2 %>%
+ctrl_old_years = tibble(Year = c(min(ctrl_old2$Year), max(ctrl_old2$Year))) %>%
+  expand_grid(ctrl_old2 %>%
                 select(AOIF, AOI_group) %>%
                 unique())
 
@@ -100,18 +117,18 @@ mgmt_years = tibble(Year = c(min(mgmt2$Year), max(mgmt2$Year))) %>%
 pdf("output/old_management_lake_time_series.pdf")
 for(i in 1:length(AOI_grp)){
   
-  mgmt_sub <- mgmt2 %>%
+  ctrl_old_sub <- ctrl_old2 %>%
     filter(AOI_group == AOI_grp[i])
   
-  mgmt_years_sub <- mgmt_years %>%
+  ctrl_old_years_sub <- ctrl_old_years %>%
     filter(AOI_group == AOI_grp[i])
   
-  print(ggplot(data = mgmt_sub,
+  print(ggplot(data = ctrl_old_sub,
                aes(x = Year,
                    y = AOIF,
                    color = AOIF)) +
           geom_point() +
-          geom_line(data = mgmt_years_sub,
+          geom_line(data = ctrl_old_years_sub,
                     size = 0.3,
                     aes(color = AOIF)) +
           scale_x_continuous(breaks = 1998:2010) +
@@ -129,18 +146,18 @@ dev.off()
 pdf("output/old_hydrilla_management_lake_time_series.pdf")
 for(i in 1:length(AOI_grp)){
   
-  mgmt_sub <- mgmt2 %>%
+  ctrl_old_sub <- ctrl_old2 %>%
     filter(AOI_group == AOI_grp[i] & hydrilla == 1)
   
-  mgmt_years_sub <- mgmt_years %>%
+  ctrl_old_years_sub <- ctrl_old_years %>%
     filter(AOI_group == AOI_grp[i])
   
-  print(ggplot(data = mgmt_sub,
+  print(ggplot(data = ctrl_old_sub,
                aes(x = Year,
                    y = AOIF,
                    color = AOIF)) +
           geom_point() +
-          geom_line(data = mgmt_years_sub,
+          geom_line(data = ctrl_old_years_sub,
                     size = 0.3,
                     aes(color = AOIF)) +
           scale_x_continuous(breaks = 1998:2010) +
@@ -158,18 +175,18 @@ dev.off()
 pdf("output/old_floating_management_lake_time_series.pdf")
 for(i in 1:length(AOI_grp)){
   
-  mgmt_sub <- mgmt2 %>%
+  ctrl_old_sub <- ctrl_old2 %>%
     filter(AOI_group == AOI_grp[i] & floating == 1)
   
-  mgmt_years_sub <- mgmt_years %>%
+  ctrl_old_years_sub <- ctrl_old_years %>%
     filter(AOI_group == AOI_grp[i])
   
-  print(ggplot(data = mgmt_sub,
+  print(ggplot(data = ctrl_old_sub,
                aes(x = Year,
                    y = AOIF,
                    color = AOIF)) +
           geom_point() +
-          geom_line(data = mgmt_years_sub,
+          geom_line(data = ctrl_old_years_sub,
                     size = 0.3,
                     aes(color = AOIF)) +
           scale_x_continuous(breaks = 1998:2010) +
@@ -185,7 +202,7 @@ dev.off()
 
 # managed species
 pdf("output/old_management_lake_species.pdf")
-mgmt2 %>%
+ctrl_old2 %>%
   group_by(managed_species) %>%
   summarise(units = length(unique(AOIF))) %>%
   ggplot(aes(x = managed_species, y = units)) +
@@ -195,7 +212,7 @@ mgmt2 %>%
   xlab("Managed species") +
   theme_bw()
 
-mgmt2 %>%
+ctrl_old2 %>%
   group_by(managed_species) %>%
   summarise(units = length(unique(paste(AOIF, Year)))) %>%
   ggplot(aes(x = managed_species, y = units)) +
@@ -209,7 +226,7 @@ dev.off()
 
 # management actions per lake
 pdf("output/old_management_action_histogram.pdf")
-mgmt2 %>%
+ctrl_old2 %>%
   group_by(AOIF, managed_species) %>%
   summarise(actions = n()) %>%
   ggplot(aes(x = actions, fill = managed_species)) +
@@ -223,4 +240,4 @@ dev.off()
 
 
 #### output data as csv ####
-write_csv(mgmt, "original-data/PrePMARS_IPMData.csv")
+write_csv(ctrl_old, "original-data/PrePMARS_IPMData.csv")
