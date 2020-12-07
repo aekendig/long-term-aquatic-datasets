@@ -312,7 +312,7 @@ ctrl2 %>%
   geom_histogram(binwidth = 1, color = "black") +
   scale_x_log10() +
   ylab("Number of water bodies") +
-  xlab("Number of management actions (2010-2000)") +
+  xlab("Number of management actions (2010-2020)") +
   theme_bw() +
   theme(legend.position = c(0.8, 0.8))
 
@@ -324,7 +324,7 @@ ctrl2 %>%
   geom_histogram(binwidth = 1, color = "black") +
   scale_x_log10() +
   ylab("Number of water bodies") +
-  xlab("Number of herbicide applications (2010-2000)") +
+  xlab("Number of herbicide applications (2010-2020)") +
   theme_bw() +
   theme(legend.position = c(0.8, 0.8))
 dev.off()

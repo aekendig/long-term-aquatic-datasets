@@ -12,17 +12,7 @@ rm(list = ls())
 library(tidyverse)
 
 # import data
-lw_plant <- read_csv("original-data/Lakewatch_Plant_Surveys.csv",
-                     col_types = cols(.default = col_double(),
-                                      County = col_character(),
-                                      Lake = col_character(),
-                                      Date = col_character(),
-                                      Common_name = col_character(),
-                                      Genus = col_character(),
-                                      Species = col_character(),
-                                      Genus_species = col_character(),
-                                      Other_name = col_character()))
-# specify column types because Other_name causes an error
+lw_plant <- read_csv("original-data/Lakewatch_Plant_Surveys.csv")
 
 
 #### edit data ####
@@ -36,15 +26,19 @@ sum(is.na(lw_plant$Genus_species))
 lw_plant %>%
   filter(is.na(Genus_species)) %>%
   data.frame()
+# some have other data about the plants
 
 # check frequency
 lw_plant %>%
-  mutate(rows_stations = round(N_rows / Stations * 100)) %>%
-  select(Stations, N_rows, Frequency_percent, rows_stations) %>%
-  filter(rows_stations != Frequency_percent) %>%
+  mutate(rows_stations = N_rows / Stations * 100,
+         rows_stations = case_when(rows_stations - round(rows_stations) == 0.5 ~ rows_stations + 0.5,
+                                   TRUE ~ round(rows_stations))) %>%
+  filter(rows_stations < round(Frequency_percent)) %>%
   data.frame()
-# many cases where frequency doesn't match expected value...asked Mark
-# when this is figured out, add evenness to lake summary below and species-specific abundance to lw_plant2
+# many cases where frequency doesn't match expected value
+# when Frequency_percent is less than rows/stations * 100, other data were collected from the stations, but not species ID --> use the Frequency_percent value
+# 20 cases where Frequency_percent is more than rows/stations * 100, off by a few points
+# these are all from the same lake and sampling time, so they may be a mistake in the methods --> use rows_stations
 
 # add columns
 lw_plant2 <- lw_plant %>%
@@ -53,13 +47,53 @@ lw_plant2 <- lw_plant %>%
            as.factor(),
          lake_group = cut(as.numeric(lake_county), breaks = 10),
          lake_county = fct_rev(lake_county),
-         tot_biomass_kg_m2 = rowSums(.[c("Em_biomass_kg_m2", "Fl_biomass_kg_m2", "Sub_biomass_kg_m2")]))
+         tot_biomass_kg_m2 = rowSums(.[c("Em_biomass_kg_m2", "Fl_biomass_kg_m2", "Sub_biomass_kg_m2")]),
+         rows_stations = N_rows / Stations * 100,
+         rows_stations = case_when(rows_stations - round(rows_stations) == 0.5 ~ rows_stations + 0.5,
+                                   TRUE ~ round(rows_stations)),
+         species_frequency = ifelse(rows_stations < round(Frequency_percent),
+                                    rows_stations/100,
+                                    Frequency_percent/100))
 
 # summarize by lake
+# rename duplicate unknown species in a genus
+# use max cover for duplicate species
+# add lake-level data in at end
 lw_plant_lake <- lw_plant2 %>%
-  group_by(County, Lake, Year, Month, Day, Date, Stations, Em_fl_zone_width_ft, Em_biomass_kg_m2, Fl_biomass_kg_m2, Sub_biomass_kg_m2, Lake_depth_m, Percent_area_covered, Percent_volume_inhabited, date, lake_county, lake_group, tot_biomass_kg_m2) %>%
-  summarise(richness = sum(!is.na(unique(Genus_species)))) %>%
-  ungroup()
+  filter(!is.na(Genus_species)) %>%
+  group_by(County, Lake, Year, Month, Day, date) %>%
+  mutate(dup_species = duplicated(Genus_species),
+         Genus_species = case_when(dup_species == T & Species == "spp." ~ paste(Genus_species, "2", sep = " "),
+                                   TRUE ~ Genus_species)) %>%
+  ungroup() %>%
+  group_by(County, Lake, Year, Month, Day, date, Genus_species) %>%
+  summarise(species_frequency = max(species_frequency)) %>%
+  ungroup() %>% 
+  group_by(County, Lake, Year, Month, Day, date) %>%
+  summarise(richness = length(Genus_species),
+            shannon = -1 * sum(species_frequency * log(species_frequency)),
+            evenness = shannon / log(length(Genus_species)),
+            dup_species = sum(duplicated(Genus_species))) %>%
+  ungroup() %>%
+  full_join(lw_plant2 %>%
+              select(County, Lake, Year, Month, Day, date, Stations, Em_fl_zone_width_ft, Em_biomass_kg_m2, Fl_biomass_kg_m2, Sub_biomass_kg_m2, Lake_depth_m, Percent_area_covered, Percent_volume_inhabited, lake_county, lake_group, tot_biomass_kg_m2) %>%
+              unique())
+
+# check for duplicate species
+spp_dup <- lw_plant_lake %>%
+  filter(dup_species > 0) %>%
+  select(County, Lake, Year, Month, Day)
+
+lw_plant2 %>%
+  inner_join(spp_dup) %>%
+  group_by(County, Lake, Year, Month, Day) %>%
+  mutate(dup_species = duplicated(Genus_species)) %>%
+  filter(dup_species == T) %>%
+  select(County:Day, Genus_species)
+# one is genus-level - may be two different species
+# one is a species and it's unclear how to combine it - use larger value
+# never more than two duplicates
+# fixed these with code for lw_plant_lake
 
 # lake group
 lake_grp = sort(unique(lw_plant2$lake_group))
@@ -187,4 +221,94 @@ lw_plant_lake %>%
   xlab("Percent volume inhabited") +
   ylab("Number of surveys") +
   theme_bw()
+dev.off()
+
+# diversity histograms
+pdf("output/lakewatch_plant_survey_diversity_histograms.pdf")
+lw_plant_lake %>%
+  ggplot(aes(x = richness)) +
+  geom_histogram(color = "black", fill = "gray", binwidth = 5) +
+  geom_vline(xintercept = mean(lw_plant_lake$richness, na.rm = T),
+             linetype = "dashed",
+             color = "blue") +
+  xlab("Species richness") +
+  ylab("Number of surveys") +
+  theme_bw()
+
+lw_plant_lake %>%
+  ggplot(aes(x = evenness)) +
+  geom_histogram(color = "black", fill = "gray", binwidth = 1) +
+  geom_vline(xintercept = mean(lw_plant_lake$evenness, na.rm = T),
+             linetype = "dashed",
+             color = "blue") +
+  xlab("Species evenness") +
+  ylab("Number of surveys") +
+  theme_bw()
+
+lw_plant_lake %>%
+  ggplot(aes(x = shannon)) +
+  geom_histogram(color = "black", fill = "gray", binwidth = 1) +
+  geom_vline(xintercept = mean(lw_plant_lake$shannon, na.rm = T),
+             linetype = "dashed",
+             color = "blue") +
+  xlab("Shannon diversity") +
+  ylab("Number of surveys") +
+  theme_bw()
+dev.off()
+
+# hydrilla density
+pdf("output/lakewatch_plant_survey_hydrilla_time_series.pdf")
+lw_plant2 %>%
+  filter(Genus_species == "Hydrilla verticillata") %>%
+  group_by(lake_county, Year) %>%
+  summarise(frequency = mean(species_frequency)) %>%
+  ggplot(aes(x = Year, y = frequency)) +
+  geom_line(aes(color = lake_county), alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = "black") +
+  ylab("Hydrilla cover") +
+  theme_bw() +
+  theme(legend.position = "none")
+dev.off()
+
+# water lettuce
+pdf("output/lakewatch_plant_survey_pistia_time_series.pdf")
+lw_plant2 %>%
+  filter(Genus_species == "Pistia stratiotes") %>%
+  group_by(lake_county, Year) %>%
+  summarise(frequency = mean(species_frequency)) %>%
+  ggplot(aes(x = Year, y = frequency)) +
+  geom_line(aes(color = lake_county), alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = "black") +
+  ylab("Water lettuce cover") +
+  theme_bw() +
+  theme(legend.position = "none")
+dev.off()
+
+# water hyacinth
+# Eichhornia azurea (rooted water hyacinth) is also a species in the dataset, but there's only one record
+pdf("output/lakewatch_plant_survey_eichhornia_time_series.pdf")
+lw_plant2 %>%
+  filter(Genus_species == "Eichhornia crassipes") %>%
+  group_by(lake_county, Year) %>%
+  summarise(frequency = mean(species_frequency)) %>%
+  ggplot(aes(x = Year, y = frequency)) +
+  geom_line(aes(color = lake_county), alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = "black") +
+  ylab("Water hyacinth cover") +
+  theme_bw() +
+  theme(legend.position = "none")
+dev.off()
+
+# other species
+pdf("output/lakewatch_plant_survey_other_plants_time_series.pdf")
+lw_plant2 %>%
+  filter(!(Genus_species %in% c("Eichhornia crassipes", "Pistia stratiotes", "Hydrilla verticillata"))) %>%
+  group_by(lake_county, Year) %>%
+  summarise(frequency = mean(species_frequency)) %>%
+  ggplot(aes(x = Year, y = frequency)) +
+  geom_line(aes(color = lake_county), alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = "black") +
+  ylab("Plant cover (excluding hydrilla, water lettuce, and water hyacinth)") +
+  theme_bw() +
+  theme(legend.position = "none")
 dev.off()

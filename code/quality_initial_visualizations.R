@@ -26,7 +26,16 @@ qual2 <- qual %>%
   mutate(date = as.Date(paste(Month, Day, Year, sep = "-"), "%m-%d-%Y"),
          lake_county = paste(Lake, County, sep = "_") %>%
            as.factor(),
-         secchi_combined = ifelse(is.na(SECCHI_ft), SECCHI_2, SECCHI_ft),
+         secchi_combined = ifelse(is.na(SECCHI_ft), SECCHI_2, SECCHI_ft) %>%
+           tolower(),
+         secchi_bottom = ifelse(str_detect(secchi_combined, "bottom") == T, 1, 0),
+         secchi_weeds = ifelse(str_detect(secchi_combined, "weeds") == T, 1, 0),
+         secchi = case_when(secchi_combined == "." ~ NA_character_, 
+                            secchi_combined == "weeds" ~ NA_character_,
+                            secchi_combined == "weeds (surface)" ~ NA_character_,
+                            secchi_combined == "bottom" ~ NA_character_,
+                            TRUE ~ secchi_combined) %>%
+           parse_number(),
          lake_group = cut(as.numeric(lake_county), breaks = 30),
          lake_county = fct_rev(lake_county))
 
@@ -36,7 +45,7 @@ qual3 <- qual2 %>%
   summarize(TP = sum(!is.na(TP_ug_L)),
             TN = sum(!is.na(TN_ug_L)),
             chlorophyll = sum(!is.na(CHL_ug_L)),
-            turbidity = sum(!is.na(secchi_combined)),
+            turbidity = sum(!is.na(secchi)),
             color = sum(!is.na(Color_Pt_Co_Units)),
             conductivity = sum(!is.na(Cond_uS_cm))) %>%
   pivot_longer(cols = -c(lake_county:date), 
@@ -105,5 +114,114 @@ qual3 %>%
   geom_text(aes(label = units), vjust = -0.25, size = 3) +
   ylab("Lakes") +
   xlab("Number of quality variables") +
+  theme_bw()
+dev.off()
+
+
+# Total P
+# removes two values of zero
+pdf("output/lake_phosphorus_histogram.pdf")
+qual2 %>%
+  group_by(lake_county, date, Month, Year) %>%
+  summarise(TP = mean(TP_ug_L, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(month = month.name[Month] %>%
+           reorder(Month)) %>%
+  filter(TP > 0) %>%
+  ggplot(aes(x = TP, fill = month)) +
+  geom_histogram() +
+  ylab("Lake-year combinations") +
+  xlab("Total P (ug/L)") +
+  scale_x_log10() +
+  theme_bw()
+dev.off()
+
+# Total N
+# remove two values of zero (same as TP, error in data?)
+pdf("output/lake_nitrogen_histogram.pdf")
+qual2 %>%
+  group_by(lake_county, date, Month, Year) %>%
+  summarise(TN = mean(TN_ug_L, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(month = month.name[Month] %>%
+           reorder(Month)) %>%
+  filter(TN > 0) %>%
+  ggplot(aes(x = TN, fill = month)) +
+  geom_histogram() +
+  ylab("Lake-year combinations") +
+  xlab("Total N (ug/L)") +
+  scale_x_log10() +
+  theme_bw()
+dev.off()
+
+# Chlorophyll
+# add 0.1 to all values (minimum = 0.1)
+pdf("output/lake_chlorophyll_histogram.pdf")
+qual2 %>%
+  group_by(lake_county, date, Month, Year) %>%
+  summarise(Chl = mean(CHL_ug_L, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(month = month.name[Month] %>%
+           reorder(Month),
+         Chl2 = Chl + 0.1) %>%
+  filter(!is.na(Chl)) %>%
+  ggplot(aes(x = Chl2, fill = month)) +
+  geom_histogram() +
+  ylab("Lake-year combinations") +
+  xlab("Chlorophyll + 0.1 (ug/L)") +
+  scale_x_log10() +
+  theme_bw()
+dev.off()
+
+# Secchi
+pdf("output/lake_secchi_histogram.pdf")
+qual2 %>%
+  group_by(lake_county, date, Month, Year) %>%
+  summarise(secchi = mean(secchi, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(month = month.name[Month] %>%
+           reorder(Month)) %>%
+  filter(!is.na(secchi)) %>%
+  ggplot(aes(x = secchi, fill = month)) +
+  geom_histogram() +
+  ylab("Lake-year combinations") +
+  xlab("Water clarity (ft)") +
+  theme_bw()
+dev.off()
+
+# color
+# add 1 to visualize on log scale
+# minimum value other than 0 is 1
+pdf("output/lake_color_histogram.pdf")
+qual2 %>%
+  group_by(lake_county, date, Month, Year) %>%
+  summarise(color = mean(Color_Pt_Co_Units, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(month = month.name[Month] %>%
+           reorder(Month),
+         color2 = color +1) %>%
+  filter(!is.na(color)) %>%
+  ggplot(aes(x = color2, fill = month)) +
+  geom_histogram() +
+  ylab("Lake-year combinations") +
+  xlab("Water color + 1 (Pt-Co)") +
+  scale_x_log10() +
+  theme_bw()
+dev.off()
+
+# conductivity
+pdf("output/lake_conductivity_histogram.pdf")
+qual2 %>%
+  group_by(lake_county, date, Month, Year) %>%
+  summarise(conductivity = mean(Cond_uS_cm, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(month = month.name[Month] %>%
+           reorder(Month)) %>%
+  filter(!is.na(conductivity)) %>%
+  ggplot(aes(x = conductivity, fill = month)) +
+  geom_histogram() +
+  ylab("Lake-year combinations") +
+  xlab("Conductivity (uS/cm)") +
+  scale_x_log10() +
   theme_bw()
 dev.off()
