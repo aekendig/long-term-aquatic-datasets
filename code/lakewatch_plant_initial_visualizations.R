@@ -40,7 +40,27 @@ lw_plant %>%
 # 20 cases where Frequency_percent is more than rows/stations * 100, off by a few points
 # these are all from the same lake and sampling time, so they may be a mistake in the methods --> use rows_stations
 
+# frequency data
+lw_plant %>%
+  filter(!is.na(Genus_species) & (is.na(N_rows) | is.na(Stations) | is.na(Frequency_percent)))
+# none missing
+
+# extract duplicate data
+lw_plant %>%
+  group_by(County, Lake, Year, Month, Day) %>%
+  mutate(dup_species = duplicated(Genus_species)) %>%
+  ungroup() %>%
+  filter(dup_species == T) %>%
+  select(Genus_species) %>%
+  unique() %>%
+  data.frame()
+# one is genus-level - may be two different species
+# one is a species and it's unclear how to combine it - use larger value
+# never more than two duplicates
+# fixed these with code for lw_plant_lake
+
 # add columns
+# don't need to correct duplicates if this dataset doesn't use those species
 lw_plant2 <- lw_plant %>%
   mutate(date = as.Date(paste(Month, Day, Year, sep = "-"), "%m-%d-%Y"),
          lake_county = paste(Lake, County, sep = "_") %>%
@@ -56,18 +76,14 @@ lw_plant2 <- lw_plant %>%
                                     Frequency_percent/100))
 
 # summarize by lake
-# rename duplicate unknown species in a genus
+# sum duplicate unknown species in a genus
 # use max cover for duplicate species
 # add lake-level data in at end
 lw_plant_lake <- lw_plant2 %>%
   filter(!is.na(Genus_species)) %>%
-  group_by(County, Lake, Year, Month, Day, date) %>%
-  mutate(dup_species = duplicated(Genus_species),
-         Genus_species = case_when(dup_species == T & Species == "spp." ~ paste(Genus_species, "2", sep = " "),
-                                   TRUE ~ Genus_species)) %>%
-  ungroup() %>%
   group_by(County, Lake, Year, Month, Day, date, Genus_species) %>%
-  summarise(species_frequency = max(species_frequency)) %>%
+  summarise(species_frequency = case_when(str_detect(Genus_species, "spp.") == T ~ sum(species_frequency),
+                                          TRUE ~  max(species_frequency))) %>%
   ungroup() %>% 
   group_by(County, Lake, Year, Month, Day, date) %>%
   summarise(richness = length(Genus_species),
@@ -75,25 +91,10 @@ lw_plant_lake <- lw_plant2 %>%
             evenness = shannon / log(length(Genus_species)),
             dup_species = sum(duplicated(Genus_species))) %>%
   ungroup() %>%
+  mutate(evenness = ifelse(evenness == Inf, NA_real_, evenness)) %>%
   full_join(lw_plant2 %>%
               select(County, Lake, Year, Month, Day, date, Stations, Em_fl_zone_width_ft, Em_biomass_kg_m2, Fl_biomass_kg_m2, Sub_biomass_kg_m2, Lake_depth_m, Percent_area_covered, Percent_volume_inhabited, lake_county, lake_group, tot_biomass_kg_m2) %>%
               unique())
-
-# check for duplicate species
-spp_dup <- lw_plant_lake %>%
-  filter(dup_species > 0) %>%
-  select(County, Lake, Year, Month, Day)
-
-lw_plant2 %>%
-  inner_join(spp_dup) %>%
-  group_by(County, Lake, Year, Month, Day) %>%
-  mutate(dup_species = duplicated(Genus_species)) %>%
-  filter(dup_species == T) %>%
-  select(County:Day, Genus_species)
-# one is genus-level - may be two different species
-# one is a species and it's unclear how to combine it - use larger value
-# never more than two duplicates
-# fixed these with code for lw_plant_lake
 
 # lake group
 lake_grp = sort(unique(lw_plant2$lake_group))

@@ -1,0 +1,31 @@
+WaterbodyName,WaterbodyAcres,WaterbodyType,County,WMD,SurveyYear,SurveyDate,IsUnableToSurvey,Surveyor,IsDetected,IsAcreageRequire,SpeciesAcres,SpeciesName,Origin,Eppc,Habitat,HabitatShortName,AreaOfInterestID
+Snead's Smokehouse,81,Lake,Jefferson,NWFWMD,1983,8/18/1983,No,Jess Van Dyke,Yes,No,85,Nymphaea odorata,Native,No,Emersed,E,NA
+"Gleason, Lake",91,Lake,Volusia,SJRWMD,1984,10/29/1984,No,Dean Barber,Yes,No,100,Nitella spp.,Native,No,Submersed,S,NA
+Snead's Smokehouse,81,Lake,Jefferson,NWFWMD,1984,5/30/1984,No,Jess Van Dyke,Yes,No,90,Nymphaea odorata,Native,No,Emersed,E,NA
+Snead's Smokehouse,81,Lake,Jefferson,NWFWMD,1986,6/30/1986,No,NA,Yes,No,95,Nymphaea odorata,Native,No,Emersed,E,NA
+Gemini Springs,1,Lake,Volusia,SJRWMD,2009,8/21/2009,No,Kelli Gladding,Yes,Yes,8,Pistia stratiotes,Exotic,Yes,Floating,F,NA
+Gemini Springs,1,Lake,Volusia,SJRWMD,2011,8/12/2011,No,Kelli Gladding,Yes,Yes,1.2,Pistia stratiotes,Exotic,Yes,Floating,F,NA
+Gemini Springs,1,Lake,Volusia,SJRWMD,2015,9/1/2015,No,Carl Greene,Yes,Yes,2.2,Pistia stratiotes,Exotic,Yes,Floating,F,NA
+"Clarke, Lake",33,Lake,Palm beach,SFWMD,2017,10/10/2017,No,Susanna Toledo,Yes,Yes,35,Hydrilla verticillata,Exotic,Yes,Submersed,S,NA
+Ocklawaha River,297,River,Marion,SJRWMD,1990,11/7/1990,No,Robert Lovestrand,Yes,No,350,Pistia stratiotes,Exotic,Yes,Floating,F,NA
+Shingle Creek,10,River,Osceola,SFWMD,1995,11/1/1995,No,Greg Jubinsky,Yes,No,40,Salix spp.,Native,No,Emersed,E,NA
+Fisheating Creek,280,River,Glades,SFWMD,2000,10/17/2000,No,Jackie Smith,Yes,No,1000,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Fisheating Creek,280,River,Glades,SFWMD,2000,10/17/2000,No,Jackie Smith,Yes,No,700,Solanum tampicense,Exotic,Yes,Emersed,E,NA
+Fisheating Creek,280,River,Glades,SFWMD,2001,9/6/2001,No,Jackie Smith,Yes,No,875,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2004,10/25/2004,No,David Demmi,Yes,No,196.5,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2005,12/1/2005,No,David Demmi,Yes,No,220,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2009,10/20/2009,No,Erica Vanhorn,Yes,Yes,225,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2009,7/23/2009,No,Ed Harris,Yes,Yes,12,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2010,8/23/2010,No,Ed Harris,Yes,Yes,15,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2011,11/17/2011,No,Erica Vanhorn,Yes,Yes,200,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2011,9/13/2011,No,Ed Harris,Yes,Yes,15,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2012,9/27/2012,No,Ed Harris,Yes,Yes,15,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2014,10/31/2014,No,Kelle Sullivan,Yes,Yes,250,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2014,8/26/2014,No,Ed Harris,Yes,Yes,12,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2015,11/20/2015,No,Kelle Sullivan,Yes,Yes,175,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2015,8/26/2015,No,Ed Harris,Yes,Yes,12,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2016,10/31/2016,No,Kelle Sullivan,Yes,Yes,300,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,NA
+Shingle Creek,10,River,Osceola,SFWMD,2016,9/8/2016,No,Ed Harris,Yes,Yes,12,Colocasia esculenta,Exotic,Yes,Emersed,E,NA
+Arbuckle Creek,120,River,Highlands,SFWMD,2018,9/4/18,No,Geoffrey Lokuta,Yes,Yes,250,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,18
+Gemini Springs,1,Lake,Volusia,SJRWMD,2018,8/8/18,No,Carl Greene,Yes,Yes,3.5,Pistia stratiotes,Exotic,Yes,Floating,F,155
+Arbuckle Creek,120,River,Highlands,SFWMD,2019,10/15/19,No,Geoffrey Lokuta,Yes,Yes,200,Hymenachne amplexicaulis,Exotic,Yes,Emersed,E,18
