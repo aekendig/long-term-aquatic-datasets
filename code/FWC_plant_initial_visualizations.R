@@ -45,7 +45,8 @@ fwc_plant_new %>%
   select(WaterbodyName, Surveyor, SurveyDate, WaterbodyAcres, SpeciesAcres, SpeciesName) %>%
   arrange(SpeciesName, WaterbodyName, SurveyDate) %>%
   data.frame()
-# 30 cases where species acres exceeds waterbody acres -- check with Candice and Alex
+# 30 cases where species acres exceeds waterbody acres
+# marshes around waterbodies were likely surveyed
 
 # combine to save
 fwc_acreage_question <- fwc_plant %>%

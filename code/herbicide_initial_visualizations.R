@@ -95,7 +95,6 @@ ctrl %>%
 # Minnehaha: different
 # Trout: different
 # Withlacoochee River: different
-# from Google maps, it looks like county lines are drawn around lakes
 
 # check for missing data
 sum(is.na(ctrl$County)) # 0
