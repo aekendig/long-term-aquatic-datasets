@@ -40,9 +40,12 @@ ctrl_old2 <- ctrl_old %>%
   mutate(County_FWC = toupper(County) %>%
            str_replace_all(c("ST." = "SAINT", "ST"= "SAINT")) %>%
            str_replace("SAINTJOHNS", "SAINT JOHNS"),
+         AreaOfInterest = ifelse(AreaOfInterest == "Watermellon Pond", "Watermelon Pond", AreaOfInterest),
          Lake_FWC = str_replace_all(AreaOfInterest, c(", Lake" = "", "Lake " = "", " Lake" = "","'" = "")) %>%
            toupper(),
          Lake_FWC = case_when(AreaOfInterest == "Ella, Lake" & County_FWC == "LAKE" ~ "ELLA 2",
+                              Lake_FWC == "HALF MOON" & County_FWC == "MARION" ~ "HALFMOON",
+                              Lake_FWC == "LITTLE RED WATER" & County_FWC == "HIGHLANDS" ~ "LITTLE REDWATER",
                               TRUE ~ Lake_FWC)) %>%
   select(-County) %>%
   rename("Longitude_FWC" = "longitude",
@@ -50,6 +53,15 @@ ctrl_old2 <- ctrl_old %>%
          "SpeciesOrig" = "Species_orig",
          "TotalContFWC" = "Total_cont_fwc") %>%
   unique()
+
+# duplicate name/county combinations
+ctrl_old2 %>%
+  mutate(Lake_County = paste(Lake_FWC, County_FWC, sep = "_")) %>%
+  select(AreaOfInterest, AreaOfInterestID, Lake_County) %>%
+  unique() %>%
+  mutate(dups = duplicated(Lake_County)) %>%
+  filter(dups == T)
+# no
 
 
 #### control data ####
@@ -64,6 +76,10 @@ ctrl2 <- ctrl %>%
            str_replace_all(c("ST." = "SAINT", "ST"= "SAINT")),
          Lake_FWC = str_replace_all(AreaOfInterest, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
            toupper(),
+         Lake_FWC = case_when(AreaOfInterest == "Ella, Lake" & County_FWC == "LAKE" ~ "ELLA 2",
+                              Lake_FWC == "HALF MOON" & County_FWC == "MARION" ~ "HALFMOON",
+                              Lake_FWC == "LITTLE RED WATER" & County_FWC == "HIGHLANDS" ~ "LITTLE REDWATER",
+                              TRUE ~ Lake_FWC),
          BeginDate = as.Date(BeginDate, "%m/%d/%y")) %>%
   select(-County) %>%
   rename("Year" = "year",
@@ -74,6 +90,14 @@ ctrl2 <- ctrl %>%
          "Longitude_FWC" = "longitude",
          "Latitude_FWC" = "latitude") %>%
   unique()
+
+# duplicate name/county combinations
+ctrl2 %>%
+  mutate(Lake_County = paste(Lake_FWC, County_FWC, sep = "_")) %>%
+  select(AreaOfInterest, AreaOfInterestID, Lake_County) %>%
+  unique() %>%
+  mutate(dups = duplicated(Lake_County)) %>%
+  filter(dups == T)
 
 
 #### water quality data ####
@@ -87,10 +111,13 @@ ctrl2 <- ctrl %>%
 qual2 <- qual %>%
   mutate(County_LW = toupper(County) %>%
            str_replace_all(c("ST." = "SAINT", "ST"= "SAINT")),
+         County_LW = ifelse(County_LW == "SAINTLUCIE", "SAINT LUCIE", County_LW),
          Lake_LW = str_replace_all(Lake, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
            toupper(),
          Lake_LW = case_when(Lake_LW == "LITTLE RED FISH" & County_LW == "WALTON" ~ "LITTLE REDFISH",
                              Lake_LW == "REDWATER" & County_LW == "HIGHLANDS" ~ "RED WATER",
+                             Lake_LW == "BIVANS ARM" & County_LW == "ALACHUA" ~ "BIVENS ARM",
+                             Lake_LW == "ALLIGATOR SOUTH" & County_LW == "COLUMBIA" ~ "ALLIGATOR",
                              TRUE ~ Lake_LW),
          Date = as.Date(Date, "%m/%d/%y"),
          SecchiCombined = ifelse(is.na(SECCHI_ft), SECCHI_2, SECCHI_ft) %>%
@@ -122,10 +149,12 @@ qual2 <- qual %>%
 lw_plant2 <- lw_plant %>%
   mutate(County_LW = toupper(County) %>%
            str_replace_all(c("ST." = "SAINT", "ST"= "SAINT")),
+         County_LW = ifelse(County_LW == "SAINTLUCIE", "SAINT LUCIE", County_LW),
          Lake_LW = str_replace_all(Lake, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
            toupper(),
          Lake_LW = case_when(Lake_LW == "LITTLE RED FISH" & County_LW == "WALTON" ~ "LITTLE REDFISH",
                              Lake_LW == "REDWATER" & County_LW == "HIGHLANDS" ~ "RED WATER",
+                             Lake_LW == "MILLDAM" & County_LW == "MARION" ~ "MILL DAM",
                              TRUE ~ Lake_LW),
          Date = as.Date(paste(Month, Day, Year, sep = "-"), "%m-%d-%Y"),
          TotalBiomass_kg_m2 = rowSums(.[c("Em_biomass_kg_m2", "Fl_biomass_kg_m2", "Sub_biomass_kg_m2")]),
@@ -178,7 +207,8 @@ fwc_plant2 <- fwc_plant %>%
            str_replace_all(c("ST." = "SAINT", "ST"= "SAINT")),
          Lake_FWC = str_replace_all(WaterbodyName, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
            toupper(),
-         Lake_FWC = case_when(AreaOfInterest == "Ella, Lake" & County_FWC == "LAKE" ~ "ELLA 2",
+         Lake_FWC = case_when(Lake_FWC == "HALF MOON" & County_FWC == "MARION" ~ "HALFMOON",
+                              Lake_FWC == "LITTLE RED WATER" & County_FWC == "HIGHLANDS" ~ "LITTLE REDWATER",
                               TRUE ~ Lake_FWC),
          SpeciesAcres = case_when(str_detect(SpeciesName, "Filamentous algae|other|spp.|/") == T ~ sum(SpeciesAcres, na.rm = T),
                                      TRUE ~ max(SpeciesAcres, na.rm = T))) %>%
@@ -188,6 +218,15 @@ fwc_plant2 <- fwc_plant %>%
   mutate(SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres),
          SpeciesFrequency = SpeciesAcres / WaterbodyAcres)
 # will give warnings, but these are addressed by making -Inf into NAs
+
+# duplicate name/county combinations
+# AOI ID only in new dataset
+fwc_plant2 %>%
+  mutate(Lake_County = paste(Lake_FWC, County_FWC, sep = "_")) %>%
+  select(WaterbodyName, Lake_County) %>%
+  unique() %>%
+  mutate(dups = duplicated(Lake_County)) %>%
+  filter(dups == T)
 
 
 #### ID data ####
@@ -202,8 +241,11 @@ gnis2 <- gnis %>%
          Lake_LW = str_replace_all(Lake_LW, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
            toupper(),
          Lake_FWC = str_replace_all(AreaOfInterest, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
-           toupper()) %>%
-  unique()
+           toupper(),
+         Lake_FWC = case_when(Lake_FWC == "LITTLE RED WATER" & County_FWC == "HIGHLANDS" ~ "LITTLE REDWATER",
+                              TRUE ~ Lake_FWC)) %>%
+  unique() %>%
+  select(-AreaOfInterest)
 
 # county overlap
 gnis2 %>%
@@ -231,7 +273,7 @@ sum(is.na(gnis2$County_FWC))
 # none
 
 
-#### combine datasets ####
+#### combine datasets 1 ####
 
 # check for missing data data
 sum(is.na(ctrl_old2$Year))
@@ -251,17 +293,19 @@ sum(is.na(fwc_plant2$AreaOfInterest)) # no column
 # number of times each lake was sampled for each variable
 # start and end dates
 # leave out AreaOfInterestID from plant data (missing for a lot)
+# leave out AreaOfInterest (some mismatches)
+# note that ADMINISTRATION refers to "General lakes"
 lakes <- gnis2 %>%
   full_join(ctrl_old2  %>%
               mutate(CtrlOldStart = min(Year),
                      CtrlOldEnd = max(Year)) %>%
-              group_by(AreaOfInterest, Longitude_FWC, Latitude_FWC, County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd) %>%
+              group_by(County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd) %>%
               summarise(CtrlOld = length(unique(Year))) %>%
               ungroup()) %>%
   full_join(ctrl2 %>%
               mutate(CtrlStart = min(BeginDate),
                      CtrlEnd = max(BeginDate)) %>%
-              group_by(AreaOfInterest, Longitude_FWC, Latitude_FWC, County_FWC, Lake_FWC, CtrlStart, CtrlEnd) %>%
+              group_by(County_FWC, Lake_FWC, CtrlStart, CtrlEnd) %>%
               summarise(Ctrl = length(unique(BeginDate))) %>%
               ungroup()) %>%
   full_join(qual2 %>%
@@ -281,45 +325,15 @@ lakes <- gnis2 %>%
               summarise(FWCPlant = length(unique(SurveyDate)),
                         FWCPlantStart = min(SurveyDate),
                         FWCPlantEnd = max(SurveyDate)) %>%
-              ungroup()) %>%
-  mutate(CtrlOld = replace_na(CtrlOld, 0),
-         Ctrl = replace_na(Ctrl, 0),
-         Qual = replace_na(Qual, 0),
-         LWPlant = replace_na(LWPlant, 0),
-         FWCPlant = replace_na(FWCPlant, 0),
-         AnyCtrl = CtrlOld + Ctrl,
-         AnyPlant = LWPlant + FWCPlant,
-         DataType = case_when(AnyCtrl > 0 & Qual > 0 & AnyPlant > 0 ~ "all",
-                                AnyCtrl > 0 & Qual > 0 & AnyPlant == 0 ~ "ctrl + quality",
-                                AnyCtrl > 0 & Qual == 0 & AnyPlant > 0 ~ "ctrl + plant",
-                                AnyCtrl == 0 & Qual > 0 & AnyPlant > 0 ~ "quality + plant",
-                                AnyCtrl > 0 & Qual == 0 & AnyPlant == 0 ~ "ctrl only",
-                                AnyCtrl == 0 & Qual > 0 & AnyPlant == 0 ~ "quality only",
-                                AnyCtrl == 0 & Qual == 0 & AnyPlant > 0 ~ "plant only",
-                                AnyCtrl == 0 & Qual == 0 & AnyPlant == 0 ~ "none") %>%
-           fct_relevel("all", "ctrl + quality", "ctrl + plant", "quality + plant", "ctrl only", "quality only", "plant only"))
+              ungroup())
 
 
-
-#### match data ####
-
-# missing plant data (n = 1)
-lakes %>%
-  filter(DataType == "ctrl + quality") %>%
-  data.frame()
-
-lakes %>%
-  filter(DataType == "plant only" &
-           (str_detect(Lake_LW, "EM|MARSH|CONS") == T |
-           str_detect(Lake_FWC, "EM|MARSH|CONS") == T)) %>%
-  data.frame()
-# probably don't have plant data
+#### combine water bodies ####
 
 # data table of names
 lake_names <- lakes %>%
-  filter(is.na(GNIS_ID)) %>%
-  select(Lake_LW, Lake_FWC, County_LW, County_FWC) %>%
-  pivot_longer(everything(),
+  select(Lake_LW, Lake_FWC, County_LW, County_FWC, GNIS_ID) %>%
+  pivot_longer(-GNIS_ID,
                names_to = c(".value", "source"),
                names_pattern = "(.+)_(.+)") %>%
   mutate(Lake_County = paste(Lake, County, sep = "_")) %>%
@@ -329,16 +343,12 @@ lake_names <- lakes %>%
 write_csv(lake_names, "output/lake_names_for_clustering.csv")
 # used metaphone3 algorithm
 # checked lakes on Google Maps
+# made intermediate data file waterbody_split_combine_121620 to list
 
 # different spellings
 lakes %>%
   filter(County_FWC == "SAINT JOHNS") %>%
   data.frame()
-
-lakes %>%
-  filter(Lake_LW %in% c("JANE", "JEAN") & County_LW == "LEON") %>%
-  data.frame()
-# ask Mark about these
 
 lakes %>%
   filter(Lake_LW == "LITTLE RED FISH") %>%
@@ -352,33 +362,541 @@ lakes %>%
   filter(Lake_LW == "ELLA 2" | Lake_LW == "ELLA" | Lake_FWC == "ELLA") %>%
   data.frame()
 # two lake Ella's in one county 
-# Ella 2 in LW is probably Ella, Lake in FWC
+# Ella 2 in LW is probably "Ella, Lake" in FWC
 
-lakes %>%
-  filter(Lake_LW == "CLEARWATER 2" | Lake_LW == "CLEARWATER" | Lake_FWC == "CLEARWATER") %>%
-  filter(County_LW == "PUTNAM" | County_FWC == "PUTNAM") %>%
-  data.frame()
+# import list of lakes to split/combine
+lake_combos <- read_csv("intermediate-data/waterbody_split_combine_121620.csv")
 
-ctrl2 %>%
-  filter(AreaOfInterest == "Clearwater Lake" & County_FWC == "PUTNAM" & Lake_FWC == "CLEARWATER")
-# didn't have an AOI ID earlier, so it's not in the GNIS dataset
-#### START HERE: RESOLVE ABOVE ISSUE ####
-# In OpenRefine, check the similarly names lakes that are in LW
+# edit data
+lake_combos2 <- lake_combos %>%
+  mutate(common_lake_name = toupper(common_lake_name),
+         county = toupper(county)) %>%
+  filter(waterbody_guess == "combine") %>%
+  select(common_lake_name, county)
+
+# do in two steps so that I can check that the matched names are correct
+
+# gnis
+gnis3 <- gnis2 %>%
+  left_join(lake_combos2 %>%
+              rename("County_LW" = "county")) %>%
+  left_join(lake_combos2 %>%
+              rename("County_FWC" = "county")) %>%
+  mutate(Lake_FWC2 = case_when(str_detect(Lake_FWC, common_lake_name) == T ~ common_lake_name,
+                               TRUE ~ NA_character_),
+         Lake_LW2 = case_when(str_detect(Lake_LW, common_lake_name) == T ~ common_lake_name, 
+                              TRUE ~ NA_character_)) %>%
+  select(-common_lake_name) %>%
+  filter(!is.na(Lake_FWC2) | !(is.na(Lake_LW2))) %>%
+  full_join(gnis2) %>%
+  mutate(Lake_LW = ifelse(!is.na(Lake_LW2), Lake_LW2, Lake_LW),
+         Lake_FWC = ifelse(!is.na(Lake_FWC2), Lake_FWC2, Lake_FWC)) %>%
+  select(-c(GNIS_ID, Latitude, Longitude, Lake_LW2, Lake_FWC2)) %>%
+  unique()
+
+# ctrl_old
+ctrl_old3 <- ctrl_old2 %>%
+  left_join(lake_combos2 %>%
+              rename("County_FWC" = "county")) %>%
+  mutate(Lake_FWC2 = case_when(str_detect(Lake_FWC, common_lake_name) == T ~ common_lake_name,
+                               TRUE ~ NA_character_),
+         Lake_FWC2 = ifelse(Lake_FWC == "ROCK SPRING RUN", NA_character_, Lake_FWC2)) %>%
+  select(-common_lake_name) %>%
+  filter(!is.na(Lake_FWC2) & Lake_FWC2 != Lake_FWC) %>%
+  full_join(ctrl_old2) %>%
+  mutate(Lake_FWC = ifelse(!is.na(Lake_FWC2), Lake_FWC2, Lake_FWC)) %>%
+  select(-Lake_FWC2) %>%
+  unique()
+
+# ctrl
+ctrl3 <- ctrl2 %>%
+  left_join(lake_combos2 %>%
+              rename("County_FWC" = "county")) %>%
+  mutate(Lake_FWC2 = case_when(str_detect(Lake_FWC, common_lake_name) == T ~ common_lake_name,
+                               TRUE ~ NA_character_)) %>%
+  select(-common_lake_name) %>%
+  filter(!is.na(Lake_FWC2) & Lake_FWC2 != Lake_FWC) %>%
+  full_join(ctrl2) %>%
+  mutate(Lake_FWC = ifelse(!is.na(Lake_FWC2), Lake_FWC2, Lake_FWC)) %>%
+  select(-Lake_FWC2) %>%
+  unique()
+
+# fwc_plant
+fwc_plant3 <- fwc_plant2 %>%
+  left_join(lake_combos2 %>%
+              rename("County_FWC" = "county")) %>%
+  mutate(Lake_FWC2 = case_when(str_detect(Lake_FWC, common_lake_name) == T ~ common_lake_name,
+                               TRUE ~ NA_character_),
+         Lake_FWC2 = ifelse(Lake_FWC %in% c("ROCK SPRING RUN", "LITTLE HARRIS"), 
+                            NA_character_, 
+                            Lake_FWC2)) %>%
+  select(-common_lake_name) %>%
+  filter(!is.na(Lake_FWC2) & Lake_FWC2 != Lake_FWC) %>%
+  full_join(fwc_plant2) %>%
+  mutate(Lake_FWC = ifelse(!is.na(Lake_FWC2), Lake_FWC2, Lake_FWC)) %>%
+  select(-Lake_FWC2) %>%
+  unique()
+
+# water quality
+qual3 <- qual2 %>%
+  left_join(lake_combos2 %>%
+              rename("County_LW" = "county")) %>%
+  mutate(Lake_LW2 = case_when(str_detect(Lake_LW, common_lake_name) == T ~ common_lake_name,
+                               TRUE ~ NA_character_),
+         Lake_LW2 = ifelse(Lake_LW %in% c("ELDORADO", "LITTLE HARRIS", "MOUNT DORA", "MOORE POND", "CRYSTAL BOWL", "MIDDLE BEAR"),
+                           NA_character_,
+                           Lake_LW2)) %>%
+  select(-common_lake_name) %>%
+  filter(!is.na(Lake_LW2) & Lake_LW2 != Lake_LW) %>%
+  full_join(qual2) %>%
+  mutate(Lake_LW = ifelse(!is.na(Lake_LW2), Lake_LW2, Lake_LW)) %>%
+  select(-Lake_LW2) %>%
+  unique()
+# removed some duplicates
+
+# lw_plant
+lw_plant3 <- lw_plant2 %>%
+  left_join(lake_combos2 %>%
+              rename("County_LW" = "county")) %>%
+  mutate(Lake_LW2 = case_when(str_detect(Lake_LW, common_lake_name) == T ~ common_lake_name,
+                              TRUE ~ NA_character_),
+         Lake_LW2 = ifelse(Lake_LW %in% c("ELDORADO", "LITTLE HARRIS", "MOUNT DORA", "MOORE POND", "CRYSTAL BOWL", "MIDDLE BEAR"),
+                           NA_character_,
+                           Lake_LW2)) %>%
+  select(-common_lake_name) %>%
+  filter(!is.na(Lake_LW2) & Lake_LW2 != Lake_LW) %>%
+  full_join(lw_plant2) %>%
+  mutate(Lake_LW = ifelse(!is.na(Lake_LW2), Lake_LW2, Lake_LW)) %>%
+  select(-Lake_LW2) %>%
+  unique()
 
 
-#### visualize ####
+#### combine datasets 2 ####
+
+# FWC data
+lakes_FWC <- ctrl_old3  %>%
+  mutate(CtrlOldStart = min(Year),
+         CtrlOldEnd = max(Year)) %>%
+  group_by(County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd) %>%
+  summarise(CtrlOld = length(unique(Year))) %>%
+  ungroup() %>%
+  full_join(ctrl3 %>%
+              mutate(CtrlStart = min(BeginDate),
+                     CtrlEnd = max(BeginDate)) %>%
+              group_by(County_FWC, Lake_FWC, CtrlStart, CtrlEnd) %>%
+              summarise(Ctrl = length(unique(BeginDate))) %>%
+              ungroup()) %>%
+    full_join(fwc_plant3 %>%
+                group_by(County_FWC, Lake_FWC) %>%
+                summarise(FWCPlant = length(unique(SurveyDate)),
+                          FWCPlantStart = min(SurveyDate),
+                          FWCPlantEnd = max(SurveyDate)) %>%
+                ungroup()) %>%
+  left_join(gnis3) %>%
+  mutate(Lake_LW = ifelse(is.na(Lake_LW), Lake_FWC, Lake_LW),
+         County_LW = ifelse(is.na(County_LW), County_FWC, County_LW))
+
+# LW data
+lakes_LW <- qual3 %>%
+  group_by(County_LW, Lake_LW) %>%
+  summarise(Qual = length(unique(Date)),
+            QualStart = min(Date),
+            QualEnd = max(Date)) %>%
+  ungroup() %>%
+  full_join(lw_plant3 %>%
+              group_by(County_LW, Lake_LW) %>%
+              summarise(LWPlant = length(unique(Date)),
+                        LWPlantStart = min(Date),
+                        LWPlantEnd = max(Date)) %>%
+              ungroup()) %>%
+  left_join(gnis3) %>%
+  mutate(Lake_FWC = ifelse(is.na(Lake_FWC), Lake_LW, Lake_FWC),
+         County_FWC = ifelse(is.na(County_FWC), County_LW, County_FWC))
+
+# combine data
+lakes2 <- lakes_FWC %>%
+  full_join(lakes_LW) %>%
+  mutate(CtrlOld = replace_na(CtrlOld, 0),
+         Ctrl = replace_na(Ctrl, 0),
+         Qual = replace_na(Qual, 0),
+         LWPlant = replace_na(LWPlant, 0),
+         FWCPlant = replace_na(FWCPlant, 0),
+         AnyCtrl = CtrlOld + Ctrl,
+         AnyPlant = LWPlant + FWCPlant,
+         DataType = case_when(AnyCtrl > 0 & Qual > 0 & AnyPlant > 0 ~ "all",
+                              AnyCtrl > 0 & Qual > 0 & AnyPlant == 0 ~ "ctrl + quality",
+                              AnyCtrl > 0 & Qual == 0 & AnyPlant > 0 ~ "ctrl + plant",
+                              AnyCtrl == 0 & Qual > 0 & AnyPlant > 0 ~ "quality + plant",
+                              AnyCtrl > 0 & Qual == 0 & AnyPlant == 0 ~ "ctrl only",
+                              AnyCtrl == 0 & Qual > 0 & AnyPlant == 0 ~ "quality only",
+                              AnyCtrl == 0 & Qual == 0 & AnyPlant > 0 ~ "plant only",
+                              AnyCtrl == 0 & Qual == 0 & AnyPlant == 0 ~ "none") %>%
+           fct_relevel("all", "ctrl + quality", "ctrl + plant", "quality + plant", "ctrl only", "quality only", "plant only"))
 
 # counts per data type
-lakes %>%
+pdf("output/combined_data_types.pdf")
+lakes2 %>%
   group_by(DataType) %>%
   count() %>%
   ggplot(aes(x = DataType, y = n)) +
     geom_bar(stat = "identity") +
     geom_text(aes(label = n), vjust = -0.25, size = 3) +
     xlab("Data available") +
-    ylab("Water bodies") +
+    ylab("Waterbodies") +
     theme_bw()
+dev.off()
+
+# time lines
+unique(lakes2$CtrlOldStart)
+
+lake_times <- lakes2 %>%
+  rowwise() %>%
+  mutate(AnyCtrlStart = ifelse(AnyCtrl > 0,"1/1/1998", NA_character_) %>%
+           as.Date("%m/%d/%Y"),
+         AnyCtrlEnd = CtrlEnd,
+         AnyPlantStart = ifelse(AnyPlant > 0, as.character(min(c(FWCPlantStart, LWPlantStart), na.rm = T)), NA_character_) %>%
+           as.Date("%Y-%m-%d"),
+         AnyPlantEnd = ifelse(AnyPlant > 0, as.character(max(c(FWCPlantEnd, LWPlantEnd), na.rm = T)), NA_character_) %>%
+           as.Date("%Y-%m-%d")) %>%
+  ungroup() %>%
+  select(Lake_LW, County_LW, AnyCtrlStart, AnyCtrlEnd, AnyPlantStart, AnyPlantEnd, QualStart, QualEnd) %>%
+  rename(start_ctrl = AnyCtrlStart,
+         end_ctrl = AnyCtrlEnd,
+         start_plant = AnyPlantStart,
+         end_plant = AnyPlantEnd,
+         start_quality = QualStart,
+         end_quality = QualEnd) %>%
+  pivot_longer(cols = -c(Lake_LW, County_LW),
+               names_to = c(".value", "DataType"),
+               names_pattern = "(.+)_(.+)") %>%
+  pivot_longer(cols = c(start, end),
+               names_to = "TimePoints",
+               values_to = "Date") %>%
+  mutate(LakeCounty = paste(Lake_LW, County_LW, sep = "_") %>%
+           as.factor(),
+         LakeGroup = cut(as.numeric(LakeCounty), breaks = 5),
+         LakeCounty = fct_rev(LakeCounty))
+
+lake_times_grp = sort(unique(lake_times$LakeGroup))
+
+pdf("output/combined_data_time_series.pdf")
+for(i in 1:length(lake_times_grp)){
+  
+  lake_times_sub <- lake_times %>%
+    filter(LakeGroup == lake_times_grp[i])
+  
+  print(ggplot(data = lake_times_sub,
+               aes(x = Date,
+                   y = LakeCounty,
+                   color = DataType,
+                   linetype = DataType,
+                   shape = DataType)) +
+          geom_line(size = 0.3, alpha = 0.5) +
+          geom_point(size = 0.3) +
+          xlab("Date") +
+          ylab("Waterbody") +
+          theme_bw() +
+          theme(axis.text.y = element_blank(),
+                panel.grid.minor = element_blank(),
+                panel.grid.major = element_blank()))
+  
+}
+dev.off()
 
 
 
+#### check combined data ####
 
+# missing plant data (n = 6)
+lakes2 %>%
+  filter(DataType == "ctrl + quality") %>%
+  data.frame()
+
+lakes2 %>%
+  filter(DataType == "plant only" &
+           (str_detect(Lake_LW, "EM|MARSH|CONS|GRADY|WOOD|TUCKER|BONNET|BLUE") == T |
+              str_detect(Lake_FWC, "EM|MARSH|CONS|GRADY|WOOD|TUCKER|BONNET|BLUE") == T)) %>%
+  data.frame()
+# probably don't have plant data 
+
+# missing quality data (n = 154)
+lakes2 %>%
+  filter(DataType == "ctrl + plant") %>%
+  filter(!is.na(LWPlantStart)) %>%
+  select(Lake_LW, County_LW)
+# 3 lakes have LW plant data, should have quality data
+
+lakes2 %>%
+  filter(!is.na(QualStart) & str_detect(Lake_LW, "ALLIGATOR|TOWNSEND|THOMAS")) %>%
+  select(Lake_LW, County_LW, DataType)
+# called "Alligator South" in quality dataset (corrected above)
+
+# control data missing FWC plant data
+fwc_lake_match <- lakes2 %>%
+  filter((AnyCtrl > 0 & is.na(FWCPlantStart) | (AnyCtrl == 0 & !is.na(FWCPlantStart)))) %>%
+  select(Lake_FWC, County_FWC, AnyCtrl, FWCPlantStart)
+
+# export to use clustering in OpenRefine
+write_csv(fwc_lake_match, "output/fwc_lake_names_for_clustering.csv")
+# checked all clustering algorithms and didn't find any to group
+
+
+#### combine datasets hydrilla ####
+
+# volume data
+acres <- vol %>%
+  mutate(County_LW = toupper(County) %>%
+           str_replace_all(c("ST." = "SAINT", "ST"= "SAINT")),
+         County_LW = ifelse(County_LW == "SAINTLUCIE", "SAINT LUCIE", County_LW),
+         Lake_LW = str_replace_all(Lake, c(", Lake" = "", "Lake " = "", " Lake" = "", "'" = "")) %>%
+           toupper(),
+         Lake_LW = case_when(Lake_LW == "LITTLE RED FISH" & County_LW == "WALTON" ~ "LITTLE REDFISH",
+                             Lake_LW == "REDWATER" & County_LW == "HIGHLANDS" ~ "RED WATER",
+                             Lake_LW == "BIVANS ARM" & County_LW == "ALACHUA" ~ "BIVENS ARM",
+                             Lake_LW == "ALLIGATOR SOUTH" & County_LW == "COLUMBIA" ~ "ALLIGATOR",
+                             Lake_LW == "MILLDAM" & County_LW == "MARION" ~ "MILL DAM",
+                             TRUE ~ Lake_LW)) %>%
+  group_by(County_LW, Lake_LW) %>%
+  summarise(SurfaceAreaAcres = mean(Surface_area_acres)) %>%
+  ungroup()
+
+# FWC data
+hydrilla_FWC <- ctrl_old3  %>%
+  filter(Species == "Hydrilla verticillata") %>%
+  mutate(CtrlOldStart = min(Year),
+         CtrlOldEnd = max(Year),
+         CtrlOldYears = CtrlOldEnd - CtrlOldStart) %>%
+  group_by(County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd, CtrlOldYears) %>%
+  summarise(CtrlOld = length(unique(Year)),
+            CtrlOldAcres = mean(TotalAcres, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(CtrlOldFreq = CtrlOld/CtrlOldYears) %>%
+  full_join(ctrl3 %>%
+              filter(Species == "Hydrilla verticillata") %>%
+              mutate(CtrlStart = min(BeginDate),
+                     CtrlEnd = max(BeginDate),
+                     CtrlYears = as.numeric((CtrlEnd - CtrlStart)/365)) %>%
+              group_by(County_FWC, Lake_FWC, CtrlStart, CtrlEnd, CtrlYears) %>%
+              summarise(Ctrl = length(unique(BeginDate)),
+                        CtrlAcres = mean(TotalAcres, na.rm = T)) %>%
+              ungroup() %>%
+              mutate(CtrlFreq = Ctrl/CtrlYears)) %>%
+  full_join(fwc_plant3 %>%
+              filter(SpeciesName == "Hydrilla verticillata" & SpeciesFrequency <= 1) %>%
+              group_by(County_FWC, Lake_FWC) %>%
+              summarise(FWCPlant = length(unique(SurveyDate)),
+                        FWCPlantStart = min(SurveyDate),
+                        FWCPlantEnd = max(SurveyDate),
+                        FWCChange = coef(lm(SpeciesFrequency~SurveyDate))[2] %>% 
+                          as.numeric()) %>%
+              ungroup()) %>%
+  left_join(gnis3) %>%
+  mutate(Lake_LW = ifelse(is.na(Lake_LW), Lake_FWC, Lake_LW),
+         County_LW = ifelse(is.na(County_LW), County_FWC, County_LW))
+
+# LW data - format plants like above
+hydrilla_LW <- lw_plant3 %>%
+  filter(GenusSpecies == "Hydrilla verticillata") %>%
+  group_by(County_LW, Lake_LW) %>%
+  summarise(LWPlant = length(unique(Date)),
+            LWPlantStart = min(Date),
+            LWPlantEnd = max(Date),
+            LWChange = coef(lm(SpeciesFrequency~Date))[2] %>% 
+              as.numeric()) %>%
+  ungroup() %>%
+  left_join(gnis3) %>%
+  mutate(Lake_FWC = ifelse(is.na(Lake_FWC), Lake_LW, Lake_FWC),
+         County_FWC = ifelse(is.na(County_FWC), County_LW, County_FWC))
+
+# combine data
+hydrilla_lakes <- hydrilla_FWC %>%
+  full_join(hydrilla_LW) %>%
+  left_join(acres) %>%
+  mutate(CtrlOld = replace_na(CtrlOld, 0),
+         Ctrl = replace_na(Ctrl, 0),
+         LWPlant = replace_na(LWPlant, 0),
+         FWCPlant = replace_na(FWCPlant, 0),
+         AnyCtrl = CtrlOld + Ctrl,
+         AnyPlant = LWPlant + FWCPlant,
+         DataType = case_when(AnyCtrl > 0 & AnyPlant > 0 ~ "ctrl + plant",
+                              AnyCtrl > 0 & AnyPlant == 0 ~ "ctrl only",
+                              AnyPlant > 0 ~ "plant only",
+                              AnyCtrl == 0 & AnyPlant == 0 ~ "none") %>%
+           fct_relevel("ctrl + plant", "ctrl only", "plant only"),
+         AnyCtrlFreq = case_when(CtrlOld > 0 & Ctrl > 0 ~ (Ctrl + CtrlOld)/(CtrlYears + CtrlOldYears),
+                                 CtrlOld > 0 & Ctrl == 0 ~ CtrlOld/(unique(hydrilla_FWC$CtrlYears)[1] + CtrlOldYears),
+                                 CtrlOld == 0 & Ctrl > 0 ~ Ctrl/(CtrlYears + unique(hydrilla_FWC$CtrlOldYears)[1]),
+                                 TRUE ~ 0)) %>%
+  rowwise() %>%
+  mutate(AnyCtrlAcres = ifelse(AnyCtrl > 0, mean(c(CtrlAcres, CtrlOldAcres), na.rm = T)/SurfaceAreaAcres, 0)) %>%
+  ungroup() %>%
+  mutate(AnyCtrlAcres = ifelse(AnyCtrlAcres > 1, 1, AnyCtrlAcres))
+
+# save figures
+pdf("output/hydrilla_data_types.pdf")
+
+# data types
+hydrilla_lakes %>%
+  group_by(DataType) %>%
+  count() %>%
+  ggplot(aes(x = DataType, y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = n), vjust = -0.25, size = 3) +
+  xlab("Hydrilla data available") +
+  ylab("Waterbodies") +
+  theme_bw()
+
+# frequency histogram
+hydrilla_lakes %>%
+  mutate(FreqGroup = ifelse(AnyCtrlFreq <= 1, "<= 1", "> 1")) %>%
+  ggplot(aes(x = AnyCtrlFreq)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~ FreqGroup, scales = "free_x") +
+  xlab(expression(paste("Hydrilla treatment frequency (", year^-1, ")", sep = ""))) +
+  ylab("Waterbodies") +
+  theme_bw() +
+  theme(strip.background = element_blank())
+
+# intensity histogram
+hydrilla_lakes %>%
+  filter(!is.na(AnyCtrlAcres)) %>%
+  ggplot(aes(x = AnyCtrlAcres)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab("Proportion of lake treated for Hydrilla") +
+  ylab("Waterbodies") +
+  theme_bw() +
+  theme(strip.background = element_blank())
+
+# frequency by intensity
+hydrilla_lakes %>%
+  filter(!is.na(AnyCtrlAcres)) %>%
+  ggplot(aes(x = AnyCtrlAcres, y = AnyCtrlFreq)) +
+  geom_point() +
+  xlab("Proportion of lake treated for Hydrilla") +
+  ylab(expression(paste("Hydrilla treatment frequency (", year^-1, ")", sep = ""))) +
+  theme_bw()
+
+# close pdf
+dev.off()
+
+
+#### combine datasets floating ####
+
+# FWC data
+floating_FWC <- ctrl_old3  %>%
+  filter(str_detect(Species, "Eichhornia") == T | str_detect(Species, "Pistia") == T) %>%
+  mutate(CtrlOldStart = min(Year),
+         CtrlOldEnd = max(Year),
+         CtrlOldYears = CtrlOldEnd - CtrlOldStart) %>%
+  group_by(County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd, CtrlOldYears) %>%
+  summarise(CtrlOld = length(unique(Year)),
+            CtrlOldAcres = mean(TotalAcres, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(CtrlOldFreq = CtrlOld/CtrlOldYears) %>%
+  full_join(ctrl3 %>%
+              filter(str_detect(Species, "Eichhornia") == T | str_detect(Species, "Pistia") == T) %>%
+              mutate(CtrlStart = min(BeginDate),
+                     CtrlEnd = max(BeginDate),
+                     CtrlYears = as.numeric((CtrlEnd - CtrlStart)/365)) %>%
+              group_by(County_FWC, Lake_FWC, CtrlStart, CtrlEnd, CtrlYears) %>%
+              summarise(Ctrl = length(unique(BeginDate)),
+                        CtrlAcres = mean(TotalAcres, na.rm = T)) %>%
+              ungroup() %>%
+              mutate(CtrlFreq = Ctrl/CtrlYears)) %>%
+  full_join(fwc_plant3 %>%
+              filter(SpeciesName %in% c("Eichhornia crassipes", "Pistia stratiotes") & SpeciesFrequency <= 1) %>%
+              group_by(County_FWC, Lake_FWC) %>%
+              summarise(FWCPlant = length(unique(SurveyDate)),
+                        FWCPlantStart = min(SurveyDate),
+                        FWCPlantEnd = max(SurveyDate),
+                        FWCChange = coef(lm(SpeciesFrequency~SurveyDate))[2] %>% 
+                          as.numeric()) %>%
+              ungroup()) %>%
+  left_join(gnis3) %>%
+  mutate(Lake_LW = ifelse(is.na(Lake_LW), Lake_FWC, Lake_LW),
+         County_LW = ifelse(is.na(County_LW), County_FWC, County_LW))
+
+# LW data - format plants like above
+floating_LW <- lw_plant3 %>%
+  filter(GenusSpecies %in% c("Pistia stratiotes", "Eichhornia crassipes")) %>%
+  group_by(County_LW, Lake_LW) %>%
+  summarise(LWPlant = length(unique(Date)),
+            LWPlantStart = min(Date),
+            LWPlantEnd = max(Date),
+            LWChange = coef(lm(SpeciesFrequency~Date))[2] %>% 
+              as.numeric()) %>%
+  ungroup() %>%
+  left_join(gnis3) %>%
+  mutate(Lake_FWC = ifelse(is.na(Lake_FWC), Lake_LW, Lake_FWC),
+         County_FWC = ifelse(is.na(County_FWC), County_LW, County_FWC))
+
+# combine data
+floating_lakes <- floating_FWC %>%
+  full_join(floating_LW) %>%
+  left_join(acres) %>%
+  mutate(CtrlOld = replace_na(CtrlOld, 0),
+         Ctrl = replace_na(Ctrl, 0),
+         LWPlant = replace_na(LWPlant, 0),
+         FWCPlant = replace_na(FWCPlant, 0),
+         AnyCtrl = CtrlOld + Ctrl,
+         AnyPlant = LWPlant + FWCPlant,
+         DataType = case_when(AnyCtrl > 0 & AnyPlant > 0 ~ "ctrl + plant",
+                              AnyCtrl > 0 & AnyPlant == 0 ~ "ctrl only",
+                              AnyPlant > 0 ~ "plant only",
+                              AnyCtrl == 0 & AnyPlant == 0 ~ "none") %>%
+           fct_relevel("ctrl + plant", "ctrl only", "plant only"),
+         AnyCtrlFreq = case_when(CtrlOld > 0 & Ctrl > 0 ~ (Ctrl + CtrlOld)/(CtrlYears + CtrlOldYears),
+                                 CtrlOld > 0 & Ctrl == 0 ~ CtrlOld/(unique(hydrilla_FWC$CtrlYears)[1] + CtrlOldYears),
+                                 CtrlOld == 0 & Ctrl > 0 ~ Ctrl/(CtrlYears + unique(hydrilla_FWC$CtrlOldYears)[1]),
+                                 TRUE ~ 0)) %>%
+  rowwise() %>%
+  mutate(AnyCtrlAcres = ifelse(AnyCtrl > 0, mean(c(CtrlAcres, CtrlOldAcres), na.rm = T)/SurfaceAreaAcres, 0)) %>%
+  ungroup() %>%
+  mutate(AnyCtrlAcres = ifelse(AnyCtrlAcres > 1, 1, AnyCtrlAcres))
+
+# save figures
+pdf("output/floating_plant_data_types.pdf")
+
+# data types
+floating_lakes %>%
+  group_by(DataType) %>%
+  count() %>%
+  ggplot(aes(x = DataType, y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = n), vjust = -0.25, size = 3) +
+  xlab("Floating plant data available") +
+  ylab("Waterbodies") +
+  theme_bw()
+
+# frequency histogram
+floating_lakes %>%
+  mutate(FreqGroup = ifelse(AnyCtrlFreq <= 1, "<= 1", "> 1")) %>%
+  ggplot(aes(x = AnyCtrlFreq)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~ FreqGroup, scales = "free_x") +
+  xlab(expression(paste("Floating plant treatment frequency (", year^-1, ")", sep = ""))) +
+  ylab("Waterbodies") +
+  theme_bw() +
+  theme(strip.background = element_blank())
+
+# intensity histogram
+floating_lakes %>%
+  filter(!is.na(AnyCtrlAcres)) %>%
+  ggplot(aes(x = AnyCtrlAcres)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab("Proportion of lake treated for floating plants") +
+  ylab("Waterbodies") +
+  theme_bw() +
+  theme(strip.background = element_blank())
+
+# frequency by intensity
+floating_lakes %>%
+  filter(!is.na(AnyCtrlAcres)) %>%
+  ggplot(aes(x = AnyCtrlAcres, y = AnyCtrlFreq)) +
+  geom_point() +
+  xlab("Proportion of lake treated for floating plants") +
+  ylab(expression(paste("Floating plant treatment frequency (", year^-1, ")", sep = ""))) +
+  theme_bw()
+
+# close pdf
+dev.off()
