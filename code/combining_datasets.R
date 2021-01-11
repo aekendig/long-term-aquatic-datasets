@@ -26,6 +26,7 @@ fwc_plant_new <- read_csv("original-data/FWCSurvey_2018_2019.csv")
 gnis <- read_csv("original-data/LW_matching_Herbicide_lakes_with_GNIS.csv")
 depth <- read_csv("original-data/Mean_Depth_Data.csv")
 vol <- read_csv("original-data/Volume_Calculation.csv")
+hydro <- read_csv("original-data/Florida_Lakes_National_Hydrography_Dataset.csv")
 
 
 #### old control data ####
@@ -668,7 +669,11 @@ hydrilla_FWC <- ctrl_old3  %>%
          CtrlOldYears = CtrlOldEnd - CtrlOldStart) %>%
   group_by(County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd, CtrlOldYears) %>%
   summarise(CtrlOld = length(unique(Year)),
-            CtrlOldAcres = mean(TotalAcres, na.rm = T)) %>%
+            CtrlOldAcres = mean(TotalAcres, na.rm = T),
+            CtrlOldFirst = paste("01/01/", min(Year), sep = "") %>%
+              as.Date("%m/%d/%Y"),
+            CtrlOldLast = paste("01/01/", max(Year), sep = "") %>%
+              as.Date("%m/%d/%Y")) %>%
   ungroup() %>%
   mutate(CtrlOldFreq = CtrlOld/CtrlOldYears) %>%
   full_join(ctrl3 %>%
@@ -678,39 +683,25 @@ hydrilla_FWC <- ctrl_old3  %>%
                      CtrlYears = as.numeric((CtrlEnd - CtrlStart)/365)) %>%
               group_by(County_FWC, Lake_FWC, CtrlStart, CtrlEnd, CtrlYears) %>%
               summarise(Ctrl = length(unique(BeginDate)),
-                        CtrlAcres = mean(TotalAcres, na.rm = T)) %>%
+                        CtrlAcres = mean(TotalAcres, na.rm = T),
+                        CtrlFirst = min(BeginDate),
+                        CtrlLast = max(BeginDate)) %>%
               ungroup() %>%
               mutate(CtrlFreq = Ctrl/CtrlYears)) %>%
-  full_join(fwc_plant3 %>%
-              filter(SpeciesName == "Hydrilla verticillata" & SpeciesFrequency <= 1) %>%
+  left_join(fwc_plant3 %>%
+              filter(SpeciesFrequency <= 1) %>%
               group_by(County_FWC, Lake_FWC) %>%
               summarise(FWCPlant = length(unique(SurveyDate)),
                         FWCPlantStart = min(SurveyDate),
-                        FWCPlantEnd = max(SurveyDate),
-                        FWCChange = coef(lm(SpeciesFrequency~SurveyDate))[2] %>% 
-                          as.numeric()) %>%
+                        FWCPlantEnd = max(SurveyDate)) %>%
               ungroup()) %>%
   left_join(gnis3) %>%
   mutate(Lake_LW = ifelse(is.na(Lake_LW), Lake_FWC, Lake_LW),
          County_LW = ifelse(is.na(County_LW), County_FWC, County_LW))
 
-# LW data - format plants like above
-hydrilla_LW <- lw_plant3 %>%
-  filter(GenusSpecies == "Hydrilla verticillata") %>%
-  group_by(County_LW, Lake_LW) %>%
-  summarise(LWPlant = length(unique(Date)),
-            LWPlantStart = min(Date),
-            LWPlantEnd = max(Date),
-            LWChange = coef(lm(SpeciesFrequency~Date))[2] %>% 
-              as.numeric()) %>%
-  ungroup() %>%
-  left_join(gnis3) %>%
-  mutate(Lake_FWC = ifelse(is.na(Lake_FWC), Lake_LW, Lake_FWC),
-         County_FWC = ifelse(is.na(County_FWC), County_LW, County_FWC))
-
 # combine data
 hydrilla_lakes <- hydrilla_FWC %>%
-  full_join(hydrilla_LW) %>%
+  left_join(lakes_LW) %>%
   left_join(acres) %>%
   mutate(CtrlOld = replace_na(CtrlOld, 0),
          Ctrl = replace_na(Ctrl, 0),
@@ -728,7 +719,11 @@ hydrilla_lakes <- hydrilla_FWC %>%
                                  CtrlOld == 0 & Ctrl > 0 ~ Ctrl/(CtrlYears + unique(hydrilla_FWC$CtrlOldYears)[1]),
                                  TRUE ~ 0)) %>%
   rowwise() %>%
-  mutate(AnyCtrlAcres = ifelse(AnyCtrl > 0, mean(c(CtrlAcres, CtrlOldAcres), na.rm = T)/SurfaceAreaAcres, 0)) %>%
+  mutate(AnyCtrlAcres = ifelse(AnyCtrl > 0, mean(c(CtrlAcres, CtrlOldAcres), na.rm = T)/SurfaceAreaAcres, 0),
+         AnyCtrlFirst = min(c(CtrlOldFirst, CtrlFirst), na.rm = T),
+         AnyCtrlLast = max(c(CtrlOldLast, CtrlLast), na.rm = T),
+         AnyPlantFirst = min(c(FWCPlantStart, LWPlantStart), na.rm = T),
+         AnyPlantLast = max(c(FWCPlantEnd, LWPlantEnd), na.rm = T)) %>%
   ungroup() %>%
   mutate(AnyCtrlAcres = ifelse(AnyCtrlAcres > 1, 1, AnyCtrlAcres))
 
@@ -779,6 +774,29 @@ hydrilla_lakes %>%
 # close pdf
 dev.off()
 
+# timeline
+hydrilla_lakes %>%
+  filter(AnyPlantFirst < AnyCtrlFirst) # surveys before herbicide: 311
+
+hydrilla_lakes %>%
+  filter(AnyPlantLast > AnyCtrlFirst) # surveys after herbicide: 318
+
+hydrilla_lakes %>%
+  filter(AnyPlantFirst < AnyCtrlFirst & AnyPlantLast > AnyCtrlFirst) # surveys before and after herbicide: 303
+
+hydrilla_lakes %>%
+  filter(QualStart < AnyCtrlFirst) # quality before herbicide: 194
+
+hydrilla_lakes %>%
+  filter(QualEnd > AnyCtrlFirst) # quality after herbicide: 200
+
+hydrilla_lakes %>%
+  filter(QualStart < AnyCtrlFirst & QualEnd > AnyCtrlFirst) # quality before and after herbicide: 162
+
+hydrilla_lakes %>%
+  filter(AnyPlantFirst < AnyCtrlFirst & AnyPlantLast > AnyCtrlFirst &
+           QualStart < AnyCtrlFirst & QualEnd > AnyCtrlFirst) # everything before and after: 158
+
 
 #### combine datasets floating ####
 
@@ -790,7 +808,11 @@ floating_FWC <- ctrl_old3  %>%
          CtrlOldYears = CtrlOldEnd - CtrlOldStart) %>%
   group_by(County_FWC, Lake_FWC, CtrlOldStart, CtrlOldEnd, CtrlOldYears) %>%
   summarise(CtrlOld = length(unique(Year)),
-            CtrlOldAcres = mean(TotalAcres, na.rm = T)) %>%
+            CtrlOldAcres = mean(TotalAcres, na.rm = T),
+            CtrlOldFirst = paste("01/01/", min(Year), sep = "") %>%
+              as.Date("%m/%d/%Y"),
+            CtrlOldLast = paste("01/01/", max(Year), sep = "") %>%
+              as.Date("%m/%d/%Y")) %>%
   ungroup() %>%
   mutate(CtrlOldFreq = CtrlOld/CtrlOldYears) %>%
   full_join(ctrl3 %>%
@@ -800,39 +822,25 @@ floating_FWC <- ctrl_old3  %>%
                      CtrlYears = as.numeric((CtrlEnd - CtrlStart)/365)) %>%
               group_by(County_FWC, Lake_FWC, CtrlStart, CtrlEnd, CtrlYears) %>%
               summarise(Ctrl = length(unique(BeginDate)),
-                        CtrlAcres = mean(TotalAcres, na.rm = T)) %>%
+                        CtrlAcres = mean(TotalAcres, na.rm = T),
+                        CtrlFirst = min(BeginDate),
+                        CtrlLast = max(BeginDate)) %>%
               ungroup() %>%
               mutate(CtrlFreq = Ctrl/CtrlYears)) %>%
-  full_join(fwc_plant3 %>%
+  left_join(fwc_plant3 %>%
               filter(SpeciesName %in% c("Eichhornia crassipes", "Pistia stratiotes") & SpeciesFrequency <= 1) %>%
               group_by(County_FWC, Lake_FWC) %>%
               summarise(FWCPlant = length(unique(SurveyDate)),
                         FWCPlantStart = min(SurveyDate),
-                        FWCPlantEnd = max(SurveyDate),
-                        FWCChange = coef(lm(SpeciesFrequency~SurveyDate))[2] %>% 
-                          as.numeric()) %>%
+                        FWCPlantEnd = max(SurveyDate)) %>%
               ungroup()) %>%
   left_join(gnis3) %>%
   mutate(Lake_LW = ifelse(is.na(Lake_LW), Lake_FWC, Lake_LW),
          County_LW = ifelse(is.na(County_LW), County_FWC, County_LW))
 
-# LW data - format plants like above
-floating_LW <- lw_plant3 %>%
-  filter(GenusSpecies %in% c("Pistia stratiotes", "Eichhornia crassipes")) %>%
-  group_by(County_LW, Lake_LW) %>%
-  summarise(LWPlant = length(unique(Date)),
-            LWPlantStart = min(Date),
-            LWPlantEnd = max(Date),
-            LWChange = coef(lm(SpeciesFrequency~Date))[2] %>% 
-              as.numeric()) %>%
-  ungroup() %>%
-  left_join(gnis3) %>%
-  mutate(Lake_FWC = ifelse(is.na(Lake_FWC), Lake_LW, Lake_FWC),
-         County_FWC = ifelse(is.na(County_FWC), County_LW, County_FWC))
-
 # combine data
-floating_lakes <- floating_FWC %>%
-  full_join(floating_LW) %>%
+floating_lakes <- floating_FWC%>%
+  left_join(lakes_LW) %>%
   left_join(acres) %>%
   mutate(CtrlOld = replace_na(CtrlOld, 0),
          Ctrl = replace_na(Ctrl, 0),
@@ -850,7 +858,11 @@ floating_lakes <- floating_FWC %>%
                                  CtrlOld == 0 & Ctrl > 0 ~ Ctrl/(CtrlYears + unique(hydrilla_FWC$CtrlOldYears)[1]),
                                  TRUE ~ 0)) %>%
   rowwise() %>%
-  mutate(AnyCtrlAcres = ifelse(AnyCtrl > 0, mean(c(CtrlAcres, CtrlOldAcres), na.rm = T)/SurfaceAreaAcres, 0)) %>%
+  mutate(AnyCtrlAcres = ifelse(AnyCtrl > 0, mean(c(CtrlAcres, CtrlOldAcres), na.rm = T)/SurfaceAreaAcres, 0),
+         AnyCtrlFirst = min(c(CtrlOldFirst, CtrlFirst), na.rm = T),
+         AnyCtrlLast = max(c(CtrlOldLast, CtrlLast), na.rm = T),
+         AnyPlantFirst = min(c(FWCPlantStart, LWPlantStart), na.rm = T),
+         AnyPlantLast = max(c(FWCPlantEnd, LWPlantEnd), na.rm = T)) %>%
   ungroup() %>%
   mutate(AnyCtrlAcres = ifelse(AnyCtrlAcres > 1, 1, AnyCtrlAcres))
 
@@ -900,3 +912,26 @@ floating_lakes %>%
 
 # close pdf
 dev.off()
+
+# timeline
+floating_lakes %>%
+  filter(AnyPlantFirst < AnyCtrlFirst) # surveys before herbicide: 324
+
+floating_lakes %>%
+  filter(AnyPlantLast > AnyCtrlFirst) # surveys after herbicide: 336
+
+floating_lakes %>%
+  filter(AnyPlantFirst < AnyCtrlFirst & AnyPlantLast > AnyCtrlFirst) # surveys before and after herbicide: 305
+
+floating_lakes %>%
+  filter(QualStart < AnyCtrlFirst) # quality before herbicide: 182
+
+floating_lakes %>%
+  filter(QualEnd > AnyCtrlFirst) # quality after herbicide: 205
+
+floating_lakes %>%
+  filter(QualStart < AnyCtrlFirst & QualEnd > AnyCtrlFirst) # quality before and after herbicide: 150
+
+floating_lakes %>%
+  filter(AnyPlantFirst < AnyCtrlFirst & AnyPlantLast > AnyCtrlFirst &
+           QualStart < AnyCtrlFirst & QualEnd > AnyCtrlFirst) # everything before and after: 135
