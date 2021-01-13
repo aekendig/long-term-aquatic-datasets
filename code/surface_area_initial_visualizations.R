@@ -73,7 +73,8 @@ vol2 <- vol %>%
   group_by(County_LW, Lake_LW) %>%
   summarise(SurfaceAreaAcres = mean(Surface_area_acres),
             SurfaceAreaMeters = mean(Surface_area_meters)) %>%
-  ungroup()
+  ungroup() %>%
+  left_join(gnis2)
 
 # area data
 hydro2 <- hydro %>%
@@ -83,7 +84,7 @@ hydro2 <- hydro %>%
            toupper())
 
 # check area data for duplicates
-hydro2 %>%
+dup_lakes <- hydro2 %>%
   group_by(County_LW, Lake_LW) %>%
   summarise(lakes = n(),
             names = paste(NAME, collapse = ", "),
@@ -93,7 +94,17 @@ hydro2 %>%
   ungroup() %>%
   filter(lakes > 1)
 # 300 cases, the ones shown have the same exact name
-#### start here: emailed FDEP ####
+
+# are any lakes from other datasets in this duplicate dataset
+inner_join(vol2, dup_lakes) # 40
+inner_join(fwc_plant2, dup_lakes) # 31
+
+# GNIS ID (if available from FDEP)?
+inner_join(vol2, dup_lakes) %>%
+  filter(!is.na(GNIS_ID)) # 7
+
+inner_join(fwc_plant2, dup_lakes) %>%
+  filter(!is.na(GNIS_ID)) # 15
 
 # combine data
 area <- full_join(hydro2, fwc_plant2) %>%
@@ -109,6 +120,13 @@ hydro_fwc <- area %>%
   unique() %>%
   mutate(meters_diff = (SHAPEAREA - WaterbodyMeters)/WaterbodyMeters,
          acres_diff = (SHAPEAREA - WaterbodyAcres)/WaterbodyAcres)
+
+# duplicates
+inner_join(hydro_fwc, dup_lakes) %>%
+  arrange(County_LW, Lake_LW) %>%
+  data.frame()
+# size does not necessarily help match the lakes between datasets
+# get coordinates for FWC plant data
 
 hydro_fwc %>%
   ggplot(aes(x = meters_diff)) +
