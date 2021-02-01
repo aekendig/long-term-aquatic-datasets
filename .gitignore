@@ -43,3 +43,10 @@ vignettes/*.pdf
 # Data
 /original-data/
 /intermediate-data/
+
+# gis projects
+/gis/projects/
+
+# large gis files
+/gis/layers/FL_NHD_Waterbody_merge.shp
+/gis/layers/FL_NHD_Waterbody_merge.dbf
