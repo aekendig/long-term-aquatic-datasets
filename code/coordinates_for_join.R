@@ -59,10 +59,11 @@ fwc_missing_gis <- fwc_plant %>%
               select(AreaOfInterestID, AreaOfInterest, County) %>%
               unique()) %>%
   anti_join(fwc_gis)
-# 79 out of 497 missing coordinates
+# 98 out of 497 missing coordinates
 
 fwc_missing_gis %>%
   filter(is.na(AreaOfInterestID))
+# 32 missing IDs
 
 
 #### edit LW data ####
@@ -116,13 +117,14 @@ qual %>%
   filter(is.na(gis))
 # none missing
 
-lw_plant %>%
+lw_plant_missing <- lw_plant %>%
   select(County, Lake) %>%
   unique() %>%
   left_join(lw_gis %>%
               mutate(gis = "yes")) %>%
   filter(is.na(gis))
 # 20 lakes - some spelling differences, some missing
+
 
 #### new FWC coordinates ####
 
@@ -214,12 +216,56 @@ lw_base %>%
   select(Station_ID, Latitude, Longitude) %>%
   data.frame()
 
+# English
+lw_base %>%
+  filter(Lake == "English" & County == "Putnam") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Estancia
+lw_base %>%
+  filter(Lake == "Estancia" & County == "Broward") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Fisher
+lw_base %>%
+  filter(Lake == "Fisher" & County == "Leon") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+lw_base %>%
+  filter(Lake == "Fisher" & County == "Leon" & Station != 1) %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame() %>%
+  summarise(latitude = mean(Latitude),
+            longitude = mean(Longitude)) %>%
+  data.frame()
+
+# Gannett Pond
+lw_base %>%
+  filter(Lake == "Gannett Pond" & County == "Leon") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Glade
+lw_base %>%
+  filter(Lake == "Glade" & County == "Miami-Dade") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Griffin West
+lw_base %>%
+  filter(Lake == "Griffin West" & County == "Lake") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
 
 
 #### output ####
-write_csv(fwc_gis, "intermediate-data/FWC_Herbicide_Coordinates.csv")
+write_csv(fwc_gis, "gis/data/FWC_Herbicide_Coordinates.csv")
 write_csv(fwc_missing_gis, "intermediate-data/FWC_Missing_Coordinates.csv")
-write_csv(fwc_replaced_gis %>% filter(!is.na(Longitude)), "intermediate-data/FWC_Replaced_Coordinates.csv")
+write_csv(fwc_replaced_gis %>% filter(!is.na(Longitude)), "gis/data/FWC_Replaced_Coordinates.csv")
 
-write_csv(lw_gis, "intermediate-data/Lakewatch_Coordinates.csv")
+write_csv(lw_gis, "gis/data/Lakewatch_Coordinates.csv")
 write_csv(lw_missing_gis, "intermediate-data/Lakewatch_Missing_Coordinates.csv")
+write_csv(lw_plant_missing, "intermediate-data/Lakewatch_Plant_Missing_Coordinates.csv")

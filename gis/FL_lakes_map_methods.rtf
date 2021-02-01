@@ -11,7 +11,7 @@
 {\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{hyphen\}}{\leveltext\leveltemplateid302\'01\uc0\u8259 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid4}
 {\list\listtemplateid5\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid401\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{hyphen\}}{\leveltext\leveltemplateid402\'01\uc0\u8259 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid5}}
 {\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}}
-\margl1440\margr1440\vieww26180\viewh16080\viewkind0
+\margl1440\margr1440\vieww34040\viewh16120\viewkind0
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
 \f0\fs24 \cf0 Goals: create a map of lakes used in our analysis, add unique IDs to all lakes in the dataset\
@@ -163,9 +163,8 @@ From Alex Dew - coordinates are correct, just collected form boat ramps\
 \f1 	}This works, just need to make sure Permanent_ field is a string (make an edited layer if needed, e.g. buffered radius)\
 \pard\tx220\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li720\fi-720\pardirnatural\partightenfactor0
 \ls5\ilvl0\cf3 {\listtext	\uc0\u8226 	}The coordinates for Little Sawyer Lake in Orange County in the Lakewatch dataset have a type-o (in ocean) - yes, edited lat/long in attributes table and used Zoom to Coordinate (Lat Lon Plugin) to get to lake (the geom is still the old lat/lon unless you reimport it)\cf4 \
-\ls5\ilvl0\cf3 {\listtext	\uc0\u8226 	}The coordinates for Riley Lake in Putnam County go to an area between two lakes, one named Hankley. There is a Riley Lake in Putnam County, but it\'92s in a different location. Checked coordinates, probably a type-o, same process as above\cf5 \
-\pard\tx220\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li720\fi-720\pardirnatural\partightenfactor0
-\ls5\ilvl0\cf5 {\listtext	\uc0\u8226 	}\cf3 The coordinates for Lake Tojo in Manatee County are not on a lake, but there is a Tojo Lake in the county that\'92s pretty far from this site. Check coordinates.\
+\ls5\ilvl0\cf3 {\listtext	\uc0\u8226 	}The coordinates for Riley Lake in Putnam County go to an area between two lakes, one named Hankley. There is a Riley Lake in Putnam County, but it\'92s in a different location. Checked coordinates, probably a type-o, same process as above\cf4 \
+\ls5\ilvl0\cf3 {\listtext	\uc0\u8226 	}\cf5 The coordinates for Lake Tojo in Manatee County are not on a lake, but there is a Tojo Lake in the county that\'92s pretty far from this site. Check coordinates.\cf3 \
 {\listtext	\uc0\u8226 	}Did a join by field value with Lakewatch_FWC_Waterbody_merge and FL_NHD_Waterbody_merge by Permanent_ so that I could see the shapes\
 \pard\tx940\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li1440\fi-1440\pardirnatural\partightenfactor0
 \ls5\ilvl1\cf3 {\listtext	
@@ -175,8 +174,12 @@ From Alex Dew - coordinates are correct, just collected form boat ramps\
 \f2 \uc0\u8259 
 \f1 	}checked coordinate-polygon matches (2329 records)\
 {\listtext	
-\f2 \cf5 \uc0\u8259 
-\f1 	}Bream in Washington County matched with Griffin Mill Pond - only one set of coordinates. Could these be wrong?\cf3 \expnd0\expndtw0\kerning0
+\f2 \uc0\u8259 
+\f1 	}\cf5 Bream in Washington County matched with Griffin Mill Pond - only one set of coordinates. Coordinates correct?\
+\ls5\ilvl1\cf3 {\listtext	
+\f2 \uc0\u8259 
+\f1 	}\cf5 English in Putnam county worked with Lake Lillie - coordinates all similar. Coordinates correct?\
+\ls5\ilvl1\cf3 	\expnd0\expndtw0\kerning0
 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 \cf3 \

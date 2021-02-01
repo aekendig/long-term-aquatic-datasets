@@ -15,15 +15,6 @@ library(tidyverse)
 ctrl <- read_csv("original-data/FWC_Herbicide_Treatments_mid2010-Oct2020.csv")
 
 
-#### export data for QGIS ####
-
-ctrl_gis <- ctrl %>%
-  select(AreaOfInterestID, longitude, latitude, AreaOfInterest) %>%
-  unique()
-
-write_csv(ctrl_gis, "intermediate-data/FWC_Herbicide_Coordinates.csv")
-
-
 #### edit data ####
 
 # isolate herbicides

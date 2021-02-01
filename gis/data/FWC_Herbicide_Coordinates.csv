@@ -1,0 +1,505 @@
+AreaOfInterestID,longitude,latitude,AreaOfInterest
+457,-81.344777,28.588786,"Virginia, Lake"
+485,-82.74474,29.0075,Withlacoochee River
+345,-81.800727,27.504408,Peace River
+292,-82.3142,28.425033,Middle Lake
+196,-82.62011,28.44121,Hunter's Lake
+443,-81.523833,28.441,"Tibet, Lake"
+81,-81.341517,28.475583,"Conway, Lake"
+213,-81.385583,28.48355,"Jessamine, Lake"
+129,-82.15425,27.920033,Ed Medard Reservoir
+470,-82.626753,28.532061,Weeki Wachee River
+398,-81.93045,26.9845,Shell/Prairie Creek Res.
+634,-81.52965,28.4721,Isleworth Lake
+76,-81.413533,28.517333,Clear Lake
+261,-81.531417,28.476967,"Louise, Lake"
+67,-81.523133,28.477233,"Chase, Lake"
+36,-81.516267,28.4788,"Blanche, Lake"
+55,-81.545117,28.49,"Butler, Lake"
+396,-81.51997,28.432487,"Sheen, Lake"
+469,-81.545879,28.502122,Wauseon Bay
+119,-81.53125,28.499367,"Down, Lake"
+255,-82.10225,29.50582,"Lochloosa, Lake"
+614,-81.9838841,29.4604276,Crystal and Blue Lakes
+472,-81.9546,28.99892,"Weir, Lake"
+403,-82.04119,29.21542,Silver River
+30,-81.72471,30.432885,Bethesda Lake FMA
+330,-82.20652,29.4281,Orange Lake
+323,-81.630748,30.460338,Oceanway FMA
+413,-81.638329,30.267965,St. Augustine Lake FMA
+159,-81.84569,29.80248,Georges Lake
+430,-83.082229,29.339827,Suwannee River
+385,-82.74419,29.86926,Santa Fe River
+234,-82.887458,30.423701,Lang Lake FMA
+384,-82.05215,29.71324,Santa Fe Lake
+11,-82.144795,29.779958,"Alto, Lake"
+317,-82.345539,29.94964,New River
+414,-80.7945,28.0105,St. Johns River
+482,-80.8458,28.24816,"Winder, Lake"
+18,-81.3529,27.56228,Arbuckle Creek
+161,-81.26589,28.89325,"Gleason, Lake"
+356,-80.835631,28.340909,"Poinsett, Lake"
+235,-81.43824,28.56662,"Lawne, Lake"
+206,-81.285361,27.378537,"Istokpoga, Lake"
+276,-81.42627,28.53795,"Mann, Lake"
+140,-81.409217,28.593983,"Fairview, Lake"
+386,-81.40195,28.585433,"Sarah, Lake"
+474,-81.41375,28.795,Wekiva River
+23,-82.267889,28.047831,Baker Creek
+188,-82.473617,27.96385,Hillsborough River
+625,-82.261623,27.829281,Grady Lake
+272,-81.351033,28.6217,"Maitland, Lake"
+333,-81.34695,28.6006,"Osceola, Lake"
+162,-81.506349,27.563378,"Glenada, Lake"
+454,-82.28625,27.2685,Upper Myakka Lake
+312,-82.273667,27.025283,Myakka River
+442,-82.272767,28.0544,"Thonotosassa, Lake"
+221,-81.43315,27.38819,"Josephine, Lake"
+75,-81.347925,27.312059,Clay Lake
+198,-81.342876,27.289695,"Huntley, Lake"
+54,-81.137039,29.434638,Bulow Creek
+115,-81.407933,29.290167,"Disston, Lake"
+422,-81.512717,29.430017,"Stella, Lake"
+21,-81.09455,28.937783,"Ashby, Lake"
+318,-82.25258,29.61812,"Newnan, Lake"
+471,-82.270333,27.988133,"Weeks, Lake"
+370,-82.59666,27.987192,Rocky Creek
+321,-81.264644,29.045876,North Lake Talmadge
+374,-82.587577,29.028833,"Rousseau, Lake"
+250,-81.47308,27.54122,Little Red Water Lake
+150,-82.087049,28.576982,"Gant, Lake and Canal"
+639,-81.97633,27.6311,Hardee Lakes FMA
+241,-81.513767,28.410383,Little Fish Lake
+355,-81.514117,28.422833,Pocket Lake
+263,-82.327667,27.21995,Lower Myakka Lake
+340,-82.11816,28.79476,"Panasoffkee, Lake"
+200,-84.24847,30.63343,"Iamonia, Lake"
+291,-83.969220000000007,30.55565,"Miccosukee, Lake"
+267,-85.882267,30.2208,"Lullwater, Lake"
+282,-85.60729,30.14173,Martin Bayou
+459,-83.99595,30.34476,Wacissa River
+433,-84.57723,30.41656,"Talquin, Lake"
+215,-81.26396,28.72669,"Jessup, Lake"
+122,-82.795899,30.41089,Eagle Lake FMA
+467,-82.60285,30.193317,Watertown Lake
+464,-80.73558,28.14694,"Washington, Lake"
+16,-81.60865,28.6091,"Apopka, Lake"
+165,-81.84601,28.89771,"Griffin, Lake"
+146,-80.87414,28.58903,Fox Lake
+112,-81.30735,29.159633,"Dias, Lake"
+38,-81.272067,29.032717,Blue Lake
+409,-80.868243,28.618315,South Lake
+638,-81.259925,29.058197,Cypress Lake
+202,-80.081822,26.480792,"Ida, Lake"
+332,-80.078481,26.595512,"Osborne, Lake"
+74,-80.073681,26.644146,"Clarke, Lake"
+350,-80.072266,26.682071,"Pine, Lake"
+246,-80.78636,28.066770000000002,Little Lake Sawgrass
+230,-81.777786,29.35523,"Kerr, Lake"
+419,-81.53715,28.57175,Starke Lake
+360,-81.53685,28.56408,"Prima Vista, Lake"
+615,-84.157402,30.432579,Lafayette Lake
+210,-84.32123,30.52985,"Jackson, Lake"
+170,-84.24816,30.52146,"Hall, Lake"
+107,-85.58679,30.3066,Deer Point Lake
+199,-86.75882,30.94078,Hurricane Lake FMA
+319,-81.358119,28.62236,"Nina, Lake"
+227,-86.12892,30.76973,Juniper Lake FMA
+290,-85.17012,30.7766,Merritt's Mill Pond
+37,-80.751069,27.729524,Blue Cypress Lake
+183,-80.79893,28.02571,"Hellen-Blazes, Lake"
+389,-80.78699,28.06955,"Sawgrass, Lake"
+44,-81.657736,28.143932,"Bonnet, Lake"
+209,-81.4768,27.49739,"Jackson, Lake"
+61,-84.29323,30.57371,Carr Lake
+326,-82.00414,28.82611,"Okahumpka, Lake"
+379,-80.949088,28.607891,Ruth Lake
+182,-81.877605,28.767873,Helena Run
+110,-81.90937,28.76926,"Denham, Lake"
+6,-81.56625,29.08019,Alexander Springs
+217,-81.657054,28.531209,Johns Lake
+28,-81.65533,28.77199,"Beauclair, Lake"
+60,-81.65639,28.76116,"Carlton, Lake"
+320,-81.54591,28.93371,"Norris, Lake"
+138,-81.73027,28.83665,"Eustis, Lake"
+488,-81.73044,28.90874,"Yale, Lake"
+15,-81.675696,28.766051,Apopka Beauclair Canal
+117,-81.67175,28.7916,"Dora, Lake"
+449,-81.6814,28.86665,Trout Lake
+167,-81.757691,28.852392,Haines Creek
+132,-81.71095,28.95891,Ella Lake
+177,-81.7929,28.7844,"Harris, Lake"
+70,-81.812970000000007,28.59878,"Cherry, Lake"
+185,-81.7789,28.56426,"Hiawatha, Lake"
+336,-81.870949,28.766339,Palatlakaha River
+53,-81.896081,28.763191,Bugg Springs
+104,-81.770797,28.81155,Dead River
+297,-81.76208,28.52975,"Minnehaha, Lake"
+226,-81.717749,28.822075,"Junietta, Lake"
+249,-82.058475,29.576952,Little Orange Lake
+468,-82.302508,29.52984,"Wauberg, Lake"
+69,-83.415125,30.615751,Cherry Lake
+218,-82.08344,29.59099,Johnson Lake
+189,-82.06512,29.56489,Holdens Pond
+24,-81.32308,28.5718,"Baldwin, Lake"
+47,-82.4827,27.428083,Braden River
+273,-82.458033,27.527183,Manatee River
+435,-82.726402,28.114131,"Tarpon, Lake"
+431,-82.29375,30.11815,Swift Creek
+363,-82.43739,29.10245,Rainbow River
+118,-81.62268,29.00414,"Dorr, Lake"
+420,-81.419118,27.322749,Stearns Creek
+621,-81.422886,27.40481,Jackson Creek
+147,-81.405244,27.33864,"Francis, Lake"
+225,-81.38448,27.31465,"June-In-Winter, Lake"
+407,-83.720755,30.586297,Snead's Smokehouse
+451,-82.28663,28.85489,"Tsala Apopka, Lake"
+68,-82.597325,28.720619,Chassahowitzka River
+94,-82.67267,28.92069,Crystal River
+124,-81.866156,29.258301,"Eaton, Lake"
+640,-81.511237,30.225426,Baymeadows FMA
+190,-81.944688,28.024202,"Hollingsworth, Lake"
+438,-81.8124,28.1448,"Tennessee, Lake"
+366,-81.48596,27.74574,"Reedy, Lake"
+341,-81.74077,28.06712,"Pansy, Lake"
+372,-81.39703,27.9335,"Rosalie, Lake"
+376,-81.7079,28.002,"Roy, Lake"
+268,-81.7212,27.9961,"Lulu, Lake"
+281,-81.721356,28.028984,"Martha, Lake"
+380,-81.8845,28.0534,Saddle Creek FMA
+13,-81.605863,27.992072,"Annie, Lake"
+426,-81.6953,27.9992,"Summit, Lake"
+400,-81.7431,28.003,"Shipp, Lake"
+194,-81.7449,28.0239,"Howard, Lake"
+445,-81.36235,27.89514,"Tiger, Lake"
+286,-81.73687,28.01537,"May, Lake"
+52,-81.6627,27.80145,"Buffum, Lake"
+141,-81.6898,28.0593,"Fannie, Lake"
+631,-81.5925,27.893889,Twin Lakes
+439,-81.9147,28.0982,Tenoroc Pits
+172,-81.6526,28.0493,"Hamilton, Lake"
+19,-81.41281,27.71198,"Arbuckle, Lake"
+280,-81.52847,28.06153,"Marion, Lake"
+368,-81.7218,28.073,"Rochelle, Lake"
+125,-81.7345,28.0829,"Echo, Lake"
+253,-81.519167,27.685278,"Livingston, Lake"
+174,-81.8381,27.9688,"Hancock, Lake"
+342,-81.92815,28.05201,"Parker, Lake"
+203,-81.7565,28.0504,"Idylwild, Lake"
+25,-81.9036,27.9788,Banana Lake
+152,-81.730833,27.903333,"Garfield, Lake"
+160,-81.9619,28.1098,"Gibson, Lake"
+284,-81.77357,28.13736,"Mattie, Lake"
+80,-81.72123,28.06023,"Conine, Lake"
+447,-81.633889,28.110556,"Tracy, Lake"
+627,-81.966111,27.921667,Carter Road
+432,-81.7256,28.1027,Swoope Lake
+106,-81.7658,28.02458,Deer Lake
+168,-81.7082,28.0919,"Haines, Lake"
+154,-81.686396,27.841477,"Gator, Lake"
+180,-81.41921,28.02531,"Hatchineha, Lake"
+302,-81.73911,28.03996,"Mirror, Lake"
+404,-81.728333,28.031944,"Silver, Lake"
+279,-81.7649,28.0766,"Mariana, Lake"
+412,-81.73582,28.03875,"Spring, Lake"
+315,-81.67018,27.99799,"Ned, Lake"
+390,-81.774,28.0077,"Sears, Lake"
+197,-81.96444,28.0362,"Hunter, Lake"
+405,-81.71649,28.06203,Smart Lake
+441,-81.77983,28.01093,"Thomas, Lake"
+629,-81.705833,28.017778,Link Lake
+630,-81.711111,28.016389,Otis Lake
+427,-81.69504,27.83515,"Surveyors, Lake"
+475,-81.39923,27.81686,"Weohyakapka, Lake"
+628,-81.778333,27.989722,Grassy Lake
+130,-81.7099,28.0266,"Elbert, Lake"
+238,-81.813,28.06806,"Lena, Lake"
+214,-81.764,28.0584,"Jessie, Lake"
+51,-81.7061,28.0403,Buckeye Lake
+179,-81.7433,28.0558,"Hartridge, Lake"
+193,-82.615779,28.787308,Homosassa River
+327,-80.8149,26.953048,"Okeechobee, Lake"
+357,-81.907899,30.306188,Pope Duval East FMA
+358,-81.923173,30.304777,Pope Duval West FMA
+220,-81.43315,27.38819,Josephine Creek
+8,-82.632367,30.175,Alligator Lake
+375,-82.159,29.9225,Rowell Lake
+305,-82.644,30.18555,Montgomery Lake FMA
+92,-82.1537,29.950083,Crosby Lake
+56,-82.338599,30.034548,"Butler, Lake"
+135,-81.7046,27.9842,"Eloise, Lake"
+484,-81.6819,27.9746,"Winterset, Lake"
+216,-81.93996,27.99842,"John Wood, Lake"
+46,-81.9253,28.0378,"Bonny, Lake"
+233,-81.26561,27.91445,"Kissimmee, Lake"
+429,-82.9304,30.302829,Suwannee Lake FMA
+483,-81.76756,28.54589,"Winona, Lake"
+486,-83.181024,30.410717000000002,Withlacoochee River
+313,-83.44741,30.48141,Mystic Lake
+298,-81.358417,28.630883,"Minnehaha, Lake"
+613,-84.632421,30.630278,Laurie Lake
+633,-81.416811,28.134166,"Russell, Lake"
+636,-80.82139,27.27669,Upper Taylor Creek
+232,-81.197583,27.801624,Kissimmee River
+96,-81.32366,28.0794,Cypress Lake
+211,-81.16442,27.90953,"Jackson, Lake"
+476,-81.39925,28.26933,"Tohopekaliga, Lake"
+637,-80.291607,26.854169,C-XVIII watershed
+240,-82.36494,28.62928,"Lindsey, Lake"
+229,-86.64401,30.89566,Karick Lake FMA
+322,-82.449017,30.237633,Ocean Pond
+123,-81.28408,28.30613,East Lake Tohopekaliga
+64,-81.19094,28.27929,"Center, Lake"
+157,-81.24677,28.14056,"Gentry, Lake"
+378,-81.2552,28.25871,"Runnymede, Lake"
+153,-81.368438,28.491032,"Gatlin, Lake"
+91,-84.669309,29.874202,Crooked River
+620,-85.077088,29.743472,Huckleberry Creek
+283,-81.17855,28.38093,"Mary Jane, Lake"
+178,-81.21075,28.38175,"Hart, Lake"
+642,-80.162559,26.658594,"Okeeheelee Park, Lake"
+632,-80.387967,26.868159,Corbett WMA ponds
+314,-81.664538,30.589138,Nassau River
+149,-81.803889,27.76,Ft. Meade Pits
+20,-81.80836,28.07366,"Ariana, Lake"
+40,-81.77347,28.04577,"Blue, Lake"
+308,-82.05813,29.56222,Moss Lee Lake
+171,-82.593129,28.821783,Halls River
+626,-80.727603,27.845052,TM Goodwin WMA
+59,-81.754,28.0391,Cannon Lake
+285,-81.72131,28.03768,"Maude, Lake"
+349,-81.522222,27.975,"Pierce, Lake"
+143,-81.34627,28.27087,Fish Lake
+448,-81.49242,26.42042,"Trafford, Lake"
+265,-80.175367,26.932825,Loxahatchee River
+453,-81.33705,28.53982,"Underhill, Lake"
+288,-82.33742,28.64647,McKethan Lake
+635,-80.611912,26.086359,Water Conservation Areas
+278,-81.06644,27.87248,"Marian, Lake"
+9,-81.20444,28.21487,Alligator Lake
+254,-81.18631,28.24416,"Lizzie, Lake"
+311,-84.3085,30.36754,"Munson, Lake"
+105,-81.97926,28.83503,"Deaton, Lake"
+338,-82.3978,30.11705,Palestine Lake
+383,-82.1885,29.927167,Sampson Lake
+97,-81.659341,27.996184,"Daisy, Lake"
+90,-81.56543,27.8229,Crooked Lake
+222,-81.8033,28.1296,"Juliana, Lake"
+619,-86.541802,30.463568,Eglin Lakes FMA
+128,-81.158137,28.617513,Econlockhatchee River
+371,-81.806733,29.5214,Rodman Reservoir
+460,-84.21248,30.15022,Wakulla River
+415,-84.1493,30.27556,St. Marks River
+289,-81.753404,27.96777,"McLeod, Lake"
+295,-81.268633,29.058983,Miller Lake
+181,-81.230083,28.9846,"Helen, Lake"
+176,-81.04781,28.78143,"Harney, Lake"
+648,-85.577327,30.289655,Panama City Crayfish Wetlands
+643,-84.647644,30.18825,Apalachicola NF Ephemeral Ponds
+644,-86.787323,30.417584,Eglin Ephemeral Ponds
+303,-81.339767,28.594067,"Mizell, Lake"
+17,-81.36379,27.34178,"Apthorpe, Lake"
+114,-81.442572,27.51632,Dinner Lake
+382,-81.681186,29.324448,Salt Springs Run
+316,-81.402733,29.11315,Nelson Springs Run
+391,-81.48164,27.53303,"Sebring, Lake"
+353,-81.365051,27.242106,"Placid, Lake"
+139,-81.628333,28.095278,Eva Lake
+364,-81.403674,27.432626,Red Beach Lake
+207,-81.38076,28.56468,"Ivanhoe, Lake"
+455,-85.89595,30.95002,Victor Lake FMA
+624,-81.395917,27.278011,Catfish Creek
+264,-82.001356,29.847521,Lowery Lake FMA
+271,-82.017769,29.823792,Magnolia Lake FMA
+101,-85.641706,30.244081,Davis Lake
+62,-81.428601,27.336838,"Carrie, Lake"
+83,-81.18224,28.26657,Coon Lake
+653,-80.280579,26.838518,Mecca Farms
+14,-85.04839,29.7779,Apalachicola River
+310,-81.84387,28.1795,Mud Lake
+87,-81.77358,28.50601,Crescent Lake
+395,-84.92742,30.75494,"Seminole, Lake (Fl Section)"
+304,-81.270011,28.840071,"Monroe, Lake"
+487,-81.408583,29.10875,"Woodruf, Lake"
+424,-87.29097,30.96526,Stone Lake
+410,-81.26545,29.040683,South Lake Talmadge
+111,-81.48189,29.10663,"Dexter, Lake"
+328,-81.90262,29.37922,Ocklawaha River
+270,-82.653668,27.738681,"Maggiore, Lake"
+668,-82.515936,27.877889,Bobby Hicks Pond
+77,-81.548333,27.7425,"Clinch, Lake"
+656,-80.287492,26.967101,Hungryland WEA
+309,-82.31112,28.47966,Mountain Lake
+191,-81.71641,28.94096,Holly Lake
+166,-81.345711,30.109604,Guana River
+654,-81.881161,29.677683,"Grandin, Lake"
+387,-80.263417,27.299341,Savannas Preserve State Park
+71,-85.235703,30.819829,Chipola River
+659,-80.40733,25.603629,Zoo Miami Lakes
+478,-81.62898,29.163122,Wildcat Lake
+346,-82.89744,30.2448,Peacock Lake
+660,-81.925069,29.113458,Ocklawaha Prairie Restoration Area
+26,-81.62325,29.12276,Beakman Lake
+98,-81.62157,28.90144,"Dal Housie, Lake"
+361,-80.96205,28.60593,Puzzle Lake
+2,-81.81951,28.17591,"Agnes, Lake"
+612,-85.87886,30.232767,Frank Brown FMA
+337,-81.78425,28.55136,"Palatlakaha, Lake"
+1,-81.53228,27.64141,"Adelaide, Lake"
+99,-81.51056,27.63219,Damon Lake
+257,-81.4836,27.57904,"Lotela, Lake"
+239,-81.46231,27.56312,Letta Lake
+655,-80.32332,25.72708,Tropical Park FMA
+72,-86.12329,30.4019,Choctawhatchee River
+915,-85.577199,30.314497,Bay County Salvinia Areas
+184,-81.38162,27.32314,"Henry, Lake"
+657,-86.819371,30.657001,Garnier Creek
+48,-81.19618,28.16879,Brick Lake
+73,-80.94868,28.61709,Clark Lake
+259,-80.92988,28.62734,Loughman Lake
+204,-81.47673,27.64894,"Isabell, Lake"
+164,-81.61558,29.13517,Grasshopper Lake
+862,-82.312738,29.578257,Paynes Prairie
+186,-81.130275,26.793506,"Hicpochee, Lake"
+144,-81.137381,26.950781,Fisheating Creek
+665,-81.768204,26.202898,Airport Pulling Road Canal
+428,-81.75782,28.51526,"Susan, Lake"
+266,-81.85114,28.60305,"Lucy, Lake"
+351,-81.494471,27.622031,Pioneer Lake
+456,-81.495859,27.613383,"Viola, Lake"
+381,-80.91092,28.65562,Salt Lake
+1194,-81.770449,26.272396,Cocohatchee Canal
+1229,-81.99778,26.88435,Jones Loop Rd Right-of-Way
+262,-81.498767,29.322067,Lower Lake Louise
+299,-81.76805,28.56774,"Minneola, Lake"
+646,-82.070787,29.445669,Orange Creek Conservation Area
+82,-81.80779,28.59104,"Cook, Lake"
+480,-81.795,28.59511,"Wilson, Lake"
+450,-81.16898,28.2585,Trout Lake
+260,-81.73206,28.47921,Louisa Lake
+652,-80.734946,27.896271,TM Goodwin-Broadmoor Marsh
+394,-82.77925,27.8602,"Seminole, Lake"
+1213,-81.517402,26.474916,Corkscrew Marsh
+866,-80.375832,26.375758,Everglades WMA
+675,-80.840025,26.396876,Rotenberger WMA
+1320,-81.336885,27.36678,Peace Pond
+58,-81.760767,26.7166,Caloosahatchee River
+277,-81.6974,28.0161,"Mariam, Lake"
+951,-81.880647,29.667662,Clearwater Lake
+452,-81.66611,28.92014,"Umatilla, Lake"
+1326,-81.712778,28.041667,"Idyl, Lake"
+195,-81.82743,28.59072,"Hunt, Lake"
+423,-81.838061,28.549368,"Stewart, Lake"
+1212,-81.338811,28.932815,Blue Springs State Park Marsh
+237,-81.50318,27.572486,"Lelia, Lake"
+329,-81.54781,27.63263,"Olivia, Lake"
+324,-84.98211,30.68538,Ocheesee Pond
+100,-81.86024,28.55797,"David, Lake"
+477,-86.15152,30.32691,Western Lake
+1383,-80.251036,27.095399,Halpatiokee Regional Park Lakes
+1365,-81.941353,26.705144,Yellow Fever Creek
+1367,-80.690544,27.79862,Fellsmere Reservoir Area SGA
+95,-81.909722,28.026389000000002,"Crystal, Lake"
+446,-83.1198,30.03905,Townsend Lake
+301,-82.00523,28.90099,"Miona, Lake"
+50,-81.849674,29.143321,"Bryant, Lake"
+674,-80.736136,26.382183,Holey Land WMA
+307,-82.608617,28.285467,Moon Lake
+879,-82.291421,27.266335,Myakka River SP Wetlands
+109,-81.77284,29.42613,Delancey Lake
+269,-81.232913,28.972607,"Macy, Lake"
+1382,-82.452235,27.177049,Oscar Scherer Stae Park Lake
+1384,-82.097934,26.439334,Sanibel River Slough
+864,-81.690048,26.566358,Wild Turkey Strand Preserve
+136,-81.8499,28.6095,"Emma, Lake"
+1487,-80.540185,27.312941,Teague Hammock Preserve
+1541,-81.906081,29.235738,"Charles, Lake"
+1381,-81.824748,28.882454,Emeralda Marsh Conservation Area
+661,-81.655726,28.888529,Pine Meadows Restoration Area
+108,-81.93236,28.11231,"Deeson, Lake"
+173,-82.16954,29.859424,Hampton Lake
+1492,-81.061414,27.594667,Kissimmee Prairie Preserve
+975,-82.49377458,28.11837279,"Saddleback, Lake"
+1538,-81.560397,30.467622,William Sheffield
+618,-81.825672,30.304444,Crystal Springs FMA
+175,-81.404865,30.366364,Hanna Park FMA
+1072,-81.56107986,27.86391183,"Easy, Lake"
+1566,-80.342161,27.348528,St. Lucie River
+461,-81.57455,27.90162,"Wales, Lake"
+121,-81.7658,27.9863,Eagle Lake
+1641,-81.476944,28.103446,Poinciana Ponds & Canals
+1617,-84.0591,30.1571,Flint Rock Wildlife Mgmt Area Ephemeral Ponds
+1614,-80.530554,26.933634,Dupuis Management Area
+1606,-80.610891,27.679054,Ansin East Impoundment
+1633,-87.255996,30.40516,Bayou Chico
+1657,-81.734634,28.358137,Hilochee WMA
+1613,-80.2909,26.85185,FWC Palm Beach County Shooting Sports Park
+1612,-82.391225,30.217578,Osceola National Forest Ephemeral Ponds
+397,-81.88745,26.975467,Shell Creek
+359,-81.923383,26.985383,Prairie Creek
+31,-82.484967,27.436733,Bill Evers Reservoir
+1673,-87.215466,30.511716,Ferry Pass Pond
+41,-81.712253,30.597828,Boggy Creek
+296,-81.700783,30.582283,Mills Creek
+7,-81.7441,28.1001,"Alfred, Lake"
+622,-81.503404,27.586911,Tulane Lake
+465,-82.6065,29.5555,Watermelon Pond
+1662,-84.939122,30.74771,Apalachee Wildlife Management Area
+988,-81.413537,27.274964,"August, Lake"
+1667,-80.799004,27.215053,Lower Taylor Creek
+169,-81.82129,29.159,Half Moon Lake
+294,-81.839859,29.179932,Mill Dam Lake
+1682,-87.061108,30.470447,Garcon Point WMA
+1666,-84.523,30.48886,Joe Budd Pond
+156,-82.01323,29.76989,Geneva Lake
+1669,-81.475848,27.560515,Little Lake Bonnet
+148,-83.40907,30.4664,"Francis, Lake"
+12,-82.79015,28.1743,Anclote River
+248,-82.450667,27.702933,Little Manatee River
+1421,-81.91943272,28.88989159,"Ella, Lake"
+224,-81.85742,29.21728,"Jumper, Lake"
+365,-81.473211,27.541302,"Red Water, Lake"
+399,-81.448071,28.268613,Shingle Creek
+44,-81.441054,27.543738,"Bonnet, Lake"
+623,-81.419917,27.354579,Jacks Creek
+155,-81.30501,28.86107,Gemini Springs
+287,-81.22399393,28.89887257,"McGarity, Lake"
+131,-80.628117,28.114846,Elbow Creek
+387,-80.263417,27.299341,Savannas
+22,-83.96311,30.15056,Aucilla River
+465,-82.6065,29.5555,Watermellon Pond
+1315,-82.57713556,28.15378878,"Wood, Lake"
+440,-81.67347,30.5561,Thomas Creek
+78,-81.233417,28.965117,"Colby, Lake"
+35,-87.02926,30.60634,Blackwater River
+57,-82.325369,28.544136,Bystre
+625,-81.96609374,28.10703378,Grady Lake
+171,-81.92691,29.04052,Halls River
+50,-81.83419,29.17843,"Bryant, Lake"
+392,-81.63754,29.11532,Sellers Lake
+300,-81.619167,28.019167,"Minzie, Lake"
+1018,-81.50437486,28.44446668,"Tucker, Lake"
+369,-81.477015,28.745623,Rock Spring Run
+252,-81.3971,28.683933,Little Wekiva River
+251,-82.07824,29.77319,Little Santa Fe Lake
+1483,-81.86976573,29.17634152,"Silver, Lake"
+406,-85.672378,30.74202,Smith Lake
+362,-83.46141,30.45747,"Rachel, Lake"
+201,-82.790867,29.944885,Ichetucknee River
+4,-82.320475,27.867147,Alafia River
+658,-81.470522,28.502143,"Turkey, Lake"
+1060,-81.45075788,28.16397275,Reedy Creek
+848,-80.44812825,25.47794839,Homestead FS Waterways
+1494,-81.363581,29.134702,DeLeon Springs St Park Wetlands
+354,-81.653328,30.595578,Plummers Creek
+256,-81.571296,30.623478,Lofton Creek
+824,-81.3278139,28.67156362,"Triplet, Lake"
+1524,NA,NA,Administration
+1529,NA,NA,Administration
+127,-83.90665,30.05877,Econfina River
+93,-81.73537,29.54245,Cross Florida Barge Canal
+41,-81.733505,30.551595,Boggy Creek
+296,-81.68726,30.58339,Mills Creek
+0,NA,NA,NA
+416,-81.840288,30.78673,St. Mary's River
+743,-81.56879684,28.48542268,"Davis, Lake"

@@ -50,3 +50,4 @@ vignettes/*.pdf
 # large gis files
 /gis/layers/FL_NHD_Waterbody_merge.shp
 /gis/layers/FL_NHD_Waterbody_merge.dbf
+/gis/data/NHD_H_Florida_State_Shape.zip
