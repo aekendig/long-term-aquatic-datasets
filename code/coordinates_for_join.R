@@ -260,6 +260,47 @@ lw_base %>%
   select(Station_ID, Latitude, Longitude) %>%
   data.frame()
 
+# Hammock
+lw_base %>%
+  filter(Lake == "Hammock" & County == "Hillsborough") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# station 2 seems off
+
+lw_base %>%
+  filter(Lake == "Hammock" & County == "Hillsborough" & Station != 2) %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame() %>%
+  summarise(latitude = mean(Latitude),
+            longitude = mean(Longitude)) %>%
+  data.frame()
+
+# Harmony Estates-Retention Pond
+lw_base %>%
+  filter(Lake == "Harmony Estates-Retention Pond") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# station 2 coordinates are not a pond
+
+# Helen
+lw_base %>%
+  filter(Lake == "Helen" & County == "Broward") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Heron
+lw_base %>%
+  filter(Lake == "Heron" & County == "Lake") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# coordinates off a little
+
+# Holly
+lw_base %>%
+  filter(Lake == "Holly" & County == "Hillsborough") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
 
 #### output ####
 write_csv(fwc_gis, "gis/data/FWC_Herbicide_Coordinates.csv")
