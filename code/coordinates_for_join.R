@@ -301,6 +301,78 @@ lw_base %>%
   select(Station_ID, Latitude, Longitude) %>%
   data.frame()
 
+# Hubbert
+lw_base %>%
+  filter(Lake == "Hubbert" & County == "Orange") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Ironwood
+lw_base %>%
+  filter(Lake == "Ironwood B") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Johnson Pond
+lw_base %>%
+  filter(Lake == "Johnson Pond" & County == "Alachua") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Lee
+lw_base %>%
+  filter(Lake == "Lee" & County == "Orange") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# station 3 coordinate is not a lake
+
+lw_base %>%
+  filter(Lake == "Lee" & County == "Orange" & Station != 3) %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame() %>%
+  summarise(latitude = mean(Latitude),
+            longitude = mean(Longitude)) %>%
+  data.frame()
+
+# Lost
+lw_base %>%
+  filter(Lake == "Lost" & County == "Polk") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Lucy
+lw_base %>%
+  filter(Lake == "Lucy" & County == "Lake") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# third coordinate is off
+
+lw_base %>%
+  filter(Lake == "Lucy" & County == "Lake" & Station != 3) %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame() %>%
+  summarise(latitude = mean(Latitude),
+            longitude = mean(Longitude)) %>%
+  data.frame()
+
+# Mill Pond
+lw_base %>%
+  filter(Lake == "Mill Pond" & County == "Marion") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Offspring
+lw_base %>%
+  filter(Lake == "Offspring" & County == "Volusia") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Parkway Meadows
+lw_base %>%
+  filter(Lake == "Parkway Meadows" & County == "Brevard") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
 
 #### output ####
 write_csv(fwc_gis, "gis/data/FWC_Herbicide_Coordinates.csv")
