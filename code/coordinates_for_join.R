@@ -373,6 +373,78 @@ lw_base %>%
   select(Station_ID, Latitude, Longitude) %>%
   data.frame()
 
+# Pond 04-05
+lw_base %>%
+  filter(Lake == "Pond 04-05" & County == "Hillsborough") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Pond 1
+lw_base %>%
+  filter(Lake == "Pond 1" & County == "Charlotte") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# River Lake Manor
+lw_base %>%
+  filter(Lake == "River Lake Manor" & County == "Citrus") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Seneca
+lw_base %>%
+  filter(Lake == "Seneca" & County == "Broward") %>%
+  select(GNIS_ID, Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Shortline
+lw_base %>%
+  filter(Lake == "Shortline 1" & County == "Walton") %>%
+  select(GNIS_ID, Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Snake
+lw_base %>%
+  filter(Lake == "Snake" & County == "Hillsborough") %>%
+  select(GNIS_ID, Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Sunset
+lw_base %>%
+  filter(Lake == "Sunset" & County == "Lake") %>%
+  select(GNIS_ID, Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Wildmere
+lw_base %>%
+  filter(Lake == "Wildmere" & County == "Seminole") %>%
+  select(GNIS_ID, Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# third station is off
+
+lw_base %>%
+  filter(Lake == "Wildmere" & County == "Seminole" & Station != 3) %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame() %>%
+  summarise(latitude = mean(Latitude),
+            longitude = mean(Longitude)) %>%
+  data.frame()
+
+# Yancey
+lw_base %>%
+  filter(Lake == "Yancey" & County == "Brevard") %>%
+  select(GNIS_ID, Station_ID, Latitude, Longitude) %>%
+  data.frame()
+# first coordinate is off
+
+lw_base %>%
+  filter(Lake == "Yancey" & County == "Brevard" & Station != 1) %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame() %>%
+  summarise(latitude = mean(Latitude),
+            longitude = mean(Longitude)) %>%
+  data.frame()
+
 
 #### output ####
 write_csv(fwc_gis, "gis/data/FWC_Herbicide_Coordinates.csv")
