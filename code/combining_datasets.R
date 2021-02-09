@@ -26,10 +26,9 @@ fwc_ID <- read_csv("gis/data/FWC_Replaced_Coordinates.csv")
 qual <- read_csv("original-data/Lakewatch_1986-2019_TP_TN_Chl_Secchi_Color_Cond.csv")
 lw_plant <- read_csv("original-data/Lakewatch_Plant_Surveys.csv")
 qual_base <- read_csv("original-data/Lakewatch_Base_File_for_Amy_2020.csv")
-lw_plant_names <- read_csv("intermediate-data/Lakewatch_Plant_Base_Lake_Names.csv")
+lw_plant_names <- read_csv("intermediate-data/Lakewatch_Plant_Base_Lake_Names.csv") # made this manually based on intermediate-data/Lakewatch_Plant_Missing_Coordinates.csv
+lw_missing_gis <- read_csv("intermediate-data/Lakewatch_Missing_Coordinates.csv")
 
-
- 
 # gnis <- read_csv("original-data/LW_matching_Herbicide_lakes_with_GNIS.csv")
 # depth <- read_csv("original-data/Mean_Depth_Data.csv")
 # vol <- read_csv("original-data/Volume_Calculation.csv")
@@ -39,6 +38,10 @@ gis_man <- read_csv("gis/intermediate-data/Lakewatch_FWC_Waterbody_merge_join_ma
 
 
 #### gis data ####
+
+# look at notes
+unique(gis_ed$JoinNotes)
+unique(gis_man$JoinNotes)
 
 # remove lakes without shapes
 # add manually matched lakes back in
@@ -229,7 +232,7 @@ qual2 <- qual %>%
 
 #### lakewatch plant survey data ####
 
-# mismatched plant names
+# mismatched plant lake names
 # multiple permanent IDs?
 lw_plant_names %>%
   rename("AreaOfInterest" = "Lake_base") %>%
@@ -238,7 +241,7 @@ lw_plant_names %>%
               select(AreaOfInterest, County, PermanentID) %>%
               unique()) %>%
   data.frame()
-# one part of Ivanhoe was assigned a different ID, but it hasn't been manually checked yet
+# one part of Ivanhoe was assigned a different ID, this is a different lake
 # use first option for each
 
 # format date
@@ -289,9 +292,43 @@ lw_plant2 <- lw_plant %>%
   unique()
 
 
-#### combine datasets 1 ####
+#### combine datasets ####
 
-# check for missing data data
+# see if LW missing gis are needed
+# add alternative lake names (without cardinal directions)
+lw_missing_gis2 <- lw_missing_gis %>%
+  mutate(County = toupper(County),
+         Lake = toupper(Lake)) %>%
+  full_join(tibble(County = c("COLUMBIA", "FLAGLER", "SEMINOLE"),
+                   Lake = c("ALLIGATOR", "BELLE AIRE", "JESUP"))) %>%
+  left_join(lw_plant2 %>%
+              select(County, Lake) %>%
+              unique() %>%
+              mutate(County = toupper(County),
+                     Lake = toupper(Lake),
+                     Plant = "yes")) %>%
+  left_join(qual2 %>%
+              select(County, Lake) %>%
+              unique() %>%
+              mutate(County = toupper(County),
+                     Lake = toupper(Lake),
+                     Quality = "yes"))
+
+lw_missing_gis2 %>%
+  inner_join(fwc_lakes %>%
+               mutate(County = toupper(County),
+                      Lake = toupper(AreaOfInterest) %>%
+                        str_replace(", LAKE", "") %>%
+                        str_replace(" LAKE", "") %>%
+                        str_replace("LAKE", "")))
+# one lake matches, but it's the alternative name
+
+lw_missing_gis2 %>%
+  filter(Lake == "ALLIGATOR SOUTH")
+# it doesn't have quality or plant data - must be in base set
+# can ignore these missing coordinate lakes
+
+# check for missing date data
 sum(is.na(ctrl_old2$Year))
 sum(is.na(ctrl2$BeginDate))
 sum(is.na(fwc_plant3$SurveyDate))
@@ -312,7 +349,7 @@ lakes <- ctrl_old2  %>%
                      CtrlEnd = max(BeginDate)) %>%
               group_by(PermanentID, ShapeArea, CtrlStart, CtrlEnd) %>%
               summarise(Ctrl = length(unique(BeginDate))) %>%
-              ungroup())%>%
+              ungroup()) %>%
   full_join(fwc_plant3 %>%
               group_by(PermanentID, ShapeArea) %>%
               summarise(FWCPlant = length(unique(SurveyDate)),
@@ -433,7 +470,17 @@ for(i in 1:length(lake_times_grp)){
 dev.off()
 
 
-#### combine datasets hydrilla ####
+#### output data ####
+
+write_csv(ctrl_old2, "intermediate-data/FWC_control_old_formatted.csv")
+write_csv(ctrl2, "intermediate-data/FWC_control_new_formatted.csv")
+write_csv(fwc_plant3, "intermediate-data/FWC_plant_formatted.csv")
+write_csv(qual2, "intermediate-data/LW_quality_formatted.csv")
+write_csv(lw_plant2, "intermediate-data/LW_plant_formatted.csv")
+write_csv(lakes, "intermediate-data/FWC_LW_combined.csv")
+
+
+#### old code: combine datasets hydrilla ####
 
 # FWC data
 hydrilla_FWC <- ctrl_old3  %>%
@@ -572,7 +619,7 @@ hydrilla_lakes %>%
            QualStart < AnyCtrlFirst & QualEnd > AnyCtrlFirst) # everything before and after: 158
 
 
-#### combine datasets floating ####
+#### old code: combine datasets floating ####
 
 # FWC data
 floating_FWC <- ctrl_old3  %>%

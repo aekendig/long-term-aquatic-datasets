@@ -79,10 +79,10 @@ lw_base %>%
 
 # missing coordinates
 lw_missing_gis <- lw_base %>%
-  filter(is.na(Latitude) | is.na(Longitude)) %>%
-  select(County, Lake, GNIS_ID) %>%
-  unique()
-# some have GNIS_ID - use to merge
+  group_by(County, Lake, GNIS_ID) %>%
+  summarise(lat_na = sum(!is.na(Latitude)),
+            long_na = sum(!is.na(Longitude))) %>%
+  filter(lat_na == 0 | long_na == 0)
 
 lw_base %>%
   filter(!is.numeric(Latitude) | !is.numeric(Longitude))
@@ -201,6 +201,12 @@ lw_base %>%
 # Bear2
 lw_base %>%
   filter(Lake == "Bear 2" & County == "Lake") %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  data.frame()
+
+# Bream
+lw_base %>%
+  filter(Lake == "Burrell" & County == "Hillsborough") %>%
   select(Station_ID, Latitude, Longitude) %>%
   data.frame()
 
