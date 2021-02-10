@@ -49,7 +49,8 @@ unique(gis_man$JoinNotes)
 gis <- gis_ed %>%
   filter(!is.na(PermanentID)) %>%
   full_join(gis_man) %>%
-  mutate(ShapeArea = ifelse(ShapeSource == "FDEP", ShapeArea*10^-6, ShapeArea*10^4)) %>%
+  mutate(ShapeArea = ifelse(ShapeSource == "FDEP", ShapeArea*10^-6, ShapeArea*10^4),
+         County = toupper(County)) %>%
   filter(JoinNotes != "outer boundary" | is.na(JoinNotes))
 
 
@@ -65,6 +66,7 @@ ctrl_old2 <- ctrl_old %>%
          "SpeciesOrig" = "Species_orig",
          "TotalContFWC" = "Total_cont_fwc",
          "County_FWC" = "County") %>%
+  mutate(County_FWC = toupper(County_FWC)) %>%
   left_join(gis %>%
               filter(CoordSource %in% c("FWC", "FWC_2")) %>%
               select(AreaOfInterestID, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
@@ -81,7 +83,8 @@ ctrl_old2 <- ctrl_old %>%
 # remove missing ID
 # remove duplicate rows
 ctrl2 <- ctrl %>%
-  mutate(BeginDate = as.Date(BeginDate, "%m/%d/%y")) %>%
+  mutate(BeginDate = as.Date(BeginDate, "%m/%d/%y"),
+         County = toupper(County)) %>%
   rename("Year" = "year",
          "Month" = "month",
          "Species" = "species",
@@ -106,7 +109,8 @@ ctrl2 <- ctrl %>%
 # remove missing ID
 # remove duplicate rows
 fwc_plant_new2 <- fwc_plant_new %>%
-  mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%y")) %>%
+  mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%y"),
+         County = toupper(County)) %>%
   rename("AreaOfInterest" = "WaterbodyName") %>%
   left_join(gis %>%
               filter(CoordSource %in% c("FWC", "FWC_2")) %>%
@@ -195,8 +199,31 @@ fwc_plant3 <- fwc_plant2 %>%
   ungroup() %>%
   unique() %>%
   mutate(SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres),
-         SpeciesFrequency = SpeciesAcres / WaterbodyAcres)
+         SpeciesFrequency = SpeciesAcres / WaterbodyAcres) %>%
+  rename(County_FWC = County)
 # will give warnings, but these are addressed by making -Inf into NAs
+
+# check area from FWC against shapes
+fwc_plant3 %>%
+  select(AreaOfInterest, AreaOfInterestID, WaterbodyAcres, ShapeArea) %>%
+  unique() %>%
+  mutate(Waterbody_sqKm = WaterbodyAcres * 0.004) %>%
+  ggplot(aes(x = Waterbody_sqKm, y = ShapeArea)) +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_point(alpha = 0.5)
+
+fwc_plant3 %>%
+  select(AreaOfInterest, County_FWC, AreaOfInterestID, ShapeArea, WaterbodyAcres) %>%
+  unique() %>%
+  mutate(Waterbody_sqKm = WaterbodyAcres * 0.004,
+         AreaDev = abs(ShapeArea/Waterbody_sqKm)) %>%
+  filter(AreaDev > 1.5) %>%
+  arrange(County_FWC, AreaOfInterest) %>%
+  data.frame()
+# many of these are because the named waterbody is attached to a larger one
+
+filter(fwc_plant3, WaterbodyAcres == max(WaterbodyAcres))
+# Okeechobee
 
 
 #### water quality data ####
@@ -218,7 +245,8 @@ qual2 <- qual %>%
                             SecchiCombined == "bottom" ~ NA_character_,
                             TRUE ~ SecchiCombined) %>%
            parse_number(),
-         AreaOfInterest = Lake) %>%
+         AreaOfInterest = Lake,
+         County = toupper(County)) %>%
   rename("Secchi1_ft" = "SECCHI_ft",
          "Secchi2_ft" = "SECCHI_2") %>%
   left_join(gis %>%
@@ -227,7 +255,8 @@ qual2 <- qual %>%
               unique()) %>%
   filter(!is.na(PermanentID)) %>%
   unique() %>%
-  select(-AreaOfInterest)
+  select(-AreaOfInterest) %>%
+  rename(County_LW = County)
 
 
 #### lakewatch plant survey data ####
@@ -260,7 +289,8 @@ lw_plant2 <- lw_plant %>%
                                    TRUE ~ round(RowsStations)),
          SpeciesFrequency = ifelse(RowsStations < round(Frequency_percent),
                                     RowsStations/100,
-                                    Frequency_percent/100)) %>%
+                                    Frequency_percent/100),
+         County = toupper(County)) %>%
   rename("EmFlZoneWidth_ft" = "Em_fl_zone_width_ft",
          "EmBiomass_kg_m2" = "Em_biomass_kg_m2",
          "FlBiomass_kg_m2" = "Fl_biomass_kg_m2",
@@ -282,14 +312,16 @@ lw_plant2 <- lw_plant %>%
               filter(!is.na(Lake_base)) %>%
               group_by(County, Lake_plant) %>%
               summarise(Lake_base = unique(Lake_base)[1]) %>%
-              ungroup()) %>%
+              ungroup() %>%
+              mutate(County = toupper(County))) %>%
   mutate(AreaOfInterest = ifelse(is.na(Lake_base), Lake, Lake_base)) %>%
   left_join(gis %>%
               filter(CoordSource == "Lakewatch") %>%
               select(AreaOfInterest, County, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
               unique()) %>%
   filter(!is.na(PermanentID)) %>%
-  unique()
+  unique() %>%
+  rename(County_LW = County)
 
 
 #### combine datasets ####
@@ -297,30 +329,29 @@ lw_plant2 <- lw_plant %>%
 # see if LW missing gis are needed
 # add alternative lake names (without cardinal directions)
 lw_missing_gis2 <- lw_missing_gis %>%
-  mutate(County = toupper(County),
+  mutate(County_LW = toupper(County),
          Lake = toupper(Lake)) %>%
-  full_join(tibble(County = c("COLUMBIA", "FLAGLER", "SEMINOLE"),
+  full_join(tibble(County_LW = c("COLUMBIA", "FLAGLER", "SEMINOLE"),
                    Lake = c("ALLIGATOR", "BELLE AIRE", "JESUP"))) %>%
   left_join(lw_plant2 %>%
-              select(County, Lake) %>%
+              select(County_LW, Lake) %>%
               unique() %>%
-              mutate(County = toupper(County),
-                     Lake = toupper(Lake),
+              mutate(Lake = toupper(Lake),
                      Plant = "yes")) %>%
   left_join(qual2 %>%
-              select(County, Lake) %>%
+              select(County_LW, Lake) %>%
               unique() %>%
-              mutate(County = toupper(County),
-                     Lake = toupper(Lake),
+              mutate(Lake = toupper(Lake),
                      Quality = "yes"))
 
 lw_missing_gis2 %>%
   inner_join(fwc_lakes %>%
-               mutate(County = toupper(County),
+               mutate(County_LW = County,
                       Lake = toupper(AreaOfInterest) %>%
                         str_replace(", LAKE", "") %>%
                         str_replace(" LAKE", "") %>%
-                        str_replace("LAKE", "")))
+                        str_replace("LAKE", "")) %>%
+               select(-County))
 # one lake matches, but it's the alternative name
 
 lw_missing_gis2 %>%
@@ -341,29 +372,29 @@ sum(is.na(lw_plant2$Date))
 lakes <- ctrl_old2  %>%
   mutate(CtrlOldStart = min(Year),
          CtrlOldEnd = max(Year)) %>%
-  group_by(PermanentID, ShapeArea, CtrlOldStart, CtrlOldEnd) %>%
+  group_by(PermanentID, ShapeSource, ShapeArea, CtrlOldStart, CtrlOldEnd) %>%
   summarise(CtrlOld = length(unique(Year))) %>%
   ungroup() %>%
   full_join(ctrl2 %>%
               mutate(CtrlStart = min(BeginDate),
                      CtrlEnd = max(BeginDate)) %>%
-              group_by(PermanentID, ShapeArea, CtrlStart, CtrlEnd) %>%
+              group_by(PermanentID, ShapeSource, ShapeArea, CtrlStart, CtrlEnd) %>%
               summarise(Ctrl = length(unique(BeginDate))) %>%
               ungroup()) %>%
   full_join(fwc_plant3 %>%
-              group_by(PermanentID, ShapeArea) %>%
+              group_by(PermanentID, ShapeSource, ShapeArea) %>%
               summarise(FWCPlant = length(unique(SurveyDate)),
                         FWCPlantStart = min(SurveyDate),
                         FWCPlantEnd = max(SurveyDate)) %>%
               ungroup()) %>%
   full_join(qual2 %>%
-              group_by(PermanentID, ShapeArea) %>%
+              group_by(PermanentID, ShapeSource, ShapeArea) %>%
               summarise(Qual = length(unique(Date)),
                         QualStart = min(Date),
                         QualEnd = max(Date)) %>%
               ungroup()) %>%
   full_join(lw_plant2 %>%
-              group_by(PermanentID, ShapeArea) %>%
+              group_by(PermanentID, ShapeSource, ShapeArea) %>%
               summarise(LWPlant = length(unique(Date)),
                         LWPlantStart = min(Date),
                         LWPlantEnd = max(Date)) %>%
@@ -472,12 +503,35 @@ dev.off()
 
 #### output data ####
 
+# FWC-only lakes
+fwc_lakes2 <- ctrl_old2 %>%
+  select(AreaOfInterest, AreaOfInterestID, GNISID, PermanentID, ShapeSource) %>%
+  unique() %>%
+  mutate(ctrl_old = 1) %>%
+  full_join(ctrl2 %>%
+              select(AreaOfInterest, AreaOfInterestID, GNISID, PermanentID, ShapeSource) %>%
+              unique() %>%
+              mutate(ctrl_new = 1)) %>%
+  full_join(fwc_plant3 %>%
+              select(AreaOfInterest, AreaOfInterestID, GNISID, PermanentID, ShapeSource) %>%
+              unique() %>%
+              mutate(plants = 1)) %>%
+  mutate(ctrl_old = replace_na(ctrl_old, 0),
+         ctrl_new = replace_na(ctrl_new, 0),
+         plants = replace_na(plants, 0))
+
 write_csv(ctrl_old2, "intermediate-data/FWC_control_old_formatted.csv")
 write_csv(ctrl2, "intermediate-data/FWC_control_new_formatted.csv")
 write_csv(fwc_plant3, "intermediate-data/FWC_plant_formatted.csv")
 write_csv(qual2, "intermediate-data/LW_quality_formatted.csv")
 write_csv(lw_plant2, "intermediate-data/LW_plant_formatted.csv")
 write_csv(lakes, "intermediate-data/FWC_LW_combined.csv")
+write_csv(fwc_lakes2, "intermediate-data/FWC_control_plants_lakes.csv")
+write_csv(fwc_lakes2 %>%
+            filter(ShapeSource == "FDEP"), "gis/intermediate-data/FWC_control_plants_lakes_FDEP.csv")
+write_csv(fwc_lakes2 %>%
+            filter(ShapeSource == "NHD"), "gis/intermediate-data/FWC_control_plants_lakes_NHD.csv")
+
 
 
 #### old code: combine datasets hydrilla ####
