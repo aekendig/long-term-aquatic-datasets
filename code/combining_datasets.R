@@ -302,7 +302,7 @@ lw_plant2 <- lw_plant %>%
          "FrequencyOrig" = "Frequency_percent",
          "CommonName" = "Common_name",
          "GenusSpecies" = "Genus_species") %>%
-  group_by(Year, Month, Day, Date, Stations, EmFlZoneWidth_ft, EmBiomass_kg_m2, FlBiomass_kg_m2, SubBiomass_kg_m2, LakeDepth_m, PercentAreaCovered, PercentVolumeInhabited, CommonName, Genus, Species, GenusSpecies, County, Lake, TotalBiomass_kg_m2) %>%
+  group_by(County, Lake, Year, Month, Day, Date, Stations, EmFlZoneWidth_ft, EmBiomass_kg_m2, FlBiomass_kg_m2, SubBiomass_kg_m2, LakeDepth_m, PercentAreaCovered, PercentVolumeInhabited, CommonName, Genus, Species, GenusSpecies, TotalBiomass_kg_m2) %>%
   summarise(RowsStations = max(RowsStations),
             SpeciesFrequency = max(SpeciesFrequency),
             StationsPresent = max(StationsPresent),
@@ -313,7 +313,8 @@ lw_plant2 <- lw_plant %>%
               group_by(County, Lake_plant) %>%
               summarise(Lake_base = unique(Lake_base)[1]) %>%
               ungroup() %>%
-              mutate(County = toupper(County))) %>%
+              mutate(County = toupper(County)) %>%
+              rename(Lake = Lake_plant)) %>%
   mutate(AreaOfInterest = ifelse(is.na(Lake_base), Lake, Lake_base)) %>%
   left_join(gis %>%
               filter(CoordSource == "Lakewatch") %>%
@@ -325,6 +326,36 @@ lw_plant2 <- lw_plant %>%
 
 
 #### combine datasets ####
+
+# check for unique permanent IDs
+ctrl_old2 %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(IDs = length(unique(PermanentID))) %>%
+  filter(IDs > 1)
+
+ctrl2 %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(IDs = length(unique(PermanentID))) %>%
+  filter(IDs > 1)
+
+fwc_plant3 %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(IDs = length(unique(PermanentID))) %>%
+  filter(IDs > 1)
+
+qual2 %>%
+  group_by(Lake, County_LW) %>%
+  summarise(IDs = length(unique(PermanentID))) %>%
+  filter(IDs > 1)
+filter(gis, AreaOfInterest == "Burrell" & County == "HILLSBOROUGH") %>% select(JoinNotes) # stations in separate water bodies
+filter(gis, AreaOfInterest == "Eel" & County == "LEON") %>% select(JoinNotes) # stations in separate water bodies
+filter(gis, AreaOfInterest == "Hubbert" & County == "ORANGE") %>% select(JoinNotes) # stations in separate water bodies
+filter(gis, AreaOfInterest == "Seneca" & County == "BROWARD") %>% select(JoinNotes) # stations in separate water bodies
+
+lw_plant2 %>%
+  group_by(Lake, County_LW) %>%
+  summarise(IDs = length(unique(PermanentID))) %>%
+  filter(IDs > 1)
 
 # see if LW missing gis are needed
 # add alternative lake names (without cardinal directions)

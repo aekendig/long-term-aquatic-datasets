@@ -11,6 +11,11 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(lubridate)
+library(zoo)
+library(ggfortify)
+
+# stan settings
+source("code/stan_settings.R")
 
 # import data
 ctrl_old <- read_csv("intermediate-data/FWC_control_old_formatted.csv")
@@ -19,8 +24,8 @@ plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 plant_lw <- read_csv("intermediate-data/LW_plant_formatted.csv")
 
 # assumptions
-MinHerbLag = 30
-MaxHerbLag = 365 * 2
+MinHerbLag = 30 # herbicides applied within x days haven't had an effect yet
+MaxHerbLag = 365 * 2 # effects of herbicide applied longer than x days ago can't be detected
 
 
 #### edit data ####
@@ -41,7 +46,10 @@ plant_fwc_hyd <- plant_fwc %>%
   filter(SpeciesName == "Hydrilla verticillata") %>%
   mutate(AreaCovered_ha = SpeciesAcres * 0.405,
          Area_ha = ShapeArea * 100,
-         SpeciesFrequency_ha = AreaCovered_ha / Area_ha)
+         AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
+                                    TRUE ~ AreaCovered_ha),
+         SpeciesFrequency_ha = AreaCovered_ha / Area_ha,
+         log_AreaCovered_ha = log(AreaCovered_ha + 0.001))
 
 plant_lw_hyd <- plant_lw %>%
   filter(GenusSpecies == "Hydrilla verticillata") %>%
@@ -84,13 +92,31 @@ plant_fwc_hyd %>%
   select(AreaOfInterest, AreaOfInterestID) %>%
   unique() %>%
   mutate(dup = duplicated(AreaOfInterestID)) %>%
-  filter(dup == T)
+  filter(dup == T) # none
+
+# frequencies greater than 1
+plant_fwc_hyd %>%
+  filter(SpeciesFrequency_ha > 1) %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, AreaCovered_ha, SpeciesFrequency_ha) %>%
+  unique() %>%
+  data.frame()
+# may be inaccurate area estimates - round down to 1
+
+# how consistent are LW and FWC plant surveys?
+plant_lw_hyd %>%
+  select(Year, PermanentID, SpeciesFrequency) %>%
+  inner_join(plant_fwc_hyd %>%
+               select(SurveyYear, PermanentID, SpeciesFrequency_ha) %>%
+               rename(Year = SurveyYear)) %>%
+  ggplot(aes(x = SpeciesFrequency, y = SpeciesFrequency_ha)) +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_point() +
+  xlab("LW frequency") +
+  ylab("FWC frequency")
+# generally much lower estimates from FWC than LW
 
 # FWC average plant change
 plant_change_fwc_hyd <- plant_fwc_hyd %>%
-  mutate(AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
-                                      TRUE ~ AreaCovered_ha),
-         SpeciesFrequency_ha = AreaCovered_ha/Area_ha) %>%
   group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha) %>%
   summarise(AreaInitial_ha = AreaCovered_ha[SurveyDate == min(SurveyDate)],
             AreaChange_ha = coef(lm(AreaCovered_ha ~ SurveyDate))[2] * 365,
@@ -102,14 +128,13 @@ plant_change_fwc_hyd <- plant_fwc_hyd %>%
 
 # FWC survey-to-survey plant change
 survey_change_fwc_hyd <- plant_fwc_hyd %>%
-  mutate(AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
-                                       TRUE ~ AreaCovered_ha)) %>%
   select(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha) %>%
   arrange(AreaOfInterestID, SurveyDate) %>%
   group_by(AreaOfInterestID, PermanentID) %>%
-  mutate(DaysChange = SurveyDate - lag(SurveyDate),
+  mutate(AreaNotCovered_ha = Area_ha - AreaCovered_ha,
+         DaysChange = SurveyDate - lag(SurveyDate),
          OrigAreaCovered_ha = lag(AreaCovered_ha),
-         AreaChange_ha = (AreaCovered_ha - lag(AreaCovered_ha))/as.numeric(DaysChange) * 365,
+         AreaChange_haPerYear = (AreaCovered_ha - lag(AreaCovered_ha))/as.numeric(DaysChange) * 365,
          SpeciesFrequency_ha = AreaCovered_ha/Area_ha,
          OrigFreq = lag(SpeciesFrequency_ha),
          FreqChange = (SpeciesFrequency_ha - lag(SpeciesFrequency_ha)),
@@ -216,7 +241,7 @@ survey_herb_fwc_hyd <- survey_change_fwc_hyd %>%
   mutate(rows = n()) %>%
   ungroup() %>%
   filter(!(AreaTreated_ha == 0 & rows > 1)) %>%
-  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, DaysChange, AreaChange_ha, SpeciesFrequency_ha, FreqChange) %>%
+  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, DaysChange, AreaChange_haPerYear, SpeciesFrequency_ha, FreqChangePerYear) %>%
   summarise(TreatmentYears = case_when(sum(AreaTreated_ha) > 0 ~ unique((as.numeric(DaysChange) - MinHerbLag)/365),
                                        TRUE ~ 0),
             TreatmentFrequency = sum(AreaTreated_ha > 0)/unique((as.numeric(DaysChange) - MinHerbLag) * 365),
@@ -256,7 +281,7 @@ cltv_herb_fwc_hyd <- survey_change_fwc_hyd %>%
   mutate(rows = n()) %>%
   ungroup() %>%
   filter(!(AreaTreated_ha == 0 & rows > 1)) %>%
-  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, DaysChange, AreaChange_ha, SpeciesFrequency_ha, FreqChange) %>%
+  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, DaysChange, AreaChange_haPerYear, SpeciesFrequency_ha, FreqChangePerYear) %>%
   summarise(TreatmentFrequency = sum(AreaTreated_ha > 0)/MaxHerbLag,
             TreatmentIntensity = mean(AreaTreated_ha/OrigAreaCovered_ha),
             TreatmentIntensityLake = mean(AreaTreated_ha/Area_ha)) %>%
@@ -269,8 +294,8 @@ plant_lw_hyd %>%
 # LW survey-to-survey plant change
 survey_change_lw_hyd <- plant_lw_hyd %>%
   select(Lake, PermanentID, County_LW, Area_ha, Date, SpeciesFrequency) %>%
-  arrange(PermanentID, Lake, County_LW, Date) %>%
-  group_by(PermanentID, Lake, County_LW, ) %>%
+  arrange(PermanentID, Lake, Date) %>%
+  group_by(PermanentID, Lake, County_LW, Area_ha) %>%
   mutate(DaysChange = Date - lag(Date),
          OrigFreq = lag(SpeciesFrequency),
          FreqChange = (SpeciesFrequency - lag(SpeciesFrequency)),
@@ -278,6 +303,45 @@ survey_change_lw_hyd <- plant_lw_hyd %>%
          FreqChangePreFreqPerYear = (SpeciesFrequency - lag(SpeciesFrequency))/(lag(SpeciesFrequency) * as.numeric(DaysChange)) * 365) %>%
   ungroup() %>%
   mutate(uniqueID = paste(Lake, County_LW, PermanentID, sep = "_"))
+
+# LW survey-to-survey herbicide and plants
+# herbicide treatments that occurred between the two surveys are included
+# unless it is within MinHerbLag days of the last survey
+survey_herb_lw_hyd <- survey_change_lw_hyd %>%
+  left_join(ctrl_old_hyd %>%
+              filter(AreaTreated_ha > 0) %>%
+              group_by(AreaOfInterestID, PermanentID, Year, Area_ha) %>%
+              summarise(AreaTreated_ha = sum(AreaTreated_ha)) %>%
+              ungroup() %>%
+              mutate(TreatmentDate = paste0(Year, "-12-31") %>% as.Date("%Y-%m-%d")) %>%
+              full_join(ctrl_new_hyd %>%
+                          filter(AreaTreated_ha > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
+                          group_by(AreaOfInterestID, PermanentID, BeginDate, Area_ha) %>%
+                          summarise(AreaTreated_ha = sum(AreaTreated_ha)) %>%
+                          ungroup() %>%
+                          rename(TreatmentDate = BeginDate)) %>%
+              mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha,
+                                                TRUE ~ AreaTreated_ha)) %>%
+              select(-c(Area_ha, Year))) %>%
+  mutate(SurvTreatDays = Date - TreatmentDate,
+         AreaTreated_ha = case_when(SurvTreatDays > MinHerbLag & SurvTreatDays <= DaysChange ~ AreaTreated_ha,
+                                    TRUE ~ 0),
+         SurvTreatDays = case_when(AreaTreated_ha == 0 ~ NA_real_,
+                                   TRUE ~ as.numeric(SurvTreatDays)),
+         TreatmentDate = case_when(AreaTreated_ha == 0 ~ NA_Date_,
+                                   TRUE ~ TreatmentDate)) %>%
+  unique() %>%
+  group_by(uniqueID, Date) %>%
+  mutate(rows = n()) %>%
+  ungroup() %>%
+  filter(!(AreaTreated_ha == 0 & rows > 1)) %>%
+  group_by(uniqueID, PermanentID, Lake, County_LW, Area_ha, Date, DaysChange, SpeciesFrequency, FreqChangePerYear) %>%
+  summarise(TreatmentYears = case_when(sum(AreaTreated_ha) > 0 ~ unique((as.numeric(DaysChange) - MinHerbLag)/365),
+                                       TRUE ~ 0),
+            TreatmentFrequency = sum(AreaTreated_ha > 0)/unique((as.numeric(DaysChange) - MinHerbLag) * 365),
+            TreatmentIntensityLake = mean(AreaTreated_ha/Area_ha)) %>%
+  ungroup()
+
   
 
 #### plant_fwc_hyd exploratory figures ####
@@ -285,9 +349,11 @@ survey_change_lw_hyd <- plant_lw_hyd %>%
 # small invasions over time
 plant_fwc_hyd %>%
   filter(SpeciesAcres < 10) %>%
-  ggplot(aes(x = SurveyDate, y = SpeciesAcres, color = as.factor(AreaOfInterestID))) +
+  ggplot(aes(x = SurveyDate, y = SpeciesFrequency_ha, color = as.factor(AreaOfInterestID))) +
   geom_line(alpha = 0.5) +
   theme(legend.position = "none")
+# lots of low values
+# non-linear changes over time
 
 # acres by surveyor
 plant_fwc_hyd %>%
@@ -320,7 +386,7 @@ plant_fwc_hyd %>%
   ggplot(aes(x = SpeciesAcres)) +
   geom_histogram(binwidth = 100)
 
-# see if species frequency depends on area source in FWC
+# see if species frequency depends on area source
 ggplot(plant_fwc_hyd, aes(x = SpeciesFrequency, y = SpeciesFrequency_ha)) +
   geom_abline(slope = 1, intercept = 0) +
   geom_hline(yintercept = 1, linetype = "dashed") +
@@ -329,25 +395,6 @@ ggplot(plant_fwc_hyd, aes(x = SpeciesFrequency, y = SpeciesFrequency_ha)) +
 # a lot more are greater than 1
 # cluster around zero: probably total shape area includes larger waterbody connected to smaller one
 
-plant_fwc_hyd %>%
-  filter(SpeciesFrequency_ha > 1) %>%
-  select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, AreaCovered_ha, SpeciesFrequency_ha) %>%
-  unique() %>%
-  data.frame()
-# may be inaccurate area estimates - round down to 1
-
-# how consistent are LW and FWC plant surveys?
-plant_lw_hyd %>%
-  select(Year, PermanentID, SpeciesFrequency) %>%
-  inner_join(plant_fwc_hyd %>%
-               select(SurveyYear, PermanentID, SpeciesFrequency_ha) %>%
-               rename(Year = SurveyYear)) %>%
-  ggplot(aes(x = SpeciesFrequency, y = SpeciesFrequency_ha)) +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_point() +
-  xlab("LW frequency") +
-  ylab("FWC frequency")
-# generally much lower estimates from FWC than LW
 
 #### plant_change_fwc_hyd exploratory figures ####
 
@@ -372,6 +419,7 @@ ggplot(plant_change_fwc_hyd, aes(DaysChange, FreqChange)) +
 ggplot(survey_change_fwc_hyd, aes(DaysChange, AreaChange_ha)) +
   geom_vline(xintercept = 365, color = "red", linetype = "dashed") +
   geom_point(alpha = 0.5)
+# smaller changes with longer times between surveys
 
 survey_change_fwc_hyd %>%
   filter(!is.na(AreaChange_ha)) %>%
@@ -379,31 +427,43 @@ survey_change_fwc_hyd %>%
   geom_hline(yintercept = log(0.0405), color = "blue", linetype = "dashed") +
   geom_vline(xintercept = 365, color = "red", linetype = "dashed") +
   geom_point(alpha = 0.5)
-
-ggplot(survey_change_fwc_hyd, aes(x = FreqChange)) +
-  geom_histogram()
+# not all small changes are 0.01 acres (common entry)
+# many surveys taken 1 year apart
 
 ggplot(survey_change_fwc_hyd, aes(x = FreqChangePerYear)) +
   geom_histogram()
 
-ggplot(survey_change_fwc_hyd, aes(Area_ha, FreqChange)) +
-  geom_point() +
-  geom_smooth(method = "lm")
+ggplot(survey_change_fwc_hyd, aes(x = AreaChange_haPerYear)) +
+  geom_histogram()
 
-ggplot(survey_change_fwc_hyd, aes(log(Area_ha), FreqChange)) +
+ggplot(survey_change_fwc_hyd, aes(log(Area_ha), FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm")
+# no strong relationship between lake size and freq change
+
+ggplot(survey_change_fwc_hyd, aes(log(Area_ha), abs(AreaChange_haPerYear))) +
+  geom_point() +
+  geom_smooth(method = "lm")
+# the absolute value in area change increases with area (expected, constrained variable)
 
 ggplot(survey_change_fwc_hyd, aes(OrigFreq, FreqChange)) +
   geom_point() +
   geom_smooth(method = "lm")
+# frequency change is constrained by initial frequency
+
+ggplot(survey_change_fwc_hyd, aes(OrigFreq, SpeciesFrequency_ha)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+# trend of temporal autocorrelation, but tons of variation
 
 survey_change_fwc_hyd %>%
   mutate(OrigFreqBin = cut_interval(OrigFreq, n = 10)) %>%
   filter(!is.na(OrigFreqBin))  %>%
-  ggplot(aes(x = FreqChange)) +
+  ggplot(aes(x = FreqChangePerYear)) +
   geom_histogram() +
   facet_wrap(~ OrigFreqBin, scales = "free_y")
+# the distribution of frequency changes shifts from positive to negative with increasing original frequency
+# this is partially because of the constraint noted above
 
 ggplot(survey_change_fwc_hyd, aes(DaysChange, FreqChange)) +
   geom_point() +
@@ -445,9 +505,13 @@ for(i in sort(unique(survey_herb_fwc_hyd$AreaOfInterestID))){
   lakeName <- unique(subDat$AreaOfInterest)
   print(ggplot(subDat, aes(SurveyDate, SpeciesFrequency_ha)) +
           geom_line() +
-          geom_point(aes(color = TreatmentIntensity*TreatmentFrequency), size = 2) +
+          geom_point(aes(color = TreatmentIntensityLake*TreatmentFrequency), size = 2) +
+          xlab("Date") +
+          ylab(expression(paste(italic("Hydrilla"), " abundance (prop. lake)", sep = ""))) +
           ggtitle(lakeName) +
-          scale_colour_viridis_c(name = "Herbicide\n(prop. treated/year)"))
+          scale_colour_viridis_c(name = "Herbicide\n(prop. lake\ntreated/year)") +
+          coord_cartesian(ylim = c(0, 1)) +
+          theme_bw())
 }
 dev.off()
 
@@ -459,31 +523,45 @@ ggplot(survey_herb_fwc_hyd, aes(TreatmentIntensity, AreaChange_ha)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
-ggplot(survey_herb_fwc_hyd, aes(TreatmentFrequency, FreqChange)) +
+ggplot(survey_herb_fwc_hyd, aes(TreatmentFrequency, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
 survey_herb_fwc_hyd %>%
   filter(TreatmentFrequency > 0) %>%
-  ggplot(aes(TreatmentFrequency, FreqChange)) +
+  ggplot(aes(TreatmentFrequency, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
-ggplot(survey_herb_fwc_hyd, aes(TreatmentIntensity, FreqChange)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = F)
-
-survey_herb_fwc_hyd %>%
-  filter(TreatmentIntensity > 0) %>%
-  ggplot(aes(TreatmentIntensity, FreqChange)) +
+ggplot(survey_herb_fwc_hyd, aes(TreatmentIntensity, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
 survey_herb_fwc_hyd %>%
   filter(TreatmentIntensity > 0) %>%
-  ggplot(aes(TreatmentIntensity * TreatmentFrequency, FreqChange)) +
+  ggplot(aes(TreatmentIntensity, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
+
+pdf("output/hydrilla_change_survey_herbicide.pdf")
+survey_herb_fwc_hyd %>%
+  #filter(TreatmentIntensity > 0) %>%
+  ggplot(aes(TreatmentIntensityLake * TreatmentFrequency, FreqChangePerYear)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (prop. lake treated/year)") +
+  ylab(expression(paste("Change in ", italic("Hydrilla"), " abundance (prop. lake/year)", sep = ""))) +
+  theme_bw()
+
+survey_herb_fwc_hyd %>%
+  filter(TreatmentIntensity > 0) %>%
+  ggplot(aes(TreatmentIntensityLake * TreatmentFrequency, FreqChangePerYear)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (prop. lake treated/year)") +
+  ylab(expression(paste("Change in ", italic("Hydrilla"), " abundance (prop. lake/year)", sep = ""))) +
+  theme_bw()
+dev.off()
 
 survey_herb_fwc_hyd %>%
   filter(TreatmentIntensity > 0) %>%
@@ -501,9 +579,13 @@ for(i in sort(unique(cltv_herb_fwc_hyd$AreaOfInterestID))){
   lakeName <- unique(subDat$AreaOfInterest)
   print(ggplot(subDat, aes(SurveyDate, SpeciesFrequency_ha)) +
           geom_line() +
-          geom_point(aes(color = TreatmentIntensity*TreatmentFrequency), size = 2) +
+          geom_point(aes(color = TreatmentIntensityLake*TreatmentFrequency), size = 2) +
+          xlab("Date") +
+          ylab(expression(paste(italic("Hydrilla"), " abundance (prop. lake)", sep = ""))) +
           ggtitle(lakeName) +
-          scale_colour_viridis_c(name = "Herbicide\n(prop. treated/year)"))
+          scale_colour_viridis_c(name = "Herbicide\n(prop. lake\ntreated/year)") +
+          coord_cartesian(ylim = c(0, 1)) +
+          theme_bw())
 }
 dev.off()
 
@@ -521,25 +603,39 @@ ggplot(cltv_herb_fwc_hyd, aes(TreatmentFrequency, FreqChange)) +
 
 cltv_herb_fwc_hyd %>%
   filter(TreatmentFrequency > 0) %>%
-  ggplot(aes(TreatmentFrequency, FreqChange)) +
+  ggplot(aes(TreatmentFrequency, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
-ggplot(cltv_herb_fwc_hyd, aes(TreatmentIntensity, FreqChange)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = F)
-
-cltv_herb_fwc_hyd %>%
-  filter(TreatmentIntensity > 0) %>%
-  ggplot(aes(TreatmentIntensity, FreqChange)) +
+ggplot(cltv_herb_fwc_hyd, aes(TreatmentIntensity, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
 cltv_herb_fwc_hyd %>%
   filter(TreatmentIntensity > 0) %>%
-  ggplot(aes(TreatmentIntensity * TreatmentFrequency, FreqChange)) +
+  ggplot(aes(TreatmentIntensity, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
+
+pdf("output/hydrilla_change_cumulative_herbicide.pdf")
+cltv_herb_fwc_hyd %>%
+  #filter(TreatmentIntensity > 0) %>%
+  ggplot(aes(TreatmentIntensityLake * TreatmentFrequency, FreqChangePerYear)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (prop. lake treated/year)") +
+  ylab(expression(paste("Change in ", italic("Hydrilla"), " abundance (prop. lake/year)", sep = ""))) +
+  theme_bw()
+
+cltv_herb_fwc_hyd %>%
+  filter(TreatmentIntensity > 0) %>%
+  ggplot(aes(TreatmentIntensityLake * TreatmentFrequency, FreqChangePerYear)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (prop. lake treated/year)") +
+  ylab(expression(paste("Change in ", italic("Hydrilla"), " abundance (prop. lake/year)", sep = ""))) +
+  theme_bw()
+dev.off()
 
 cltv_herb_fwc_hyd %>%
   filter(TreatmentIntensity > 0) %>%
@@ -550,18 +646,132 @@ cltv_herb_fwc_hyd %>%
 
 cltv_herb_fwc_hyd %>%
   filter(TreatmentFrequency <= 1 & TreatmentIntensity > 0) %>%
-  ggplot(aes(TreatmentIntensity, FreqChange)) +
+  ggplot(aes(TreatmentIntensity, FreqChangePerYear)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
 
-#### survey_change_lw_hyd exploratory figures ####
+#### survey_herb_lw_hyd exploratory figures ####
 
-pdf("output/hydrilla_lw_over_time_by_lake.pdf")
-for(i in sort(unique(survey_change_lw_hyd$uniqueID))){
-  subDat <- filter(survey_change_lw_hyd, uniqueID == i)
+# hydrilla change over time
+pdf("output/hydrilla_lw_survey_herb_over_time_by_lake.pdf")
+for(i in sort(unique(survey_herb_lw_hyd$uniqueID))){
+  subDat <- filter(survey_herb_lw_hyd, uniqueID == i)
   lakeName <- unique(subDat$Lake)
   print(ggplot(subDat, aes(Date, SpeciesFrequency)) +
           geom_line() +
-          ggtitle(lakeName))
+          geom_point(aes(color = TreatmentIntensityLake*TreatmentFrequency), size = 2) +
+          xlab("Date") +
+          ylab(expression(paste(italic("Hydrilla"), " abundance (prop. lake)", sep = ""))) +
+          ggtitle(lakeName) +
+          scale_colour_viridis_c(name = "Herbicide\n(prop. lake\ntreated/year)") +
+          coord_cartesian(ylim = c(0, 1)) +
+          theme_bw())
 }
 dev.off()
+
+pdf("output/hydrilla_change_lw_survey_herbicide.pdf")
+survey_herb_lw_hyd %>%
+  #filter(TreatmentIntensity > 0) %>%
+  ggplot(aes(TreatmentIntensityLake * TreatmentFrequency, FreqChangePerYear)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (prop. lake treated/year)") +
+  ylab(expression(paste("Change in ", italic("Hydrilla"), " abundance (prop. lake/year)", sep = ""))) +
+  theme_bw()
+
+survey_herb_lw_hyd %>%
+  filter(TreatmentIntensityLake > 0) %>%
+  ggplot(aes(TreatmentIntensityLake * TreatmentFrequency, FreqChangePerYear)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (prop. lake treated/year)") +
+  ylab(expression(paste("Change in ", italic("Hydrilla"), " abundance (prop. lake/year)", sep = ""))) +
+  theme_bw()
+dev.off()
+
+
+#### test model ####
+
+# test time series
+test_dat <- filter(plant_fwc_hyd, AreaOfInterestID == 8) %>%
+  mutate(MinDate = min(SurveyDate),
+         DateNum = as.numeric(SurveyDate - MinDate))
+ggplot(test_dat, aes(DateNum, SpeciesFrequency_ha)) + geom_line()
+ggplot(test_dat, aes(DateNum, log_AreaCovered_ha)) + geom_line()
+test_ts <- zoo(test_dat$log_AreaCovered_ha, test_dat$DateNum)
+plot(test_ts)
+
+# model 1: level only, observation error only
+
+# stan data
+stan_data <- within(list(), {
+  y <- as.vector(test_ts)
+  n <- length(test_ts)
+})
+
+# model file
+model_file1 <- 'models/test_level_only_obs_error_only.stan'
+cat(paste(readLines(model_file1)), sep = '\n')
+
+# fit model
+test_fit1 <- stan(file = model_file1, data = stan_data,
+            iter = 2000, chains = 4)
+
+mu1 <- get_posterior_mean(test_fit1, par = 'mu')[, 'mean-all chains']
+
+# figures
+autoplot(test_ts) + 
+  geom_hline(yintercept = mu1, linetype = "dashed") +
+  ggtitle("level only, observation error only")
+
+autoplot(test_ts - mu1) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ggtitle("observation error")
+
+# model 2: level only, observation and process error
+
+# model file
+model_file2 <- 'models/test_level_only_obs_error_proc_error.stan'
+cat(paste(readLines(model_file2)), sep = '\n')
+
+# fit model
+test_fit2 <- stan(file = model_file2, data = stan_data,
+                 iter = 2000, chains = 4)
+
+mu2 <- get_posterior_mean(test_fit2, par = 'mu')[, 'mean-all chains']
+plot_dat2 <- tibble(model = mu2, 
+               Days = test_dat$DateNum,
+               observation = test_dat$log_AreaCovered_ha) %>%
+  mutate(ObsError = observation - model,
+         ProcError = model - lag(model)) %>%
+  pivot_longer(-Days, names_to = "yType", values_to = "y")
+
+# figures
+plot_dat2 %>%
+  filter(!(yType %in% c("ObsError", "ProcError"))) %>%
+  ggplot(aes(Days, y, color = yType)) +
+  geom_line() +
+  ylab("log(Area Covered (ha))") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+plot_dat2 %>%
+  filter(yType == "ObsError") %>%
+  ggplot(aes(Days, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Observation error") +
+  theme_bw()
+
+plot_dat2 %>%
+  filter(yType == "ProcError") %>%
+  ggplot(aes(Days, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Process error") +
+  theme_bw()
+
+# model 3: level and slope, observation and process error
+
+#### start here: add process error to the slope ####
+# example script: fig03_01_alt.stan
