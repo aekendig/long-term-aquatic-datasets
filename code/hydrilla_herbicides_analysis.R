@@ -24,8 +24,22 @@ plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 plant_lw <- read_csv("intermediate-data/LW_plant_formatted.csv")
 
 # assumptions
-MinHerbLag = 30 # herbicides applied within x days haven't had an effect yet
+MinHerbLag = 14 # herbicides applied within x days haven't had an effect yet
 MaxHerbLag = 365 * 2 # effects of herbicide applied longer than x days ago can't be detected
+
+# figure settings
+def_theme <- theme_bw() +
+  theme(axis.text = element_text(size = 8, color="black"),
+        axis.title = element_text(size = 10, color="black"),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10),
+        legend.box.margin = margin(-10, -10, -10, -10),
+        strip.text = element_text(size = 10, color="black"),
+        strip.background = element_blank())
+  
 
 
 #### edit data ####
@@ -128,17 +142,20 @@ plant_change_fwc_hyd <- plant_fwc_hyd %>%
 
 # FWC survey-to-survey plant change
 survey_change_fwc_hyd <- plant_fwc_hyd %>%
-  select(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha) %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, log_AreaCovered_ha) %>%
   arrange(AreaOfInterestID, SurveyDate) %>%
   group_by(AreaOfInterestID, PermanentID) %>%
   mutate(AreaNotCovered_ha = Area_ha - AreaCovered_ha,
          DaysChange = SurveyDate - lag(SurveyDate),
          OrigAreaCovered_ha = lag(AreaCovered_ha),
+         Lag2AreaCovered_ha = lag(AreaCovered_ha, n = 2),
          AreaChange_haPerYear = (AreaCovered_ha - lag(AreaCovered_ha))/as.numeric(DaysChange) * 365,
+         RelAreaChange = (AreaCovered_ha - lag(AreaCovered_ha))/lag(AreaCovered_ha),
          SpeciesFrequency_ha = AreaCovered_ha/Area_ha,
          OrigFreq = lag(SpeciesFrequency_ha),
          FreqChange = (SpeciesFrequency_ha - lag(SpeciesFrequency_ha)),
          FreqChangePerYear = (SpeciesFrequency_ha - lag(SpeciesFrequency_ha))/as.numeric(DaysChange) * 365,
+         AbsFreqChangePerYear = abs(FreqChangePerYear),
          FreqChangePreFreqPerYear = (SpeciesFrequency_ha - lag(SpeciesFrequency_ha))/(lag(SpeciesFrequency_ha) * as.numeric(DaysChange)) * 365) %>%
   ungroup()
 
@@ -230,7 +247,7 @@ survey_herb_fwc_hyd <- survey_change_fwc_hyd %>%
                                                 TRUE ~ AreaTreated_ha)) %>%
               select(-c(Area_ha, Year))) %>%
   mutate(SurvTreatDays = SurveyDate - TreatmentDate,
-         AreaTreated_ha = case_when(SurvTreatDays > MinHerbLag & SurvTreatDays <= DaysChange ~ AreaTreated_ha,
+         AreaTreated_ha = case_when(SurvTreatDays > MinHerbLag & SurvTreatDays <= (DaysChange + MinHerbLag) ~ AreaTreated_ha,
                                     TRUE ~ 0),
          SurvTreatDays = case_when(AreaTreated_ha == 0 ~ NA_real_,
                                    TRUE ~ as.numeric(SurvTreatDays)),
@@ -241,13 +258,21 @@ survey_herb_fwc_hyd <- survey_change_fwc_hyd %>%
   mutate(rows = n()) %>%
   ungroup() %>%
   filter(!(AreaTreated_ha == 0 & rows > 1)) %>%
-  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, DaysChange, AreaChange_haPerYear, SpeciesFrequency_ha, FreqChangePerYear) %>%
+  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, OrigAreaCovered_ha, log_AreaCovered_ha, DaysChange, AreaChange_haPerYear, SpeciesFrequency_ha, RelAreaChange, FreqChange, FreqChangePerYear, AbsFreqChangePerYear) %>%
   summarise(TreatmentYears = case_when(sum(AreaTreated_ha) > 0 ~ unique((as.numeric(DaysChange) - MinHerbLag)/365),
                                        TRUE ~ 0),
             TreatmentFrequency = sum(AreaTreated_ha > 0)/unique((as.numeric(DaysChange) - MinHerbLag) * 365),
             TreatmentIntensity = mean(AreaTreated_ha/OrigAreaCovered_ha),
             TreatmentIntensityLake = mean(AreaTreated_ha/Area_ha)) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(Herbicide = TreatmentFrequency * TreatmentIntensityLake)
+
+# subset with minimum time points
+survey_ts_fwc_hyd <- survey_herb_fwc_hyd %>%
+  group_by(AreaOfInterestID, PermanentID) %>%
+  mutate(TimePoints = n()) %>%
+  ungroup() %>%
+  filter(TimePoints >= 5)
 
 # FWC survey-to-survey cumulative herbicide and plants
 cltv_herb_fwc_hyd <- survey_change_fwc_hyd %>%
@@ -281,7 +306,7 @@ cltv_herb_fwc_hyd <- survey_change_fwc_hyd %>%
   mutate(rows = n()) %>%
   ungroup() %>%
   filter(!(AreaTreated_ha == 0 & rows > 1)) %>%
-  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, DaysChange, AreaChange_haPerYear, SpeciesFrequency_ha, FreqChangePerYear) %>%
+  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, County_FWC, Area_ha, SurveyDate, AreaCovered_ha, OrigAreaCovered_ha, DaysChange, AreaChange_haPerYear, SpeciesFrequency_ha, FreqChangePerYear) %>%
   summarise(TreatmentFrequency = sum(AreaTreated_ha > 0)/MaxHerbLag,
             TreatmentIntensity = mean(AreaTreated_ha/OrigAreaCovered_ha),
             TreatmentIntensityLake = mean(AreaTreated_ha/Area_ha)) %>%
@@ -416,6 +441,21 @@ ggplot(plant_change_fwc_hyd, aes(DaysChange, FreqChange)) +
 
 #### survey_change_fwc_hyd exploratory figures ####
 
+# lagged population regulation
+pdf("output/hydrilla_survey_lag_by_lake.pdf")
+for(i in sort(unique(survey_change_fwc_hyd$AreaOfInterestID))){
+  subDat <- filter(survey_change_fwc_hyd, AreaOfInterestID == i)
+  lakeName <- unique(subDat$AreaOfInterest)
+  print(ggplot(subDat, aes(OrigAreaCovered_ha, AreaCovered_ha)) +
+          geom_point() +
+          geom_smooth(method = lm) +
+          xlab("Area covered by hydrilla at t-1 (log-ha)") +
+          ylab("Area covered by hydrilla at t (log-ha)") +
+          ggtitle(lakeName) +
+          theme_bw())
+}
+dev.off()
+
 ggplot(survey_change_fwc_hyd, aes(DaysChange, AreaChange_ha)) +
   geom_vline(xintercept = 365, color = "red", linetype = "dashed") +
   geom_point(alpha = 0.5)
@@ -505,7 +545,7 @@ for(i in sort(unique(survey_herb_fwc_hyd$AreaOfInterestID))){
   lakeName <- unique(subDat$AreaOfInterest)
   print(ggplot(subDat, aes(SurveyDate, SpeciesFrequency_ha)) +
           geom_line() +
-          geom_point(aes(color = TreatmentIntensityLake*TreatmentFrequency), size = 2) +
+          geom_point(aes(color = Herbicide), size = 2) +
           xlab("Date") +
           ylab(expression(paste(italic("Hydrilla"), " abundance (prop. lake)", sep = ""))) +
           ggtitle(lakeName) +
@@ -514,6 +554,20 @@ for(i in sort(unique(survey_herb_fwc_hyd$AreaOfInterestID))){
           theme_bw())
 }
 dev.off()
+
+ggplot(survey_herb_fwc_hyd, aes(x = Herbicide)) +
+  geom_histogram()
+
+ggplot(survey_herb_fwc_hyd, aes(x = TreatmentFrequency)) +
+  geom_histogram()
+
+ggplot(survey_herb_fwc_hyd, aes(x = TreatmentIntensityLake)) +
+  geom_histogram()
+
+ggplot(survey_herb_fwc_hyd, aes(Herbicide, AbsFreqChangePerYear, color = as.factor(AreaOfInterestID))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme(legend.position = "none")
 
 ggplot(survey_herb_fwc_hyd, aes(TreatmentFrequency, AreaChange_ha)) +
   geom_point() +
@@ -568,6 +622,61 @@ survey_herb_fwc_hyd %>%
   ggplot(aes(TreatmentFrequency, TreatmentIntensity)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)
+
+
+#### survey_ts_fwc_hyd exploratory figures ####
+
+# longest time series?
+max_ts <- survey_ts_fwc_hyd %>%
+  filter(TimePoints == max(TimePoints))
+# max = 38
+
+pdf("output/longest_time_series_lakes.pdf")
+survey_ts_fwc_hyd %>%
+  filter(AreaOfInterestID %in% max_ts$AreaOfInterestID) %>%
+  mutate(Lake_size = paste(str_replace(AreaOfInterest, ", Lake", ""), " (", round(Area_ha), " ha)", sep = "")) %>%
+  ggplot(aes(SurveyDate, log_AreaCovered_ha)) +
+  geom_vline(xintercept = as.Date("1998-12-31", "%Y-%m-%d"), linetype = "dashed") +
+  geom_line() +
+  geom_point(aes(color = Herbicide)) +
+  facet_wrap(~ Lake_size, scales = "free_x") +
+  scale_color_viridis_c(name = "Herbicide\n(prop. lake\ntreated/year)") +
+  xlab("Date") +
+  ylab("Area covered by hydrilla (log-ha)") +
+  def_theme
+dev.off()
+
+# minimum time interval
+min(survey_ts_fwc_hyd$DaysChange, na.rm = T)
+# 162 days
+162/30 # ~5.5 months
+
+# time interval distribution
+ggplot(survey_ts_fwc_hyd, aes(x = DaysChange)) +
+  geom_histogram()
+
+# month samples
+survey_ts_fwc_hyd %>%
+  mutate(Month = month(SurveyDate)) %>%
+  ggplot(aes(x = Month)) +
+  geom_histogram(bins = 12)
+# clustered between May and October
+
+# samples per year
+survey_ts_fwc_hyd %>%
+  mutate(Year = year(SurveyDate)) %>%
+  group_by(AreaOfInterestID, PermanentID, Year) %>%
+  count() %>%
+  ggplot(aes(x = n)) +
+  geom_histogram(binwidth = 1)
+# most are once per year
+
+survey_ts_fwc_hyd %>%
+  mutate(Year = year(SurveyDate)) %>%
+  group_by(AreaOfInterestID, PermanentID, Year) %>%
+  count() %>%
+  filter(n > 1)
+# one was sampled twice in one year - maybe use average
 
 
 #### cltv_herb_fwc_hyd exploratory figures ####
@@ -692,8 +801,22 @@ dev.off()
 
 #### test model ####
 
+# longest time series?
+max_ts <- plant_fwc_hyd %>%
+  group_by(AreaOfInterestID) %>%
+  count() %>%
+  ungroup() %>%
+  filter(n == max(n))
+
+# visualize
+plant_fwc_hyd %>%
+  filter(AreaOfInterestID %in% max_ts$AreaOfInterestID) %>%
+  ggplot(aes(SurveyDate, SpeciesFrequency_ha)) + 
+  geom_line() +
+  facet_wrap(~AreaOfInterestID)
+
 # test time series
-test_dat <- filter(plant_fwc_hyd, AreaOfInterestID == 8) %>%
+test_dat <- filter(plant_fwc_hyd, AreaOfInterestID == 206) %>%
   mutate(MinDate = min(SurveyDate),
          DateNum = as.numeric(SurveyDate - MinDate))
 ggplot(test_dat, aes(DateNum, SpeciesFrequency_ha)) + geom_line()
@@ -701,13 +824,38 @@ ggplot(test_dat, aes(DateNum, log_AreaCovered_ha)) + geom_line()
 test_ts <- zoo(test_dat$log_AreaCovered_ha, test_dat$DateNum)
 plot(test_ts)
 
-# model 1: level only, observation error only
-
 # stan data
 stan_data <- within(list(), {
   y <- as.vector(test_ts)
   n <- length(test_ts)
 })
+
+# frequency change time series
+test_dat2 <- filter(survey_herb_fwc_hyd, AreaOfInterestID == 206) %>%
+  mutate(MinDate = min(SurveyDate),
+         DateNum = as.numeric(SurveyDate - MinDate)) %>%
+  filter(!is.na(FreqChangePerYear))
+ggplot(test_dat2, aes(DateNum, FreqChangePerYear)) + geom_line()
+ggplot(test_dat2, aes(DateNum, Herbicide)) + geom_line()
+ggplot(test_dat2, aes(DateNum, AreaCovered_ha)) + 
+  geom_line() +
+  geom_point(aes(color = Herbicide)) +
+  scale_color_viridis_c()
+ggplot(test_dat2, aes(DateNum, abs(FreqChangePerYear))) + geom_line()
+ggplot(test_dat2, aes(Herbicide, abs(FreqChangePerYear))) + geom_point()
+ggplot(test_dat2, aes(Herbicide, log_AreaCovered_ha)) + geom_point()
+test_ts2 <- zoo(test_dat2$FreqChangePerYear, test_dat2$DateNum)
+test_x2 <- zoo(test_dat2$Herbicide, test_dat2$DateNum)
+
+# stan data
+stan_data2 <- within(list(), {
+  y <- as.vector(test_ts2)
+  x <- as.vector(test_x2)
+  n <- length(test_ts2)
+})
+
+
+# model 1: level only, observation error only
 
 # model file
 model_file1 <- 'models/test_level_only_obs_error_only.stan'
@@ -773,5 +921,140 @@ plot_dat2 %>%
 
 # model 3: level and slope, observation and process error
 
-#### start here: add process error to the slope ####
-# example script: fig03_01_alt.stan
+# model file
+model_file3 <- 'models/test_level_slope_obs_error_proc_error.stan'
+cat(paste(readLines(model_file3)), sep = '\n')
+
+# fit model
+test_fit3 <- stan(file = model_file3, data = stan_data,
+                  iter = 2000, chains = 4)
+
+# extract values
+mu3 <- get_posterior_mean(test_fit3, par = 'mu')[, 'mean-all chains']
+v3 <- get_posterior_mean(test_fit3, par = 'v')[, 'mean-all chains']
+
+plot_dat3 <- tibble(model = mu3, 
+                    slope = c(v3, NA),
+                    Days = test_dat$DateNum,
+                    observation = test_dat$log_AreaCovered_ha) %>%
+  mutate(ObsError = observation - model,
+         SlopeProcError = slope - lag(slope),
+         LevelProcError = model - lag(model) - lag(slope)) %>%
+  pivot_longer(-Days, names_to = "yType", values_to = "y")
+
+# figures
+plot_dat3 %>%
+  filter(yType %in% c("model", "observation")) %>%
+  ggplot(aes(Days, y, color = yType)) +
+  geom_line() +
+  ylab("log(Area Covered (ha))") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+plot_dat3 %>%
+  filter(yType == "ObsError") %>%
+  ggplot(aes(Days, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Observation error") +
+  theme_bw()
+
+plot_dat3 %>%
+  filter(yType %in% c("SlopeProcError", "LevelProcError")) %>%
+  ggplot(aes(Days, y, color = yType)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Process error") +
+  theme_bw()
+
+# model 4: deterministic model explanatory variable (regression)
+
+# model file
+model_file4 <- 'models/test_level_explanatory_obs_error_only.stan'
+cat(paste(readLines(model_file4)), sep = '\n')
+
+# fit model
+test_fit4 <- stan(file = model_file4, data = stan_data2,
+                  iter = 2000, chains = 4)
+
+# extract values
+yhat4 <- get_posterior_mean(test_fit4, par = 'yhat')[, 'mean-all chains']
+
+plot_dat4 <- tibble(model = yhat4, 
+                    Days = test_dat2$DateNum,
+                    Herbicide = test_dat2$Herbicide,
+                    observation = test_dat2$FreqChangePerYear) %>%
+  mutate(ObsError = observation - model) %>%
+  pivot_longer(-c(Days, Herbicide), names_to = "yType", values_to = "y")
+
+# figures
+plot_dat4 %>%
+  filter(yType %in% c("model", "observation")) %>%
+  ggplot(aes(Days, y, color = yType)) +
+  geom_line() +
+  ylab("Frequency change per year") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+plot_dat4 %>%
+  filter(yType == "ObsError") %>%
+  ggplot(aes(Days, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Observation error") +
+  theme_bw()
+
+
+# model 5: stochastic model with explanatory variable
+
+# model file
+model_file5 <- 'models/test_level_explanatory_obs_error_proc_error.stan'
+cat(paste(readLines(model_file5)), sep = '\n')
+
+# fit model
+test_fit5 <- stan(file = model_file5, data = stan_data2,
+                  iter = 2000, chains = 4)
+
+# extract values
+yhat5 <- get_posterior_mean(test_fit5, par = 'yhat')[, 'mean-all chains']
+mu5 <- get_posterior_mean(test_fit5, par = 'mu')[, 'mean-all chains']
+
+plot_dat5 <- tibble(mu = mu5,
+                    model = yhat5, 
+                    Days = test_dat2$DateNum,
+                    Herbicide = test_dat2$Herbicide,
+                    observation = test_dat2$FreqChangePerYear) %>%
+  mutate(ObsError = observation - model,
+         ProcError = mu - lag(mu)) %>%
+  pivot_longer(-c(Days, Herbicide), names_to = "yType", values_to = "y")
+
+# figures
+plot_dat5 %>%
+  filter(yType %in% c("model", "observation")) %>%
+  ggplot(aes(Days, y, color = yType)) +
+  geom_line() +
+  ylab("Frequency change per year") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+plot_dat5 %>%
+  filter(yType == "ObsError") %>%
+  ggplot(aes(Days, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Observation error") +
+  theme_bw()
+
+plot_dat5 %>%
+  filter(yType == "ProcError") %>%
+  ggplot(aes(Days, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ylab("Process error") +
+  theme_bw()
+
+
+#### frequency change model ####
+
+
+#### absolute frequency change model ####
