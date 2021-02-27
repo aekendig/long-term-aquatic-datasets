@@ -150,10 +150,60 @@ ctrl_hyd_adj <- ctrl_hyd %>%
   summarise(TreatmentFrequency = n(), # treatments per year
             TreatmentIntensity = mean(AreaTreated_ha/Area_ha), # average area treated
             Treatment = TreatmentFrequency * TreatmentIntensity) %>%
-  ungroup()
+  ungroup() %>%
+  full_join(ctrl_hyd %>% # add all years to each waterbody
+              select(AreaOfInterestID, PermanentID) %>%
+              unique() %>%
+              expand_grid(tibble(TreatmentYearAdj = 1998:2020))) %>%
+  mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0), # make values 0 if no herbicide data available
+         TreatmentIntensity = replace_na(TreatmentIntensity, 0),
+         Treatment = replace_na(Treatment, 0))
 
-# add ctrl data for years with plant surveys
-plant_fwc_hyd_ctrl <- plant_fwc_hyd %>%
+# pre-herbicide surveys
+plant_fwc_hyd_pre <- plant_fwc_hyd %>%
+  filter(SurveyYearAdj <= (min(ctrl_hyd_adj$TreatmentYearAdj))) %>% # goes up to year of first application
+  group_by(AreaOfInterestID) %>%
+  mutate(NumSurveys = n()) %>%
+  ungroup() %>%
+  filter(NumSurveys >= MinTime) # remove lakes with too few surveys
+
+# missing data
+plant_fwc_hyd_pre %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(YearRange = max(SurveyYearAdj) - min(SurveyYearAdj) + 1,
+            SurveyYears = n()) %>%
+  ungroup() %>%
+  filter(YearRange != SurveyYears)
+# 192 lakes
+
+plant_fwc_hyd_pre2 <- plant_fwc_hyd_pre %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(MinYear = min(SurveyYearAdj),
+            MaxYear = max(SurveyYearAdj)) %>%
+  ungroup() %>%
+  mutate(SurveyYearAdj = map2())
+#### start here: make dataset for all years in range so that missing data is explicit ####
+# https://stackoverflow.com/questions/59417536/create-a-sequence-of-values-by-group-between-a-min-and-max-interval-using-dplyr
+
+# post herbicide surveys
+plant_fwc_hyd_post <-  plant_fwc_hyd %>%
+  filter(SurveyYearAdj > min(ctrl_hyd_adj$TreatmentYearAdj)) %>% # starts with year after first application
+  group_by(AreaOfInterestID) %>%
+  mutate(NumSurveys = n()) %>%
+  ungroup() %>%
+  filter(NumSurveys >= MinTime) # remove lakes with too few surveys
+
+# missing data
+plant_fwc_hyd_post %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(YearRange = max(SurveyYearAdj) - min(SurveyYearAdj) + 1,
+            SurveyYears = n()) %>%
+  ungroup() %>%
+  filter(YearRange != SurveyYears)
+# 109 lakes
+
+# post herbicide surveys with control data (only includes herbicide during year before survey)
+plant_fwc_ctrl_hyd_post <-  plant_fwc_hyd_post %>%
   rename(YearAdj = SurveyYearAdj) %>%
   left_join(ctrl_hyd_adj %>%
               rename(YearAdj = TreatmentYearAdj) %>%
@@ -161,21 +211,6 @@ plant_fwc_hyd_ctrl <- plant_fwc_hyd %>%
   mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0),
          TreatmentIntensity = replace_na(TreatmentIntensity, 0),
          Treatment = replace_na(Treatment, 0))
-
-# split data for before/after control data available
-plant_fwc_hyd_pre <- plant_fwc_hyd %>%
-  filter(SurveyYearAdj < (min(ctrl_hyd_adj$TreatmentYearAdj) + 1)) %>%
-  group_by(AreaOfInterestID) %>%
-  mutate(NumSurveys = n()) %>%
-  ungroup() %>%
-  filter(NumSurveys >= MinTime) # remove lakes with too few surveys
-
-plant_fwc_hyd_post <- plant_fwc_hyd_ctrl %>%
-  filter(YearAdj > min(ctrl_hyd_adj$TreatmentYearAdj)) %>%
-  group_by(AreaOfInterestID) %>%
-  mutate(NumSurveys = n()) %>%
-  ungroup() %>%
-  filter(NumSurveys >= MinTime) # remove lakes with too few surveys
 
 
 #### visualizations ####
