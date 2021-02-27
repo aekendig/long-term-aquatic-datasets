@@ -11,6 +11,7 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(lubridate)
+library(pracma)
 library(zoo)
 library(ggfortify)
 
@@ -24,8 +25,7 @@ plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 plant_lw <- read_csv("intermediate-data/LW_plant_formatted.csv")
 
 # assumptions
-MinHerbLag = 14 # herbicides applied within x days haven't had an effect yet
-MaxHerbLag = 365 * 2 # effects of herbicide applied longer than x days ago can't be detected
+MinTime = 5 # minimum number of time points needed
 
 # figure settings
 def_theme <- theme_bw() +
@@ -39,43 +39,194 @@ def_theme <- theme_bw() +
         legend.box.margin = margin(-10, -10, -10, -10),
         strip.text = element_text(size = 10, color="black"),
         strip.background = element_blank())
+
+
+#### edit FWC plant data ####
+
+# Perm IDs per AOI
+plant_fwc %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(IDs = length(unique(PermanentID))) %>%
+  filter(IDs > 1)
+# one Perm ID per AOI
+
+plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abundance = 0)
+  filter(SpeciesName != "Hydrilla verticillata") %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate) %>%
+  unique() %>% # don't need a row for each species
+  left_join(plant_fwc %>% # add hydrilla information
+              filter(SpeciesName == "Hydrilla verticillata") %>%
+              select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, SpeciesAcres)) %>%
+  unique() %>% # remove duplicate reports
+  group_by(AreaOfInterestID, SurveyDate) %>%  # remove duplicate reports from combining two datasets
+  mutate(NumSurveysPerDate = n()) %>%
+  ungroup() %>%
+  filter(!(NumSurveysPerDate > 1 & is.na(SpeciesAcres))) %>%
+  mutate(SpeciesAcres = replace_na(SpeciesAcres, 0), # add columns
+         Area_ha = ShapeArea * 100,
+         AreaCovered_ha = SpeciesAcres * 0.405,
+         AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
+                                    TRUE ~ AreaCovered_ha),
+         log_AreaCovered_ha = log(AreaCovered_ha + 0.001),
+         SurveyYear = year(SurveyDate),
+         SurveyMonth = month(SurveyDate)) %>%
+  group_by(AreaOfInterestID, SurveyYear) %>% # remove reports of zero when there is another report that year
+  mutate(AreaCoveredAnnAvg_ha = mean(AreaCovered_ha),
+         FirstSurveyPerYear = min(SurveyDate)) %>%
+  ungroup() %>%
+  filter(!(AreaCoveredAnnAvg_ha > 0 & AreaCovered_ha == 0) & # other report is non-zero
+           !(AreaCovered_ha == 0 & SurveyDate != FirstSurveyPerYear)) %>% # other report is zero
+  group_by(AreaOfInterestID) %>%
+  arrange(SurveyDate) %>%
+  mutate(LastSurvey_days = SurveyDate - lag(SurveyDate),
+         log_AreaCoveredChange_ha = log_AreaCovered_ha - lag(log_AreaCovered_ha),
+         MostFreqMonth =  Mode(SurveyMonth)) %>%
+  ungroup() %>%
+  mutate(MonthDisplacement = SurveyMonth - MostFreqMonth, # months away from most frequent month
+         SurveyYearAdj = case_when(MonthDisplacement > 6 ~ SurveyYear + 1, # move into next year if more than 6 months away
+                                   MonthDisplacement < -6 ~ SurveyYear - 1, # move into previous year if more than 6 months away
+                                   TRUE ~ SurveyYear),
+         MonthDisplacementAdj = case_when(MonthDisplacement > 6 ~ 12 - SurveyMonth + MostFreqMonth,
+                                          MonthDisplacement < -6 ~ 12 - MostFreqMonth + SurveyMonth,
+                                          TRUE ~ MonthDisplacement)) %>%
+  group_by(AreaOfInterestID, SurveyYearAdj) %>% # three cases of duplicate surveys (displacements: -2 and 3, -6 and 5, 0 and 4)
+  mutate(MinDisp = min(MonthDisplacementAdj)) %>% # choose survey with lower displacement
+  ungroup() %>%
+  filter(MonthDisplacementAdj == MinDisp) %>%
+  select(-c(NumSurveysPerDate, AreaCoveredAnnAvg_ha, FirstSurveyPerYear, MinDisp))
+
+
+#### edit control data ####
+
+# non-herbicide methods (from herbicide_initial_visualizations)
+non_herb <- c("Mechanical Harvester", 
+              "Snagging (tree removal)", 
+              "Aquatic Dye (for shading)", 
+              "Grass Carp", "Hand Removal", 
+              "Mechanical (Other)", 
+              "Mechanical Shredder", 
+              "Prescribed Fire")
+
+# old herbicide data
+ctrl_old_hyd <- ctrl_old %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0) %>%
+  mutate(AreaTreated_ha= TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100) %>%
+  group_by(AreaOfInterestID, PermanentID, Year, Area_ha) %>%
+  summarise(AreaTreated_ha = sum(AreaTreated_ha)) %>%
+  ungroup() %>%
+  mutate(TreatmentMonth = 12) %>%
+  rename(TreatmentYear = Year)
+
+# new herbicide data
+ctrl_new_hyd <- ctrl_new %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
+  mutate(AreaTreated_ha = TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100) %>%
+  group_by(AreaOfInterestID, PermanentID, BeginDate, Area_ha) %>%
+  summarise(AreaTreated_ha = sum(AreaTreated_ha)) %>%
+  ungroup() %>%
+  mutate(TreatmentYear = year(BeginDate),
+         TreatmentMonth = month(BeginDate)) %>%
+  rename(TreatmentDate = BeginDate)
+
+# combine herbicide data
+ctrl_hyd <- ctrl_old_hyd %>%
+  full_join(ctrl_new_hyd) %>%
+  mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha,
+                                    TRUE ~ AreaTreated_ha))
   
+
+#### combine FWC plant and ctrl data ####
+
+# ctrl data, adjusted for plant data
+ctrl_hyd_adj <- ctrl_hyd %>%
+  left_join(plant_fwc_hyd %>%
+              select(AreaOfInterestID, PermanentID, MostFreqMonth) %>% # add most frequent month for waterbody
+              unique()) %>%
+  mutate(TreatmentYearAdj = case_when(TreatmentMonth < MostFreqMonth ~ TreatmentYear - 1, # move treatment into previous year if it occurred before survey
+                                      TRUE ~ TreatmentYear)) %>%
+  group_by(AreaOfInterestID, PermanentID, TreatmentYearAdj) %>%
+  summarise(TreatmentFrequency = n(), # treatments per year
+            TreatmentIntensity = mean(AreaTreated_ha/Area_ha), # average area treated
+            Treatment = TreatmentFrequency * TreatmentIntensity) %>%
+  ungroup()
+
+# add ctrl data for years with plant surveys
+plant_fwc_hyd_ctrl <- plant_fwc_hyd %>%
+  rename(YearAdj = SurveyYearAdj) %>%
+  left_join(ctrl_hyd_adj %>%
+              rename(YearAdj = TreatmentYearAdj) %>%
+              mutate(YearAdj = YearAdj + 1)) %>% # add year to control data so that it's in the same row as the survey that followed it
+  mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0),
+         TreatmentIntensity = replace_na(TreatmentIntensity, 0),
+         Treatment = replace_na(Treatment, 0))
+
+# split data for before/after control data available
+plant_fwc_hyd_pre <- plant_fwc_hyd %>%
+  filter(SurveyYearAdj < (min(ctrl_hyd_adj$TreatmentYearAdj) + 1)) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(NumSurveys = n()) %>%
+  ungroup() %>%
+  filter(NumSurveys >= MinTime) # remove lakes with too few surveys
+
+plant_fwc_hyd_post <- plant_fwc_hyd_ctrl %>%
+  filter(YearAdj > min(ctrl_hyd_adj$TreatmentYearAdj)) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(NumSurveys = n()) %>%
+  ungroup() %>%
+  filter(NumSurveys >= MinTime) # remove lakes with too few surveys
+
+
+#### visualizations ####
+
+# original month displacement
+ggplot(plant_fwc_hyd, aes(x = MonthDisplacement)) +
+  geom_histogram(binwidth = 1)
+
+# adjusted month displacement
+pdf("output/adjusted_month_displacement_hydrilla_fwc.pdf", width = 4, height = 4)
+ggplot(plant_fwc_hyd, aes(x = MonthDisplacementAdj)) +
+  geom_histogram(binwidth = 1) +
+  xlab("Month displacement (J)") +
+  ylab("Surveys") +
+  def_theme
+dev.off()
+
+# treatment
+pdf("output/herbicide_distribution_hydrilla.pdf", width = 4, height = 4)
+ggplot(plant_fwc_hyd_post, aes(x = Treatment)) +
+  geom_histogram(binwidth = 0.01) +
+  xlab("Herbicide (H, proportion lake x applications)") +
+  ylab("Surveys") +
+  def_theme
+dev.off()
+
+# initial treatment visualization
+ggplot(plant_fwc_hyd_post, aes(x = Treatment, y = log_AreaCoveredChange_ha)) +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide (H, proportion lake x applications)") +
+  ylab("Change in hydrilla cover (log(final/initial))") +
+  def_theme
+# only 28 missing values because the others have surveys pre-herbicide
+
+
+#### start here: make pre-herbicide model ####
 
 
 #### edit data ####
 
 # select data associated with Hydrilla
 # convert all to hectares
-ctrl_old_hyd <- ctrl_old %>%
-  filter(Species == "Hydrilla verticillata") %>%
-  mutate(AreaTreated_ha= TotalAcres * 0.405,
-         Area_ha = ShapeArea * 100)
 
-ctrl_new_hyd <- ctrl_new %>%
-  filter(Species == "Hydrilla verticillata") %>%
-  mutate(AreaTreated_ha = TotalAcres * 0.405,
-         Area_ha = ShapeArea * 100)
 
-plant_fwc_hyd <- plant_fwc %>%
-  filter(SpeciesName == "Hydrilla verticillata") %>%
-  mutate(AreaCovered_ha = SpeciesAcres * 0.405,
-         Area_ha = ShapeArea * 100,
-         AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
-                                    TRUE ~ AreaCovered_ha),
-         SpeciesFrequency_ha = AreaCovered_ha / Area_ha,
-         log_AreaCovered_ha = log(AreaCovered_ha + 0.001))
+
 
 plant_lw_hyd <- plant_lw %>%
   filter(GenusSpecies == "Hydrilla verticillata") %>%
   mutate(Area_ha = ShapeArea * 100)
-
-# see if species cover exceeds total area
-plant_fwc_hyd %>%
-  filter(SpeciesFrequency_ha > 1) %>%
-  select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, AreaCovered_ha, SpeciesFrequency_ha) %>%
-  unique() %>%
-  data.frame()
-# may be inaccurate area estimates - round down to 1
 
 # see if treated area exceeds total area
 ctrl_old_hyd %>%
@@ -100,21 +251,6 @@ plant_lw_hyd %>%
   anti_join(plant_fwc_hyd %>%
                select(PermanentID) %>%
                unique) # 1 lake was not sampled by FWC, the other 50 were
-
-# check plant dataset for unique ID-name combos
-plant_fwc_hyd %>%
-  select(AreaOfInterest, AreaOfInterestID) %>%
-  unique() %>%
-  mutate(dup = duplicated(AreaOfInterestID)) %>%
-  filter(dup == T) # none
-
-# frequencies greater than 1
-plant_fwc_hyd %>%
-  filter(SpeciesFrequency_ha > 1) %>%
-  select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, AreaCovered_ha, SpeciesFrequency_ha) %>%
-  unique() %>%
-  data.frame()
-# may be inaccurate area estimates - round down to 1
 
 # how consistent are LW and FWC plant surveys?
 plant_lw_hyd %>%
@@ -172,14 +308,6 @@ ctrl_new_hyd %>%
   mutate(dup = duplicated(AreaOfInterestID)) %>%
   filter(dup == T)
 
-# non-herbicide methods (from herbicide_initial_visualizations)
-non_herb <- c("Mechanical Harvester", 
-              "Snagging (tree removal)", 
-              "Aquatic Dye (for shading)", 
-              "Grass Carp", "Hand Removal", 
-              "Mechanical (Other)", 
-              "Mechanical Shredder", 
-              "Prescribed Fire")
 
 # FWC average herbicide and plants
 # assign 12/31 to the year herbicide was applied for old dataset (no date info)
@@ -830,21 +958,21 @@ stan_data <- within(list(), {
   n <- length(test_ts)
 })
 
-# frequency change time series
-test_dat2 <- filter(survey_herb_fwc_hyd, AreaOfInterestID == 206) %>%
+# herbicide time series
+test_dat2 <- filter(survey_ts_fwc_hyd, AreaOfInterestID == 206) %>%
   mutate(MinDate = min(SurveyDate),
          DateNum = as.numeric(SurveyDate - MinDate)) %>%
   filter(!is.na(FreqChangePerYear))
 ggplot(test_dat2, aes(DateNum, FreqChangePerYear)) + geom_line()
 ggplot(test_dat2, aes(DateNum, Herbicide)) + geom_line()
-ggplot(test_dat2, aes(DateNum, AreaCovered_ha)) + 
+ggplot(test_dat2, aes(DateNum, log_AreaCovered_ha)) + 
   geom_line() +
   geom_point(aes(color = Herbicide)) +
   scale_color_viridis_c()
 ggplot(test_dat2, aes(DateNum, abs(FreqChangePerYear))) + geom_line()
 ggplot(test_dat2, aes(Herbicide, abs(FreqChangePerYear))) + geom_point()
 ggplot(test_dat2, aes(Herbicide, log_AreaCovered_ha)) + geom_point()
-test_ts2 <- zoo(test_dat2$FreqChangePerYear, test_dat2$DateNum)
+test_ts2 <- zoo(test_dat2$log_AreaCovered_ha, test_dat2$DateNum)
 test_x2 <- zoo(test_dat2$Herbicide, test_dat2$DateNum)
 
 # stan data
@@ -852,6 +980,30 @@ stan_data2 <- within(list(), {
   y <- as.vector(test_ts2)
   x <- as.vector(test_x2)
   n <- length(test_ts2)
+})
+
+# simulated data
+test_dat3 <- tibble(days = 0:30,
+                    yhat = 10,
+                    y = yhat + rnorm(1, 0, 1))
+
+for(i in 2:nrow(test_dat3)){
+  test_dat3$yhat[i] <- test_dat3$yhat[i-1] * exp(1.1 - 0.055 * test_dat3$yhat[i-1])
+  test_dat3$y[i] = test_dat3$yhat[i] + rnorm(1, 0, 1)
+}
+
+ggplot(test_dat3, aes(x = days, y = yhat)) +
+  geom_line() +
+  geom_point() + 
+  geom_line(aes(y = y))
+
+test_ts3 <- zoo(test_dat3$y, test_dat3$days)
+
+# stan data
+stan_data3 <- within(list(), {
+  y <- as.vector(test_ts3)
+  n <- length(test_ts3)
+  mu0 <- log(test_dat3$y[1])
 })
 
 
@@ -1053,8 +1205,30 @@ plot_dat5 %>%
   ylab("Process error") +
   theme_bw()
 
+# model 6: Ricker model, observation error only
 
-#### frequency change model ####
+# model file
+model_file6 <- 'models/test_ricker_obs_error_only.stan'
+cat(paste(readLines(model_file6)), sep = '\n')
 
+# fit model
+test_fit6 <- stan(file = model_file6, data = stan_data3,
+                  iter = 2000, chains = 4)
 
-#### absolute frequency change model ####
+print(test_fit6, max = 50)
+# generally bad at estimating parameters, could give stricter priors...
+
+# try simple model
+test_fit6b <- stan(file = model_file1, data = stan_data3,
+                  iter = 2000, chains = 4)
+
+mu6b <- get_posterior_mean(test_fit6b, par = 'mu')[, 'mean-all chains']
+
+# figures
+autoplot(test_ts3) + 
+  geom_hline(yintercept = mu6b, linetype = "dashed") +
+  ggtitle("level only, observation error only")
+
+autoplot(test_ts3 - mu6b) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  ggtitle("observation error")
