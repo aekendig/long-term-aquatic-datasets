@@ -11,7 +11,8 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(lubridate)
-library(pracma)
+library(pracma) # for Mode
+library(reshape2) # for melt
 library(zoo)
 library(ggfortify)
 
@@ -118,7 +119,7 @@ min(plant_fwc_hyd$log_AreaCovered_ha)
 
 # add -99 for missing years
 plant_fwc_hyd_pre2 <- plant_fwc_hyd_pre %>%
-  group_by(AreaOfInterestID, PermanentID) %>%
+  group_by(AreaOfInterestID, PermanentID, AreaOfInterest, Area_ha) %>%
   summarise(MinYear = min(SurveyYearAdj),
             MaxYear = max(SurveyYearAdj)) %>% # year range for a waterbody
   ungroup() %>%
@@ -158,7 +159,7 @@ plant_fwc_hyd_post %>%
 
 # add -99 for missing years
 plant_fwc_hyd_post2 <- plant_fwc_hyd_post %>%
-  group_by(AreaOfInterestID, PermanentID) %>%
+  group_by(AreaOfInterestID, PermanentID, AreaOfInterest, Area_ha) %>%
   summarise(MinYear = min(SurveyYearAdj),
             MaxYear = max(SurveyYearAdj)) %>% # year range for a waterbody
   ungroup() %>%
@@ -252,17 +253,21 @@ ctrl_hyd_adj <- ctrl_hyd %>% # use data without zeros
               unique()) %>%
   mutate(TreatmentYearAdj = case_when(TreatmentMonth < MostFreqMonth ~ TreatmentYear - 1, # move treatment into previous year if it occurred before survey
                                       TRUE ~ TreatmentYear)) %>%
-  group_by(AreaOfInterestID, PermanentID, TreatmentYearAdj) %>%
+  group_by(AreaOfInterestID, PermanentID, Area_ha, TreatmentYearAdj) %>%
   summarise(TreatmentFrequency = n(), # treatments per year
             TreatmentIntensity = mean(AreaTreated_ha/Area_ha), # average area treated
             Treatment = TreatmentFrequency * TreatmentIntensity) %>%
   ungroup() %>%
   full_join(ctrl_old %>% # all waterbodies from the dataset
-              select(AreaOfInterestID, PermanentID) %>%
+              select(AreaOfInterestID, PermanentID, ShapeArea) %>%
               unique() %>%
+              mutate(Area_ha = ShapeArea * 100) %>%
+              select(-ShapeArea) %>%
               full_join(ctrl_new %>%
-                          select(AreaOfInterestID, PermanentID) %>%
-                          unique()) %>%
+                          select(AreaOfInterestID, PermanentID, ShapeArea) %>%
+                          unique() %>%
+                          mutate(Area_ha = ShapeArea * 100) %>%
+                          select(-ShapeArea)) %>%
               expand_grid(tibble(TreatmentYearAdj = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear)))) %>%
   mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0), # make values 0 if no herbicide data available
          TreatmentIntensity = replace_na(TreatmentIntensity, 0),
@@ -278,6 +283,42 @@ plant_fwc_ctrl_hyd_post <-  plant_fwc_hyd_post2 %>% # plant data has NA for miss
   mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0), # make values 0 if no control data exists for a waterbody (revisit)
          TreatmentIntensity = replace_na(TreatmentIntensity, 0),
          Treatment = replace_na(Treatment, 0))
+
+
+#### featured lakes ####
+
+# select six lakes with varying levels of missing data
+featured_ID <- plant_fwc_hyd_pre2 %>%
+  group_by(AreaOfInterestID) %>%
+  summarise(OldYears = n(),
+            OldMissingYears = sum(log_AreaCoveredMis_ha == -99),
+            OldVarArea = sd(log_AreaCovered_ha, na.rm = T)) %>%
+  inner_join(plant_fwc_hyd_post2 %>%
+               group_by(AreaOfInterestID) %>%
+               summarise(NewYears = n(),
+                         NewMissingYears = sum(log_AreaCoveredMis_ha == -99),
+                         NewVarArea = sd(log_AreaCovered_ha, na.rm = T))) %>%
+  mutate(TotalYears = OldYears + NewYears,
+         TotalMissingYears = OldMissingYears + NewMissingYears,
+         TotalVarArea = OldVarArea + NewVarArea) %>%
+  filter(OldYears >= 10 & NewYears >= 10) %>% # at least 10 years in each dataset
+  group_by(TotalMissingYears) %>%
+  mutate(MaxVar = max(TotalVarArea)) %>% # choose highest variation
+  ungroup() %>%
+  filter(TotalMissingYears %in% c(0, 2, 3, 4, 6, 10) & TotalVarArea == MaxVar)
+
+# select lakes from pre dataset
+lakes_fwc_hyd_pre <- plant_fwc_hyd_pre2 %>%
+  inner_join(featured_ID %>%
+              select(AreaOfInterestID, TotalMissingYears)) %>%
+  mutate(LakeSize = paste(str_replace(AreaOfInterest, ", Lake", ""), " (", round(Area_ha), " ha)", sep = "") %>%
+           fct_reorder(TotalMissingYears))
+
+lakes_fwc_hyd_post <- plant_fwc_ctrl_hyd_post %>%
+  inner_join(featured_ID %>%
+               select(AreaOfInterestID, TotalMissingYears)) %>%
+  mutate(LakeSize = paste(str_replace(AreaOfInterest, ", Lake", ""), " (", round(Area_ha), " ha)", sep = "") %>%
+           fct_reorder(TotalMissingYears))
 
 
 #### visualizations ####
@@ -314,48 +355,305 @@ ggplot(plant_fwc_ctrl_hyd_post, aes(x = Treatment, y = log_AreaCoveredChange_ha)
   def_theme
 # missing data when a year was not surveyed
 
+# featured lakes
+pdf("output/featured_lakes_hydrilla_herbicides.pdf", width = 7, height = 5)
+lakes_fwc_hyd_pre%>%
+  ggplot(aes(SurveyYearAdj, log_AreaCovered_ha)) +
+  geom_vline(xintercept = min(ctrl_old$Year), linetype = "dashed") +
+  geom_line() +
+  geom_point() +
+  geom_line(data = lakes_fwc_hyd_post, aes(x = YearAdj)) +
+  geom_point(data = lakes_fwc_hyd_post, aes(x = YearAdj, color = Treatment)) +
+  geom_text(x = 2018, y = 8, aes(label = paste("missing = ", TotalMissingYears, sep = "")), check_overlap = T, size = 3, hjust = 1) +
+  facet_wrap(~ LakeSize) +
+  scale_color_viridis_c(name = "Herbicide") +
+  xlab("Year") +
+  ylab("Hydrilla cover (log hectares)") +
+  def_theme
+dev.off()
+  
 
 #### pre-herbicide model ####
-
-# test time series
-pre_test_dat <- filter(plant_fwc_hyd_pre2, AreaOfInterestID == 106)
-ggplot(pre_test_dat, aes(SurveyYearAdj, log_AreaCovered_ha)) +
-  geom_point()
-
-# stan data
-pre_test_stan_data <- within(list(), {
-  n <- nrow(pre_test_dat)
-  y <- pre_test_dat$log_AreaCoveredMis_ha
-  sigmaJ <- pre_test_dat$SigmaJ
-  x0 <- pre_test_dat$log_AreaCoveredMis_ha[1] # make sure this isn't NA
-})
 
 # model file
 pre_herb_mod <- 'models/hydrilla_pre_herbicide.stan'
 cat(paste(readLines(pre_herb_mod)), sep = '\n')
 
-# fit model
-pre_test_fit <- stan(file = pre_herb_mod, data = pre_test_stan_data,
-                  iter = 2000, chains = 1)
+# initiate lists
+pre_test_x <- list()
+pre_test_y_surv <- list()
+pre_test_br <- list()
+pre_test_sigma_obs <- list()
+pre_test_sigma_proc <- list()
+pre_test_x_last <- list()
 
-# model ouput
-print(pre_test_fit)
-# times with missing data have very low n_eff when sigma_j included
-# sigma_j and sigma_obs estimated as zero when sigma_j included
-# sigm_obs non-zero and n_eff better when sigma_j left out
+# loop through each featured lake
+for(i in 1:nrow(featured_ID)) {
+  
+  # ID
+  ID <- featured_ID$AreaOfInterestID[i]
+  
+  # subset data
+  pre_test_dat <- lakes_fwc_hyd_pre %>%
+    filter(AreaOfInterestID == ID)
+  
+  # create stan data
+  pre_test_stan_data <- within(list(), {
+    n <- nrow(pre_test_dat)
+    y <- pre_test_dat$log_AreaCoveredMis_ha
+    sigmaJ <- pre_test_dat$SigmaJ
+    x0 <- filter(pre_test_dat, !is.na(log_AreaCovered_ha))$log_AreaCoveredMis_ha[1] # first non-NA
+    ymis <- mean(pre_test_dat$log_AreaCovered_ha, na.rm = T)
+  })
+  
+  # fit model
+  pre_test_fit <- stan(file = pre_herb_mod, data = pre_test_stan_data, 
+              iter = 5000, chains = 3, warmup = 2000)
+  
+  # extract process values
+  pre_test_x[[i]] <- extract(pre_test_fit, pars = "x")[[1]] %>% 
+    as_tibble() %>% 
+    melt() %>% 
+    mutate(SurveyYearAdj = min(pre_test_dat$SurveyYearAdj) + parse_number(as.character(variable)) - 1) %>% 
+    group_by(SurveyYearAdj) %>% 
+    summarise(median = median(value),
+              lower = quantile(value, 0.025),
+              upper = quantile(value, 0.975)) %>%
+    mutate(AreaOfInterestID = ID)
+  
+  pre_test_y_surv[[i]] <- extract(pre_test_fit, pars = "y_surv")[[1]] %>% 
+    as_tibble() %>% 
+    melt() %>% 
+    mutate(SurveyYearAdj = min(pre_test_dat$SurveyYearAdj) + parse_number(as.character(variable)) - 1) %>% 
+    group_by(SurveyYearAdj) %>% 
+    summarise(median = median(value),
+              lower = quantile(value, 0.025),
+              upper = quantile(value, 0.975)) %>%
+    mutate(AreaOfInterestID = ID)
+  
+  pre_test_br[[i]] <- summary(pre_test_fit, pars = "br")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  pre_test_sigma_obs[[i]] <- summary(pre_test_fit, pars = "sigma_obs")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  pre_test_sigma_proc[[i]] <- summary(pre_test_fit, pars = "sigma_proc")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  pre_test_x_last[[i]] <- summary(pre_test_fit, pars = "x")$summary %>%
+    as_tibble() %>%
+    tail(n = 1) %>%
+    mutate(AreaOfInterestID = ID)
+  
+  # save model
+  assign(paste("pre_test_fit", ID, sep = "_"), pre_test_fit)
+}
 
-pre_test_x <- get_posterior_mean(pre_test_fit, par = 'x')
-sd(pre_test_x)
-# sigma_proc is not the sd when sigma_j included
+# examine models
+print(pre_test_fit_290)
+print(pre_test_fit_301)
+print(pre_test_fit_303)
+print(pre_test_fit_311)
+print(pre_test_fit_390)
+print(pre_test_fit_475)
+
+# combine estimates
+pre_test_est <- pre_test_x %>%
+  bind_rows() %>%
+  rename(median_x = median, lower_x = lower, upper_x = upper) %>%
+  full_join(pre_test_y_surv %>%
+              bind_rows() %>%
+              rename(median_y_surv = median, lower_y_surv = lower, upper_y_surv = upper))
 
 # look at results
-pre_test_dat %>%
-  mutate(PredCover = pre_test_x) %>%
-  ggplot(aes(SurveyYearAdj, log_AreaCovered_ha)) +
-  geom_point() +
-  geom_line(aes(y = PredCover))
-# estimates exactly match measurements besides missing data (very high) when sigma_j included
-# estimates more smoothed when sigma_j left out
+pdf("output/featured_lakes_pre_herbicide_fit.pdf", width = 7, height = 5)
+lakes_fwc_hyd_pre %>%
+  full_join(pre_test_est) %>%
+  ggplot(aes(SurveyYearAdj, median_x)) +
+  geom_ribbon(aes(ymin = lower_x, ymax = upper_x), alpha = 0.5) +
+  geom_line() +
+  # geom_point(aes(y = median_y_surv), color = "red") +
+  geom_point(aes(y = log_AreaCovered_ha)) +
+  facet_wrap(~ LakeSize) +
+  xlab("Year") +
+  ylab("Hydrilla cover (log hectares)") +
+  def_theme
+dev.off()
+
+# priors for next model
+pre_test_prior <- pre_test_br %>%
+  bind_rows() %>%
+  select(AreaOfInterestID, mean, se_mean) %>%
+  rename(mean_br = mean, se_br = se_mean) %>%
+  full_join(pre_test_x_last %>%
+              bind_rows() %>%
+              select(AreaOfInterestID, mean, se_mean) %>%
+              rename(mean_x0 = mean, se_x0 = se_mean)) %>%
+  full_join(pre_test_sigma_obs %>%
+              bind_rows() %>%
+              select(AreaOfInterestID, mean, se_mean) %>%
+              rename(mean_obs = mean, se_obs = se_mean)) %>%
+  full_join(pre_test_sigma_proc %>%
+              bind_rows() %>%
+              select(AreaOfInterestID, mean, se_mean) %>%
+              rename(mean_proc = mean, se_proc = se_mean)) %>%
+  left_join(lakes_fwc_hyd_pre %>%
+              select(AreaOfInterest, AreaOfInterestID) %>%
+              unique())
+
+write_csv(pre_test_prior, "output/featured_lakes_pre_herbicide_params.csv")
+
+
+#### post-herbicide model ###
+
+# model file
+post_herb_mod <- 'models/hydrilla_post_herbicide.stan'
+cat(paste(readLines(post_herb_mod)), sep = '\n')
+
+# initiate lists
+post_test_x <- list()
+post_test_y_surv <- list()
+post_test_br <- list()
+post_test_sigma_obs <- list()
+post_test_sigma_proc <- list()
+post_test_bH <- list()
+
+# loop through each featured lake
+for(i in 1:nrow(featured_ID)) {
+  
+  # ID
+  ID <- featured_ID$AreaOfInterestID[i]
+  
+  # subset data
+  post_test_dat <- lakes_fwc_hyd_post %>%
+    filter(AreaOfInterestID == ID)
+  
+  # subset priors
+  post_test_prior <- pre_test_prior %>%
+    filter(AreaOfInterestID == ID)
+  
+  # create stan data
+  post_test_stan_data <- within(list(), {
+    n <- nrow(post_test_dat)
+    y <- post_test_dat$log_AreaCoveredMis_ha
+    sigmaJ <- post_test_dat$SigmaJ
+    H <- post_test_dat$Treatment
+    x0 <- post_test_prior$mean_x0
+    ymis <- mean(post_test_dat$log_AreaCovered_ha, na.rm = T)
+    br_mean <- post_test_prior$mean_br
+    #br_sd <- post_test_prior$se_br * 10
+    br_sd <- 1
+    obs_mean <- post_test_prior$mean_obs
+    #obs_sd <- post_test_prior$se_obs * 10
+    obs_sd <- 1
+    proc_mean <- post_test_prior$mean_proc
+    # proc_sd <- post_test_prior$se_proc * 10
+    proc_sd <- 1
+  })
+  
+  # fit model
+  post_test_fit <- stan(file = post_herb_mod, data = post_test_stan_data, 
+                       iter = 5000, chains = 3, warmup = 2000)
+  
+  # extract process values
+  post_test_x[[i]] <- extract(post_test_fit, pars = "x")[[1]] %>% 
+    as_tibble() %>% 
+    melt() %>% 
+    mutate(YearAdj = min(post_test_dat$YearAdj) + parse_number(as.character(variable)) - 1) %>% 
+    group_by(YearAdj) %>% 
+    summarise(median = median(value),
+              lower = quantile(value, 0.025),
+              upper = quantile(value, 0.975)) %>%
+    mutate(AreaOfInterestID = ID)
+  
+  post_test_y_surv[[i]] <- extract(post_test_fit, pars = "y_surv")[[1]] %>% 
+    as_tibble() %>% 
+    melt() %>% 
+    mutate(YearAdj = min(post_test_dat$YearAdj) + parse_number(as.character(variable)) - 1) %>% 
+    group_by(YearAdj) %>% 
+    summarise(median = median(value),
+              lower = quantile(value, 0.025),
+              upper = quantile(value, 0.975)) %>%
+    mutate(AreaOfInterestID = ID)
+  
+  post_test_br[[i]] <- summary(post_test_fit, pars = "br")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  post_test_bH[[i]] <- summary(post_test_fit, pars = "bH")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  post_test_sigma_obs[[i]] <- summary(post_test_fit, pars = "sigma_obs")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  post_test_sigma_proc[[i]] <- summary(post_test_fit, pars = "sigma_proc")$summary %>%
+    as_tibble() %>%
+    mutate(AreaOfInterestID = ID)
+  
+  # save model
+  assign(paste("post_test_fit", ID, sep = "_"), post_test_fit)
+}
+
+# combine estimates
+post_test_est <- post_test_x %>%
+  bind_rows() %>%
+  rename(median_x = median, lower_x = lower, upper_x = upper) %>%
+  full_join(post_test_y_surv %>%
+              bind_rows() %>%
+              rename(median_y_surv = median, lower_y_surv = lower, upper_y_surv = upper))
+
+# look at results
+pdf("output/featured_lakes_post_herbicide_fit.pdf", width = 7, height = 5)
+lakes_fwc_hyd_post %>%
+  full_join(post_test_est) %>%
+  ggplot(aes(YearAdj, median_x)) +
+  geom_ribbon(aes(ymin = lower_x, ymax = upper_x), alpha = 0.5) +
+  geom_line() +
+  # geom_point(aes(y = median_y_surv), color = "red") +
+  geom_point(aes(y = log_AreaCovered_ha, color = Treatment)) +
+  facet_wrap(~ LakeSize) +
+  scale_color_viridis_c(name = "Herbicide") +
+  xlab("Year") +
+  ylab("Hydrilla cover (log hectares)") +
+  def_theme
+dev.off()
+
+# parameter estimates
+post_test_params <- post_test_br %>%
+  bind_rows() %>%
+  select(AreaOfInterestID, mean, se_mean) %>%
+  rename(mean_br = mean, se_br = se_mean) %>%
+  full_join(post_test_bH %>%
+              bind_rows() %>%
+              select(AreaOfInterestID, mean, se_mean) %>%
+              rename(mean_bH = mean, se_bH = se_mean)) %>%
+  full_join(post_test_sigma_obs %>%
+              bind_rows() %>%
+              select(AreaOfInterestID, mean, se_mean) %>%
+              rename(mean_obs = mean, se_obs = se_mean)) %>%
+  full_join(post_test_sigma_proc %>%
+              bind_rows() %>%
+              select(AreaOfInterestID, mean, se_mean) %>%
+              rename(mean_proc = mean, se_proc = se_mean)) %>%
+  left_join(lakes_fwc_hyd_post %>%
+              select(AreaOfInterest, AreaOfInterestID, Area_ha) %>%
+              unique())
+
+# figure
+pdf("output/featured_lakes_herbicide_size.pdf", width = 4, height = 4)
+ggplot(post_test_params, aes(x = log(Area_ha), y = mean_bH)) +
+  geom_errorbar(aes(ymin = mean_bH - se_bH, ymax = mean_bH + se_bH), width = 0) +
+  geom_point(size = 2) +
+  xlab("Waterbody area (log hectares)") +
+  ylab("Herbicide effect") +
+  def_theme
+dev.off()
+
 
 
 #### old code: edit data ####
