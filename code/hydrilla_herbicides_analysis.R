@@ -120,13 +120,13 @@ min(plant_fwc_hyd$log_AreaCovered_ha)
 
 # add -99 for missing years
 plant_fwc_hyd_pre2 <- plant_fwc_hyd_pre %>%
-  group_by(AreaOfInterestID, PermanentID, AreaOfInterest, Area_ha) %>%
-  summarise(MinYear = min(SurveyYearAdj),
-            MaxYear = max(SurveyYearAdj)) %>% # year range for a waterbody
-  ungroup() %>%
-  mutate(SurveyYearAdj = map2(MinYear, MaxYear, seq, by = 1)) %>%
+  select(AreaOfInterestID, PermanentID, SurveyYearAdj) %>%
+  mutate(MinYear = min(SurveyYearAdj),
+         MaxYear = max(SurveyYearAdj),
+         SurveyYearAdj = map2(MinYear, MaxYear, seq, by = 1)) %>% # year range for all waterbodies
   unnest(cols = SurveyYearAdj) %>% # populate all years for a waterbody
   select(-c(MinYear, MaxYear)) %>%
+  unique() %>%
   full_join(plant_fwc_hyd_pre) %>% # missing years will have NA for area metrics
   group_by(AreaOfInterestID) %>%
   arrange(SurveyYearAdj) %>%
@@ -134,7 +134,13 @@ plant_fwc_hyd_pre2 <- plant_fwc_hyd_pre %>%
          log_AreaCoveredMis_ha = replace_na(log_AreaCovered_ha, -99),
          MonthDisplacementMis = replace_na(abs(MonthDisplacementAdj), 0), # make month displacement positive
          SigmaJ = case_when(MonthDisplacementMis != 0 ~ log(1 + MonthDisplacementMis * 0.1), # 10% error by month
-                            MonthDisplacementMis == 0 ~ 0.001)) %>% # small error if in survey month
+                            MonthDisplacementMis == 0 ~ 0.001), # small error if in survey month
+         YearWithData = case_when(log_AreaCoveredMis_ha == -99 ~ NA_real_, # column of years with data
+                                 TRUE ~ SurveyYearAdj),
+         x0 = case_when(SurveyYearAdj == min(YearWithData, na.rm = T) ~ log_AreaCoveredMis_ha, # area from first year with data
+                        TRUE ~ NA_real_),
+         ymis = case_when(SurveyYearAdj == min(SurveyYearAdj) ~ mean(log_AreaCovered_ha, na.rm = T), # average abundance
+                          TRUE ~ NA_real_)) %>%
   ungroup() %>%
   arrange(AreaOfInterestID, SurveyYearAdj)
 
@@ -430,14 +436,15 @@ dev.off()
 #### pre-herbicide model ####
 
 # stan code based on example downloaded from: https://laptrinhx.com/smooth-poll-aggregation-using-state-space-modeling-in-stan-from-jim-savage-3654694539/
-# observational error is not identifiable when growth rate is a random effect across lakes (strong corelation with lp__ in the pairs plots). it may be because of this issue, but I don't totally understand it: https://discourse.mc-stan.org/t/dynamic-panel-data-models-with-stan/5136/16
+# observational error is not identifiable when growth rate is a random effect across lakes (strong corelation with lp__ in the pairs plots and error about BFMI low). it may be because of this issue, but I don't totally understand it: https://discourse.mc-stan.org/t/dynamic-panel-data-models-with-stan/5136/16
+# when I made growth rate year-specific, process error was more strongly correlated with lp__. BFMI went away, but estimates aren't super close. Maybe they can get closer with stronger priors on the observational error made with other datasets?
 
 # model file
 pre_herb_mod <- 'models/hydrilla_pre_herbicide.stan'
 cat(paste(readLines(pre_herb_mod)), sep = '\n')
 
 # generate fake data
-set.seed(100)
+set.seed(85)
 pre_sig_proc = abs(rnorm(1)) # sd of process error
 pre_sig_obs = abs(rnorm(1)) # sd of observation error
 pre_sig_r = abs(rnorm(1)) # sd of growth rate
@@ -454,8 +461,8 @@ pre_test_dat <- tibble(lake = rep(1:10, each = 20), # 10 lakes
          sig_proc = rnorm(1, 0, pre_sig_proc),
          sig_obs = rnorm(1, 0, pre_sig_obs)) %>%
   ungroup() %>%
-  group_by(lake) %>%
-  mutate(br = rnorm(1, 0.25, pre_sig_r)) %>% # lake-specific growth rate
+  group_by(time) %>%
+  mutate(br = rnorm(1, 0.25, pre_sig_r)) %>% # year-specific growth rate
   ungroup()
 
 for(i in 2:20){
@@ -483,8 +490,8 @@ pre_test_dat %>%
   ggplot(aes(x = time, y = x, color = as.factor(lake))) +
   geom_line() +
   geom_point(aes(y = y)) +
+  def_theme +
   theme(legend.position = "none")
-
 
 # create stan data
 pre_test_stan_dat <- within(list(), {
@@ -500,7 +507,6 @@ pre_test_stan_dat <- within(list(), {
 pre_test_fit <- stan(file = pre_herb_mod, data = pre_test_stan_dat, 
                      iter = 5000, chains = 3, warmup = 2000)
 
-
 # model output
 pairs(pre_test_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "lp__"))
 summary(pre_test_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "eta"))$summary
@@ -509,13 +515,11 @@ summary(pre_test_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "
 pre_test_x <- extract(pre_test_fit, pars = "x")[[1]] %>% 
   as_tibble() %>% 
   melt() %>% 
-  rowwise() %>%
-  mutate(variable = as.character(variable),
-         time = strsplit(variable, ".", fixed = T)[[1]][1] %>%
-           as.numeric(),
-         lake = strsplit(variable, ".", fixed = T)[[1]][2] %>%
-           as.numeric()) %>% 
-  ungroup() %>%
+  mutate(variable = as.character(variable)) %>%
+  left_join(pre_test_dat %>%
+              select(time, lake) %>%
+              unique() %>%
+              mutate(variable = paste(time, lake, sep = "."))) %>%
   group_by(lake, time) %>% 
   summarise(mean = mean(value),
             median = median(value),
@@ -524,6 +528,7 @@ pre_test_x <- extract(pre_test_fit, pars = "x")[[1]] %>%
   ungroup()
 
 # look at results
+pdf("output/pre_herbicide_test_model.pdf", width = 5, height = 4)
 pre_test_dat %>%
   filter(y != -99) %>%
   full_join(pre_test_x) %>%
@@ -531,9 +536,48 @@ pre_test_dat %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5, color = NA) +
   geom_line() +
   geom_point(aes(y = y)) +
+  xlab("Time") +
+  ylab("Area covered (log ha)") +
+  def_theme + 
   theme(legend.position = "none")
+dev.off()
 
+pdf("output/pre_herbicide_test_model_true_values.pdf", width = 4, height = 4)
+pre_test_dat %>%
+  filter(y != -99) %>%
+  full_join(pre_test_x) %>%
+  ggplot(aes(x, median, color = as.factor(lake))) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point() +
+  xlab("True values") +
+  ylab("Estimated true values") +
+  def_theme + 
+  theme(legend.position = "none")
+dev.off()
 
+# create real stan data
+pre_herb_stan_dat <- within(list(), {
+  n <- length(unique(plant_fwc_hyd_pre2$SurveyYearAdj))
+  l <- length(unique(plant_fwc_hyd_pre2$AreaOfInterestID))
+  y <- matrix(plant_fwc_hyd_pre2$log_AreaCoveredMis_ha, 
+              nrow = length(unique(plant_fwc_hyd_pre2$SurveyYearAdj)), 
+              ncol = length(unique(plant_fwc_hyd_pre2$AreaOfInterestID)))
+  sigmaJ <- matrix(plant_fwc_hyd_pre2$SigmaJ, 
+                   nrow = length(unique(plant_fwc_hyd_pre2$SurveyYearAdj)), 
+                   ncol = length(unique(plant_fwc_hyd_pre2$AreaOfInterestID)))
+  x0 <- filter(plant_fwc_hyd_pre2, !is.na(x0))$x0
+  ymis <- filter(plant_fwc_hyd_pre2, !is.na(ymis))$ymis
+})
+
+#### start here: model below is craaazy slow ####
+
+# fit model
+pre_herb_fit <- stan(file = pre_herb_mod, data = pre_herb_stan_dat, 
+                     iter = 5000, chains = 3, warmup = 2000)
+
+# model output
+pairs(pre_herb_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "lp__"))
+summary(pre_herb_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "eta"))$summary
 
 
 # initiate lists

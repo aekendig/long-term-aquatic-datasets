@@ -16,13 +16,13 @@ parameters {
   real<lower=0> sigma_obs; // observation error
   real br_hat; // overall intrinsic growth rate
   real<lower=0> sigma_r; // growth rate error
-  real eta[l]; //re-parameterization of growth rate
+  real eta[n]; //re-parameterization of growth rate
 }
 
 transformed parameters {
-  real br[l];
-  for (i in 1:l){
-    br[i] = br_hat + sigma_r * eta[i];
+  real br[n];
+  for (t in 1:n){
+    br[t] = br_hat + sigma_r * eta[t];
   }
 }
 
@@ -39,7 +39,7 @@ model {
     x[1,i] ~ normal(x0[i], sigma_proc);
     
     for(t in 2:n){
-      x[t,i] ~ normal(x[t-1,i] + br[i], sigma_proc);
+      x[t,i] ~ normal(x[t-1,i] + br[t], sigma_proc);
     }
   }
   
