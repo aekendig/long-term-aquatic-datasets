@@ -13,8 +13,8 @@ library(tidyverse)
 library(lubridate)
 library(pracma) # for Mode
 library(reshape2) # for melt
-library(zoo)
-library(ggfortify)
+# library(zoo) # for uneven time series
+# library(ggfortify)
 
 # stan settings
 source("code/stan_settings.R")
@@ -27,6 +27,7 @@ plant_lw <- read_csv("intermediate-data/LW_plant_formatted.csv")
 
 # assumptions
 MinTime = 5 # minimum number of time points needed per waterbody
+SurveyDist = 30 # number of days between comparable LW and FWC surveys
 
 # figure settings
 def_theme <- theme_bw() +
@@ -321,6 +322,31 @@ lakes_fwc_hyd_post <- plant_fwc_ctrl_hyd_post %>%
            fct_reorder(TotalMissingYears))
 
 
+#### edit LW plant data ####
+
+# select hydrilla data
+# create date range to merge with FWC
+plant_lw_hyd <- plant_lw %>%
+  filter(GenusSpecies == "Hydrilla verticillata") %>% # add hydrilla information
+  select(County_LW, Lake, PermanentID, Date, SpeciesFrequency) %>%
+  mutate(SurveyMin = Date - SurveyDist,
+         SurveyMax = Date + SurveyDist) %>%
+  rename(SurveyDate_LW = Date,
+         PropCover_LW = SpeciesFrequency)
+
+
+#### combine FWC and LW plant data ####
+
+# merge based on permanentID
+# merge if fwc survey is within SurveyDist days of lw survey
+plant_lw_fwc_hyd <- plant_fwc_hyd %>%
+  rename(SurveyDate_FWC = SurveyDate) %>%
+  inner_join(plant_lw_hyd) %>%
+  filter(SurveyDate_FWC >= SurveyMin & SurveyDate_FWC <= SurveyMax) %>%
+  mutate(PropCover_FWC = AreaCovered_ha / Area_ha,
+         SurveyDiff = SurveyDate_LW - SurveyDate_FWC)
+
+
 #### visualizations ####
 
 # original month displacement
@@ -332,6 +358,15 @@ pdf("output/adjusted_month_displacement_hydrilla_fwc.pdf", width = 4, height = 4
 ggplot(plant_fwc_hyd, aes(x = MonthDisplacementAdj)) +
   geom_histogram(binwidth = 1) +
   xlab("Month displacement (J)") +
+  ylab("Surveys") +
+  def_theme
+dev.off()
+
+# adjusted month displacement
+pdf("output/month_sampled_hydrilla_fwc.pdf", width = 4, height = 4)
+ggplot(plant_fwc_hyd, aes(x = factor(month.abb[MostFreqMonth], levels = month.abb))) +
+  geom_bar(stat = "count") +
+  xlab("Month surveyed") +
   ylab("Surveys") +
   def_theme
 dev.off()
@@ -371,13 +406,135 @@ lakes_fwc_hyd_pre%>%
   ylab("Hydrilla cover (log hectares)") +
   def_theme
 dev.off()
+
+# LW and FWC surveys
+pdf("output/lw_fwc_survey_comparison_hydrilla.pdf", width = 4, height = 4)
+ggplot(plant_lw_fwc_hyd, aes(PropCover_LW, PropCover_FWC, color = abs(as.numeric(SurveyDiff)))) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = 0.7) +
+  scale_color_viridis_c(name = "Days\nbetween\nsurveys") +
+  xlab("Proportion of lake covered (LW)") +
+  ylab("Proportion of lake covered (FWC)") +
+  def_theme
+
+ggplot(plant_lw_fwc_hyd, aes(PropCover_LW, PropCover_FWC, color = log(Area_ha))) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = 0.7) +
+  scale_color_viridis_c(name = "Lake\narea\n(log ha)") +
+  xlab("Proportion of lake covered (LW)") +
+  ylab("Proportion of lake covered (FWC)") +
+  def_theme
+dev.off()
   
 
 #### pre-herbicide model ####
 
+# stan code based on example downloaded from: https://laptrinhx.com/smooth-poll-aggregation-using-state-space-modeling-in-stan-from-jim-savage-3654694539/
+# observational error is not identifiable when growth rate is a random effect across lakes (strong corelation with lp__ in the pairs plots). it may be because of this issue, but I don't totally understand it: https://discourse.mc-stan.org/t/dynamic-panel-data-models-with-stan/5136/16
+
 # model file
 pre_herb_mod <- 'models/hydrilla_pre_herbicide.stan'
 cat(paste(readLines(pre_herb_mod)), sep = '\n')
+
+# generate fake data
+set.seed(100)
+pre_sig_proc = abs(rnorm(1)) # sd of process error
+pre_sig_obs = abs(rnorm(1)) # sd of observation error
+pre_sig_r = abs(rnorm(1)) # sd of growth rate
+
+pre_test_dat <- tibble(lake = rep(1:10, each = 20), # 10 lakes
+                       time = rep(1:20, 10), # 20 years
+                       month = sample(plant_fwc_hyd_pre2$MonthDisplacementMis, 200, replace = T)) %>% # sampling time
+  rowwise() %>%
+  mutate(x = case_when(time == 1 ~ rnorm(1), # random value for log abundance at t = 1
+                       TRUE ~ NA_real_),
+         sigmaJ = case_when(month != 0 ~ log(1 + month * 0.1), # 10% error by month
+                            month == 0 ~ 0.001),
+         sig_month = rnorm(1, 0, sigmaJ),
+         sig_proc = rnorm(1, 0, pre_sig_proc),
+         sig_obs = rnorm(1, 0, pre_sig_obs)) %>%
+  ungroup() %>%
+  group_by(lake) %>%
+  mutate(br = rnorm(1, 0.25, pre_sig_r)) %>% # lake-specific growth rate
+  ungroup()
+
+for(i in 2:20){
+  pre_test_dat <- pre_test_dat %>%
+    mutate(x = case_when(time == i ~ lag(x) + br + sig_proc, # fill in remaining x
+                         TRUE ~ x))
+}
+
+pre_test_dat <- pre_test_dat %>%
+  mutate(ysurv = x + sig_obs, # add observational error to log-abundance
+         y = ysurv + sig_month, # add error for month to observed abundance
+         missing = sample(c(1, rep(0, 10)), 200, replace = T), # add indicator variable for missing
+         y = case_when(missing == 1 ~ -99,
+                       TRUE ~ y)) %>% 
+  group_by(lake) %>%
+  mutate(ymis = mean(y),
+         time_non_mis = case_when(y == -99 ~ NA_integer_,
+                                  TRUE ~ time),
+         x0 = case_when(time == min(time_non_mis, na.rm = T) ~ y,
+                        TRUE ~ NA_real_)) %>%
+  ungroup()
+
+pre_test_dat %>%
+  filter(y != -99) %>%
+  ggplot(aes(x = time, y = x, color = as.factor(lake))) +
+  geom_line() +
+  geom_point(aes(y = y)) +
+  theme(legend.position = "none")
+
+
+# create stan data
+pre_test_stan_dat <- within(list(), {
+  n <- length(unique(pre_test_dat$time))
+  l <- length(unique(pre_test_dat$lake))
+  y <- matrix(pre_test_dat$y, nrow = length(unique(pre_test_dat$time)), ncol = length(unique(pre_test_dat$lake)))
+  sigmaJ <- matrix(pre_test_dat$sigmaJ, nrow = length(unique(pre_test_dat$time)), ncol = length(unique(pre_test_dat$lake)))
+  x0 <- filter(pre_test_dat, !is.na(x0))$x0
+  ymis <- unique(pre_test_dat$ymis)
+})
+
+# fit model
+pre_test_fit <- stan(file = pre_herb_mod, data = pre_test_stan_dat, 
+                     iter = 5000, chains = 3, warmup = 2000)
+
+
+# model output
+pairs(pre_test_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "lp__"))
+summary(pre_test_fit, pars = c("sigma_obs", "sigma_proc", "sigma_r", "br_hat", "eta"))$summary
+
+# extract model fit
+pre_test_x <- extract(pre_test_fit, pars = "x")[[1]] %>% 
+  as_tibble() %>% 
+  melt() %>% 
+  rowwise() %>%
+  mutate(variable = as.character(variable),
+         time = strsplit(variable, ".", fixed = T)[[1]][1] %>%
+           as.numeric(),
+         lake = strsplit(variable, ".", fixed = T)[[1]][2] %>%
+           as.numeric()) %>% 
+  ungroup() %>%
+  group_by(lake, time) %>% 
+  summarise(mean = mean(value),
+            median = median(value),
+            lower = quantile(value, 0.025),
+            upper = quantile(value, 0.975)) %>%
+  ungroup()
+
+# look at results
+pre_test_dat %>%
+  filter(y != -99) %>%
+  full_join(pre_test_x) %>%
+  ggplot(aes(time, median, color = as.factor(lake), fill = as.factor(lake))) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5, color = NA) +
+  geom_line() +
+  geom_point(aes(y = y)) +
+  theme(legend.position = "none")
+
+
+
 
 # initiate lists
 pre_test_x <- list()

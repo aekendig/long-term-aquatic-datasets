@@ -1,48 +1,61 @@
 data {
   int<lower=1> n; // number of years
-  vector[n] y; // observations
-  vector[n] sigmaJ; // error due to months past regular survey time
-  vector[n] H; // herbicides applied
-  real x0; // initial population estimate
-  real ymis; // average value for missing values
-  real br_mean; // mean prior for growth rate
-  real br_sd; // sd prior for growth rate
-  real obs_mean; // mean prior for growth rate
-  real obs_sd; // sd prior for growth rate
-  real proc_mean; // mean prior for growth rate
-  real proc_sd; // sd prior for growth rate
+  int<lower=1> l; // number of lakes
+  
+  matrix[n,l] y; // log-transformed area covered
+  matrix[n,l] sigmaJ; // error due to months past regular survey time
+  matrix[n,l] H; // herbicides applied
+  
+  real x0[l]; // initial population estimate
+  real ymis[l]; // average value for missing values
+  
+  real sr_mean; // mean prior for growth rate
+  real sr_sd; // sd prior for growth rate
+  real obs_mean; // mean prior for observational error
+  real obs_sd; // sd prior for observational error
+  real proc_mean; // mean prior for process error
+  real proc_sd; // sd prior for process error
 }
 
 parameters {
-  vector[n] x; // estimated true values
-  vector[n] y_surv; // y if it were measured during the same month every year
-  real br; // intrinsic growth rate
+  matrix[n,l] x; // estimated true values
+  matrix[n,l] y_surv; // y if it were measured during the same month every year
   real bH; // herbicide effect
+  real rmean; // overall growth rate
   real<lower=0> sigma_proc; // process error
+  real<lower=0> sigma_r; // growth rate error
   real<lower=0> sigma_obs; // observation error
+  vector[l] br; // intrinsic growth rate (random effects) vector
 }
 
 model {
   // priors
-  sigma_proc ~ student_t(3, proc_mean, proc_sd);
-  sigma_obs ~ student_t(3, obs_mean, obs_sd);
-  br ~ normal(br_mean, br_sd);
   bH ~ normal(0, 1);
+  rmean ~ normal(0, 1);
+  sigma_proc ~ student_t(3, proc_mean, proc_sd);
+  sigma_r ~ student_t(3, sr_mean, sr_sd);
+  sigma_obs ~ student_t(3, obs_mean, obs_sd);
   
   // data model
-  x[1] ~ normal(x0, sigma_proc);
+  br ~ normal(rmean, sigma_r);
   
-  for(i in 2:n){
-    x[i] ~ normal(x[i-1] + br - bH * H[i], sigma_proc);
+  for(i in 1:l){
+    x[1,i] ~ normal(x0[i], sigma_proc);
+    
+    for(t in 2:n){
+      x[t,i] ~ normal(x[t-1,i] + br[i] - bH * H[t,i], sigma_proc);
+    }
   }
   
   // process model
-  for(i in 1:n){
-    if(y[i] != -99){
-      y[i] ~ normal(y_surv[i], sigmaJ[i]);
-      y_surv[i] ~ normal(x[i], sigma_obs);
-    } else {
-      y_surv[i] ~ normal(ymis, 1);
+  for(i in 1:l){
+      for(t in 1:n){
+        if(y[t,i] != -99){
+          y[t,i] ~ normal(y_surv[t,i], sigmaJ[t,i]);
+          y_surv[t,i] ~ normal(x[t,i], sigma_obs);
+          } else {
+            y_surv[t,i] ~ normal(ymis[i], 1);
+          }
+      }
     }
-  }
-}
+
