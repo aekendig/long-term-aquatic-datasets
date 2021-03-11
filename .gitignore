@@ -39,6 +39,7 @@ vignettes/*.pdf
 /manuscript/
 /meetings/
 /proposal/
+/presentations/
 
 # Data
 /original-data/
