@@ -15,6 +15,7 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(lubridate)
+library(readxl)
 
 # import data
 ctrl_old <- read_csv("original-data/PrePMARS_IPMData.csv")
@@ -26,15 +27,16 @@ fwc_ID <- read_csv("gis/data/FWC_Replaced_Coordinates.csv")
 qual <- read_csv("original-data/Lakewatch_1986-2019_TP_TN_Chl_Secchi_Color_Cond.csv")
 lw_plant <- read_csv("original-data/Lakewatch_Plant_Surveys.csv")
 qual_base <- read_csv("original-data/Lakewatch_Base_File_for_Amy_2020.csv")
-lw_plant_names <- read_csv("intermediate-data/Lakewatch_Plant_Base_Lake_Names.csv") # made this manually based on intermediate-data/Lakewatch_Plant_Missing_Coordinates.csv
+lw_plant_names <- read_csv("intermediate-data/Lakewatch_Plant_Base_Lake_Names.csv")
+# made this manually based on intermediate-data/Lakewatch_Plant_Missing_Coordinates.csv
 lw_missing_gis <- read_csv("intermediate-data/Lakewatch_Missing_Coordinates.csv")
+
+gis_ed <- read_csv("gis/intermediate-data/Lakewatch_FWC_Waterbody_merge_join_edited.csv")
+gis_man <- read_csv("gis/intermediate-data/Lakewatch_FWC_Waterbody_merge_join_manual.csv")
 
 # gnis <- read_csv("original-data/LW_matching_Herbicide_lakes_with_GNIS.csv")
 # depth <- read_csv("original-data/Mean_Depth_Data.csv")
 # vol <- read_csv("original-data/Volume_Calculation.csv")
-
-gis_ed <- read_csv("gis/intermediate-data/Lakewatch_FWC_Waterbody_merge_join_edited.csv")
-gis_man <- read_csv("gis/intermediate-data/Lakewatch_FWC_Waterbody_merge_join_manual.csv")
 
 
 #### gis data ####
