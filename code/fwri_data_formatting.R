@@ -28,6 +28,8 @@ library(readxl)
 # Orange 2017-2020 contained two surveys: one for open water zone, one for "all", separated these
 # EastToho 2018, Hollingsworth 2018 had "1" character values in No_Access column, changed to numbers
 # EastToho 2019, calculations in the first two rows, deleted rows
+# formatted dates in Istokpoga 2015
+# formatted dates in IstokpogaWestShore 2018
 
 
 #### set-up ####
@@ -163,7 +165,10 @@ survey_revise_fun <- function(df){
 fwri2 <- lapply(fwri, survey_revise_fun)
 
 # collapse list into dataframe
-surveys <- bind_rows(fwri2)
+surveys <- bind_rows(fwri2) %>%
+  mutate(Lake = case_when(Lake == "Jackson" ~ AOI,
+                          is.na(Lake) ~ AOI,
+                          TRUE ~ Lake))
 
 # function to rename plant code list columns
 list_rename_fun <- function(df){
@@ -216,7 +221,8 @@ mis_codes <- surveys2 %>%
   select(Code) %>%
   unique()
 
-# find codes in plant list
+# replacement codes
+# find codes in plant list (all sites/years)
 # remove duplicate entries
 # manually add codes that were duplicates
 rep_codes <- plant_list2 %>%
@@ -225,19 +231,22 @@ rep_codes <- plant_list2 %>%
   mutate(dupCode = duplicated(Code)) %>%
   filter(dupCode == F) %>%
   select(-dupCode) %>%
+  full_join(plant_list2 %>%
+              filter(Code %in% c("CATA", "DUPO","UMGR", "WAPR") & !(is.na(FWCID)))) %>%
   rename(CN = CommonName,
          SN = ScientificName,
          FS = FamilyScientific,
          FC = FamilyCommon,
          Ty = Type,
          FI = FWCID,
-         ET = EcoType) %>%
-  full_join(plant_list2 %>%
-              filter(Code %in% c("CATA", "DUPO","UMGR", "WAPR") & !(is.na(FWCID))))
+         ET = EcoType)
 
-# are any species names?
+# missing - use species name
 mis_spp <- plant_list2 %>%
   filter(ScientificName %in% mis_codes$Code) %>%
+  mutate(dups = duplicated(Code)) %>%
+  filter(dups == F) %>%
+  select(-c(dups)) %>%
   rename(Co = Code,
          CN = CommonName,
          SN = ScientificName,
@@ -257,6 +266,8 @@ mis_com <- plant_list2 %>%
   mutate(dups = duplicated(Co)) %>%
   filter(dups == F) %>%
   select(-c(dups, CN2)) %>%
+  full_join(plant_list2 %>%
+              filter(Code %in% c("CAWE", "DOFE", "MOGL", "MOSS", "SAGI") & !is.na(EcoType))) %>%
   rename(CN = CommonName,
          SN = ScientificName,
          FS = FamilyScientific,
@@ -265,67 +276,122 @@ mis_com <- plant_list2 %>%
          FI = FWCID,
          ET = EcoType)
 
+# unknown species
+unkn_spp <- surveys2 %>%
+  filter(str_detect(Code, "UNK|Unknown") == T) %>%
+  select(Code, CommonName, ScientificName) %>%
+  unique() %>%
+  mutate(num = 1:n(),
+         Co = paste0("UNKN", num),
+         CN = "unknown plant species") %>%
+  select(-num)
+
+# combine lists
+code_fix <- rep_codes %>%
+  full_join(mis_spp) %>%
+  full_join(mis_com) %>%
+  full_join(unkn_spp)
+  
 # remaining missing species
-mis_codes %>%
-  anti_join(rep_codes %>%
-              select(Code)) %>%
-  anti_join(mis_spp %>%
-              select(Code)) %>%
-  anti_join(mis_com %>%
+rem_sp <- mis_codes %>%
+  anti_join(code_fix %>%
               select(Code)) %>%
   data.frame()
-#### start here: on 18 ####
 
 
 #### add missing info to dataset ####
-surveys3 <- surveys2 %>%
-  mutate(Code = case_when(str_detect(Code, "UNK|Unknown") == T ~ "unknown",
-                          str_detect(Code, "N/A|NAIsland|NA Spoil|NaWeather|NATreeLineLand|NA_") == T ~ "no access",
+
+surveys3 <- surveys2  %>%
+  mutate(Code = case_when(str_detect(Code, "CATA") == T ~ "CATA", # duplicates in surveys, added numbers to name, includes an NA_
+                          str_detect(Code, "DUPO") == T ~ "DUPO",  # duplicates in surveys, added numbers to name
+                          str_detect(Code, "UMGR") == T ~ "UMGR",  # duplicates in surveys, added numbers to name
+                          str_detect(Code, "WAPR") == T ~ "WAPR",  # duplicates in surveys, added numbers to name
+                          str_detect(Code, "TUSS") == T ~ "TUSS", # tussock
+                          Code == "Green Net" ~ "no access", # non-plant
+                          Code == "Caesars Weed" ~ "CAWE", # added other info through mis_com
                           Code == "Triadica sebifera" ~ "CHTA",
-                          str_detect(Code, "CATA") == T ~ "CATA",
                           Code %in% c("CHAE_Chaetamorpha", "Chaetomorpha") ~ "CHAE",
+                          Code == "Chickenspike" ~ "CHSP",
                           Code == "Sphagneticola trilobata" ~ "CROX",
-                          str_detect(Code, "DUPO") == T ~ "DUPO",
+                          Code %in% c("DogFennel", "DOGFENNEL", "Dog_Fennel") ~ "DOFE", # added other info through mis_com
+                          Code == "EasternCottonwood" ~ "EACO",
                           Code %in% c("Enteromorpha", "ENTE_Enteramorpha") ~ "ENTE",
                           Code %in% c("fern spp.", "Fern spp.") == T ~ "FERN",
                           Code == "Cyperus haspan" ~ "HAFL",
-                          str_detect(Code, "HOPO") == T ~ "HOPO",
+                          Code == "HOPO_HornedPondweed" ~ "HOPO",
+                          Code == "Hypericum" ~ "HYPE",
+                          Code == "Iris spp." ~ "IRIS",
+                          Code == "Bay Tree sp." ~ "LAUR",
                           Code == "Lycopus sp." ~ "LYCO",
-                          Code %in% c("Acer spp.", "MAPLE", "Maple tree", "Red Maple") ~ "MATR",
+                          Code %in% c("Acer spp.", "Maple", "MAPLE", "Maple tree") ~ "MATR",
+                          Code == "MorningGlory" ~ "MOGL",  # added other info through mis_com
+                          Code %in% c("Sphagnum spp.", "Peat moss") ~ "MOSS",
                           str_detect(Code, "OAK|Oak") == T ~ "OATR",
                           Code %in% c("Lygodium microphullum", "Lygodium microphyllum", "OldWorldFern") ~ "OLWO",
                           Code == "Ludwigia peruviana" ~ "PEPR",
-                          Code %in% c("Scleria spp.", "SCLERIA") ~ "SCLE",
+                          Code %in% c("PIGWEED", "Pigweed", "pigweed") ~ "PIWE",
+                          Code %in% c("Red Maple", "RedMaple") ~ "REMA",
+                          Code %in% c("Submersed Sagittaria", "SubmersedSagittaria") ~ "SAGI",  # added other info through mis_com
+                          Code %in% c("Scleria spp.", "SCLERIA", "Scleria") ~ "SCLR",
+                          Code == "ScarletSesbania" ~ "SCSE",
                           Code %in% c("SEDGE", "Sedge") ~ "SEDG",
+                          Code %in% c("Sea Lettuce", "Sea_Lettuc") ~ "SELE",
                           Code == "SHRUB" ~ "SHRU",
-                          str_detect(Code, "TUSS") == T ~ "TUSS",
-                          str_detect(Code, "UMGR") == T ~ "UMGR",
-                          str_detect(Code, "WAPR") == T ~ "WAPR",
+                          Code == "Saccarum gigantium" ~ "SUPL",
+                          Code %in% c("Diodia virginiana", "VirginiaButtonweed") ~ "VIBU",
+                          str_detect(Code, "N/A|NAIsland|NA Spoil|NaWeather|NATreeLineLand|NA_") == T ~ "no access", # non-plant
                           TRUE ~ Code),
-         CommonName = case_when(Code == "CHAE" ~ "Chaetomorpha sp.",
+         CommonName = case_when(Code == "CHAE" ~ "green algae",
+                                Code == "CHSP" ~ "chickenspike",
                                 Code == "CHTA" ~ "Chinese tallow tree",
                                 Code == "CROX" ~ "creeping oxeye",
-                                Code == "ENTE" ~ "Enteromorpha sp.",
+                                Code == "EACO" ~ "eastern cottonwood",
+                                Code == "ENTE" ~ "green algae",
                                 Code == "FERN" ~ "fern",
                                 Code == "HAFL" ~ "haspan flatsedge",
                                 Code == "HOPO" ~ "horned pondweed",
-                                Code == "LYCO" ~ "Lycopus sp.",
+                                Code == "HYPE" ~ "St. John's wort",
+                                Code == "IRIS" ~ "iris",
+                                Code == "LAUR" ~ "Bay tree sp.",
+                                Code == "LYCO" ~ "waterhorehound",
                                 Code == "MATR" ~ "maple tree",
                                 Code == "OATR" ~ "oak tree",
                                 Code == "OLWO" ~ "Old world climbing fern",
                                 Code == "PEPR" ~ "Peruvian primrose-willow",
-                                Code == "SCLE" ~ "Scleria sp."
+                                Code == "PIWE" ~ "pig weed",
+                                Code == "REMA" ~ "red maple",
+                                Code == "SCLR" ~ "sedge",
+                                Code == "SCSE" ~ "scarlet sesban",
                                 Code == "SEDG" ~ "sedge",
+                                Code == "SELE" ~ "sea lettuce",
                                 Code == "SHRU" ~ "shrub",
+                                Code == "SUPL" ~ "sugarcane plumegrass",
+                                Code == "TUSS" ~ "tussock; 1/more species growing on a buoyant organic mat",
+                                Code == "VIBU" ~ "Virginia buttonweed",
                                 TRUE ~ CommonName),
-         ScientificName = case_when(Code == "CHTA" ~ "Triadica sebifera",
+         ScientificName = case_when(Code == "CHAE" ~ "Chaetomorpha sp.",
+                                    Code == "CHSP" ~ "Sphenoclea zeylanica",
+                                    Code == "CHTA" ~ "Triadica sebifera",
                                     Code == "CROX" ~ "Sphagneticola trilobata",
+                                    Code == "EACO" ~ "Populus deltoides",
+                                    Code == "ENTE" ~ "Enteromorpha sp.",
                                     Code == "HAFL" ~ "Cyperus haspan",
                                     Code == "HOPO" ~ "Zannichellia palustris",
+                                    Code == "HYPE" ~ "Hypericum sp.",
+                                    Code == "IRIS" ~ "Iris sp.",
+                                    Code == "LAUR" ~ "Laurus sp.",
+                                    Code == "LYCO" ~ "Lycopus sp.",
+                                    Code == "MATR" ~ "Acer sp.",
+                                    Code == "OATR" ~ "Quercus sp.",
                                     Code == "OLWO" ~ "Lygodium microphyllum",
+                                    Code == "REMA" ~ "Acer rubrum",
                                     Code == "PEPR" ~ "Ludwigia peruviana",
+                                    Code == "SCSE" ~ "Sesbania punicea",
+                                    Code == "SCLR" ~ "Scleria sp.",
+                                    Code == "SUPL" ~ "Saccharum giganteum",
+                                    Code == "VIBU" ~ "Diodia virginiana",
                                     TRUE ~ ScientificName)) %>%
-  left_join(rep_codes) %>%
+  left_join(code_fix) %>%
   mutate(Code = ifelse(!is.na(Co), Co, Code),
          CommonName = ifelse(is.na(CommonName), CN, CommonName),
          ScientificName = ifelse(is.na(ScientificName), SN, ScientificName),
@@ -333,23 +399,34 @@ surveys3 <- surveys2 %>%
          FamilyCommon = ifelse(is.na(FamilyCommon), FC, FamilyCommon),
          Type = ifelse(is.na(Type), Ty, Type),
          FWCID = ifelse(is.na(FWCID), FI, FWCID),
-         EcoType = ifelse(is.na(EcoType), ET, EcoType))
+         EcoType = ifelse(is.na(EcoType), ET, EcoType)) %>%
+  select(-c(CN:Co)) %>%
+  mutate(across(where(is.character), ~na_if(., "NULL"))) # get rid of NULL
 
+# check updates
+surveys3 %>%
+  filter(is.na(CommonName)) %>%
+  select(Code) %>%
+  unique()
+# a handful of codes have no species information
+# leave as codes to distinguish between other unknowns
+
+
+#### fix duplicate codes ####
 
 # identify duplicate codes and names
-dup_codes <- surveys2 %>%
+dup_codes <- surveys3 %>%
   select(Code, CommonName, ScientificName) %>%
   unique() %>%
   mutate(dup_code = duplicated(Code),
-         dup_common = duplicated(CommonName),
          dup_sci = duplicated(ScientificName)) %>%
-  filter(dup_code == T | dup_common == T | dup_sci == T)
+  filter(dup_code == T | dup_sci == T)
 
 # filter for duplicates
-dup_codes2 <- surveys2 %>%
+dup_codes2 <- surveys3 %>%
   select(Code, CommonName, ScientificName) %>%
   unique() %>%
-  filter(Code %in% dup_codes$Code | CommonName %in% dup_codes$CommonName | ScientificName %in% dup_codes$ScientificName)
+  filter(Code %in% dup_codes$Code | ScientificName %in% dup_codes$ScientificName)
 
 # look at names
 dup_codes2 %>%
@@ -364,13 +441,9 @@ dup_codes2 %>%
   arrange(CommonName) %>%
   data.frame()
 
-# find alternative names
-plant_list %>%
-  filter(str_detect(CommonName, "aple")) # maple trees
-
 # revise duplicates
 # add a column for if something is a plant
-plant_list2 <- plant_list %>%
+surveys4 <- surveys3 %>%
   mutate(Code = case_when(ScientificName == "Cephalanthus occidentalis" ~ "BUBU",
                           ScientificName == "Cyperus articulatus" ~ "UMSE",
                           ScientificName == "Fuirena scirpoidea" ~ "RUFU",
@@ -384,15 +457,16 @@ plant_list2 <- plant_list %>%
                           ScientificName == "Sparganium americanum" ~ "AMBU",
                           ScientificName == "Utricularia floridana" ~ "FYBL",
                           ScientificName == "Utricularia gibba" ~ "HUBL",
-                          ScientificName == "Utricularia inflata" ~ "FLBT",
+                          ScientificName == "Utricularia inflata" ~ "FLBL",
                           ScientificName == "Vallisneria americana" ~ "AMEE",
                           ScientificName == "Wolffiella gladiata" ~ "FLMU",
+                          Code == "NAEM" ~ "UNKN",
                           TRUE ~ Code),
          CommonName = case_when(Code == "BRPE" ~ "Brazilian peppertree",
                                 Code == "LFPR" ~ "large-flower primrose-willow",
-                                Code == "MAST" ~ "man-made structure, such as a fishing pier or boat dock",
+                                Code == "MAST" ~ NA_character_,
                                 Code == "MELA" ~ "Melaleuca",
-                                Code == "N/A" ~ "No access",
+                                Code == "NAEM" ~ "unknown plant species",
                                 Code == "NYMP" ~ "water-lily species",
                                 Code == "PASP" ~ "Paspalum",
                                 Code == "POND" ~ "large-leaf pondweed",
@@ -406,22 +480,20 @@ plant_list2 <- plant_list %>%
                                 Code == "WAFE" ~ "water fern",
                                 TRUE ~ CommonName),
          ScientificName = case_when(Code == "LFPR" ~ "Ludwigia grandiflora",
+                                    Code == "MAST" ~ NA_character_,
                                     Code == "PANI" ~ "Panicum sp.",
                                     Code == "PASP" ~ "Paspalum fluitans",
                                     Code == "SLSP" ~ "Eleocharis baldwinii",
                                     Code == "SPAT" ~ "Nuphar luteum",
                                     Code == "SWGR" ~ "Luziola fluitans (syn. Hydrochloa caroliniensis)",
                                     Code == "WATE" ~ "Rorippa nasturtium-aquaticum",
-                                    ScientificName %in% c("NULL", "No Access", "Man-Made Structure", "Tussock") ~ NA_character_,
+                                    ScientificName == "Tussock" ~ NA_character_,
                                     TRUE ~ ScientificName),
-         Plant = case_when(!is.na(ScientificName) | str_detect(CommonName, "asters|plant|algae|cover") == T ~ 1,
-                           TRUE ~ 0)) %>%
-  select(-c(AOI, Year)) %>%
-  unique() %>%
-  mutate(across(where(is.character), ~na_if(., "ULL")))
+         Code = case_when(Code == "MAST" ~ "no access", # need to do after changing common & sci names
+                          TRUE ~ Code))
 
 # check that revisions work
-plant_list2 %>%
+surveys4 %>%
   filter(!is.na(ScientificName)) %>%
   select(Code, CommonName, ScientificName) %>%
   unique() %>%
@@ -429,15 +501,83 @@ plant_list2 %>%
          dup_common = duplicated(CommonName),
          dup_sci = duplicated(ScientificName)) %>%
   filter(dup_code == T | dup_common == T | dup_sci == T)
+# only green algae (multiple genera)
+
+# duplicates within surveys
+site_date_dups <- surveys4 %>%
+  group_by(AOI, Year, Date, OtherDate, Site) %>%
+  mutate(dup_code = duplicated(Code)) %>%
+  ungroup() %>%
+  filter(dup_code == T) %>%
+  select(AOI, Year, Date, OtherDate, Site, Code) 
+# 52,772 lines
+
+site_date_dups %>%
+  select(Code) %>%
+  unique()
+# 50 codes
+
+# choose highest abundance
+surveys5 <- surveys4 %>%
+  group_by(AOI, Year, Lake, Date, Crew, Site, Y, X, NoAccess, OtherDate, Depth_ft, Code, CommonName, ScientificName, Type) %>%
+  summarise(Abundance = max(Abundance)) %>%
+  ungroup()
+# EcoType and FWCID removed to prevent duplication
+
+# check that it worked
+surveys5 %>%
+  group_by(AOI, Year, Date, OtherDate, Site) %>%
+  mutate(dup_code = duplicated(Code)) %>%
+  ungroup() %>%
+  filter(dup_code == T) %>%
+  select(AOI, Date, OtherDate, Site, Code) 
+  
+site_date_dups2 %>%
+  left_join(surveys5) %>%
+  arrange(Year, AOI, Site, Code)
 
 
+#### format abundance ####
+
+# abundance
+unique(surveys5$Abundance)
+
+filter(surveys5, Abundance > 3)
+# likely type-o's and should be 1
+
+# remove 0 abundance and fix type-o's
+surveys6 <- surveys5 %>%
+  filter(Abundance > 0) %>%
+  mutate(Abundance = case_when(Abundance > 3 ~ 1,
+                               TRUE ~ Abundance))
 
 
-# import separately (different format)
+#### format date ####
+
+# look at dates
+# add dates
+surveys6 %>%
+  filter(is.na(Date)) %>%
+  select(AOI, OtherDate, Year) %>% 
+  unique()
+
+# add missing dates
+# change timezone
+surveys7 <- surveys6 %>%
+  mutate(Date = case_when(AOI == "Haines" & Year == 2015 & is.na(Date) ~ as.POSIXct("2015-08-12", tz = "America/New_York"),
+                          AOI == "Huntley" & Year == 2019 & is.na(Date) ~ as.POSIXct("2019-08-08", tz = "America/New_York"),
+                          TRUE ~ as.POSIXct(as.character(Date), tz = "America/New_York")))
+
+
+#### separate imports ####
+
+# import separately if needed (different format)
 # fwri_KingsBay_PlantDataFebruary2015
 # fwri_KingsBay_PlantDataOctober2015
 # fwri_LittleFish_PlantData2018
 # fwri_Virginia_PlantData2019
 
 
-# rename "No Access", "Depth (ft)"
+#### output ####
+
+write_csv(surveys7, "intermediate-data/FWRI_plant_formatted.csv")
