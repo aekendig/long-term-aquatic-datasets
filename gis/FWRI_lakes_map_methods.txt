@@ -1,0 +1,16 @@
+FWRI_lakes
+- Added vector layer: Lakewatch_FWC_control_plants_quality.shp
+- Added delimited layer: FWRI_coordinates.csv -> choose Point Coordinates in Geometry Definition
+- used default (WGS 84) for both
+- Added 40 m buffer to points: MMQGIS -> Create -> Create  Buffer
+- Spatial join: Processing -> Toolbox -> Vector general -> Join attributes by location -> csv as input and waterbodies as second selection, intersects, match one to many
+- Filtered for lakes with NULL Permanant_ values
+- 7 lakes were not matched to a shape: 3 have no matching shape and 4 are very close to one with the corresponding label
+- Added vector layer: FL_NHD_Waterbody_merge
+- Manually checked each lake that was matched
+- seem wrong based on shape and name: Butler
+- some lakes have two different AOI's: North and South Conway (two different names for each and they are treated as one object), East Toho and Eustis
+- survey of Starke lake includes Prima Vista (PermanentID : 10995363)
+- saved points with info as FWRI_plants
+- Exported as table and used the two vector layers to manually fill in missing 7
+- noted which vector layer the added data came from in case I want to make a shape file in the future for this data
