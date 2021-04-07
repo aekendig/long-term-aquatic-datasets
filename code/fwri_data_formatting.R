@@ -865,11 +865,43 @@ write_csv(surv_gis, "gis/data/FWRI_Coordinates.csv")
 
 # import data
 # see FWRI_lakes_map_methods for notes
-surv_gis2 <- read_csv("gis/intermediate-data/FWRI_plants.csv")
+surv_gis2 <- read_csv("gis/intermediate-data/FWRI_plants_edited.csv")
 
-#### start here: import surveys file below ####
+# check lakes with different spellings
+surveys9 %>%
+  filter(str_detect(Lake, "Conway") & str_detect(Lake, "North")) %>%
+  select(AOI, Year, X, Y) %>%
+  unique() %>%
+  ggplot(aes(X, Y)) +
+  geom_point() +
+  facet_grid(AOI ~ Year, scales = "free")
+
+surveys9 %>%
+  filter(str_detect(Lake, "Conway") & str_detect(Lake, "South")) %>%
+  select(AOI, Year, X, Y) %>%
+  unique() %>%
+  ggplot(aes(X, Y)) +
+  geom_point() +
+  facet_grid(AOI ~ Year, scales = "free")
+
+# fix names
+# add permanent ID's
+surveys10 <- surveys9 %>%
+  left_join(surv_gis2 %>%
+              select(AOI, Lake, Permanent_, GNIS_ID, GNIS_Name, AreaSqKm, FType, FCode, ShapeSource)) %>%
+  mutate(AOI = case_when(AOI == "Conway(NorthLobe)" ~ "NorthConway",
+                         AOI == "Conway(SouthLobe)" ~ "SouthConway",
+                         TRUE ~ AOI),
+         Lake = case_when(Lake == "Conway (North Lobe)" ~ "North Conway",
+                          Lake == "Conway (South Lobe)" ~ "South Conway",
+                          TRUE ~ Lake)) %>%
+  rename(PermanentID = Permanent_,
+         GNISID = GNIS_ID,
+         GNISName = GNIS_Name,
+         Area_SqKm = AreaSqKm)
+
 
 #### output ####
 
-write_csv(surveys9, "intermediate-data/FWRI_plant_formatted.csv")
+write_csv(surveys10, "intermediate-data/FWRI_plant_formatted.csv")
 

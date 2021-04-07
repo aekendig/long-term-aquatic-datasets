@@ -59,11 +59,6 @@ plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abund
   left_join(plant_fwc %>% # add hydrilla information
               filter(SpeciesName == "Hydrilla verticillata") %>%
               select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, SpeciesAcres)) %>%
-  unique() %>% # remove duplicate reports
-  group_by(AreaOfInterestID, SurveyDate) %>%
-  mutate(NumSurveysPerDate = n()) %>%
-  ungroup() %>%
-  filter(!(NumSurveysPerDate > 1 & is.na(SpeciesAcres))) %>%  # remove duplicate reports from combining two datasets
   mutate(SpeciesAcres = replace_na(SpeciesAcres, 0), # hydrilla cover 0 when it wasn't in a survey
          Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
          AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
@@ -92,7 +87,7 @@ plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abund
   mutate(MinDisp = min(MonthDisplacementAdj)) %>% # choose survey with lower displacement
   ungroup() %>%
   filter(MonthDisplacementAdj == MinDisp) %>%
-  select(-c(NumSurveysPerDate, AreaCoveredAnnAvg_ha, FirstSurveyPerYear, MinDisp))
+  select(-c(AreaCoveredAnnAvg_ha, FirstSurveyPerYear, MinDisp))
 
 
 #### pre-herbicide data FWC surveys ####
