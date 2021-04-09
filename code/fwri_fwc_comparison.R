@@ -33,7 +33,9 @@ fwri_fun <- function(code){
            FWRI_Month = month(Date)) %>%
     group_by(AOI, Lake, PermanentID, Year, FWRI_Month, FWRI_Date) %>% # checked above for duplicates within sites - none
     summarise(Area_sites = n(),
-              AreaCovered_sites = sum(Abundance > 0)) %>%
+              AreaCovered_sites1 = sum(Abundance > 0),
+              AreaCovered_sites2 = sum(Abundance > 1),
+              AreaCovered_sites3 = sum(Abundance > 2)) %>%
     ungroup() %>%
     mutate(AOI = case_when(AOI %in% c("NorthConway", "SouthConway") ~ "Conway", # combine these lakes (one lake in FWC data)
                            TRUE ~ AOI),
@@ -41,13 +43,17 @@ fwri_fun <- function(code){
                             TRUE ~ Lake)) %>%
     group_by(AOI, Lake, PermanentID, Year, FWRI_Month) %>%
     summarise(Area_sites = sum(Area_sites), # combine north and south conway data
-              AreaCovered_sites = sum(AreaCovered_sites),
+              AreaCovered_sites1 = sum(AreaCovered_sites1),
+              AreaCovered_sites2 = sum(AreaCovered_sites2),
+              AreaCovered_sites3 = sum(AreaCovered_sites3),
               FWRI_Date = min(FWRI_Date)) %>%
     ungroup() %>%
-    mutate(FWRI_PropCovered = AreaCovered_sites / Area_sites) %>%
-    select(-c(Area_sites, AreaCovered_sites)) %>%
+    mutate(FWRI_PropCovered1 = AreaCovered_sites1 / Area_sites,
+           FWRI_PropCovered2 = AreaCovered_sites2 / Area_sites,
+           FWRI_PropCovered3 = AreaCovered_sites3 / Area_sites) %>%
+    select(-c(Area_sites, AreaCovered_sites1, AreaCovered_sites2, AreaCovered_sites3)) %>%
     rename(FWRI_Year = Year) %>%
-    filter(!(AOI %in% c("OrangeOpenWater", "Eustis2")))
+    filter(!(AOI %in% c("Orange", "Eustis2")))
   
   return(dat_out)
 }
@@ -126,7 +132,7 @@ hydr %>%
   filter(FWC_surveys > 1)
 
 # figure
-ggplot(hydr, aes(FWC_PropCovered, FWRI_PropCovered, 
+ggplot(hydr, aes(FWC_PropCovered, FWRI_PropCovered1, 
                  group = as.factor(AreaOfInterestID), 
                  color = as.numeric(TimeDiff))) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
@@ -165,7 +171,7 @@ wahy %>%
   filter(FWC_surveys > 1)
 
 # figure
-ggplot(wahy, aes(FWC_PropCovered, FWRI_PropCovered, 
+ggplot(wahy, aes(FWC_PropCovered, FWRI_PropCovered1, 
                  group = as.factor(AreaOfInterestID), 
                  color = as.numeric(TimeDiff))) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
@@ -204,7 +210,7 @@ wale %>%
   filter(FWC_surveys > 1)
 
 # figure
-ggplot(wale, aes(FWC_PropCovered, FWRI_PropCovered, 
+ggplot(wale, aes(FWC_PropCovered, FWRI_PropCovered1, 
                  group = as.factor(AreaOfInterestID), 
                  color = as.numeric(TimeDiff))) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
@@ -213,31 +219,112 @@ ggplot(wale, aes(FWC_PropCovered, FWRI_PropCovered,
 
 #### combined figure ####
 
-# combine
-compDat <- hydr %>%
-  mutate(Species = "Hydrilla verticillata") %>%
-  full_join(wahy %>%
-              mutate(Species = "Eichhornia crassipes")) %>%
-  full_join(wale %>%
-              mutate(Species = "Pistia stratiotes")) %>%
-  mutate(DaysDiff = as.numeric(TimeDiff))
-
 # check duplicate lakes
-filter(compDat, PermanentID == "112047993") # all 0's
-filter(compDat, PermanentID == "120024301") %>% data.frame() # different values
+filter(hydr, PermanentID == "112047993") %>% data.frame()  # all 0's
+filter(wale, PermanentID == "112047993") %>% data.frame()  # all 0's
+filter(wahy, PermanentID == "112047993") %>% data.frame()  # all 0's
+filter(hydr, PermanentID == "120024301") %>% data.frame() # different values
+filter(wale, PermanentID == "120024301") %>% data.frame() # all 0's
+filter(wahy, PermanentID == "120024301") %>% data.frame() # all 0's
 
 # remove duplicates
-compDat2 <- compDat %>%
-  filter(AreaOfInterestID != 365)
+hydr2 <- hydr %>%
+  filter(AreaOfInterestID != 365) %>%
+  pivot_longer(cols = c(FWRI_PropCovered1, FWRI_PropCovered2, FWRI_PropCovered3),
+               names_to = "FWRI_MinAbundance",
+               values_to = "FWRI_PropCovered",
+               names_prefix = "FWRI_PropCovered") %>%
+  mutate(DaysDiff = as.numeric(TimeDiff))
+
+wale2 <- wale %>%
+  filter(!(AreaOfInterestID %in% c(365, 244))) %>%
+  pivot_longer(cols = c(FWRI_PropCovered1, FWRI_PropCovered2, FWRI_PropCovered3),
+               names_to = "FWRI_MinAbundance",
+               values_to = "FWRI_PropCovered",
+               names_prefix = "FWRI_PropCovered") %>%
+  mutate(DaysDiff = as.numeric(TimeDiff))
+
+wahy2 <- wahy %>%
+  filter(!(AreaOfInterestID %in% c(365, 244))) %>%
+  pivot_longer(cols = c(FWRI_PropCovered1, FWRI_PropCovered2, FWRI_PropCovered3),
+               names_to = "FWRI_MinAbundance",
+               values_to = "FWRI_PropCovered",
+               names_prefix = "FWRI_PropCovered") %>%
+  mutate(DaysDiff = as.numeric(TimeDiff))
+
+# deviations from 1:1 line
+hydr_diff <- tibble(FWRI_MinAbundance = c(1, 2, 3)) %>%
+  mutate(MeanDiff = NA,
+         AreaOfInterestID = NA_real_,
+         DaysDiff = NA_real_)
+wale_diff <- tibble(FWRI_MinAbundance = c(1, 2, 3)) %>%
+  mutate(MeanDiff = NA,
+         AreaOfInterestID = NA_real_,
+         DaysDiff = NA_real_)
+wahy_diff <- tibble(FWRI_MinAbundance = c(1, 2, 3)) %>%
+  mutate(MeanDiff = NA,
+         AreaOfInterestID = NA_real_,
+         DaysDiff = NA_real_)
+
+# calculate estimates
+for(i in 1:3){
+  
+  # subset data
+  hydr_temp <- filter(hydr2, FWRI_MinAbundance == i) %>%
+    mutate(Diff = abs(FWRI_PropCovered - FWC_PropCovered))
+  wale_temp <- filter(wale2, FWRI_MinAbundance == i) %>%
+    mutate(Diff = abs(FWRI_PropCovered - FWC_PropCovered))
+  wahy_temp <- filter(wahy2, FWRI_MinAbundance == i) %>%
+    mutate(Diff = abs(FWRI_PropCovered - FWC_PropCovered))
+  
+  # enter value
+  hydr_diff$MeanDiff[i] <- round(mean(hydr_temp$Diff), 3)
+  wale_diff$MeanDiff[i] <- round(mean(wale_temp$Diff), 3)
+  wahy_diff$MeanDiff[i] <- round(mean(wahy_temp$Diff), 3)
+  
+}
 
 # figure
 pdf("output/fwri_fwc_comparison_invasive_cover.pdf", width = 7.5, height = 4)
-ggplot(compDat, aes(FWC_PropCovered, FWRI_PropCovered, 
+ggplot(hydr2, aes(FWC_PropCovered, FWRI_PropCovered, 
                  group = as.factor(AreaOfInterestID), 
                  color = DaysDiff)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
   geom_point(alpha = 0.5) +
-  facet_wrap(~Species, scales = "free") +
+  geom_text(data = hydr_diff, x = (max(hydr2$FWC_PropCovered) - min(hydr2$FWC_PropCovered)) / 2, y = max(hydr2$FWRI_PropCovered), hjust = 0.5, color = "black", aes(label = paste("diff = ", MeanDiff, sep = ""))) +
+  facet_wrap(~FWRI_MinAbundance) +
   xlab("Proportion of lake (FWC)") +
-  ylab("Proportion of lake (FWRI)")
+  ylab("Proportion of lake (FWRI)") +
+  ggtitle("Hydrilla")
+
+ggplot(wale2, aes(FWC_PropCovered, FWRI_PropCovered, 
+                     group = as.factor(AreaOfInterestID), 
+                     color = DaysDiff)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = 0.5) +
+  geom_text(data = wale_diff, x = (max(wale2$FWC_PropCovered) - min(wale2$FWC_PropCovered)) / 2, y = max(wale2$FWRI_PropCovered), hjust = 0.5, color = "black", aes(label = paste("diff = ", MeanDiff, sep = ""))) +
+  facet_wrap(~FWRI_MinAbundance) +
+  xlab("Proportion of lake (FWC)") +
+  ylab("Proportion of lake (FWRI)") +
+  ggtitle("Water lettuce")
+
+ggplot(wahy2, aes(FWC_PropCovered, FWRI_PropCovered, 
+                     group = as.factor(AreaOfInterestID), 
+                     color = DaysDiff)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = 0.5) +
+  geom_text(data = wahy_diff, x = (max(wahy2$FWC_PropCovered) - min(wahy2$FWC_PropCovered))/2, y = max(wahy2$FWRI_PropCovered), hjust = 0.5, color = "black", aes(label = paste("diff = ", MeanDiff, sep = ""))) +
+  facet_wrap(~FWRI_MinAbundance) +
+  xlab("Proportion of lake (FWC)") +
+  ylab("Proportion of lake (FWRI)") +
+  ggtitle("Water hyacinth")
 dev.off()
+
+
+#### specific points ####
+
+wale2 %>%
+  filter(FWC_PropCovered > 0.2)
+
+wahy2 %>%
+  filter(FWC_PropCovered > 0.2)
