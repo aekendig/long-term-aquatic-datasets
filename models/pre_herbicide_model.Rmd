@@ -1,0 +1,173 @@
+---
+title: "Pre-herbicide Model"
+author: "Amy Kendig"
+date: "4/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# clear environment
+rm(list = ls())
+
+# load packages
+library(tidyverse)
+```
+
+## Overview
+
+General model description for invasive plant population dynamics prior to when herbicide data are available (1983-2000). The model describes dynamics for the meta-population (i.e., all lakes in Florida) and contains separate entries within matrices for each population (i.e., a lake). The notation and format are adopted from [Holmes et al. 2021](https://nwfsc-timeseries.github.io/atsa-labs/).
+
+## Process model
+
+The process model describes the true meta-population dynamics of an invasive plant species: 
+
+\begin{equation}
+\begin{gathered}
+\mathbf{x}_t = \mathbf{x}_{t-1}+\mathbf{u}+\mathbf{w}_t \text{ where } \mathbf{w}_t \sim \,\text{N}(0,\mathbf{Q}) \\
+\mathbf{x}_0 = \boldsymbol{\mu}
+\end{gathered}   
+\end{equation}
+
+where $\mathbf{x}_t$ are the log-transformed population abundances at time $t$, $\mathbf{u}$ are the growth rates, $\mathbf{w}_t$ represents environmental and demographic stochasticity at time $t$, and $\mathbf{Q}$ is a matrix with population-level stochasticity terms on the diagonal. 
+
+Assuming we have four populations (i.e., lakes), the process model can be written:
+
+\begin{equation}
+\begin{gathered}
+ \left[ \begin{array}{c}
+    x_{1} \\
+    x_{2} \\
+    x_{3} \\
+    x_{4}  \end{array} \right]_t = 
+ \left[ \begin{array}{c}
+    x_{1} \\
+    x_{2} \\
+    x_{3} \\
+    x_{4}  \end{array} \right]_{t-1} +  
+    \left[ \begin{array}{c}
+    u_{1} \\
+    u_{2} \\
+    u_{3} \\
+    u_{4}  \end{array} \right] + 
+    \left[ \begin{array}{c}
+    w_{1} \\
+    w_{2} \\
+    w_{3} \\
+    w_{4}  \end{array} \right]_t
+\\
+\boldsymbol{\mu} = 
+\left[ \begin{array}{c}
+    \mu_{1} \\
+    \mu_{2} \\
+    \mu_{3} \\
+    \mu_{4}  \end{array} \right]
+\\
+\mathbf{Q} = \begin{bmatrix}
+    q_1 & 0 & 0 & 0 \\
+    0 & q_2 & 0 & 0\\
+    0 & 0 & q_3 & 0 \\
+    0 & 0 & 0 & q4 \end{bmatrix}
+\end{gathered} 
+\end{equation}
+ 
+## Observation model
+
+The observation model describes the data:
+
+\begin{equation}
+\mathbf{y}_t = \mathbf{x}_{t}+\mathbf{v}_t \text{ where } \mathbf{v}_t \sim \,\text{N}(0,\mathbf{R}) 
+\end{equation}
+
+where $\mathbf{y}_t$ are the observed log-transformed population abundances at time $t$, $\mathbf{v}_t$ are observation errors, and $\mathbf{R}$ is a matrix with population-level observation error terms on the diagonal. Each parameter is a matrix containing an entry for each population.
+
+Assuming we have four populations, the observation model can be written:
+
+\begin{equation}
+\begin{gathered}
+ \left[ \begin{array}{c}
+    y_{1} \\
+    y_{2} \\
+    y_{3} \\
+    y_{4}  \end{array} \right]_t = 
+ \left[ \begin{array}{c}
+    x_{1} \\
+    x_{2} \\
+    x_{3} \\
+    x_{4}  \end{array} \right]_t +  
+    \left[ \begin{array}{c}
+    v_{1} \\
+    v_{2} \\
+    v_{3} \\
+    v_{4}  \end{array} \right]_t
+\\
+\mathbf{R} = \begin{bmatrix}
+    r_1 & 0 & 0 & 0 \\
+    0 & r_2 & 0 & 0\\
+    0 & 0 & r_3 & 0 \\
+    0 & 0 & 0 & r4 \end{bmatrix}
+\end{gathered} 
+\end{equation}
+
+## Implementation
+
+### Survey timing
+
+Because plant surveys occurred in different months each year, I adjusted all values to their expected maximum abundance. I estimated the expected maximum abundance using 23 years of invasive plant cover data collected from Lake Okeechobee multiple times per year. Initial visualizations of the data indicated that the growing season started approximately May 1st. I assigned surveys conducted before May 1st to the previous year. I fit a normal linear regression to z-score standardized cover in hectares:
+
+\begin{equation}
+\begin{gathered}
+y_{i} = \beta_{0} + \beta_{1} days + \beta_{2} days^{2} + b_{j[i]} + \epsilon_{i}
+\\
+b_{j} \sim \,\text{N}(0,\sigma_{1}^{2})
+\\
+\epsilon_{i} \sim \,\text{N}(0,\sigma_{2}^{2})
+\end{gathered}
+\end{equation}
+
+where observation $i$ in adjusted year $j$ was recorded some proportion of $days$ from May 1st (i.e., days = 1 for surveys conducted on April 30th). The error term $b$ is the random effect of adjusted year. The fitted model is:
+
+```{r lakeO}
+# import model
+load("../output/lakeO_intraannual_veg_change_mod.rda")
+summary(lake0_mod)
+```
+The maximum abundance occurs at $-\beta_{1}/(2 \beta_{2})$. For the FWC surveys, we do not know $\beta_{0}$ and we want to know the estimated maximum standardized abundance ($z_{m}$). Let $days_{m} = -\beta_{1}/(2 \beta_{2})$. For a given known standardized abundance, $z_{k}$, we estimate $z_{m}$ by:
+
+\begin{equation}
+\begin{gathered}
+z_{k} = \beta_{0} + \beta_{1} days_{k} + \beta_{2} days^{2}_{k} + b_{j[i]} + \epsilon_{k}
+\\
+z_{m} = \beta_{0} + \beta_{1} days_{m} + \beta_{2} days^{2}_{m} + b_{j[i]} + \epsilon_{m}
+\\
+\beta_{0} = z_{k} - \beta_{1} days_{k} - \beta_{2} days^{2}_{k} - b_{j[i]} - \epsilon_{k}
+\\
+z_{m} = z_{k} - \beta_{1} days_{k} - \beta_{2} days^{2}_{k} - b_{j[i]} - \epsilon_{k} + \beta_{1} days_{m} + \beta_{2} days^{2}_{m} + b_{j[i]} + \epsilon_{m}
+\\
+\text{ assuming } \epsilon_{k} = \epsilon_{m},
+\\
+z_{m} = z_{k} + \beta_{1}(days_{m} - days_{k}) + \beta_{2}(days^{2}_{m} - days^{2}_{k})
+\end{gathered}
+\end{equation}
+
+Because we wanted to model log-transformed abundance rather than standardized values in the state-space model, we multiplied $\beta_{1}(days_{m} - days_{k}) + \beta_{2}(days^{2}_{m} - days^{2}_{k})$ by the standard deviation of area covered for a given species in a given lake and added this value to the untransformed area covered:
+
+\begin{equation}
+\begin{gathered}
+z_{m} = \frac{y_{m} - \bar{y}}{sd_{y}} \text{ and } z_{k} = \frac{y_{k} - \bar{y}}{sd_{y}} 
+\\
+\text{ let } \gamma = \beta_{1}(days_{m} - days_{k}) + \beta_{2}(days^{2}_{m} - days^{2}_{k})
+\\
+\frac{y_{m} - \bar{y}}{sd_{y}} = \frac{y_{k} - \bar{y}}{sd_{y}} + \gamma
+\\
+\frac{y_{m} - \bar{y}}{sd_{y}} = \frac{y_{k} - \bar{y} + \gamma sd_{y}}{sd_{y}}
+\\
+y_{m} = y_{k} + \gamma sd_{y}
+\end{gathered}
+\end{equation}
+
+
+### Stan
+
+The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. ([2021](https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html)). It accounts for missing data by identifying the positions of positive y-values in the input data.

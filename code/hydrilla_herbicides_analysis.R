@@ -11,7 +11,6 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(lubridate)
-library(pracma) # for Mode
 library(reshape2) # for melt
 # library(zoo) # for uneven time series
 # library(ggfortify)
@@ -23,11 +22,13 @@ source("code/stan_settings.R")
 ctrl_old <- read_csv("intermediate-data/FWC_control_old_formatted.csv")
 ctrl_new <- read_csv("intermediate-data/FWC_control_new_formatted.csv")
 plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
-plant_lw <- read_csv("intermediate-data/LW_plant_formatted.csv")
+dayDat <- read_csv("intermediate-data/LakeO_day_data_for_model.csv")
+
+# load models
+load("output/lakeO_intraannual_veg_change_mod.rda")
 
 # assumptions
 MinTime = 5 # minimum number of time points needed per waterbody
-SurveyDist = 30 # number of days between comparable LW and FWC surveys
 
 # figure settings
 def_theme <- theme_bw() +
@@ -43,6 +44,16 @@ def_theme <- theme_bw() +
         strip.background = element_blank())
 
 
+#### lake O parameters ####
+
+# extract coefficients
+lakeO_beta1 <- coef(summary(lake0_mod))[2, "Estimate"] # days
+lakeO_beta2 <- coef(summary(lake0_mod))[3, "Estimate"] # days^2
+
+# date of max abundance (-b/2a)
+lakeO_days <- -lakeO_beta1 / (2 * lakeO_beta2)
+
+
 #### edit FWC plant data ####
 
 # Perm IDs per AOI
@@ -51,6 +62,24 @@ plant_fwc %>%
   summarise(IDs = length(unique(PermanentID))) %>%
   filter(IDs > 1)
 # one Perm ID per AOI
+
+# function to remove duplicates
+rem_dups_fun <- function(dat) {
+  
+  if (nrow(dat) == 1){
+    dat2 <- dat
+  } else if (var(dat$AreaCovered_ha) > 0){
+    dat2 <- dat %>%
+      filter(AreaCovered_ha == max(AreaCovered_ha)) # choose survey with maximum area
+  } else if (var(dat$AreaCovered_ha) == 0){
+    dat2 <- dat %>%
+      mutate(DaysDiff = abs(lakeO_days - Days)) %>%
+      filter(DaysDiff == min(DaysDiff)) %>% # choose survey closes to max. abundance time
+      select(-DaysDiff)
+  }
+  
+  return(dat2)
+}
 
 plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abundance = 0)
   filter(SpeciesName != "Hydrilla verticillata") %>%
@@ -65,32 +94,32 @@ plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abund
          AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
                                     TRUE ~ AreaCovered_ha), # make plant cover the size of the lake area if it exceeds it
          log_AreaCovered_ha = log(AreaCovered_ha + 0.001), # log-transform (min AreaCovered_ha = 0.00405)
-         SurveyYear = year(SurveyDate),
-         SurveyMonth = month(SurveyDate)) %>%
-  group_by(AreaOfInterestID, SurveyYear) %>% # remove reports of zero when there is another report that year
-  mutate(AreaCoveredAnnAvg_ha = mean(AreaCovered_ha),
-         FirstSurveyPerYear = min(SurveyDate)) %>%
-  ungroup() %>%
-  filter(!(AreaCoveredAnnAvg_ha > 0 & AreaCovered_ha == 0) & # other report is non-zero
-           !(AreaCovered_ha == 0 & SurveyDate != FirstSurveyPerYear)) %>% # other report is zero
+         SurveyMonth = month(SurveyDate),
+         SurveyDay = day(SurveyDate),
+         SurveyYear = case_when(SurveyMonth >= 5 ~ year(SurveyDate),
+                                SurveyMonth < 5 ~ year(SurveyDate) - 1), # assume growing season starts in May
+         MonthDay = case_when(SurveyMonth >= 5 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in May (2020/2021 are arbitrary)
+                              SurveyMonth < 5 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>%
+  left_join(dayDat) %>% # add standardized days (proportion between May 1 and April 30)
+  mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
   group_by(AreaOfInterestID) %>%
-  mutate(MostFreqMonth =  Mode(SurveyMonth)) %>% # most frequently sampled month
+  mutate(EstAreaCovered_ha = AreaChangeSD * sd(AreaCovered_ha)) %>% # calculate est. max abundance
   ungroup() %>%
-  mutate(MonthDisplacement = SurveyMonth - MostFreqMonth, # months away from most frequent month
-         SurveyYearAdj = case_when(MonthDisplacement > 6 ~ SurveyYear + 1, # move into next year if more than 6 months away
-                                   MonthDisplacement < -6 ~ SurveyYear - 1, # move into previous year if more than 6 months away
-                                   TRUE ~ SurveyYear),
-         MonthDisplacementAdj = case_when(MonthDisplacement > 6 ~ 12 - SurveyMonth + MostFreqMonth, # adjust month displacement in new year
-                                          MonthDisplacement < -6 ~ 12 - MostFreqMonth + SurveyMonth,
-                                          TRUE ~ MonthDisplacement)) %>%
-  group_by(AreaOfInterestID, SurveyYearAdj) %>% # three cases of duplicate surveys (displacements: -2 and 3, -6 and 5, 0 and 4)
-  mutate(MinDisp = min(MonthDisplacementAdj)) %>% # choose survey with lower displacement
-  ungroup() %>%
-  filter(MonthDisplacementAdj == MinDisp) %>%
-  select(-c(AreaCoveredAnnAvg_ha, FirstSurveyPerYear, MinDisp))
+  nest(-c(AreaOfInterestID, SurveyYear)) %>% # find duplicates within year and waterbody
+  mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
+  select(-data) %>% # removes 150 rows of data
+  unnest(newdata)
+
+# duplicates in same year
+plant_fwc_hyd %>%
+  group_by(AreaOfInterestID, SurveyYear) %>%
+  count() %>%
+  filter(n > 1)
 
 
-#### pre-herbicide data FWC surveys ####
+#### START HERE: pre-herbicide data FWC surveys ####
+
+# y matrix: each lake is a row and each year is a column, missing values
 
 # select years
 plant_fwc_hyd_pre <- plant_fwc_hyd %>%
