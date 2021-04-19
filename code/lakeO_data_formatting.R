@@ -44,11 +44,11 @@ lakeo2 %>%
 # standardized area
 totDat <- lakeo2 %>%
   filter(Section == "Total" & !is.na(AreaCovered_ha)) %>%
-  mutate(Yearf = case_when(Month >= 5 ~ as.character(Year),
-                           Month < 5 ~ as.character(Year - 1)),
-         MonthDay = case_when(Month >= 5 ~ as.Date(paste("2020", Month, Day, sep = "-")), # start "year" in May (2020/2021 are arbitrary)
-                              Month < 5 ~ as.Date(paste("2021", Month, Day, sep = "-"))),
-         Days = as.numeric(MonthDay - as.Date("2020-05-01")), # days away from 5/1 of the same yearf
+  mutate(Yearf = case_when(Month >= 4 ~ as.character(Year),
+                           Month < 4 ~ as.character(Year - 1)),
+         MonthDay = case_when(Month >= 4 ~ as.Date(paste("2020", Month, Day, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
+                              Month < 4 ~ as.Date(paste("2021", Month, Day, sep = "-"))),
+         Days = as.numeric(MonthDay - as.Date("2020-04-01")), # days away from 4/1 of the same yearf
          Days = Days / 364,
          AreaCovered_s = (AreaCovered_ha - mean(AreaCovered_ha)) / sd(AreaCovered_ha))
 
@@ -66,11 +66,11 @@ ggplot(lakeo2, aes(MonthDay, AreaCovered_ha)) +
 lakeo2 %>%
   filter(Section == "Total") %>%
   ggplot(aes(MonthDay, AreaCovered_ha)) +
-  geom_vline(xintercept = as.Date("2020-05-01")) +
+  geom_vline(xintercept = as.Date("2020-04-01")) +
   geom_line(aes(color = as.factor(Year))) +
   geom_smooth(color = "black") +
   theme(legend.position = "none")
-# growing season seems to start around May 1st
+# growing season seems to start around April/May
 
 totDat %>%
   ggplot(aes(MonthDay, AreaCovered_s)) +
@@ -93,7 +93,7 @@ lakeo2 %>%
 # looked at original data and it does look like there was a crash
 
 # range of dates
-range(totDat$MonthDay) # 5/1 to 4/26
+range(totDat$MonthDay) # 4/1 to 3/30
 
 
 #### model fit ####
@@ -108,17 +108,35 @@ fitDat <- totDat %>%
   unique() %>%
   mutate(AreaCovered_s = predict(lake0_mod, newdata = ., re.form = NA))
 
+pdf("output/lakeO_intraannual_veg_change_mod.pdf")
 ggplot(totDat, aes(MonthDay, AreaCovered_s)) +
   geom_line(aes(color = Yearf)) +
   geom_line(data = fitDat, color = "black", size = 2) +
-  theme(legend.position = "none")
+  xlab("Month and day (ignore year)") +
+  ylab("Standardized area covered") +
+  theme_bw()
+
+ggplot(totDat, aes(MonthDay, AreaCovered_acres)) +
+  geom_line(aes(color = Yearf)) +
+  xlab("Month and day (ignore year)") +
+  ylab("Standardized area covered") +
+  theme_bw()
+dev.off()
 
 
 #### days for other lakes ####
 
-dayDat <- tibble(MonthDay = seq(as.Date("2020-05-01"), as.Date("2021-04-30"), by = 1)) %>%
+dayDat <- tibble(MonthDay = seq(as.Date("2020-04-01"), as.Date("2021-03-31"), by = 1)) %>%
   mutate(Days = as.numeric((MonthDay - min(MonthDay))),
          Days = Days / 364)
+
+
+#### high numbers ####
+
+totDat %>%
+  filter(AreaCovered_s > 2) %>%
+  select(Yearf) %>%
+  unique()
 
 
 #### output ####

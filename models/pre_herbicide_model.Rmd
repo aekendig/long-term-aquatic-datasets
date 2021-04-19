@@ -65,10 +65,10 @@ Assuming we have four populations (i.e., lakes), the process model can be writte
     \mu_{4}  \end{array} \right]
 \\
 \mathbf{Q} = \begin{bmatrix}
-    q_1 & 0 & 0 & 0 \\
-    0 & q_2 & 0 & 0\\
-    0 & 0 & q_3 & 0 \\
-    0 & 0 & 0 & q4 \end{bmatrix}
+    q & 0 & 0 & 0 \\
+    0 & q & 0 & 0\\
+    0 & 0 & q & 0 \\
+    0 & 0 & 0 & q \end{bmatrix}
 \end{gathered} 
 \end{equation}
  
@@ -170,4 +170,4 @@ y_{m} = y_{k} + \gamma sd_{y}
 
 ### Stan
 
-The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. ([2021](https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html)). It accounts for missing data by identifying the positions of positive y-values in the input data.
+The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. ([2021](https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html)). It accounts for missing data by identifying the positions of positive y-values in the input data. Because the model uses the first-year abundance to estimate initial abundance (at $t = 0$), missing values in the first year were substituted with values from the second year.

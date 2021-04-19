@@ -1,6 +1,7 @@
 #### info ####
 
 # goal: evaluate effects of herbicides on hydrilla
+# model structure: https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html
 
 
 #### set-up ####
@@ -12,6 +13,7 @@ rm(list = ls())
 library(tidyverse)
 library(lubridate)
 library(reshape2) # for melt
+library(MARSS)
 # library(zoo) # for uneven time series
 # library(ggfortify)
 
@@ -93,21 +95,21 @@ plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abund
          AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
          AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
                                     TRUE ~ AreaCovered_ha), # make plant cover the size of the lake area if it exceeds it
-         log_AreaCovered_ha = log(AreaCovered_ha + 0.001), # log-transform (min AreaCovered_ha = 0.00405)
          SurveyMonth = month(SurveyDate),
          SurveyDay = day(SurveyDate),
-         SurveyYear = case_when(SurveyMonth >= 5 ~ year(SurveyDate),
-                                SurveyMonth < 5 ~ year(SurveyDate) - 1), # assume growing season starts in May
-         MonthDay = case_when(SurveyMonth >= 5 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in May (2020/2021 are arbitrary)
-                              SurveyMonth < 5 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>%
-  left_join(dayDat) %>% # add standardized days (proportion between May 1 and April 30)
+         SurveyYear = case_when(SurveyMonth >= 4 ~ year(SurveyDate),
+                                SurveyMonth < 4 ~ year(SurveyDate) - 1), # assume growing season starts in April
+         MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
+                              SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>%
+  left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
   mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
   group_by(AreaOfInterestID) %>%
-  mutate(EstAreaCovered_ha = AreaChangeSD * sd(AreaCovered_ha)) %>% # calculate est. max abundance
+  mutate(EstAreaCovered_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance
+         log_EstAreaCovered_ha = log(EstAreaCovered_ha + 1e-10)) %>%  # log-transform (min EstAreaCovered_ha (> 0) = 1x10^-9)
   ungroup() %>%
   nest(-c(AreaOfInterestID, SurveyYear)) %>% # find duplicates within year and waterbody
   mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
-  select(-data) %>% # removes 150 rows of data
+  select(-data) %>% # removes 41 rows of data
   unnest(newdata)
 
 # duplicates in same year
@@ -117,59 +119,108 @@ plant_fwc_hyd %>%
   filter(n > 1)
 
 
-#### START HERE: pre-herbicide data FWC surveys ####
+#### pre-herbicide data FWC surveys ####
 
 # y matrix: each lake is a row and each year is a column, missing values
 
 # select years
 plant_fwc_hyd_pre <- plant_fwc_hyd %>%
-  filter(SurveyYearAdj <= (min(ctrl_old$Year))) %>% # goes up to year of first application
+  filter(SurveyYear <= (min(ctrl_old$Year))) %>% # goes up to year of first application
   group_by(AreaOfInterestID) %>%
   mutate(NumSurveys = n()) %>%
   ungroup() %>%
   filter(NumSurveys >= MinTime) # remove lakes with too few surveys
 
-# missing data?
-plant_fwc_hyd_pre %>%
-  group_by(AreaOfInterestID) %>%
-  summarise(YearRange = max(SurveyYearAdj) - min(SurveyYearAdj) + 1,
-            SurveyYears = n()) %>%
-  ungroup() %>%
-  filter(YearRange != SurveyYears)
-# 192 lakes
-
-# lowest cover
-min(plant_fwc_hyd$log_AreaCovered_ha)
-# -6.9
-
-# add -99 for missing years
+# make wide
 plant_fwc_hyd_pre2 <- plant_fwc_hyd_pre %>%
-  select(AreaOfInterestID, PermanentID, SurveyYearAdj) %>%
-  mutate(MinYear = min(SurveyYearAdj),
-         MaxYear = max(SurveyYearAdj),
-         SurveyYearAdj = map2(MinYear, MaxYear, seq, by = 1)) %>% # year range for all waterbodies
-  unnest(cols = SurveyYearAdj) %>% # populate all years for a waterbody
-  select(-c(MinYear, MaxYear)) %>%
-  unique() %>%
-  full_join(plant_fwc_hyd_pre) %>% # missing years will have NA for area metrics
-  group_by(AreaOfInterestID) %>%
-  arrange(SurveyYearAdj) %>%
-  mutate(log_AreaCoveredChange_ha = log_AreaCovered_ha - lag(log_AreaCovered_ha), # change in cover since last survey (NA if missing data)
-         log_AreaCoveredMis_ha = replace_na(log_AreaCovered_ha, -99),
-         MonthDisplacementMis = replace_na(abs(MonthDisplacementAdj), 0), # make month displacement positive
-         SigmaJ = case_when(MonthDisplacementMis != 0 ~ log(1 + MonthDisplacementMis * 0.1), # 10% error by month
-                            MonthDisplacementMis == 0 ~ 0.001), # small error if in survey month
-         YearWithData = case_when(log_AreaCoveredMis_ha == -99 ~ NA_real_, # column of years with data
-                                 TRUE ~ SurveyYearAdj),
-         x0 = case_when(SurveyYearAdj == min(YearWithData, na.rm = T) ~ log_AreaCoveredMis_ha, # area from first year with data
-                        TRUE ~ NA_real_),
-         ymis = case_when(SurveyYearAdj == min(SurveyYearAdj) ~ mean(log_AreaCovered_ha, na.rm = T), # average abundance
-                          TRUE ~ NA_real_)) %>%
-  ungroup() %>%
-  arrange(AreaOfInterestID, SurveyYearAdj)
+  select(AreaOfInterestID, SurveyYear, log_EstAreaCovered_ha) %>%
+  arrange(SurveyYear) %>%
+  pivot_wider(names_from = SurveyYear, # make years the column names
+              values_from = log_EstAreaCovered_ha) %>%
+  arrange(AreaOfInterestID) %>%
+  mutate(`1982` = case_when(is.na(`1982`) ~ `1983`, # need a first-year value to estimate initial pop size
+                            TRUE ~ `1982`))
+
+# extract AOI ID's
+plant_fwc_hyd_pre_AOI <- plant_fwc_hyd_pre2 %>%
+  select(AreaOfInterestID)
+
+# make matrix
+plant_fwc_hyd_pre_mat <- plant_fwc_hyd_pre2 %>%
+  select(-AreaOfInterestID) %>%
+  as.matrix()
+
+# non-NA values (vector)
+plant_fwc_hyd_pre_pos <- plant_fwc_hyd_pre_mat[!is.na(plant_fwc_hyd_pre_mat)]
+plant_fwc_hyd_pre_n <- length(plant_fwc_hyd_pre_pos) # number of non-NAs
+plant_fwc_hyd_pre_indx <- which(!is.na(plant_fwc_hyd_pre_mat), arr.ind = TRUE)  # index of the non-NAs
+plant_fwc_hyd_pre_col <- as.vector(plant_fwc_hyd_pre_indx[, "col"])
+plant_fwc_hyd_pre_row <- as.vector(plant_fwc_hyd_pre_indx[, "row"])
 
 
-#### post-herbicide data FWC surveys ####
+#### pre-herbicide model ####
+
+# model file
+pre_herb_mod <- 'models/pre_herbicide_model.stan'
+cat(paste(readLines(pre_herb_mod)), sep = '\n')
+
+# time model fit
+time1 <- Sys.time()
+
+# fit model
+pre_herb_fit <- rstan::stan(file = pre_herb_mod, 
+                            data = list(y = plant_fwc_hyd_pre_pos, 
+                                        TT = ncol(plant_fwc_hyd_pre_mat), 
+                                        N = nrow(plant_fwc_hyd_pre_mat), 
+                                        n_pos = plant_fwc_hyd_pre_n, 
+                                        col_indx_pos = plant_fwc_hyd_pre_col, 
+                                        row_indx_pos = plant_fwc_hyd_pre_row), 
+                            pars = c("sd_q", "x", "sd_r","u", "x0"), 
+                            iter = 1000, chains = 3, thin = 1)
+
+time2 <- Sys.time()
+# a little over 20 min
+# 516 divergent transitions
+# 984 transitions exceeded maximum treedepth
+# two chains had low Bayesian Fraction of Missing Information
+# large R-hat
+# low bulk ESS
+# low tail ESS
+
+# update model
+time3 <- Sys.time()
+
+pre_herb_fit2 <- rstan::stan(file = pre_herb_mod, 
+                             data = list(y = plant_fwc_hyd_pre_pos, 
+                                         TT = ncol(plant_fwc_hyd_pre_mat), 
+                                         N = nrow(plant_fwc_hyd_pre_mat), 
+                                         n_pos = plant_fwc_hyd_pre_n, 
+                                         col_indx_pos = plant_fwc_hyd_pre_col, 
+                                         row_indx_pos = plant_fwc_hyd_pre_row), 
+                             pars = c("sd_q", "x", "sd_r","u", "x0"),
+                             iter = 5000, chains = 3, warmup = 2000,
+                             control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+time4 <- Sys.time()
+# this model can't progress
+
+# fit model with MARSS
+
+# define matrices
+marss.list <- list(B = "identity", U = "unequal", Q = "diagonal and equal", 
+                   Z = "identity", A = "scaling", R = "diagonal and unequal", 
+                   x0 = "unequal", tinitx = 0)
+
+time5 <- Sys.time()
+pre_herb_fit3 <- MARSS(plant_fwc_hyd_pre_mat, model = marss.list, silent = 2)
+time6 <- Sys.time()
+
+# Error: Stopped in MARSS() before fitting because MARSSkem returned errors.  Try control$trace=1 for more information as the reported error may not be helpful. You can also try method='BFGS' if you are seeing a 'chol' error.
+# Error : vector memory exhausted (limit reached?)
+# memore: 4.45 GB
+
+
+ #### post-herbicide data FWC suveys ####
 
 # select data
 plant_fwc_hyd_post <-  plant_fwc_hyd %>%

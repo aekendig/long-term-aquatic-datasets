@@ -401,10 +401,10 @@ pre code {
     \mu_{4}  \end{array} \right]
 \\
 \mathbf{Q} = \begin{bmatrix}
-    q_1 &amp; 0 &amp; 0 &amp; 0 \\
-    0 &amp; q_2 &amp; 0 &amp; 0\\
-    0 &amp; 0 &amp; q_3 &amp; 0 \\
-    0 &amp; 0 &amp; 0 &amp; q4 \end{bmatrix}
+    q &amp; 0 &amp; 0 &amp; 0 \\
+    0 &amp; q &amp; 0 &amp; 0\\
+    0 &amp; 0 &amp; q &amp; 0 \\
+    0 &amp; 0 &amp; 0 &amp; q \end{bmatrix}
 \end{gathered} 
 \end{equation}\]</span></p>
 </div>
@@ -464,28 +464,28 @@ summary(lake0_mod)</code></pre>
 ## Formula: AreaCovered_s ~ Days + I(Days^2) + (1 | Yearf)
 ##    Data: totDat
 ## 
-## REML criterion at convergence: 529.4
+## REML criterion at convergence: 526.1
 ## 
 ## Scaled residuals: 
 ##     Min      1Q  Median      3Q     Max 
-## -2.3514 -0.3614 -0.1542  0.2205  5.1337 
+## -2.3830 -0.3516 -0.1536  0.2828  5.1126 
 ## 
 ## Random effects:
 ##  Groups   Name        Variance Std.Dev.
-##  Yearf    (Intercept) 0.4394   0.6629  
-##  Residual             0.5297   0.7278  
+##  Yearf    (Intercept) 0.4388   0.6624  
+##  Residual             0.5202   0.7212  
 ## Number of obs: 213, groups:  Yearf, 34
 ## 
 ## Fixed effects:
 ##             Estimate Std. Error t value
-## (Intercept)  -0.4419     0.1831  -2.413
-## Days          2.1712     0.6956   3.121
-## I(Days^2)    -2.0809     0.7069  -2.944
+## (Intercept)  -0.5711     0.2000  -2.855
+## Days          2.2348     0.7313   3.056
+## I(Days^2)    -1.8277     0.6907  -2.646
 ## 
 ## Correlation of Fixed Effects:
 ##           (Intr) Days  
-## Days      -0.661       
-## I(Days^2)  0.558 -0.966</code></pre>
+## Days      -0.721       
+## I(Days^2)  0.627 -0.970</code></pre>
 <p>The maximum abundance occurs at <span class="math inline">\(-\beta_{1}/(2 \beta_{2})\)</span>. For the FWC surveys, we do not know <span class="math inline">\(\beta_{0}\)</span> and we want to know the estimated maximum standardized abundance (<span class="math inline">\(z_{m}\)</span>). Let <span class="math inline">\(days_{m} = -\beta_{1}/(2 \beta_{2})\)</span>. For a given known standardized abundance, <span class="math inline">\(z_{k}\)</span>, we estimate <span class="math inline">\(z_{m}\)</span> by:</p>
 <p><span class="math display">\[\begin{equation}
 \begin{gathered}
@@ -519,7 +519,7 @@ y_{m} = y_{k} + \gamma sd_{y}
 </div>
 <div id="stan" class="section level3">
 <h3>Stan</h3>
-<p>The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. (<a href="https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html">2021</a>). It accounts for missing data by identifying the positions of positive y-values in the input data.</p>
+<p>The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. (<a href="https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html">2021</a>). It accounts for missing data by identifying the positions of positive y-values in the input data. Because the model uses the first-year abundance to estimate initial abundance (at <span class="math inline">\(t = 0\)</span>), missing values in the first year were substituted with values from the second year.</p>
 </div>
 </div>
 
