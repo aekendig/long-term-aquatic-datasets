@@ -1,7 +1,5 @@
 ---
 title: "Pre-herbicide Model"
-author: "Amy Kendig"
-date: "4/16/2021"
 output: html_document
 ---
 
@@ -170,4 +168,50 @@ y_{m} = y_{k} + \gamma sd_{y}
 
 ### Stan
 
-The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. ([2021](https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html)). It accounts for missing data by identifying the positions of positive y-values in the input data. Because the model uses the first-year abundance to estimate initial abundance (at $t = 0$), missing values in the first year were substituted with values from the second year.
+The template stan model is a multivariate autoregressive state-space model from written by Holmes et al. ([2021](https://nwfsc-timeseries.github.io/atsa-labs/sec-marss-fitting-with-stan.html)). It accounts for missing data by identifying the positions of positive y-values in the input data. Because the model uses the first-year abundance to estimate initial abundance (at $t = 0$), missing values in the first year were substituted with values from the second year. The following sections describe the chunks within the stan code.
+
+#### Data
+The user provides the observations, after missing values have been removed, as a vector (y) and five attributes of the observations.  
+1. the number of years: **TT**  
+2. the number of groups (lakes): **N**  
+3. the total number of non-NA observations (length of y): **n_pos**  
+4. the column index (year) of the observation: **col_indx_position** (vector of length n_pos)  
+5. the row index (lake) of the observation: **row_indx_position** (vector of length n_pos)  
+The observations are fed to the model as a matrix with N rows and TT columns (each lake is a row).
+
+#### Parameters
+The parameters estimated by the model are:  
+1. the initial states of each lake: **x0** (vector of length N)  
+2. the population growth rates of each lake: **u** (vector of length N)  
+3. the process error for each lake in each year: **pro_dev** (array of TT vectors with length N)  
+4. the standard deviation of the overall process error: **sd_q** (real number)  
+5. the observation error for each lake: **sd_r** (an array of N objects)  
+
+#### Transformed parameters
+The true population values (**x**) are calculated for each set of parameter estimates. **x** is an array of TT vectors with length N and the values are calculated following the process model equation. The model cycles through years within each lake.
+
+#### Model
+The likelihood for the observational model is:  
+\begin{equation}
+y_{t,l} \sim \,\text{N}(\mu = x_{t,l}, \sigma = r_{l})
+\end{equation}
+where $t$ indicates the year and $l$ indicates the lake. $x$ is a matrix with $t$ rows and $l$ columns. $x$ is therefore a transposed version of $y$ (columns become rows and rows become columns). **to-do:** This is currently written as a for-loop, but I think that can be removed since all parts use the same index, $i$.  
+
+The likelihood (?) for the process error is:
+\begin{equation}
+w_{t,l} \sim \,\text{N}(\mu = 0, \sigma = q)
+\end{equation}
+like $x$, $w$ is a matrix with $t$ rows and $l$ columns.  **to-do:** This is a nested for-loop over lakes and years.  
+
+The priors for the remaining parameters are:
+\begin{equation}
+\begin{gathered}
+q \sim \,\text{student_t}(\nu = 3, \mu = 0, \sigma = 1)
+\\
+u \sim \,\text{N}(\mu = 0, \sigma = 2)
+\\
+x_{0,l} \sim \,\text{N}(\mu = y_{0,l}, \sigma = 10)
+\\
+r_{l} \sim \,\text{student_t}(\nu = 3, \mu = 0, \sigma = 1)
+\end{gathered}
+\end{equation}

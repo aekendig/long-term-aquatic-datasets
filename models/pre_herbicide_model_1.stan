@@ -10,7 +10,9 @@ data {
   int<lower=0> col_indx_pos[n_pos]; // col index of non-NA vals
   int<lower=0> row_indx_pos[n_pos]; // row index of non-NA vals
   vector[n_pos] y; // non-NA observations
+  vector[N] y0; // first observation for each group
 }
+
 parameters {
   vector[N] x0; // initial states
   vector[N] u; // population growth rates
@@ -19,7 +21,7 @@ parameters {
   real<lower=0> sd_r[N]; // observation error - one for each group
 }
 transformed parameters {
-  vector[N] x[TT]; // refed as x[TT,N]
+  vector[N] x[TT]; // refed as x[TT,N]; array of TT objects, each a vector of length N
   for(i in 1:N){ // cycle through groups
     x[1,i] = x0[i] + u[i] + pro_dev[1,i]; // x at t=1 = x at t=0 + growth + process error
     for(t in 2:TT) { // cycle through time points
@@ -30,7 +32,7 @@ transformed parameters {
 model {
   sd_q ~ student_t(3, 0, 1); // general prior for process error
   for(i in 1:N){ // cycle through groups
-    x0[i] ~ normal(y[i], 10); // assume no missing y[1]; prior for initial depends on first observation
+    x0[i] ~ normal(y0[i], 10); // prior for initial depends on first observation
     sd_r[i] ~ student_t(3, 0, 1); // general prior for observation error
     for(t in 1:TT){ // cycle through time
     pro_dev[t,i] ~ normal(0, sd_q); // process error draws from distribution
@@ -41,7 +43,7 @@ model {
     y[i] ~ normal(x[col_indx_pos[i], row_indx_pos[i]], sd_r[row_indx_pos[i]]); // map y values onto x matrix (flipped axes), x value is mean, group-level observation error is standard error
   }
 }
-generated quantities {
-  vector[n_pos] log_lik; // log-likelihood value for each observation
-  for (n in 1:n_pos) log_lik[n] = normal_lpdf(y[n] | x[col_indx_pos[n], row_indx_pos[n]], sd_r[row_indx_pos[n]]);
-}
+//generated quantities {
+//  vector[n_pos] log_lik; // log-likelihood value for each observation
+//  for (n in 1:n_pos) log_lik[n] = normal_lpdf(y[n] | x[col_indx_pos[n], row_indx_pos[n]], sd_r[row_indx_pos[n]]);
+//}
