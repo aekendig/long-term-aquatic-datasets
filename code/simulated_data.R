@@ -79,5 +79,8 @@ y2 <- t(y)
 # make dataframe
 y3 <- data.frame(y2)
 
+# round all values to 3 decimal points
+y4 <- round(y3, digits = 3)
+
 # save
-write_csv(y3, "intermediate-data/simulated_data_pre_herbicide_model.csv")
+write_csv(y4, "intermediate-data/simulated_data_pre_herbicide_model.csv")

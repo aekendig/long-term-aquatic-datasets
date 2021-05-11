@@ -16,15 +16,18 @@ data {
 parameters {
   vector[N] x0; // initial states
   vector[N] u; // population growth rates
-  vector[N] pro_dev[TT]; // refed as pro_dev[TT,N]; process error for each time/group (w_t)
   real<lower=0> sd_q; // process error
   real<lower=0> sd_r[N]; // observation error - one for each group
+  vector[N] pro_dev_tilde[TT]; // refed as pro_dev_tilde[TT,N]; latent process error
 }
 transformed parameters {
   vector[N] x[TT]; // refed as x[TT,N]; array of TT objects, each a vector of length N
+  vector[N] pro_dev[TT]; // refed as pro_dev[TT,N]; process error for each time/group (w_t)
   for(i in 1:N){ // cycle through groups
+    pro_dev[1,i] = sd_q*pro_dev_tilde[1,i];
     x[1,i] = x0[i] + u[i] + pro_dev[1,i]; // x at t=1 = x at t=0 + growth + process error
     for(t in 2:TT) { // cycle through time points
+      pro_dev[t,i] = sd_q*pro_dev_tilde[t,i];
       x[t,i] = x[t-1,i] + u[i] + pro_dev[t,i]; // x at t = x at t-1 + growth + process error
     }
   }
@@ -35,7 +38,7 @@ model {
     x0[i] ~ normal(y0[i], 2); // prior for initial depends on first observation
     sd_r[i] ~ student_t(3, 0, 1); // general prior for observation error
     for(t in 1:TT){ // cycle through time
-    pro_dev[t,i] ~ normal(0, sd_q); // process error draws from distribution
+      pro_dev_tilde[t,i] ~ normal(0, 1); // latent process error
     }
   }
   u ~ normal(0, 2); // general prior for growth rate
