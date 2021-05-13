@@ -19,8 +19,6 @@ dat <- read_csv("intermediate-data/simulated_data_pre_herbicide_model.csv")
 
 #### prepare data ####
 
-# round everything to 3 
-
 # select first year value for each lake
 y0 <- apply(dat, 1, function(x) first(na.omit(x)))
 
@@ -34,7 +32,6 @@ y_vec <- y_mat[!is.na(y_mat)]
 y_indx <- which(!is.na(y_mat), arr.ind = TRUE)  # index of the non-NAs
 y_col <- as.vector(y_indx[, "col"])
 y_row <- as.vector(y_indx[, "row"])
-
 
 # combine input data
 input_dat <- list(TT = ncol(dat),
@@ -59,8 +56,6 @@ pre_herb_fit <- rstan::stan(file = pre_herb_mod,
                             data = input_dat, 
                             pars = c("sd_q", "x", "sd_r","u", "x0"), 
                             iter = 4000, chains = 3, thin = 1, warmup = 1000)
-
-# activity monitor: 710 MB + 3 R's with ~ 200 each
 
 time2 <- Sys.time()
 

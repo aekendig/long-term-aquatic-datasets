@@ -13,6 +13,7 @@ rm(list = ls())
 library(tidyverse)
 library(lubridate)
 library(reshape2) # for melt
+library(cowplot)
 # library(MARSS) # for marss model
 # library(zoo) # for uneven time series
 # library(ggfortify)
@@ -117,6 +118,200 @@ plant_fwc_hyd %>%
   group_by(AreaOfInterestID, SurveyYear) %>%
   count() %>%
   filter(n > 1)
+
+
+#### edit control data ####
+
+# non-herbicide methods (from herbicide_initial_visualizations)
+non_herb <- c("Mechanical Harvester", 
+              "Snagging (tree removal)", 
+              "Aquatic Dye (for shading)", 
+              "Grass Carp", "Hand Removal", 
+              "Mechanical (Other)", 
+              "Mechanical Shredder", 
+              "Prescribed Fire")
+
+# duplicates per year/date?
+ctrl_old %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0) %>%
+  group_by(AreaOfInterestID, Year) %>%
+  summarise(apps = n()) %>%
+  filter(apps > 1)
+# yes, 34
+# different acres in same year, probably different events
+
+ctrl_new %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
+  group_by(AreaOfInterestID, BeginDate) %>%
+  summarise(apps = n()) %>%
+  filter(apps > 1)
+# yes, 1059
+# for treatments involving more than one herbicide, separate lines for each herbicide type, but they share a treatment ID and acres
+
+# old herbicide data
+ctrl_old_hyd <- ctrl_old %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0) %>%
+  mutate(AreaTreated_ha= TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100,
+         TreatmentMonth = 12,
+         TreatmentDate = as.Date(paste(as.character(Year), "-12-01", sep = ""))) %>% # no date given for these surveys
+  select(AreaOfInterestID, PermanentID, Year, Area_ha, AreaTreated_ha, TreatmentMonth, TreatmentDate) %>%
+  rename(TreatmentYear = Year)
+
+# new herbicide data
+ctrl_new_hyd <- ctrl_new %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
+  select(AreaOfInterestID, PermanentID, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%
+  unique() %>%
+  mutate(AreaTreated_ha = TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100,
+         TreatmentYear = year(BeginDate),
+         TreatmentMonth = month(BeginDate)) %>%
+  rename(TreatmentDate = BeginDate)
+
+# combine herbicide data
+ctrl_hyd <- ctrl_old_hyd %>%
+  full_join(ctrl_new_hyd) %>%
+  mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make treatment area size of lake if it exceeds it
+                                    TRUE ~ AreaTreated_ha),
+         TreatmentEvent = paste(TreatmentDate, AreaTreated_ha, sep = "_"))
+
+# add zero for missing years (assume no application)
+ctrl_hyd2 <- ctrl_old %>%
+  mutate(Area_ha = ShapeArea * 100) %>%
+  select(AreaOfInterestID, PermanentID, Area_ha) %>%
+  unique() %>%
+  full_join(ctrl_new %>%
+              mutate(Area_ha = ShapeArea * 100) %>%
+              select(AreaOfInterestID, PermanentID, Area_ha) %>%
+              unique()) %>%
+  expand_grid(tibble(TreatmentYear = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear))) %>% # one row per year
+  full_join(ctrl_hyd) %>%
+  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) # make area treated zero if the year wasn't included
+
+
+#### combine FWC plant and ctrl data ####
+
+# # ctrl data, adjusted for plant data timing
+# ctrl_hyd_adj <- ctrl_hyd %>% # use data without zeros
+#   left_join(plant_fwc_hyd %>%
+#               select(AreaOfInterestID, PermanentID, MostFreqMonth) %>% # add most frequent month for waterbody
+#               unique()) %>%
+#   mutate(TreatmentYearAdj = case_when(TreatmentMonth < MostFreqMonth ~ TreatmentYear - 1, # move treatment into previous year if it occurred before survey
+#                                       TRUE ~ TreatmentYear)) %>%
+#   group_by(AreaOfInterestID, PermanentID, Area_ha, TreatmentYearAdj) %>%
+#   summarise(TreatmentFrequency = n(), # treatments per year
+#             TreatmentIntensity = mean(AreaTreated_ha/Area_ha), # average area treated
+#             Treatment = TreatmentFrequency * TreatmentIntensity) %>%
+#   ungroup() %>%
+#   full_join(ctrl_old %>% # all waterbodies from the dataset
+#               select(AreaOfInterestID, PermanentID, ShapeArea) %>%
+#               unique() %>%
+#               mutate(Area_ha = ShapeArea * 100) %>%
+#               select(-ShapeArea) %>%
+#               full_join(ctrl_new %>%
+#                           select(AreaOfInterestID, PermanentID, ShapeArea) %>%
+#                           unique() %>%
+#                           mutate(Area_ha = ShapeArea * 100) %>%
+#                           select(-ShapeArea)) %>%
+#               expand_grid(tibble(TreatmentYearAdj = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear)))) %>%
+#   mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0), # make values 0 if no herbicide data available
+#          TreatmentIntensity = replace_na(TreatmentIntensity, 0),
+#          Treatment = replace_na(Treatment, 0)) %>%
+#   filter(TreatmentYearAdj < max(plant_fwc_hyd_post2$SurveyYearAdj)) # remove data the year of or after plant surveys
+
+
+
+#### long-term trends by lake ####
+
+# find trend and herbicide usage for each lake
+trend_hyd <- plant_fwc_hyd %>%
+  group_by(AreaOfInterestID, PermanentID) %>%
+  summarise(Trend = as.numeric(coef(lm(log_EstAreaCovered_ha ~ SurveyYear))[2])) %>%
+  ungroup() %>%
+  left_join(ctrl_hyd2 %>%
+              group_by(AreaOfInterestID, PermanentID) %>%
+              summarise(TreatEvents = length(unique(na.omit(TreatmentEvent))),
+                        TreatFreq = TreatEvents/length(unique(TreatmentYear)),
+                        TreatInt = mean(AreaTreated_ha/Area_ha)))
+
+# correlation
+cor.test(~ TreatFreq + TreatInt, data = trend_hyd)
+# marginal, low value
+
+# standardize?
+ggplot(trend_hyd, aes(x = TreatFreq)) +
+  geom_histogram()
+
+ggplot(trend_hyd, aes(x = TreatInt)) +
+  geom_histogram()
+
+# frequency model type?
+ggplot(trend_hyd, aes(x = TreatFreq, y = Trend)) +
+  geom_point()
+
+freqFig <- trend_hyd %>%
+  filter(Trend < 4) %>%
+  ggplot(aes(x = TreatFreq, y = Trend)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide frequency \n(treatments per year)") +
+  ylab("Linear change in log abundance over time") +
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, hjust = 1),
+        axis.text = element_text(size = 8))
+
+trend_hyd %>%
+  filter(Trend < 4 & TreatFreq < 5) %>%
+  ggplot(aes(x = TreatFreq, y = Trend)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+# intensity model type?
+ggplot(trend_hyd, aes(x = TreatInt, y = Trend)) +
+  geom_point()
+
+intFig <- trend_hyd %>%
+  filter(Trend < 4) %>%
+  ggplot(aes(x = TreatInt, y = Trend)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  xlab("Herbicide intensity \n(proportion lake treated per year)") +
+  ylab("") +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+# combine and export figures
+jpeg("output/linear_abundance_herbicide_trends.jpeg", 
+    width = 6, height = 3,
+    res = 450,
+    units = "in")
+plot_grid(freqFig, intFig,
+          nrow = 1)
+dev.off()
+
+# look at a specific case
+examp <- trend_hyd %>%
+  filter(TreatInt > 0.2 & Trend > 0.18) %>%
+  pull(AreaOfInterestID)
+
+jpeg("output/Maude_lake_time_series.jpeg",
+     width = 3, height = 3,
+     res = 450,
+     units = "in")
+filter(plant_fwc_hyd, AreaOfInterestID == examp) %>%
+  ggplot(aes(x = SurveyYear, y = EstAreaCovered_ha/Area_ha)) +
+  geom_line() +
+  geom_line(data = filter(ctrl_hyd2, AreaOfInterestID == examp), 
+            aes(x = TreatmentYear, y = AreaTreated_ha/Area_ha), color = "red", linetype = "dashed") +
+  xlab("Year") +
+  ylab("Proportion of lake") +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+dev.off()
+# treatment did seem to manage it: high application in years around outbreak, one more after it crashes
+# big treatment before outbreak seems off: large amount of lake treated in 2004 and 2005 when pop is just starting, but no treatment in 2006, when the pop explodes
+
 
 
 #### pre-herbicide data FWC surveys ####
@@ -259,102 +454,7 @@ plant_fwc_hyd_post2 <- plant_fwc_hyd_post %>%
   ungroup() %>%
   arrange(AreaOfInterestID, SurveyYearAdj)
 
-
-#### edit control data ####
-
-# non-herbicide methods (from herbicide_initial_visualizations)
-non_herb <- c("Mechanical Harvester", 
-              "Snagging (tree removal)", 
-              "Aquatic Dye (for shading)", 
-              "Grass Carp", "Hand Removal", 
-              "Mechanical (Other)", 
-              "Mechanical Shredder", 
-              "Prescribed Fire")
-
-# duplicates per year/date?
-ctrl_old %>%
-  filter(Species == "Hydrilla verticillata" & TotalAcres > 0) %>%
-  group_by(AreaOfInterestID, Year) %>%
-  summarise(apps = n()) %>%
-  filter(apps > 1)
-# yes, 34
-# different acres in same year, probably different events
-
-ctrl_new %>%
-  filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
-  group_by(AreaOfInterestID, BeginDate) %>%
-  summarise(apps = n()) %>%
-  filter(apps > 1)
-# yes, 1059
-# for treatments involving more than one herbicide, separate lines for each herbicide type, but they share a treatment ID and acres
-
-# old herbicide data
-ctrl_old_hyd <- ctrl_old %>%
-  filter(Species == "Hydrilla verticillata" & TotalAcres > 0) %>%
-  mutate(AreaTreated_ha= TotalAcres * 0.405,
-         Area_ha = ShapeArea * 100,
-         TreatmentMonth = 12) %>% # no date given for these surveys
-  select(AreaOfInterestID, PermanentID, Year, Area_ha, AreaTreated_ha, TreatmentMonth) %>%
-  rename(TreatmentYear = Year)
-
-# new herbicide data
-ctrl_new_hyd <- ctrl_new %>%
-  filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
-  select(AreaOfInterestID, PermanentID, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%
-  unique() %>%
-  mutate(AreaTreated_ha = TotalAcres * 0.405,
-         Area_ha = ShapeArea * 100,
-         TreatmentYear = year(BeginDate),
-         TreatmentMonth = month(BeginDate)) %>%
-  rename(TreatmentDate = BeginDate)
-
-# combine herbicide data
-ctrl_hyd <- ctrl_old_hyd %>%
-  full_join(ctrl_new_hyd) %>%
-  mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make treatment area size of lake if it exceeds it
-                                    TRUE ~ AreaTreated_ha))
-
-# add zero for missing years (assume no application)
-ctrl_hyd2 <- ctrl_old %>%
-  select(AreaOfInterestID, PermanentID) %>%
-  unique() %>%
-  full_join(ctrl_new %>%
-              select(AreaOfInterestID, PermanentID) %>%
-              unique()) %>%
-  expand_grid(tibble(TreatmentYear = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear))) %>% # one row per year
-  full_join(ctrl_hyd) %>%
-  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) # make area treated zero if the year wasn't included
-
-
-#### combine FWC plant and ctrl data ####
-
-# ctrl data, adjusted for plant data timing
-ctrl_hyd_adj <- ctrl_hyd %>% # use data without zeros
-  left_join(plant_fwc_hyd %>%
-              select(AreaOfInterestID, PermanentID, MostFreqMonth) %>% # add most frequent month for waterbody
-              unique()) %>%
-  mutate(TreatmentYearAdj = case_when(TreatmentMonth < MostFreqMonth ~ TreatmentYear - 1, # move treatment into previous year if it occurred before survey
-                                      TRUE ~ TreatmentYear)) %>%
-  group_by(AreaOfInterestID, PermanentID, Area_ha, TreatmentYearAdj) %>%
-  summarise(TreatmentFrequency = n(), # treatments per year
-            TreatmentIntensity = mean(AreaTreated_ha/Area_ha), # average area treated
-            Treatment = TreatmentFrequency * TreatmentIntensity) %>%
-  ungroup() %>%
-  full_join(ctrl_old %>% # all waterbodies from the dataset
-              select(AreaOfInterestID, PermanentID, ShapeArea) %>%
-              unique() %>%
-              mutate(Area_ha = ShapeArea * 100) %>%
-              select(-ShapeArea) %>%
-              full_join(ctrl_new %>%
-                          select(AreaOfInterestID, PermanentID, ShapeArea) %>%
-                          unique() %>%
-                          mutate(Area_ha = ShapeArea * 100) %>%
-                          select(-ShapeArea)) %>%
-              expand_grid(tibble(TreatmentYearAdj = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear)))) %>%
-  mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0), # make values 0 if no herbicide data available
-         TreatmentIntensity = replace_na(TreatmentIntensity, 0),
-         Treatment = replace_na(Treatment, 0)) %>%
-  filter(TreatmentYearAdj < max(plant_fwc_hyd_post2$SurveyYearAdj)) # remove data the year of or after plant surveys
+#### post-herbicide surveys ####
 
 # post herbicide surveys with control data
 plant_fwc_ctrl_hyd_post <-  plant_fwc_hyd_post2 %>% # plant data has NA for missing values
