@@ -14,6 +14,9 @@ library(tidyverse)
 library(lubridate)
 library(reshape2) # for melt
 library(cowplot)
+library(nlme)
+library(piecewiseSEM)
+library(lme4)
 # library(MARSS) # for marss model
 # library(zoo) # for uneven time series
 # library(ggfortify)
@@ -106,7 +109,9 @@ plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abund
   mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
   group_by(AreaOfInterestID) %>%
   mutate(EstAreaCovered_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance
-         log_EstAreaCovered_ha = log(EstAreaCovered_ha + 1e-10)) %>%  # log-transform (min EstAreaCovered_ha (> 0) = 1x10^-9)
+         log_EstAreaCovered_ha = log(EstAreaCovered_ha + 1e-10),  # log-transform (min EstAreaCovered_ha (> 0) = 1x10^-9)
+         PropCovered = EstAreaCovered_ha / Area_ha,
+         log_PropCovered = log((EstAreaCovered_ha + 1e-10) / Area_ha)) %>%
   ungroup() %>%
   nest(-c(AreaOfInterestID, SurveyYear)) %>% # find duplicates within year and waterbody
   mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
@@ -118,6 +123,9 @@ plant_fwc_hyd %>%
   group_by(AreaOfInterestID, SurveyYear) %>%
   count() %>%
   filter(n > 1)
+
+# save data
+write_csv(plant_fwc_hyd, "intermediate-data/FWC_hydrilla_survey_formatted.csv")
 
 
 #### edit control data ####
@@ -146,6 +154,8 @@ ctrl_new %>%
   summarise(apps = n()) %>%
   filter(apps > 1)
 # yes, 1059
+ctrl_new %>%
+  filter(AreaOfInterestID == 8 & BeginDate == "2019-05-20")
 # for treatments involving more than one herbicide, separate lines for each herbicide type, but they share a treatment ID and acres
 
 # old herbicide data
@@ -154,27 +164,29 @@ ctrl_old_hyd <- ctrl_old %>%
   mutate(AreaTreated_ha= TotalAcres * 0.405,
          Area_ha = ShapeArea * 100,
          TreatmentMonth = 12,
-         TreatmentDate = as.Date(paste(as.character(Year), "-12-01", sep = ""))) %>% # no date given for these surveys
-  select(AreaOfInterestID, PermanentID, Year, Area_ha, AreaTreated_ha, TreatmentMonth, TreatmentDate) %>%
+         TreatmentDate = as.Date(paste(as.character(Year), "-12-01", sep = "")), # no date given for these surveys
+         TreatmentID = paste("old", seq(1:length(Area_ha)), sep = "_")) %>%
+  select(AreaOfInterestID, PermanentID, Year, Area_ha, AreaTreated_ha, TreatmentMonth, TreatmentDate, TreatmentID) %>%
   rename(TreatmentYear = Year)
 
 # new herbicide data
 ctrl_new_hyd <- ctrl_new %>%
   filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
   select(AreaOfInterestID, PermanentID, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%
-  unique() %>%
+  unique() %>% # captures area treated for an event without duplication due to multiple herbicides
   mutate(AreaTreated_ha = TotalAcres * 0.405,
          Area_ha = ShapeArea * 100,
          TreatmentYear = year(BeginDate),
-         TreatmentMonth = month(BeginDate)) %>%
+         TreatmentMonth = month(BeginDate),
+         TreatmentID = as.character(TreatmentID)) %>%
+  select(AreaOfInterestID, PermanentID, TreatmentYear, Area_ha, AreaTreated_ha, TreatmentMonth, BeginDate, TreatmentID) %>%
   rename(TreatmentDate = BeginDate)
 
 # combine herbicide data
 ctrl_hyd <- ctrl_old_hyd %>%
   full_join(ctrl_new_hyd) %>%
   mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make treatment area size of lake if it exceeds it
-                                    TRUE ~ AreaTreated_ha),
-         TreatmentEvent = paste(TreatmentDate, AreaTreated_ha, sep = "_"))
+                                    TRUE ~ AreaTreated_ha))
 
 # add zero for missing years (assume no application)
 ctrl_hyd2 <- ctrl_old %>%
@@ -187,42 +199,16 @@ ctrl_hyd2 <- ctrl_old %>%
               unique()) %>%
   expand_grid(tibble(TreatmentYear = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear))) %>% # one row per year
   full_join(ctrl_hyd) %>%
-  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) # make area treated zero if the year wasn't included
+  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0), # make area treated zero if the year wasn't included
+         TreatmentEvent = TreatmentID, # NA when no treatment applied
+         TreatmentID = case_when(is.na(TreatmentID) ~ paste("none", TreatmentYear, sep = "_"),
+                                 TRUE ~ TreatmentID))
+
+# save data
+write_csv(ctrl_hyd2, "intermediate-data/FWC_hydrilla_herbicide_formatted.csv")
 
 
-#### combine FWC plant and ctrl data ####
-
-# # ctrl data, adjusted for plant data timing
-# ctrl_hyd_adj <- ctrl_hyd %>% # use data without zeros
-#   left_join(plant_fwc_hyd %>%
-#               select(AreaOfInterestID, PermanentID, MostFreqMonth) %>% # add most frequent month for waterbody
-#               unique()) %>%
-#   mutate(TreatmentYearAdj = case_when(TreatmentMonth < MostFreqMonth ~ TreatmentYear - 1, # move treatment into previous year if it occurred before survey
-#                                       TRUE ~ TreatmentYear)) %>%
-#   group_by(AreaOfInterestID, PermanentID, Area_ha, TreatmentYearAdj) %>%
-#   summarise(TreatmentFrequency = n(), # treatments per year
-#             TreatmentIntensity = mean(AreaTreated_ha/Area_ha), # average area treated
-#             Treatment = TreatmentFrequency * TreatmentIntensity) %>%
-#   ungroup() %>%
-#   full_join(ctrl_old %>% # all waterbodies from the dataset
-#               select(AreaOfInterestID, PermanentID, ShapeArea) %>%
-#               unique() %>%
-#               mutate(Area_ha = ShapeArea * 100) %>%
-#               select(-ShapeArea) %>%
-#               full_join(ctrl_new %>%
-#                           select(AreaOfInterestID, PermanentID, ShapeArea) %>%
-#                           unique() %>%
-#                           mutate(Area_ha = ShapeArea * 100) %>%
-#                           select(-ShapeArea)) %>%
-#               expand_grid(tibble(TreatmentYearAdj = min(ctrl_old_hyd$TreatmentYear):max(ctrl_new_hyd$TreatmentYear)))) %>%
-#   mutate(TreatmentFrequency = replace_na(TreatmentFrequency, 0), # make values 0 if no herbicide data available
-#          TreatmentIntensity = replace_na(TreatmentIntensity, 0),
-#          Treatment = replace_na(Treatment, 0)) %>%
-#   filter(TreatmentYearAdj < max(plant_fwc_hyd_post2$SurveyYearAdj)) # remove data the year of or after plant surveys
-
-
-
-#### long-term trends by lake ####
+#### long-term linear trends by lake ####
 
 # find trend and herbicide usage for each lake
 trend_hyd <- plant_fwc_hyd %>%
@@ -312,6 +298,138 @@ dev.off()
 # treatment did seem to manage it: high application in years around outbreak, one more after it crashes
 # big treatment before outbreak seems off: large amount of lake treated in 2004 and 2005 when pop is just starting, but no treatment in 2006, when the pop explodes
 
+
+#### combine FWC plant and ctrl data ####
+
+plant_ctrl_hyd <- ctrl_hyd2 %>%
+  mutate(SurveyYear = TreatmentYear) %>%
+  group_by(AreaOfInterestID, PermanentID, SurveyYear, Area_ha) %>%
+  summarise(TotalAreaTreated_ha = sum(AreaTreated_ha)) %>%
+  ungroup() %>%
+  mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha) %>%
+  inner_join(plant_fwc_hyd) %>% # only use data when ctrl and plants were recorded
+  mutate(log_Area_ha = log(Area_ha), # log-transform for offset
+         Time = SurveyYear - min(SurveyYear)) %>% # relative time variable
+  group_by(AreaOfInterestID, PermanentID) %>%
+  arrange(SurveyYear) %>%
+  mutate(log_NextPropCovered = lead(log_PropCovered), # includes correction for zero abundance
+         log_DiffPropCovered = log_NextPropCovered - log_PropCovered) %>%
+  ungroup()
+
+# remove missing data
+plant_ctrl_hyd2 <- plant_ctrl_hyd %>%
+  filter(!is.na(log_PropCovered) & !is.na(log_NextPropCovered) & !is.na(log_DiffPropCovered))
+
+
+#### population mixed-effects model ####
+
+# visualizations
+ggplot(plant_ctrl_hyd2, aes(x = log_DiffPropCovered)) +
+  geom_histogram()
+
+ggplot(plant_ctrl_hyd2, aes(x = TotalPropTreated)) +
+  geom_histogram()
+
+ggplot(plant_ctrl_hyd2, aes(x = log_PropCovered)) +
+  geom_histogram()
+
+plant_ctrl_hyd2 %>%
+  mutate(ZeroAbund = case_when(EstAreaCovered_ha == 0 ~ "zero",
+                               TRUE ~ "> zero")) %>%
+  ggplot(aes(x = log_PropCovered, y = log_DiffPropCovered, color = ZeroAbund)) +
+  geom_point(alpha = 0.5)
+# zeros throw off calculation
+
+plant_ctrl_hyd2 %>%
+  filter(EstAreaCovered_ha > 0) %>%
+  ggplot(aes(x = log_PropCovered, y = TotalPropTreated)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", formula = y ~ x)
+# positively correlated (non-linear)
+
+plant_ctrl_hyd2 %>%
+  filter(EstAreaCovered_ha > 0) %>%
+  ggplot(aes(x = log_PropCovered, y = log(TotalPropTreated + 1e-8))) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x)
+
+# remove zeros
+# go back to formatting code to remove zero correction (very small, shouldn't affect outcome)
+# add treated variable
+plant_ctrl_hyd3 <- plant_ctrl_hyd2 %>%
+  filter(EstAreaCovered_ha > 0) %>%
+  mutate(Treated = ifelse(TotalPropTreated == 0, 0, 1))
+  
+# random intercept model
+mod1 <- lme(log_DiffPropCovered ~ log_PropCovered + TotalPropTreated, random =  ~1|AreaOfInterestID, data = plant_ctrl_hyd3)
+summary(mod1)
+
+# random slope model
+mod2 <- lme(log_DiffPropCovered ~ log_PropCovered + TotalPropTreated, random =  ~1 + log_PropCovered|AreaOfInterestID, data = plant_ctrl_hyd3)
+summary(mod2)
+rsquared(mod2) # https://jonlefcheck.net/2013/03/13/r2-for-linear-mixed-effects-models/
+
+# compare models
+AIC(mod1, mod2)
+# mod2 better
+
+# add autocorrelation to this?
+
+# predictions
+pred_lme_hyd <- plant_ctrl_hyd3 %>%
+  mutate(log_PropCovered = mean(log_PropCovered)) %>%
+  mutate(PredictedDiff = predict(mod2, newdata = ., level = 0))
+
+# figure
+ggplot(pred_lme_hyd, aes(x = TotalPropTreated, y = log_DiffPropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = PredictedDiff))
+
+# bin by prop treated
+pred_lme_hyd2 <- pred_lme_hyd %>%
+  filter(TotalPropTreated > 0) %>%
+  mutate(PropTreatedBin = cut_interval(TotalPropTreated, n = 12) %>%
+           as.character()) %>%
+  group_by(PropTreatedBin) %>%
+  mutate(MinPropTreated = parse_number(strsplit(PropTreatedBin, ",")[[1]])[1],
+         MaxPropTreated = parse_number(strsplit(PropTreatedBin, ",")[[1]])[2],
+         MidPropTreated = (MinPropTreated + MaxPropTreated) / 2) %>%
+  ungroup() %>%
+  full_join(plant_ctrl_hyd4 %>%
+              filter(TotalPropTreated == 0) %>%
+              mutate(MidPropTreated = 0))
+
+ggplot(pred_lme_hyd2, aes(x = MidPropTreated, y = log_DiffPropCovered)) +
+  stat_summary(geom = "errorbar", width = 0, fun.data = "mean_cl_boot") +
+  stat_summary(geom = "point", size = 2, fun = "mean") +
+  geom_line(aes(x = TotalPropTreated, y = PredictedDiff)) +
+  xlab("Proportion of lake treated in prior year") +
+  ylab("Two-year hydrilla population change (log ratio)")
+
+
+#### piecewise sem ####
+
+# using TotalPropTreated would be nice, but it's zero-inflated
+# glmmTMB has zero-inflated models for count data
+# could use lake area as an offset, but area treated is continuous
+# can't do a zero-inflated gaussian model with log-transformed area treated
+# can't do a zero-inflated beta model because no 0/1's allowed
+
+# effect of initial population on herbicide
+mod3 <- glmer(Treated ~ log_PropCovered + (1|AreaOfInterestID), family = binomial, data = plant_ctrl_hyd3)
+summary(mod3)
+
+# update mod2 with treated
+mod4 <- lme(log_DiffPropCovered ~ log_PropCovered + Treated, random =  ~1+log_PropCovered|AreaOfInterestID, data = plant_ctrl_hyd3)
+summary(mod4)
+
+# fit model
+mod5 <- psem(lme(log_DiffPropCovered ~ log_PropCovered + Treated, random =  ~1+log_PropCovered|AreaOfInterestID, data = plant_ctrl_hyd3),
+             glmer(Treated ~ log_PropCovered + (1|AreaOfInterestID), family = binomial, data = plant_ctrl_hyd3))
+
+# summary
+summary(mod5)
+# same estimates as component models
 
 
 #### pre-herbicide data FWC surveys ####
