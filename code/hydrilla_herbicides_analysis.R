@@ -17,6 +17,7 @@ library(cowplot)
 library(nlme)
 library(piecewiseSEM)
 library(lme4)
+library(car)
 # library(MARSS) # for marss model
 # library(zoo) # for uneven time series
 # library(ggfortify)
@@ -108,7 +109,9 @@ plant_fwc_hyd <- plant_fwc %>% # start with all surveys (no hydrilla means abund
   left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
   mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
   group_by(AreaOfInterestID) %>%
-  mutate(EstAreaCovered_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance
+  mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance
+         EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
+                                       TRUE ~ EstAreaCoveredRaw_ha),
          log_EstAreaCovered_ha = log(EstAreaCovered_ha + 1e-10),  # log-transform (min EstAreaCovered_ha (> 0) = 1x10^-9)
          PropCovered = EstAreaCovered_ha / Area_ha,
          log_PropCovered = log((EstAreaCovered_ha + 1e-10) / Area_ha)) %>%
@@ -302,26 +305,46 @@ dev.off()
 #### combine FWC plant and ctrl data ####
 
 plant_ctrl_hyd <- ctrl_hyd2 %>%
-  mutate(SurveyYear = TreatmentYear) %>%
+  mutate(SurveyYear = TreatmentYear) %>% # same year (for difference calcs of abundance, which use lead)
   group_by(AreaOfInterestID, PermanentID, SurveyYear, Area_ha) %>%
   summarise(TotalAreaTreated_ha = sum(AreaTreated_ha)) %>%
   ungroup() %>%
-  mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha) %>%
-  inner_join(plant_fwc_hyd) %>% # only use data when ctrl and plants were recorded
+  full_join(ctrl_hyd2 %>%
+              mutate(SurveyYear = TreatmentYear + 1) %>% # lag 1 year
+              group_by(AreaOfInterestID, PermanentID, SurveyYear) %>%
+              summarise(TotalAreaTreatedLag1_ha = sum(AreaTreated_ha)) %>%
+              ungroup()) %>%
+  full_join(ctrl_hyd2 %>%
+              mutate(SurveyYear = TreatmentYear + 2) %>% # lag 2 years
+              group_by(AreaOfInterestID, PermanentID, SurveyYear) %>%
+              summarise(TotalAreaTreatedLag2_ha = sum(AreaTreated_ha)) %>%
+              ungroup()) %>%
+  full_join(ctrl_hyd2 %>%
+              mutate(SurveyYear = TreatmentYear + 3) %>% # lag 3 years
+              group_by(AreaOfInterestID, PermanentID, SurveyYear) %>%
+              summarise(TotalAreaTreatedLag3_ha = sum(AreaTreated_ha)) %>%
+              ungroup()) %>%
+  mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
+         TotalPropTreatedLag1 = TotalAreaTreatedLag1_ha / Area_ha,
+         TotalPropTreatedLag2 = TotalAreaTreatedLag2_ha / Area_ha,
+         TotalPropTreatedLag3 = TotalAreaTreatedLag3_ha / Area_ha) %>%
+  left_join(plant_fwc_hyd) %>% # only use data when ctrl occurred (every year included)
   mutate(log_Area_ha = log(Area_ha), # log-transform for offset
          Time = SurveyYear - min(SurveyYear)) %>% # relative time variable
   group_by(AreaOfInterestID, PermanentID) %>%
   arrange(SurveyYear) %>%
   mutate(log_NextPropCovered = lead(log_PropCovered), # includes correction for zero abundance
-         log_DiffPropCovered = log_NextPropCovered - log_PropCovered) %>%
+         log_DiffPropCovered = log_NextPropCovered - log_PropCovered,
+         NextPropCovered = lead(PropCovered),
+         DiffPropCovered = NextPropCovered - PropCovered) %>%
   ungroup()
 
-# remove missing data
+# remove missing data for difference analysis
 plant_ctrl_hyd2 <- plant_ctrl_hyd %>%
-  filter(!is.na(log_PropCovered) & !is.na(log_NextPropCovered) & !is.na(log_DiffPropCovered))
+  filter(!is.na(log_NextPropCovered) & !is.na(log_DiffPropCovered))
 
 
-#### population mixed-effects model ####
+#### mixed-effects model ####
 
 # visualizations
 ggplot(plant_ctrl_hyd2, aes(x = log_DiffPropCovered)) +
@@ -329,16 +352,56 @@ ggplot(plant_ctrl_hyd2, aes(x = log_DiffPropCovered)) +
 
 ggplot(plant_ctrl_hyd2, aes(x = TotalPropTreated)) +
   geom_histogram()
+# zero heavy
 
 ggplot(plant_ctrl_hyd2, aes(x = log_PropCovered)) +
   geom_histogram()
+# binary (because of zeros)
 
+ggplot(plant_ctrl_hyd, aes(x = PropCovered)) +
+  geom_histogram()
+# zero heavy
+
+# treatment and cover
+ggplot(plant_ctrl_hyd2, aes(TotalPropTreated, log_DiffPropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_hyd2, aes(TotalPropTreatedLag1, log_DiffPropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_hyd2, aes(TotalPropTreatedLag2, log_DiffPropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_hyd, aes(TotalPropTreatedLag1, PropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_hyd, aes(TotalPropTreatedLag2, PropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_hyd, aes(TotalPropTreatedLag3, PropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+# initial cover and change in cover
 plant_ctrl_hyd2 %>%
   mutate(ZeroAbund = case_when(EstAreaCovered_ha == 0 ~ "zero",
                                TRUE ~ "> zero")) %>%
   ggplot(aes(x = log_PropCovered, y = log_DiffPropCovered, color = ZeroAbund)) +
   geom_point(alpha = 0.5)
-# zeros throw off calculation
+# zeros throw off trend
+# constrains change in prop (prop = 1, can only decrease)
+
+plant_ctrl_hyd2 %>%
+  filter(EstAreaCovered_ha == 0) %>%
+  ggplot(aes(x = log_PropCovered, y = log_NextPropCovered)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1)
+# in every case where abundance goes to zero, it stays at zero
 
 plant_ctrl_hyd2 %>%
   filter(EstAreaCovered_ha > 0) %>%
@@ -357,15 +420,21 @@ plant_ctrl_hyd2 %>%
 # go back to formatting code to remove zero correction (very small, shouldn't affect outcome)
 # add treated variable
 plant_ctrl_hyd3 <- plant_ctrl_hyd2 %>%
-  filter(EstAreaCovered_ha > 0) %>%
-  mutate(Treated = ifelse(TotalPropTreated == 0, 0, 1))
+  filter(SpeciesAcres > 0) %>% # use raw data as cut-off
+  mutate(Treated = ifelse(TotalPropTreated == 0, 0, 1),
+         log_PropCoveredC = log_PropCovered - mean(log_PropCovered))
+
+# distribution of centered log_PropCovered
+ggplot(plant_ctrl_hyd3, aes(x = log_PropCoveredC)) +
+  geom_histogram()
   
 # random intercept model
-mod1 <- lme(log_DiffPropCovered ~ log_PropCovered + TotalPropTreated, random =  ~1|AreaOfInterestID, data = plant_ctrl_hyd3)
+mod1 <- lme(log_DiffPropCovered ~ log_PropCoveredC + TotalPropTreated, random =  ~1|AreaOfInterestID, data = plant_ctrl_hyd3)
 summary(mod1)
+# treatment effect is negative, but not sig
 
 # random slope model
-mod2 <- lme(log_DiffPropCovered ~ log_PropCovered + TotalPropTreated, random =  ~1 + log_PropCovered|AreaOfInterestID, data = plant_ctrl_hyd3)
+mod2 <- lme(log_DiffPropCovered ~ log_PropCoveredC + TotalPropTreated, random =  ~1 + log_PropCoveredC|AreaOfInterestID, data = plant_ctrl_hyd3)
 summary(mod2)
 rsquared(mod2) # https://jonlefcheck.net/2013/03/13/r2-for-linear-mixed-effects-models/
 
@@ -377,34 +446,13 @@ AIC(mod1, mod2)
 
 # predictions
 pred_lme_hyd <- plant_ctrl_hyd3 %>%
-  mutate(log_PropCovered = mean(log_PropCovered)) %>%
+  mutate(log_PropCoveredC = 0) %>%
   mutate(PredictedDiff = predict(mod2, newdata = ., level = 0))
 
 # figure
 ggplot(pred_lme_hyd, aes(x = TotalPropTreated, y = log_DiffPropCovered)) +
   geom_point(alpha = 0.5) +
   geom_line(aes(y = PredictedDiff))
-
-# bin by prop treated
-pred_lme_hyd2 <- pred_lme_hyd %>%
-  filter(TotalPropTreated > 0) %>%
-  mutate(PropTreatedBin = cut_interval(TotalPropTreated, n = 12) %>%
-           as.character()) %>%
-  group_by(PropTreatedBin) %>%
-  mutate(MinPropTreated = parse_number(strsplit(PropTreatedBin, ",")[[1]])[1],
-         MaxPropTreated = parse_number(strsplit(PropTreatedBin, ",")[[1]])[2],
-         MidPropTreated = (MinPropTreated + MaxPropTreated) / 2) %>%
-  ungroup() %>%
-  full_join(plant_ctrl_hyd4 %>%
-              filter(TotalPropTreated == 0) %>%
-              mutate(MidPropTreated = 0))
-
-ggplot(pred_lme_hyd2, aes(x = MidPropTreated, y = log_DiffPropCovered)) +
-  stat_summary(geom = "errorbar", width = 0, fun.data = "mean_cl_boot") +
-  stat_summary(geom = "point", size = 2, fun = "mean") +
-  geom_line(aes(x = TotalPropTreated, y = PredictedDiff)) +
-  xlab("Proportion of lake treated in prior year") +
-  ylab("Two-year hydrilla population change (log ratio)")
 
 
 #### piecewise sem ####
@@ -413,23 +461,291 @@ ggplot(pred_lme_hyd2, aes(x = MidPropTreated, y = log_DiffPropCovered)) +
 # glmmTMB has zero-inflated models for count data
 # could use lake area as an offset, but area treated is continuous
 # can't do a zero-inflated gaussian model with log-transformed area treated
-# can't do a zero-inflated beta model because no 0/1's allowed
+# can't do a zero-inflated beta model because no 0/1's allowed - can do censored beta model
 
 # effect of initial population on herbicide
-mod3 <- glmer(Treated ~ log_PropCovered + (1|AreaOfInterestID), family = binomial, data = plant_ctrl_hyd3)
+mod3 <- glmer(Treated ~ log_PropCoveredC + (1|AreaOfInterestID), family = binomial, data = plant_ctrl_hyd3)
 summary(mod3)
 
 # update mod2 with treated
-mod4 <- lme(log_DiffPropCovered ~ log_PropCovered + Treated, random =  ~1+log_PropCovered|AreaOfInterestID, data = plant_ctrl_hyd3)
+mod4 <- lme(log_DiffPropCovered ~ log_PropCoveredC + Treated, random =  ~1+log_PropCoveredC|AreaOfInterestID, data = plant_ctrl_hyd3)
 summary(mod4)
 
 # fit model
-mod5 <- psem(lme(log_DiffPropCovered ~ log_PropCovered + Treated, random =  ~1+log_PropCovered|AreaOfInterestID, data = plant_ctrl_hyd3),
-             glmer(Treated ~ log_PropCovered + (1|AreaOfInterestID), family = binomial, data = plant_ctrl_hyd3))
+mod5 <- psem(lme(log_DiffPropCovered ~ log_PropCoveredC + Treated, random =  ~1+log_PropCoveredC|AreaOfInterestID, data = plant_ctrl_hyd3),
+             glmer(Treated ~ log_PropCoveredC + (1|AreaOfInterestID), family = binomial, data = plant_ctrl_hyd3))
 
 # summary
 summary(mod5)
 # same estimates as component models
+
+
+#### whole state model ####
+
+# remove extra years from the lags
+plant_ctrl_hyd4 <- plant_ctrl_hyd %>%
+  filter(SurveyYear <= max(plant_fwc_hyd$SurveyYear)) # remove extra years from the lags
+
+# function to find longest time interval with the most lakes
+time_int_fun <- function(year1){
+  
+  dat <- plant_ctrl_hyd4
+  
+  dat2 <- dat %>%
+    filter(SurveyYear >= year1 & is.na(EstAreaCovered_ha)) %>% # select missing years
+    group_by(AreaOfInterestID, PermanentID) %>%
+    summarise(year2 = min(SurveyYear)) %>% # identify first year missing data
+    ungroup() %>%
+    full_join(dat %>%
+                select(AreaOfInterestID, PermanentID) %>%
+                unique()) %>% # add all lakes (in case some had no missing data)
+    mutate(year2 = replace_na(year2, max(dat$SurveyYear) + 1),   # assign last year (add one to count that year)
+           years = year2 - year1) %>%
+    group_by(years) %>%
+    count() %>% # summarise number of lakes per timespan
+    ungroup() %>%
+    expand_grid(tibble(years_out = 0:(max(dat$SurveyYear) + 1 - year1))) %>% # expand for every years_out value
+    filter(years >= years_out) %>%
+    group_by(years_out) %>%
+    summarise(lakes = sum(n))
+  
+  return(dat2)
+}
+
+# complete time intervals
+plant_ctrl_times <- plant_ctrl_hyd4 %>%
+  select(SurveyYear) %>%
+  unique() %>%
+  mutate(out = map(SurveyYear, time_int_fun)) %>%
+  unnest(cols = out) %>%
+  mutate(data_points = years_out * lakes) 
+
+ggplot(plant_ctrl_times, aes(x = data_points)) +
+  geom_histogram()
+
+# select largest number of datapoints
+plant_ctrl_times %>%
+  filter(data_points == max(data_points))
+
+# filter 
+plant_ctrl_hyd5 <- plant_ctrl_hyd4 %>%
+  filter(SurveyYear >= 1998 & SurveyYear <= (1998 + 21)) %>%
+  group_by(AreaOfInterestID, PermanentID) %>%
+  mutate(NAVals = sum(is.na(EstAreaCovered_ha))) %>%
+  ungroup() %>%
+  filter(NAVals == 0)
+
+# make sure it worked
+length(unique(plant_ctrl_hyd5$AreaOfInterestID))
+
+# visualize
+ggplot(plant_ctrl_hyd5, aes(x = SurveyYear, y = PropCovered)) +
+  geom_line(aes(color = PermanentID), show.legend = F)
+
+# summarize by year
+plant_ctrl_year <- plant_ctrl_hyd5 %>%
+  group_by(SurveyYear) %>%
+  summarise(across(.cols = c(Area_ha, SpeciesAcres, EstAreaCovered_ha, TotalAreaTreated_ha, TotalAreaTreatedLag1_ha, TotalAreaTreatedLag2_ha, TotalAreaTreatedLag3_ha), sum)) %>%
+  ungroup() %>%
+  arrange(SurveyYear) %>%
+  mutate(PropCovered = EstAreaCovered_ha / Area_ha,
+         PropCoveredChange = lead(PropCovered) - PropCovered,
+         TotalPropTreated = TotalAreaTreated_ha / Area_ha,
+         TotalPropTreatedLag1 = TotalAreaTreatedLag1_ha / Area_ha,
+         TotalPropTreatedLag2 = TotalAreaTreatedLag2_ha / Area_ha,
+         TotalPropTreatedLag3 = TotalAreaTreatedLag3_ha / Area_ha)
+
+# visualize
+ggplot(plant_ctrl_year, aes(x = SurveyYear, y = PropCovered)) +
+  geom_line()
+
+ggplot(plant_ctrl_year, aes(x = SurveyYear, y = TotalPropTreated)) +
+  geom_line()
+
+ggplot(plant_ctrl_year, aes(x = TotalPropTreated, y = PropCoveredChange)) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_year, aes(x = TotalPropTreatedLag1, y = PropCoveredChange)) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_year, aes(x = TotalPropTreatedLag1, y = PropCoveredChange)) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+ggplot(plant_ctrl_year, aes(x = TotalAreaTreatedLag2_ha, y = EstAreaCovered_ha)) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method = "lm")
+# these don't look like Hiatt et al. because the years prior to 1998 influence the trend a lot
+
+
+#### binary herbicide model ####
+
+# add column to data
+plant_ctrl_hyd6 <- plant_ctrl_hyd %>%
+  mutate(Treated = case_when(TotalPropTreated > 0 ~ 1,
+                             TRUE ~ 0),
+         TreatedF = ifelse(Treated == 1, "yes", "no"))
+
+# visualize
+ggplot(plant_ctrl_hyd6, aes(x = log_PropCovered, color = TreatedF)) +
+  geom_density()
+# may be good to use data with zero cover removed
+# these are more common in the untreated than treated lakes
+
+# remove zero cover
+# transform for t-test
+plant_ctrl_hyd7 <- plant_ctrl_hyd6 %>%
+  filter(SpeciesAcres > 0) %>% # use SpeciesAcres so that if it was absent, it's removed
+  mutate(logit_PropCovered = logit(PropCovered, adjust = 0.001))
+
+# visualize
+ggplot(plant_ctrl_hyd7, aes(x = logit_PropCovered, color = TreatedF)) +
+  geom_density()
+
+ggplot(plant_ctrl_hyd7, aes(x = log10(SpeciesAcres), color = TreatedF)) +
+  geom_density() +
+  geom_vline(xintercept = log10(0.1))
+
+# sample sizes
+plant_ctrl_hyd7 %>%
+  group_by(TreatedF) %>%
+  count()
+
+# t-test
+t.test(formula = logit_PropCovered ~ TreatedF, 
+       data = plant_ctrl_hyd7)
+# significantly lower prop cover in untreated lakes
+
+# remove low values?
+plant_ctrl_hyd7 %>%
+  filter(SpeciesAcres > 0.1) %>% # minimum "presence" value
+  ggplot(aes(x = log10(SpeciesAcres), color = TreatedF)) +
+  geom_density()
+
+plant_ctrl_hyd8 <- plant_ctrl_hyd7 %>%
+  filter(SpeciesAcres > 0.1)
+
+# t-test
+t.test(formula = logit_PropCovered ~ TreatedF, 
+       data = plant_ctrl_hyd8)
+# significantly lower prop cover in untreated lakes
+
+# remove high values?
+plant_ctrl_hyd8 %>%
+  filter(EstAreaCoveredRaw_ha <= Area_ha) %>%
+  ggplot(aes(x = logit_PropCovered, color = TreatedF)) +
+  geom_density()
+# tried AreaCovered_ha <= Area_ha, but it made less of a difference
+
+# remove unrealistic abundances
+# calculate change over time
+plant_ctrl_hyd9 <- plant_ctrl_hyd8 %>%
+  filter(EstAreaCoveredRaw_ha <= Area_ha & !is.na(NextPropCovered)) %>%
+  mutate(log_PropCovered = log(PropCovered),  # recalculate to remove zero correction
+         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
+         log_DiffPropCovered = log(NextPropCovered) - log_PropCovered,
+         ChgPropCovered = (NextPropCovered - PropCovered) / PropCovered,
+         log_PropCoveredBin = cut_number(log_PropCoveredC, 3,
+                                         labels = c("low", "medium", "high")))
+
+# t-test
+t.test(formula = logit_PropCovered ~ TreatedF, 
+       data = plant_ctrl_hyd9)
+# still significantly different, but  much closer
+
+# variation within year
+ggplot(plant_ctrl_hyd9, aes(x = logit_PropCovered, color = TreatedF)) +
+  geom_density() +
+  facet_wrap(~SurveyYear)
+
+# sample size
+plant_ctrl_hyd9 %>%
+  group_by(TreatedF) %>%
+  count()
+
+# response variable
+ggplot(plant_ctrl_hyd9, aes(x = DiffPropCovered)) +
+  geom_histogram()
+# minimum is bounded by -1
+
+ggplot(plant_ctrl_hyd9, aes(x = log_DiffPropCovered)) +
+  geom_histogram()
+
+# treatment effect on change?
+ggplot(plant_ctrl_hyd9, aes(x = TreatedF, y = log_DiffPropCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean")
+# yes
+
+# initial prop?
+ggplot(plant_ctrl_hyd9, aes(x = log_PropCoveredC, y = log_DiffPropCovered)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+# less severe than with full dataset
+
+# model
+mod6 <- lme(log_DiffPropCovered ~ Treated + log_PropCoveredC, random = ~1|AreaOfInterestID, data = plant_ctrl_hyd9)
+summary(mod6)
+# treatment has positive effect
+
+# change in prop covered
+ggplot(plant_ctrl_hyd9, aes(x = ChgPropCovered)) +
+  geom_histogram()
+# way too skewed
+# log-transformation loses 1235 rows of no change
+
+# initial prop by category
+ggplot(plant_ctrl_hyd9, aes(x = log_PropCoveredC, y = log_DiffPropCovered)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~log_PropCoveredBin, scales = "free_x")
+# still a large effect of initial abundance at high abundances
+
+# sample size
+plant_ctrl_hyd9 %>%
+  group_by(log_PropCoveredBin, TreatedF) %>%
+  count()
+
+# treatment effect by category
+ggplot(plant_ctrl_hyd9, aes(x = TreatedF, y = log_DiffPropCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  facet_wrap(~log_PropCoveredBin, scales = "free_x")
+
+# model
+mod7 <- lme(log_DiffPropCovered ~ log_PropCoveredBin * (Treated + log_PropCoveredC), random =  ~1|AreaOfInterestID, data = plant_ctrl_hyd9)
+summary(mod7)
+
+# predicted values
+mod7_pred <- plant_ctrl_hyd9 %>%
+  group_by(log_PropCoveredBin) %>%
+  summarise(log_PropCoveredC = mean(log_PropCoveredC)) %>% # use overall mean for each group
+  ungroup() %>%
+  expand_grid(plant_ctrl_hyd9 %>%
+                select(Treated, TreatedF) %>%
+                unique()) %>%
+  mutate(log_DiffPropCovered = predict(mod7, newdata = ., level = 0),
+         log_DiffPropCoveredSE = predict(mod7, newdata = ., level = 0, se.fit = T)$se.fit)
+
+#### start here ####
+# model has treatment contrasts, do we want that?
+# model still predicts positive effect of treatment at low initial proportion covered, why?
+# fit same model with continuous treatment variable
+
+# below from https://stat.ethz.ch/pipermail/r-sig-mixed-models/2010q1/003336.html
+Designmat <- model.matrix(eval(eval(mod7$call$fixed)[-2]), mod7_pred[-4])
+predvar <- diag(Designmat %*% mod7$varFix %*% t(Designmat))
+mod7_pred$SE <- sqrt(predvar)
+mod7_predt$SE2 <- sqrt(predvar+mod7$sigma^2)
+
+# predicted effect by category
+ggplot(mod7_pred, aes(x = TreatedF, y = log_DiffPropCovered)) +
+  geom_point() +
+  facet_wrap(~log_PropCoveredBin, scales = "free_x")
+
+
 
 
 #### pre-herbicide data FWC surveys ####
