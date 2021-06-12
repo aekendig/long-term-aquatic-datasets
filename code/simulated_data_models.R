@@ -1,6 +1,6 @@
 #### info ####
 
-# goal: simulate data to test pre-herbicide model
+# goal: simulate data to test models
 
 
 #### set-up ####
