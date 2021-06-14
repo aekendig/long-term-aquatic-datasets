@@ -7,6 +7,7 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(lubridate)
+library(glmmTMB)
 
 # import data
 ctrl_old <- read_csv("intermediate-data/FWC_control_old_formatted.csv")
@@ -31,6 +32,18 @@ def_theme <- theme_bw() +
         strip.text = element_text(size = 14, color="black"),
         strip.background = element_blank())
 
+# function to transform data to account for 0's and 1's
+transform01 <- function(x) {
+  n <- sum(!is.na(x))
+  (x * (n - 1) + 0.5) / n
+}
+
+backtransform01 <- function(x) {
+  n <- sum(!is.na(x))
+  (x * n - 0.5) / (n - 1)
+}  
+
+
 
 #### lake O parameters ####
 
@@ -50,6 +63,11 @@ plant_fwc %>%
   summarise(IDs = length(unique(PermanentID))) %>%
   filter(IDs > 1)
 # one Perm ID per AOI
+
+# min area
+plant_fwc %>%
+  filter(SpeciesAcres > 0) %>%
+  summarise(min = min(SpeciesAcres)) # 0.01
 
 # function to remove duplicates
 rem_dups_fun <- function(dat) {
@@ -95,14 +113,24 @@ plant_fwc2 <- plant_fwc %>% # start with all surveys
                                 SpeciesName == "Hydrilla verticillata" ~ "Hydrilla", 
                                 SpeciesName == "Pistia stratiotes" ~ "Water lettuce")) %>% # calculate the number of sd's to change to get est. max abundance
   group_by(AreaOfInterestID, SpeciesName) %>%
-  mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance
-         EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
-                                       TRUE ~ EstAreaCoveredRaw_ha),
-         log_EstAreaCovered_ha = log(EstAreaCovered_ha + 1e-9),  # log-transform (min EstAreaCovered_ha (> 0) = 2x10^-8)
-         PropCovered = EstAreaCovered_ha / Area_ha,
-         log_PropCovered = log((EstAreaCovered_ha + 1e-9) / Area_ha),
+  mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance, NA if only one value is available
          Detected = as.numeric(sum(SpeciesAcres) > 0)) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
+                                       TRUE ~ EstAreaCoveredRaw_ha),
+         PropCovered = EstAreaCovered_ha / Area_ha,
+         PropCoveredAdj = case_when(PropCovered < 1e-3 ~ 1e-3, # avoid super small values that skew ratios
+                                    TRUE ~ PropCovered),
+         SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
+                                    SpeciesAcres == 0 ~ 0))
+
+# estimated area covered
+range(filter(plant_fwc2, EstAreaCoveredRaw_ha > 0)$EstAreaCoveredRaw_ha)
+# min value = 2e-8
+
+# estimated hectares for recorded abundance of zero
+max(plant_fwc2$Area_ha) * 1e-3
+min(plant_fwc2$Area_ha) * 1e-3
 
 # duplicates in same year
 plant_fwc2 %>%
@@ -155,16 +183,26 @@ ctrl_new %>%
 # each treatment ID is a unique application for each species, area, and date
 sum(is.na(ctrl_new$TreatmentID))
 
+# overlap in datasets
+ctrl_old %>%
+  select(AreaOfInterestID, Year) %>%
+  unique() %>%
+  inner_join(ctrl_new %>%
+               select(AreaOfInterestID, Year) %>%
+               unique())
+# 163 lakes
+# potentially different events (some have different acres)
+
 # old herbicide data
 ctrl_old2 <- ctrl_old %>%
   filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & TotalAcres > 0) %>%
   mutate(AreaTreated_ha= TotalAcres * 0.405,
          Area_ha = ShapeArea * 100,
          TreatmentMethod = "unknown",
-         TreatmentMonth = 12,
-         TreatmentDate = as.Date(paste(as.character(Year), "-12-01", sep = "")), # no date given for these surveys
-         TreatmentID = paste("old", Year, substr(Species, 1, 1), TotalAcres, sep = "_")) %>%
-  select(AreaOfInterestID, PermanentID, Year, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentMonth, TreatmentDate, TreatmentID) %>%
+         TreatmentID = paste("old", Year, substr(Species, 1, 1), TotalAcres, sep = "_"),
+         SurveyYear = Year, # assumes treatment occurred after survey
+         SurveyYearAlt = Year - 1) %>% # assumes treatment occurred before survey
+  select(AreaOfInterestID, PermanentID, Year, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentID, SurveyYear, SurveyYearAlt) %>%
   rename(TreatmentYear = Year)
 
 # new herbicide data
@@ -177,18 +215,30 @@ ctrl_new2 <- ctrl_new %>%
          TreatmentMethod = paste(ControlMethod, collapse = ", "),
          TreatmentYear = year(BeginDate),
          TreatmentMonth = month(BeginDate),
-         TreatmentID = as.character(TreatmentID)) %>%
+         TreatmentID = as.character(TreatmentID),
+         SurveyYear = case_when(TreatmentMonth >= 4 ~ TreatmentYear,
+                                TreatmentMonth < 4 ~ TreatmentYear - 1)) %>%
   ungroup() %>%
-  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID) %>%
-  rename(TreatmentDate = BeginDate)
+  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID, SurveyYear) %>%
+  rename(TreatmentDate = BeginDate) %>%
+  left_join(plant_fwc2 %>%
+              select(AreaOfInterestID, PermanentID, SurveyDate, SurveyYear) %>%
+              unique()) %>%
+  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
+         SurveyYearTreat = case_when(SurveyTreatDays >= 14  ~ SurveyYear - 1,
+                                     SurveyTreatDays < 14 ~ SurveyYear),
+         SurveyYear = case_when(!is.na(SurveyYearTreat) ~ SurveyYearTreat,
+                                is.na(SurveyYearTreat) ~ SurveyYear), # for years without surveys
+         SurveyYearAlt = SurveyYear) %>%
+  select(-c(SurveyYearTreat, SurveyDate))
 
 # combine herbicide data
 ctrl <- ctrl_old2 %>%
   full_join(ctrl_new2) %>%
   full_join(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants - one row for each species
-                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>%
-  mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make treatment area size of lake if it exceeds it
-                                    TRUE ~ AreaTreated_ha)) 
+                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) # %>%
+  # mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make treatment area size of lake if it exceeds it
+  #                                   TRUE ~ AreaTreated_ha)) 
 
 # add zero for missing years (assume no application)
 ctrl2 <- ctrl_old %>% # one row for every lake
@@ -199,63 +249,108 @@ ctrl2 <- ctrl_old %>% # one row for every lake
               mutate(Area_ha = ShapeArea * 100) %>%
               select(AreaOfInterestID, PermanentID, Area_ha) %>%
               unique()) %>%
-  expand_grid(tibble(TreatmentYear = min(ctrl_old2$TreatmentYear):max(ctrl_new2$TreatmentYear)) %>% # one row per year and species
+  expand_grid(tibble(SurveyYear = min(ctrl_old2$SurveyYear):max(ctrl_new2$SurveyYear)) %>% # one row per year and species
                 expand_grid(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)),
                                    SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")))) %>% 
   full_join(ctrl) %>%
   mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0), # make area treated zero if the year wasn't included
          TreatmentEvent = TreatmentID, # NA when no treatment applied
          TreatmentID = case_when(is.na(TreatmentID) ~ paste("none", TreatmentYear, sep = "_"),
-                                 TRUE ~ TreatmentID))
+                                 TRUE ~ TreatmentID)) %>%
+  select(-SurveyYearAlt)
+
+ctrl2Alt <- ctrl_old %>% # one row for every lake
+  mutate(Area_ha = ShapeArea * 100) %>%
+  select(AreaOfInterestID, PermanentID, Area_ha) %>%
+  unique() %>%
+  full_join(ctrl_new %>%
+              mutate(Area_ha = ShapeArea * 100) %>%
+              select(AreaOfInterestID, PermanentID, Area_ha) %>%
+              unique()) %>%
+  expand_grid(tibble(SurveyYearAlt = min(ctrl_old2$SurveyYearAlt):max(ctrl_new2$SurveyYearAlt)) %>% # one row per year and species
+                expand_grid(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)),
+                                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")))) %>% 
+  full_join(ctrl) %>%
+  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0), # make area treated zero if the year wasn't included
+         TreatmentEvent = TreatmentID, # NA when no treatment applied
+         TreatmentID = case_when(is.na(TreatmentID) ~ paste("none", TreatmentYear, sep = "_"),
+                                 TRUE ~ TreatmentID),
+         SurveyYear = SurveyYearAlt) %>%
+  select(-SurveyYearAlt)
 
 # save data
 write_csv(ctrl2, "intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_formatted.csv")
+write_csv(ctrl2Alt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_alt_formatted.csv")
 
 
 #### combine FWC plant and ctrl data ####
 
 plant_ctrl <- ctrl2 %>%
-  mutate(SurveyYear = TreatmentYear) %>% # same year (for difference calcs of abundance, which use lead)
   group_by(AreaOfInterestID, PermanentID, SurveyYear, Area_ha, Species, SpeciesName) %>%
-  summarise(TotalAreaTreated_ha = sum(AreaTreated_ha)) %>%
+  summarise(TotalAreaTreated_ha = sum(AreaTreated_ha),
+            TreatmentDate = min(TreatmentDate)) %>%
   ungroup() %>%
-  full_join(ctrl2 %>%
-              mutate(SurveyYear = TreatmentYear + 1) %>% # lag 1 year
-              group_by(AreaOfInterestID, PermanentID, SurveyYear, Species, SpeciesName) %>%
-              summarise(TotalAreaTreatedLag1_ha = sum(AreaTreated_ha)) %>%
-              ungroup()) %>%
-  full_join(ctrl2 %>%
-              mutate(SurveyYear = TreatmentYear + 2) %>% # lag 2 years
-              group_by(AreaOfInterestID, PermanentID, SurveyYear, Species, SpeciesName) %>%
-              summarise(TotalAreaTreatedLag2_ha = sum(AreaTreated_ha)) %>%
-              ungroup()) %>%
-  full_join(ctrl2 %>%
-              mutate(SurveyYear = TreatmentYear + 3) %>% # lag 3 years
-              group_by(AreaOfInterestID, PermanentID, SurveyYear, Species, SpeciesName) %>%
-              summarise(TotalAreaTreatedLag3_ha = sum(AreaTreated_ha)) %>%
-              ungroup()) %>%
   mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
-         TotalPropTreatedLag1 = TotalAreaTreatedLag1_ha / Area_ha,
-         TotalPropTreatedLag2 = TotalAreaTreatedLag2_ha / Area_ha,
-         TotalPropTreatedLag3 = TotalAreaTreatedLag3_ha / Area_ha,
          Treated = ifelse(TotalAreaTreated_ha > 0, 1, 0),
-         TreatedLag1 = ifelse(TotalAreaTreatedLag1_ha > 0, 1, 0),
-         TreatedLag2 = ifelse(TotalAreaTreatedLag2_ha > 0, 1, 0),
-         TreatedLag3 = ifelse(TotalAreaTreatedLag3_ha > 0, 1, 0)) %>%
+         TreatedF = ifelse(Treated == 0, "no", "yes")) %>%
   left_join(plant_fwc2) %>% # only include years with treatment info
+  group_by(SpeciesName) %>%
+  mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
+  ungroup() %>%
   group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
   arrange(SurveyYear) %>%
-  mutate(log_NextPropCovered = lead(log_PropCovered), # includes correction for zero abundance
-         log_DiffPropCovered = log_NextPropCovered - log_PropCovered,
-         NextPropCovered = lead(PropCovered),
-         RatioPropCovered = NextPropCovered/PropCovered,
-         Detected = as.numeric(sum(Detected, na.rm = T) > 0)) %>% # fills in NA's for detected
+  mutate(Next1PropCovered = lead(PropCoveredAdj, n = 1), # includes correction for zero abundance
+         Next2PropCovered = lead(PropCoveredAdj, n = 2),
+         Diff1PropCovered = Next1PropCovered/PropCoveredAdj,
+         Diff2PropCovered = Next2PropCovered/PropCoveredAdj,            
+         log_Diff1PropCovered = log(Diff1PropCovered),
+         log_Diff2PropCovered = log(Diff2PropCovered),
+         Next1PropCoveredBeta = lead(PropCoveredBeta, n = 1),
+         Next2PropCoveredBeta = lead(PropCoveredBeta, n = 2),
+         Next1SurveyDate = lead(SurveyDate, n = 1),
+         Next2SurveyDate = lead(SurveyDate, n = 2),
+         Next1SurveyDays = Next1SurveyDate - SurveyDate,
+         Next2SurveyDays = Next2SurveyDate - SurveyDate,
+         TreatSurveyDays = TreatmentDate - SurveyDate,
+         NextSurveyTreatDays = lead(SurveyDate) - TreatmentDate,
+         Detected = as.numeric(sum(Detected, na.rm = T) > 0)) %>% # fills in NA's for detected based on entire survey history
+  ungroup()
+
+plant_ctrlAlt <- ctrl2Alt %>%
+  group_by(AreaOfInterestID, PermanentID, SurveyYear, Area_ha, Species, SpeciesName) %>%
+  summarise(TotalAreaTreated_ha = sum(AreaTreated_ha),
+            TreatmentDate = min(TreatmentDate)) %>%
+  ungroup() %>%
+  mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
+         Treated = ifelse(TotalAreaTreated_ha > 0, 1, 0),
+         TreatedF = ifelse(Treated == 0, "no", "yes")) %>%
+  left_join(plant_fwc2) %>% # only include years with treatment info
+  group_by(SpeciesName) %>%
+  mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
+  ungroup() %>%
+  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
+  arrange(SurveyYear) %>%
+  mutate(Next1PropCovered = lead(PropCoveredAdj, n = 1), # includes correction for zero abundance
+         Next2PropCovered = lead(PropCoveredAdj, n = 2),
+         Diff1PropCovered = Next1PropCovered/PropCoveredAdj,
+         Diff2PropCovered = Next2PropCovered/PropCoveredAdj,            
+         log_Diff1PropCovered = log(Diff1PropCovered),
+         log_Diff2PropCovered = log(Diff2PropCovered),
+         Next1PropCoveredBeta = lead(PropCoveredBeta, n = 1),
+         Next2PropCoveredBeta = lead(PropCoveredBeta, n = 2),
+         Next1SurveyDate = lead(SurveyDate, n = 1),
+         Next2SurveyDate = lead(SurveyDate, n = 2),
+         Next1SurveyDays = Next1SurveyDate - SurveyDate,
+         Next2SurveyDays = Next2SurveyDate - SurveyDate,
+         TreatSurveyDays = TreatmentDate - SurveyDate,
+         NextSurveyTreatDays = lead(SurveyDate) - TreatmentDate,
+         Detected = as.numeric(sum(Detected, na.rm = T) > 0)) %>% # fills in NA's for detected based on entire survey history
   ungroup()
 
 # missing data
 plant_ctrl %>%
-  filter(is.na(PropCovered) | is.na(NextPropCovered))
-# > 10,000 (~ 1/3 data)
+  filter(is.na(PropCovered) | is.na(Next1PropCovered))
+# > 7,000
 
 # treatment without detection?
 treat_no_detect <- plant_ctrl %>%
@@ -263,51 +358,95 @@ treat_no_detect <- plant_ctrl %>%
   mutate(GroupDetected = as.numeric(sum(Detected) > 0)) %>% # were either of the floating plants detected?
   ungroup() %>%
   filter(GroupDetected == 0 & TotalPropTreated > 0)
-# 229 examples
+# 234 examples
 
 treat_no_detect %>%
   ggplot(aes(x = TotalPropTreated)) +
   geom_histogram(binwidth = 0.1) +
   facet_wrap(~ Species)
-# 292 instances of herbicide applied to a treat a species without it being detected by surveys
 
 # look at some of these
 treat_no_detect %>%
-  full_join(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants - one row for each species
-                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>%
   rename(TreatmentYear = SurveyYear) %>%
   select(SpeciesName, AreaOfInterestID, TreatmentYear) %>%
   unique() %>%
   inner_join(plant_fwc2 %>%
-               select(AreaOfInterestID, SurveyYear, SpeciesName, SpeciesAcres, PropCovered, Detected)) %>%
+               select(AreaOfInterestID, SurveyYear, SpeciesName, SpeciesAcres, Detected)) %>%
   ggplot(aes(x = SurveyYear, y = SpeciesAcres)) +
   geom_line(aes(color = as.factor(AreaOfInterestID)), show.legend = F) +
   geom_vline(aes(xintercept = TreatmentYear, color = as.factor(AreaOfInterestID)), show.legend = F) +
   facet_wrap(~ SpeciesName)
 
-# remove missing data for difference analysis
-plant_ctrl2 <- plant_ctrl %>%
-  filter(!is.na(PropCovered) & !is.na(NextPropCovered) & Detected == 1)
+treat_no_detect %>%
+  select(AreaOfInterestID, SurveyYear, Species) %>%
+  unique() %>%
+  ggplot(aes(x = as.factor(AreaOfInterestID))) +
+  geom_bar()
+# some lakes may have surveys missing
+
+# remove missing data for 1 year difference analysis
+plant_ctrl_1year <- plant_ctrl %>%
+  filter(!is.na(PropCovered) & !is.na(Next1PropCovered) & Detected == 1) %>%
+  group_by(SpeciesName) %>% # center variables with appropriate dataset
+  mutate(log_PropCovered = log(PropCoveredAdj),
+         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
+         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
+  ungroup() 
 # Detected == 1: plant must have been detected in the lake at some point
+
+plant_ctrl_1yearAlt <- plant_ctrlAlt %>%
+  filter(!is.na(PropCovered) & !is.na(Next1PropCovered) & Detected == 1) %>%
+  group_by(SpeciesName) %>% # center variables with appropriate dataset
+  mutate(log_PropCovered = log(PropCoveredAdj),
+         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
+         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
+  ungroup() 
+
+# remove missing data for 2 year difference analysis
+plant_ctrl_2year <- plant_ctrl %>%
+  filter(!is.na(PropCovered) & !is.na(Next2PropCovered) & Detected == 1) %>%
+  group_by(SpeciesName) %>% # center variables with appropriate dataset
+  mutate(log_PropCovered = log(PropCoveredAdj),
+         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
+         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
+  ungroup() 
+
+plant_ctrl_2yearAlt <- plant_ctrlAlt %>%
+  filter(!is.na(PropCovered) & !is.na(Next2PropCovered) & Detected == 1) %>%
+  group_by(SpeciesName) %>% # center variables with appropriate dataset
+  mutate(log_PropCovered = log(PropCoveredAdj),
+         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
+         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
+  ungroup() 
+
+# check treatment/survey timing
+range(plant_ctrl_1year$TreatSurveyDays, na.rm = T)
+range(plant_ctrl_1year$NextSurveyTreatDays, na.rm = T)
+
+# save data
+write_csv(plant_ctrl_1year, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_formatted.csv")
+write_csv(plant_ctrl_1yearAlt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_alt_formatted.csv")
+write_csv(plant_ctrl_2year, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_2year_formatted.csv")
+write_csv(plant_ctrl_2yearAlt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_2year_alt_formatted.csv")
 
 
 #### summary stats ####
 
 # overall dataset
-plant_ctrl2 %>%
+plant_ctrl_1yearAlt %>%
   summarise(Lakes = length(unique(AreaOfInterestID)),
             Years = length(unique(SurveyYear)))
 
 # detected lakes
-lake_sum <- plant_ctrl2 %>%
+lake_sum <- plant_ctrl_2yearAlt %>%
   group_by(CommonName) %>%
   summarise(Lakes = length(unique(AreaOfInterestID)),
             YearLakes = n()) %>%
   mutate(NameLakes = paste(CommonName, "\n(", Lakes, " lakes, ", YearLakes, " data points)", sep = ""))
 
 # year ranges
-pdf("output/year_ranges_herbicide_analysis.pdf", width = 11.5, height = 5.75)
-plant_ctrl2 %>%
+pdf("output/year_ranges_herbicide_analysis.pdf", width = 11.5, height = 3)
+plant_ctrl_2yearAlt %>%
   group_by(CommonName, AreaOfInterestID) %>%
   summarise(Years = max(SurveyYear) - min(SurveyYear) + 1) %>%
   ungroup() %>%
@@ -322,32 +461,550 @@ plant_ctrl2 %>%
 dev.off()
 
 # population sizes
-prop_sum <- plant_ctrl2 %>%
+prop_sum <- plant_ctrl_2yearAlt %>%
   group_by(CommonName) %>%
-  summarise(mean = mean(NextPropCovered))
+  summarise(mean = mean(PropCoveredAdj))
 
-pdf("output/pop_sizes_herbicide_analysis.pdf", width = 11.5, height = 5.75)
-plant_ctrl2 %>%
-  ggplot(aes(NextPropCovered)) +
+pdf("output/pop_sizes_herbicide_analysis.pdf", width = 11.5, height = 2.5)
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(PropCoveredAdj)) +
   geom_histogram(binwidth = 0.1) +
   geom_vline(data = prop_sum, aes(xintercept = mean), color = "blue", linetype = "dashed") +
   geom_text(data = prop_sum, aes(x =  mean, label = paste("mean = ", as.character(round(mean, 3)), sep = "")), 
-            y = 5800, hjust = -0.05, size = 4, color = "blue") +
+            y = 6150, hjust = -0.05, size = 4, color = "blue") +
   facet_wrap(~ CommonName) +
   annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
   annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf) +
   labs(x = "Proportion of lake inhabited", y = "Data points") +
+  ylim(0, 6200) +
+  def_theme +
+  theme(strip.text = element_blank())
+dev.off()
+
+# survey times
+pdf("output/survey_times_1year_herbicide_analysis.pdf", width = 11.5, height = 2.75)
+plant_ctrl_1yearAlt %>%
+  ggplot(aes(x = Next1SurveyDays)) + 
+  geom_histogram(binwidth = 10) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf) +
+  labs(x = expression(paste("Time between surveys for ", tau, " = 1 [days]", sep = "")),
+       y = "Data points") +
   def_theme
 dev.off()
 
-pdf("output/pop_changes_herbicide_analysis.pdf", width = 11.5, height = 5.75)
-plant_ctrl2 %>%
-  ggplot(aes(log_DiffPropCovered)) +
+pdf("output/survey_times_2years_herbicide_analysis.pdf", width = 11.5, height = 2.5)
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(x = Next2SurveyDays)) + 
+  geom_histogram(binwidth = 10) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf) +
+  labs(x = expression(paste("Time between surveys for ", tau, " = 2 [days]", sep = "")),
+       y = "Data points") +
+  def_theme +
+  theme(strip.text = element_blank())
+dev.off()
+
+pdf("output/treatment_survey_times_herbicide_analysis.pdf", width = 11.5, height = 2.5)
+plant_ctrl_2yearAlt %>%
+  filter(!is.na(TreatmentDate)) %>%
+  ggplot(aes(x = TreatSurveyDays)) + 
+  geom_histogram(binwidth = 10) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf) +
+  labs(x = "Time from survey to treatment [days]",
+       y = "Data points") +
+  def_theme +
+  theme(strip.text = element_blank())
+dev.off()
+
+pdf("output/pop_changes_1year_herbicide_analysis.pdf", width = 11.5, height = 2.75)
+plant_ctrl_1yearAlt %>%
+  ggplot(aes(log_Diff1PropCovered)) +
   geom_histogram() +
   facet_wrap(~ CommonName) +
   annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
   annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
-  labs(x = expression(paste("ln(", N[t+1], "/", N[t], ")", sep = "")),
+  labs(x = expression(paste("Change in population size [ln(", N[t+1], "/", N[t], ")]", sep = "")),
        y = "Data points") +
   def_theme
+dev.off()
+
+pdf("output/pop_changes_2year_herbicide_analysis.pdf", width = 11.5, height = 2.75)
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(log_Diff2PropCovered)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Change in population size [ln(", N[t+2], "/", N[t], ")]", sep = "")),
+       y = "Data points") +
+  def_theme
+dev.off()
+# similar distribution, less data
+
+pdf("output/initial_pop_herbicide_analysis.pdf", width = 11.5, height = 2.5)
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(log_PropCoveredC)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [ln(", N[t], "/A) - ", mu, "]", sep = "")),
+       y = "Data points") +
+  def_theme +
+  theme(strip.text = element_blank())
+dev.off()
+
+pdf("output/treatment_herbicide_analysis.pdf", width = 11.5, height = 2.5)
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(x = TreatedF)) +
+  geom_bar() +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = "Treatment applied in initial year",
+       y = "Data points") +
+  def_theme +
+  theme(strip.text = element_blank())
+dev.off()
+
+pdf("output/future_pop_1year_herbicide_analysis.pdf", width = 11.5, height = 2.75)
+plant_ctrl_1yearAlt %>%
+  ggplot(aes(x = Next1PropCoveredBeta)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Future population size [", N[t+1], "/A]", sep = "")),
+       y = "Data points") +
+  def_theme
+dev.off()
+
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(x = Next2PropCoveredBeta)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Future population size [", N[t+1], "/A]", sep = "")),
+       y = "Data points") +
+  def_theme
+
+pdf("output/initial_pop_beta_herbicide_analysis.pdf", width = 11.5, height = 2.5)
+plant_ctrl_2yearAlt %>%
+  ggplot(aes(PropCoveredBetaC)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A - ", mu, "]", sep = "")),
+       y = "Data points") +
+  def_theme +
+  theme(strip.text = element_blank())
+dev.off()
+
+
+#### divide data ####
+
+# hydrilla 1-year growth
+hyd_dat_1year <- plant_ctrl_1year %>%
+  filter(CommonName == "Hydrilla")
+
+# water hyacinth 1-year growth
+why_dat_1year <- plant_ctrl_1year %>%
+  filter(CommonName == "Water hyacinth")
+
+# water lettuce 1-year growth
+wle_dat_1year <- plant_ctrl_1year %>%
+  filter(CommonName == "Water lettuce")
+
+# hydrilla 2-year growth
+hyd_dat_2year <- plant_ctrl_2year %>%
+  filter(CommonName == "Hydrilla")
+
+# water hyacinth 2-year growth
+why_dat_2year <- plant_ctrl_2year %>%
+  filter(CommonName == "Water hyacinth")
+
+# water lettuce 2-year growth
+wle_dat_2year <- plant_ctrl_2year %>%
+  filter(CommonName == "Water lettuce")
+
+# alt hydrilla 1-year growth
+hyd_dat_1yearAlt <- plant_ctrl_1yearAlt %>%
+  filter(CommonName == "Hydrilla")
+
+# alt water hyacinth 1-year growth
+why_dat_1yearAlt <- plant_ctrl_1yearAlt %>%
+  filter(CommonName == "Water hyacinth")
+
+# alt water lettuce 1-year growth
+wle_dat_1yearAlt <- plant_ctrl_1yearAlt %>%
+  filter(CommonName == "Water lettuce")
+
+# alt hydrilla 2-year growth
+hyd_dat_2yearAlt <- plant_ctrl_2yearAlt %>%
+  filter(CommonName == "Hydrilla")
+
+# alt water hyacinth 2-year growth
+why_dat_2yearAlt <- plant_ctrl_2yearAlt %>%
+  filter(CommonName == "Water hyacinth")
+
+# alt water lettuce 2-year growth
+wle_dat_2yearAlt <- plant_ctrl_2yearAlt %>%
+  filter(CommonName == "Water lettuce")
+
+
+#### fit hydrilla models ####
+
+# 1-year growth
+hyd_mod_1year <- glmmTMB(log_Diff1PropCovered ~ log_PropCoveredC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = hyd_dat_1year)
+summary(hyd_mod_1year)
+
+# 2-year growth
+hyd_mod_2year <- glmmTMB(log_Diff2PropCovered ~ log_PropCoveredC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = hyd_dat_2year)
+summary(hyd_mod_2year)
+
+# alt 1-year growth
+hyd_mod_1yearAlt <- update(hyd_mod_1year, data = hyd_dat_1yearAlt)
+summary(hyd_mod_1yearAlt)
+
+# alt 2-year growth
+hyd_mod_2yearAlt <- update(hyd_mod_2year, data = hyd_dat_2yearAlt)
+summary(hyd_mod_2yearAlt)
+# only model with marginal interaction and all had positive treatment effects
+
+
+#### fit water hyacinth models ####
+
+# 1-year growth
+why_mod_1year <- glmmTMB(log_Diff1PropCovered ~ log_PropCoveredC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = why_dat_1year)
+summary(why_mod_1year)
+
+# 2-year growth
+why_mod_2year <- glmmTMB(log_Diff2PropCovered ~ log_PropCoveredC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = why_dat_2year)
+summary(why_mod_2year)
+
+# alt 1-year growth
+why_mod_1yearAlt <- update(why_mod_1year, data = why_dat_1yearAlt)
+summary(why_mod_1yearAlt)
+
+# alt 2-year growth
+why_mod_2yearAlt <- update(why_mod_2year, data = why_dat_2yearAlt)
+summary(why_mod_2yearAlt)
+
+# no models had sig interactions and all had positive treatment effects
+
+
+#### fit water lettuce models ####
+
+# 1-year growth
+wle_mod_1year <- glmmTMB(log_Diff1PropCovered ~ log_PropCoveredC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = wle_dat_1year)
+summary(wle_mod_1year)
+
+# 2-year growth
+wle_mod_2year <- glmmTMB(log_Diff2PropCovered ~ log_PropCoveredC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = wle_dat_2year)
+summary(wle_mod_2year)
+
+# alt 1-year growth
+wle_mod_1yearAlt <- update(wle_mod_1year, data = wle_dat_1yearAlt)
+summary(wle_mod_1yearAlt)
+
+# alt 2-year growth
+wle_mod_2yearAlt <- update(wle_mod_2year, data = wle_dat_2yearAlt)
+summary(wle_mod_2yearAlt)
+
+# no models had sig interactions and all had positive treatment effects
+
+
+#### visualize 1-year alt models ####
+
+# add predicted values
+plant_ctrl_pred1 <- hyd_dat_1yearAlt %>%
+  mutate(pred = predict(hyd_mod_1yearAlt, newdata = ., re.form = NA),
+         pred_se = predict(hyd_mod_1yearAlt, newdata = ., re.form = NA, se.fit = T)$se.fit) %>%
+  full_join(why_dat_1yearAlt %>%
+              mutate(pred = predict(why_mod_1yearAlt, newdata = ., re.form = NA),
+                     pred_se = predict(why_mod_1yearAlt, newdata = ., re.form = NA, se.fit = T)$se.fit)) %>%
+  full_join(wle_dat_1yearAlt %>%
+              mutate(pred = predict(wle_mod_1yearAlt, newdata = ., re.form = NA),
+                     pred_se = predict(wle_mod_1yearAlt, newdata = ., re.form = NA, se.fit = T)$se.fit))
+
+# figure
+pdf("output/model_fit_1year_herbicide_analysis.pdf", width = 11.5, height = 4)
+ggplot(plant_ctrl_pred1, aes(x = log_PropCoveredC, y = log_Diff1PropCovered)) +
+  geom_point(alpha = 0.2, aes(color = TreatedF)) +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [ln(", N[t], "/A) - ", mu, "]", sep = "")),
+       y = expression(paste("Change in population size [ln(", N[t+1], "/", N[t], ")]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = c(0.97, 0.87))
+dev.off()
+
+pdf("output/model_fit_1year_untransformed_herbicide_analysis.pdf", width = 11.5, height = 4)
+ggplot(plant_ctrl_pred1, aes(x = PropCoveredAdj, y = log_Diff1PropCovered)) +
+  geom_point(alpha = 0.2, aes(color = TreatedF)) +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A]", sep = "")),
+       y = expression(paste("Change in population size [ln(", N[t+1], "/", N[t], ")]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = c(0.97, 0.87))
+dev.off()
+
+
+#### visualize 2-year alt models ####
+
+# add predicted values
+plant_ctrl_pred2 <- hyd_dat_2yearAlt %>%
+  mutate(pred = predict(hyd_mod_2yearAlt, newdata = ., re.form = NA),
+         pred_se = predict(hyd_mod_2yearAlt, newdata = ., re.form = NA, se.fit = T)$se.fit) %>%
+  full_join(why_dat_2yearAlt %>%
+              mutate(pred = predict(why_mod_2yearAlt, newdata = ., re.form = NA),
+                     pred_se = predict(why_mod_2yearAlt, newdata = ., re.form = NA, se.fit = T)$se.fit)) %>%
+  full_join(wle_dat_2yearAlt %>%
+              mutate(pred = predict(wle_mod_2yearAlt, newdata = ., re.form = NA),
+                     pred_se = predict(wle_mod_2yearAlt, newdata = ., re.form = NA, se.fit = T)$se.fit))
+
+# figure
+pdf("output/model_fit_2year_herbicide_analysis.pdf", width = 11.5, height = 3.5)
+ggplot(plant_ctrl_pred2, aes(x = log_PropCoveredC, y = log_Diff2PropCovered)) +
+  geom_point(alpha = 0.2, aes(color = TreatedF)) +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [ln(", N[t], "/A) - ", mu, "]", sep = "")),
+       y = expression(paste("Change in population size [ln(", N[t+2], "/", N[t], ")]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = "none",
+        strip.text = element_blank(),
+        axis.title.y = element_text(size = 14, color="black", hjust = 0.9))
+dev.off()
+  
+pdf("output/model_fit_2year_untransformed_herbicide_analysis.pdf", width = 11.5, height = 3.5)
+ggplot(plant_ctrl_pred2, aes(x = PropCoveredAdj, y = log_Diff2PropCovered)) +
+  geom_point(alpha = 0.2, aes(color = TreatedF)) +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  #geom_hline(yintercept = 0) +
+  facet_wrap(~ CommonName) +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A]", sep = "")),
+       y = expression(paste("Change in population size [ln(", N[t+2], "/", N[t], ")]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = "none",
+        strip.text = element_blank(),
+        axis.title.y = element_text(size = 14, color="black", hjust = 0.9))
+dev.off()
+
+
+#### fit hydrilla beta models ####
+
+# 1-year growth
+hyd_beta_mod_1year <- glmmTMB(Next1PropCoveredBeta ~ PropCoveredBetaC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         family = beta_family(),
+                         data = hyd_dat_1year)
+summary(hyd_beta_mod_1year) # sig negative interaction
+
+# 2-year growth
+hyd_beta_mod_2year <- glmmTMB(Next2PropCoveredBeta ~ PropCoveredBetaC * Treated +
+                           (1|AreaOfInterestID) + (1|SurveyYear), 
+                         data = hyd_dat_2year)
+summary(hyd_beta_mod_2year)
+
+# alt 1-year growth
+hyd_beta_mod_1yearAlt <- update(hyd_beta_mod_1year, data = hyd_dat_1yearAlt)
+summary(hyd_beta_mod_1yearAlt) # sig negative interaction
+
+# alt 2-year growth
+hyd_beta_mod_2yearAlt <- update(hyd_beta_mod_2year, data = hyd_dat_2yearAlt)
+summary(hyd_beta_mod_2yearAlt)
+
+
+#### fit water hyacinth beta models ####
+
+# 1-year growth
+why_beta_mod_1year <- glmmTMB(Next1PropCoveredBeta ~ PropCoveredBetaC * Treated +
+                                (1|AreaOfInterestID) + (1|SurveyYear), 
+                              family = beta_family(),
+                              data = why_dat_1year)
+summary(why_beta_mod_1year) # sig negative interaction
+
+# 2-year growth
+why_beta_mod_2year <- glmmTMB(Next2PropCoveredBeta ~ PropCoveredBetaC * Treated +
+                                (1|AreaOfInterestID) + (1|SurveyYear), 
+                              data = why_dat_2year)
+summary(why_beta_mod_2year)
+
+# alt 1-year growth
+why_beta_mod_1yearAlt <- update(why_beta_mod_1year, data = why_dat_1yearAlt)
+summary(why_beta_mod_1yearAlt) # sig negative interaction
+
+# alt 2-year growth
+why_beta_mod_2yearAlt <- update(why_beta_mod_2year, data = why_dat_2yearAlt)
+summary(why_beta_mod_2yearAlt)
+
+
+#### fit water lettuce beta models ####
+
+# 1-year growth
+wle_beta_mod_1year <- glmmTMB(Next1PropCoveredBeta ~ PropCoveredBetaC * Treated +
+                                (1|AreaOfInterestID) + (1|SurveyYear), 
+                              family = beta_family(),
+                              data = wle_dat_1year)
+summary(wle_beta_mod_1year) # sig positive interaction
+
+# 2-year growth
+wle_beta_mod_2year <- glmmTMB(Next2PropCoveredBeta ~ PropCoveredBetaC * Treated +
+                                (1|AreaOfInterestID) + (1|SurveyYear), 
+                              data = wle_dat_2year)
+summary(wle_beta_mod_2year) # sig positive interaction
+
+# alt 1-year growth
+wle_beta_mod_1yearAlt <- update(wle_beta_mod_1year, data = wle_dat_1yearAlt)
+summary(wle_beta_mod_1yearAlt) # no interaction
+
+# alt 2-year growth
+wle_beta_mod_2yearAlt <- update(wle_beta_mod_2year, data = wle_dat_2yearAlt)
+summary(wle_beta_mod_2yearAlt) # sig negative interaction
+
+
+#### visualize 1-year alt beta models ####
+
+# add predicted values
+plant_ctrl_beta_pred1 <- hyd_dat_1yearAlt %>%
+  mutate(pred = predict(hyd_beta_mod_1yearAlt, newdata = ., re.form = NA, type = "response"),
+         pred_se = predict(hyd_beta_mod_1yearAlt, newdata = ., re.form = NA, type = "response", se.fit = T)$se.fit) %>%
+  full_join(why_dat_1yearAlt %>%
+              mutate(pred = predict(why_beta_mod_1yearAlt, newdata = ., re.form = NA, type = "response"),
+                     pred_se = predict(why_beta_mod_1yearAlt, newdata = ., re.form = NA, type = "response", se.fit = T)$se.fit)) %>%
+  full_join(wle_dat_1yearAlt %>%
+              mutate(pred = predict(wle_beta_mod_1yearAlt, newdata = ., re.form = NA, type = "response"),
+                     pred_se = predict(wle_beta_mod_1yearAlt, newdata = ., re.form = NA, type = "response", se.fit = T)$se.fit))
+
+# figure
+pdf("output/beta_model_fit_1year_herbicide_analysis.pdf", width = 11.5, height = 4)
+ggplot(plant_ctrl_beta_pred1, aes(x = PropCoveredBeta, y = Next1PropCoveredBeta)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = 0.2, aes(color = TreatedF)) +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName, scales = "free") +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A]", sep = "")),
+       y = expression(paste("Future population size [", N[t+1], "/A]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = c(0.45, 0.77))
+dev.off()
+
+pdf("output/beta_model_only_1year_herbicide_analysis.pdf", width = 11.5, height = 3.5)
+ggplot(plant_ctrl_beta_pred1, aes(x = PropCoveredBeta, y = Next1PropCoveredBeta)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName, scales = "free") +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A]", sep = "")),
+       y = expression(paste("Future population size [", N[t+1], "/A]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = c(0.77, 0.77),
+        strip.text = element_blank())
+dev.off()
+
+
+#### visualize 2-year alt beta models ####
+
+# add predicted values
+plant_ctrl_beta_pred2 <- hyd_dat_2yearAlt %>%
+  mutate(pred = predict(hyd_beta_mod_2yearAlt, newdata = ., re.form = NA, type = "response"),
+         pred_se = predict(hyd_beta_mod_2yearAlt, newdata = ., re.form = NA, type = "response", se.fit = T)$se.fit) %>%
+  full_join(why_dat_2yearAlt %>%
+              mutate(pred = predict(why_beta_mod_2yearAlt, newdata = ., re.form = NA, type = "response"),
+                     pred_se = predict(why_beta_mod_2yearAlt, newdata = ., re.form = NA, type = "response", se.fit = T)$se.fit)) %>%
+  full_join(wle_dat_2yearAlt %>%
+              mutate(pred = predict(wle_beta_mod_2yearAlt, newdata = ., re.form = NA, type = "response"),
+                     pred_se = predict(wle_beta_mod_2yearAlt, newdata = ., re.form = NA, type = "response", se.fit = T)$se.fit))
+
+# figure
+pdf("output/beta_model_fit_2year_herbicide_analysis.pdf", width = 11.5, height = 4)
+ggplot(plant_ctrl_beta_pred2, aes(x = PropCoveredBeta, y = Next2PropCoveredBeta)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = 0.2, aes(color = TreatedF)) +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName, scales = "free") +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A]", sep = "")),
+       y = expression(paste("Future population size [", N[t+2], "/A]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = c(0.45, 0.77))
+dev.off()
+
+pdf("output/beta_model_only_2year_herbicide_analysis.pdf", width = 11.5, height = 3.5)
+ggplot(plant_ctrl_beta_pred2, aes(x = PropCoveredBeta, y = Next2PropCoveredBeta)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_ribbon(aes(y = pred, ymin = pred - pred_se, ymax = pred + pred_se, fill = TreatedF), 
+              color = NA, alpha = 0.5) +
+  geom_line(aes(y = pred, color = TreatedF)) +
+  facet_wrap(~ CommonName, scales = "free") +
+  annotate("segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf) +
+  annotate("segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf)  +
+  labs(x = expression(paste("Initial population size [", N[t], "/A]", sep = "")),
+       y = expression(paste("Future population size [", N[t+2], "/A]", sep = ""))) +
+  scale_color_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  scale_fill_manual(values = c("black", "blue"), name = "Treated\nin initial\nyear") +
+  def_theme +
+  theme(legend.position = c(0.43, 0.77),
+        strip.text = element_blank())
 dev.off()
