@@ -142,6 +142,105 @@ plant_fwc2 %>%
 write_csv(plant_fwc2, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_formatted.csv")
 
 
+#### edit native plant data ####
+
+# one origin per species?
+plant_fwc %>%
+  group_by(SpeciesName) %>%
+  summarise(orig = length(unique(Origin))) %>%
+  ungroup() %>%
+  filter(orig != 1)
+# yes
+
+# Eppc and origin
+plant_fwc %>%
+  select(Eppc, Origin) %>%
+  unique()
+
+# first year detected
+nat_first_detect <- plant_fwc %>%
+  filter(Origin == "Native") %>%
+  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
+  arrange(SurveyDate) %>%
+  mutate(FirstDetect = min(SurveyDate)) %>%
+  ungroup() %>%
+  select(AreaOfInterestID, PermanentID, SpeciesName, FirstDetect) %>%
+  unique()
+
+# select native species
+# used clustering algorithm in Open Refin to look for mispelled names (none)
+nat_fwc <- plant_fwc %>%
+  filter(Origin == "Native") %>%
+  select(SpeciesName, Habitat, HabitatShortName) %>%
+  unique() %>% # full species list
+  expand_grid(plant_fwc %>%
+                select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate) %>%
+                unique()) %>% # full survey list (row for every species in every survey)
+  full_join(plant_fwc %>%
+              filter(Origin == "Native") %>%
+              select(SpeciesName, Habitat, HabitatShortName, 
+                     AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, 
+                     IsDetected)) %>% # add detection data (only "Yes")
+  full_join(nat_first_detect) %>% # add first detection date
+  mutate(IsDetected = replace_na(IsDetected, "No"),
+         FirstDetect = replace_na(FirstDetect, as.Date("2021-06-24"))) # use today's date if not detected
+
+# check that FirstDetect is accurate
+nat_fwc %>%
+  filter(SurveyDate < FirstDetect) %>%
+  select(IsDetected) %>%
+  unique()
+# all are not detected
+
+# initial immigration dataset
+nat_init_imm <- nat_fwc %>%
+  filter(SurveyDate <= FirstDetect)
+
+# ext/repeat imm dataset
+nat_post_imm <- nat_fwc %>%
+  filter(SurveyDate >= FirstDetect) %>%
+  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
+  arrange(SurveyDate) %>%
+  mutate(Extinct = case_when(lag(IsDetected) == "Yes" & IsDetected == "Yes" ~ 0,
+                             lag(IsDetected) == "Yes" & IsDetected == "No" ~ 1,
+                             lag(IsDetected) == "No" ~ NA_real_),
+         RepeatImm = case_when(lag(IsDetected) == "No" & IsDetected == "No" ~ 0,
+                               lag(IsDetected) == "No" & IsDetected == "Yes" ~ 1,
+                               lag(IsDetected) == "Yes" ~ NA_real_),
+         Switch = case_when(lag(IsDetected) == "No" & IsDetected == "Yes" ~ 1,
+                            lag(IsDetected) == "Yes" & IsDetected == "No" ~ 1,
+                            SurveyDate == FirstDetect ~ 1, # first detection
+                            TRUE ~ 0),
+         LagSwitch = lag(Switch),
+         LagSwitch = replace_na(LagSwitch, 0),
+         Window = cumsum(LagSwitch)) %>%
+  ungroup() %>%
+  #filter(SurveyDate > FirstDetect) %>% # remove first detection
+  arrange(AreaOfInterestID, SpeciesName, SurveyDate)
+
+# extinction dataset
+nat_ext <- nat_post_imm %>%
+  filter(!is.na(Extinct)) %>%
+  select(-c(Switch, LagSwitch))
+
+# check that it worked
+unique(nat_ext$Window)
+filter(nat_ext, Window %in% c(2, 4)) %>%
+  select(SpeciesName, AreaOfInterestID) %>%
+  unique() %>%
+  inner_join(nat_post_imm) 
+filter(plant_fwc, SpeciesName == "Filamentous algae" & AreaOfInterestID == 218 & SurveyDate == "1998-09-08") %>% data.frame()
+#### start here ####
+# two different lakes with the same AreOfInterestID and Permanent ID???
+
+# repeat imm dataset
+nat_rept_imm <- nat_post_imm %>%
+  filter(!is.na(RepeatImm)) %>%
+  select(-c(Switch, LagSwitch))
+
+# check that it worked (use analogous code to above)
+
+
 #### edit control data ####
 
 # non-herbicide methods (from herbicide_initial_visualizations)

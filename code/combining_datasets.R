@@ -142,10 +142,15 @@ fwc_lakes <- ctrl_old %>%
   full_join(fwc_ID %>%
               select(AreaOfInterest, County, AreaOfInterestID) %>%
               unique() %>%
-              mutate(County = toupper(County))) %>%
-  filter(!(AreaOfInterestID %in% c(714, 45, 872, 219)))
+              mutate(County = toupper(County)) %>%
+              filter(!(AreaOfInterestID %in% c(714, 44, 872, 218)))) %>%
+  filter()
 # the four removed are duplicate AreaOfInterest names with different IDs
 # Alex Dew advised on which should be removed for survey data
+# previous to 6/24/21, I had removed 219 instead of 218 and 45 instead of 44, which was incorrect
+# 218 is another lake with the same name as 219 in a different county
+# 44 is another lake with the same name as 45 in a different county
+# so analyses prior to 6/24/21 combined these two lakes
 
 # duplicate Lake/County combos
 fwc_lakes %>%
