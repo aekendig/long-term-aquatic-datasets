@@ -104,10 +104,6 @@ plant_fwc2 <- plant_fwc %>% # start with all surveys
          MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
                               SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>%
   left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
-  nest(data = c(SurveyDate, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, MonthDay, Days)) %>% # find duplicates within lake, year, and species
-  mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
-  select(-data) %>% # removes 132 rows of data
-  unnest(newdata) %>%
   mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2),
          CommonName = case_when(SpeciesName == "Eichhornia crassipes" ~ "Water hyacinth", 
                                 SpeciesName == "Hydrilla verticillata" ~ "Hydrilla", 
@@ -124,22 +120,28 @@ plant_fwc2 <- plant_fwc %>% # start with all surveys
          SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
                                     SpeciesAcres == 0 ~ 0))
 
+plant_fwc3 <- plant_fwc2 %>%
+  nest(data = c(SurveyDate, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, MonthDay, Days, AreaChangeSD, EstAreaCoveredRaw_ha, Detected, EstAreaCovered_ha, PropCovered, PropCoveredAdj, SpeciesPresent)) %>% # find duplicates within lake, year, and species
+  mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
+  select(-data) %>% # removes 123 rows of data
+  unnest(newdata)
+
 # estimated area covered
-range(filter(plant_fwc2, EstAreaCoveredRaw_ha > 0)$EstAreaCoveredRaw_ha)
+range(filter(plant_fwc3, EstAreaCoveredRaw_ha > 0)$EstAreaCoveredRaw_ha)
 # min value = 2e-8
 
 # estimated hectares for recorded abundance of zero
-max(plant_fwc2$Area_ha) * 1e-3
-min(plant_fwc2$Area_ha) * 1e-3
+max(plant_fwc3$Area_ha) * 1e-3
+min(plant_fwc3$Area_ha) * 1e-3
 
 # duplicates in same year
-plant_fwc2 %>%
+plant_fwc3 %>%
   group_by(AreaOfInterestID, SurveyYear, SpeciesName) %>%
   count() %>%
   filter(n > 1)
 
 # save data
-write_csv(plant_fwc2, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_formatted.csv")
+write_csv(plant_fwc3, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_formatted.csv")
 
 
 #### edit native plant data ####
@@ -168,7 +170,7 @@ nat_first_detect <- plant_fwc %>%
   unique()
 
 # select native species
-# used clustering algorithm in Open Refin to look for mispelled names (none)
+# used clustering algorithm in Open Refine to look for mispelled names (none)
 nat_fwc <- plant_fwc %>%
   filter(Origin == "Native") %>%
   select(SpeciesName, Habitat, HabitatShortName) %>%
@@ -183,7 +185,14 @@ nat_fwc <- plant_fwc %>%
                      IsDetected)) %>% # add detection data (only "Yes")
   full_join(nat_first_detect) %>% # add first detection date
   mutate(IsDetected = replace_na(IsDetected, "No"),
-         FirstDetect = replace_na(FirstDetect, as.Date("2021-06-24"))) # use today's date if not detected
+         FirstDetect = replace_na(FirstDetect, as.Date("2021-06-24")))  # use today's date if not detected
+
+# duplicate surveys in a year
+nat_fwc %>%
+  group_by(AreaOfInterestID, SurveyYear) %>%
+  summarise(surveys = length(unique(SurveyDate))) %>%
+  ungroup() %>%
+  filter(surveys > 1) # 41 lakes have multiple surveys in a year
 
 # check that FirstDetect is accurate
 nat_fwc %>%
@@ -194,7 +203,14 @@ nat_fwc %>%
 
 # initial immigration dataset
 nat_init_imm <- nat_fwc %>%
-  filter(SurveyDate <= FirstDetect)
+  filter(SurveyDate <= FirstDetect) %>%
+  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
+  arrange(SurveyDate) %>%
+  mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate)),
+         FirstSurvey = min(SurveyDate)) %>%
+  ungroup() %>%
+  filter(SurveyDate > FirstSurvey) %>% # remove first survey
+  arrange(AreaOfInterestID, SpeciesName, SurveyDate)
 
 # ext/repeat imm dataset
 nat_post_imm <- nat_fwc %>%
@@ -213,9 +229,10 @@ nat_post_imm <- nat_fwc %>%
                             TRUE ~ 0),
          LagSwitch = lag(Switch),
          LagSwitch = replace_na(LagSwitch, 0),
-         Window = cumsum(LagSwitch)) %>%
+         Window = cumsum(LagSwitch),
+         SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate))) %>%
   ungroup() %>%
-  #filter(SurveyDate > FirstDetect) %>% # remove first detection
+  filter(SurveyDate > FirstDetect) %>% # remove first detection
   arrange(AreaOfInterestID, SpeciesName, SurveyDate)
 
 # extinction dataset
@@ -225,20 +242,14 @@ nat_ext <- nat_post_imm %>%
 
 # check that it worked
 unique(nat_ext$Window)
-filter(nat_ext, Window %in% c(2, 4)) %>%
-  select(SpeciesName, AreaOfInterestID) %>%
-  unique() %>%
-  inner_join(nat_post_imm) 
-filter(plant_fwc, SpeciesName == "Filamentous algae" & AreaOfInterestID == 218 & SurveyDate == "1998-09-08") %>% data.frame()
-#### start here ####
-# two different lakes with the same AreOfInterestID and Permanent ID???
 
 # repeat imm dataset
 nat_rept_imm <- nat_post_imm %>%
   filter(!is.na(RepeatImm)) %>%
   select(-c(Switch, LagSwitch))
 
-# check that it worked (use analogous code to above)
+# check that it worked
+unique(nat_rept_imm$Window)
 
 
 #### edit control data ####
@@ -320,7 +331,7 @@ ctrl_new2 <- ctrl_new %>%
   ungroup() %>%
   select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID, SurveyYear) %>%
   rename(TreatmentDate = BeginDate) %>%
-  left_join(plant_fwc2 %>%
+  left_join(plant_fwc3 %>%
               select(AreaOfInterestID, PermanentID, SurveyDate, SurveyYear) %>%
               unique()) %>%
   mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
@@ -392,7 +403,7 @@ plant_ctrl <- ctrl2 %>%
   mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
          Treated = ifelse(TotalAreaTreated_ha > 0, 1, 0),
          TreatedF = ifelse(Treated == 0, "no", "yes")) %>%
-  left_join(plant_fwc2) %>% # only include years with treatment info
+  left_join(plant_fwc3) %>% # only include years with treatment info
   group_by(SpeciesName) %>%
   mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
   ungroup() %>%
@@ -423,7 +434,7 @@ plant_ctrlAlt <- ctrl2Alt %>%
   mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
          Treated = ifelse(TotalAreaTreated_ha > 0, 1, 0),
          TreatedF = ifelse(Treated == 0, "no", "yes")) %>%
-  left_join(plant_fwc2) %>% # only include years with treatment info
+  left_join(plant_fwc3) %>% # only include years with treatment info
   group_by(SpeciesName) %>%
   mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
   ungroup() %>%
@@ -469,7 +480,7 @@ treat_no_detect %>%
   rename(TreatmentYear = SurveyYear) %>%
   select(SpeciesName, AreaOfInterestID, TreatmentYear) %>%
   unique() %>%
-  inner_join(plant_fwc2 %>%
+  inner_join(plant_fwc3 %>%
                select(AreaOfInterestID, SurveyYear, SpeciesName, SpeciesAcres, Detected)) %>%
   ggplot(aes(x = SurveyYear, y = SpeciesAcres)) +
   geom_line(aes(color = as.factor(AreaOfInterestID)), show.legend = F) +
@@ -527,6 +538,25 @@ write_csv(plant_ctrl_1year, "intermediate-data/FWC_hydrilla_pistia_eichhornia_su
 write_csv(plant_ctrl_1yearAlt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_alt_formatted.csv")
 write_csv(plant_ctrl_2year, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_2year_formatted.csv")
 write_csv(plant_ctrl_2yearAlt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_2year_alt_formatted.csv")
+
+
+#### combine native plant, invasive plant, and ctrl data ####
+
+# edit invasive plant data
+# use estimated maximum cover for that growing season
+inv_fwc <- plant_fwc2 %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID, SurveyDate, SpeciesName, EstAreaCovered_ha) %>%
+  pivot_wider(names_from = SpeciesName,
+              values_from = EstAreaCovered_ha) %>%
+  rename(Hydrilla = "Hydrilla verticillata",
+         Pistia = "Pistia stratiotes",
+         Eichhornia = "Eichhornia crassipes")
+
+#### start here: add control data ####
+# left off thinking about SurveyYear designation in ctrl datasets
+# which dataset should be merged with the native datasets and how?
+# use cumulative herbicide leading up to native plant survey
+# should be able to merge invasive dataset (above) by survey date (or lag survey date? long-term average leading up to native survey?)
 
 
 #### summary stats ####
