@@ -55,7 +55,7 @@ lakeO_beta2 <- coef(summary(lake0_mod))[3, "Estimate"] # days^2
 lakeO_days <- -lakeO_beta1 / (2 * lakeO_beta2)
 
 
-#### edit FWC plant data ####
+#### edit invasive plant data ####
 
 # Perm IDs per AOI
 plant_fwc %>%
@@ -87,7 +87,8 @@ rem_dups_fun <- function(dat) {
   return(dat2)
 }
 
-plant_fwc2 <- plant_fwc %>% # start with all surveys
+# invasive plant dataset
+inv_fwc <- plant_fwc %>% # start with all surveys
   select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate) %>%
   unique() %>% # one row per survey
   expand_grid(tibble(SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>% # one row per species per survey
@@ -99,49 +100,49 @@ plant_fwc2 <- plant_fwc %>% # start with all surveys
          AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
          SurveyMonth = month(SurveyDate),
          SurveyDay = day(SurveyDate),
-         SurveyYear = case_when(SurveyMonth >= 4 ~ year(SurveyDate),
-                                SurveyMonth < 4 ~ year(SurveyDate) - 1), # assume growing season starts in April
+         SurveyYear = year(SurveyDate),
+         GSYear = case_when(SurveyMonth >= 4 ~ year(SurveyDate),
+                            SurveyMonth < 4 ~ year(SurveyDate) - 1), # assume growing season starts in April
          MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
-                              SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>%
+                              SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>% # this is for joining dayDat
   left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
-  mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2),
+  mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2), # calculate the number of sd's to change to get est. max abundance
          CommonName = case_when(SpeciesName == "Eichhornia crassipes" ~ "Water hyacinth", 
                                 SpeciesName == "Hydrilla verticillata" ~ "Hydrilla", 
-                                SpeciesName == "Pistia stratiotes" ~ "Water lettuce")) %>% # calculate the number of sd's to change to get est. max abundance
+                                SpeciesName == "Pistia stratiotes" ~ "Water lettuce")) %>% 
   group_by(AreaOfInterestID, SpeciesName) %>%
-  mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha), # calculate est. max abundance, NA if only one value is available
-         Detected = as.numeric(sum(SpeciesAcres) > 0)) %>%
+  mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha)) %>% # calculate est. max abundance, NA if only one value is available
+  ungroup()
+
+# remove duplicates
+# summarize by waterbody
+inv_fwc2 <- inv_fwc %>%
+  nest(data = c(SurveyDate, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, SurveyYear, MonthDay, Days, AreaChangeSD, EstAreaCoveredRaw_ha)) %>% # find duplicates within area of interest, growing season year, and species
+  mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
+  select(-data) %>% # removes 123 rows of data
+  unnest(newdata) %>%
+  group_by(PermanentID, Area_ha, GSYear, SpeciesName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
+  summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
+            SpeciesAcres = sum(SpeciesAcres),
+            AreaCovered_ha = sum(AreaCovered_ha),
+            EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
   ungroup() %>%
   mutate(EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
                                        TRUE ~ EstAreaCoveredRaw_ha),
          PropCovered = EstAreaCovered_ha / Area_ha,
          PropCoveredAdj = case_when(PropCovered < 1e-3 ~ 1e-3, # avoid super small values that skew ratios
-                                    TRUE ~ PropCovered),
+                           TRUE ~ PropCovered),
          SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
                                     SpeciesAcres == 0 ~ 0))
 
-plant_fwc3 <- plant_fwc2 %>%
-  nest(data = c(SurveyDate, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, MonthDay, Days, AreaChangeSD, EstAreaCoveredRaw_ha, Detected, EstAreaCovered_ha, PropCovered, PropCoveredAdj, SpeciesPresent)) %>% # find duplicates within lake, year, and species
-  mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
-  select(-data) %>% # removes 123 rows of data
-  unnest(newdata)
-
-# estimated area covered
-range(filter(plant_fwc3, EstAreaCoveredRaw_ha > 0)$EstAreaCoveredRaw_ha)
-# min value = 2e-8
-
-# estimated hectares for recorded abundance of zero
-max(plant_fwc3$Area_ha) * 1e-3
-min(plant_fwc3$Area_ha) * 1e-3
-
-# duplicates in same year
-plant_fwc3 %>%
-  group_by(AreaOfInterestID, SurveyYear, SpeciesName) %>%
+# check that there are no duplicates in same year
+inv_fwc2 %>%
+  group_by(PermanentID, GSYear, SpeciesName) %>%
   count() %>%
   filter(n > 1)
 
 # save data
-write_csv(plant_fwc3, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_formatted.csv")
+write_csv(inv_fwc2, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_formatted.csv")
 
 
 #### edit native plant data ####
@@ -162,11 +163,11 @@ plant_fwc %>%
 # first year detected
 nat_first_detect <- plant_fwc %>%
   filter(Origin == "Native") %>%
-  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
+  group_by(AreaOfInterest, AreaOfInterestID, PermanentID, SpeciesName) %>%
   arrange(SurveyDate) %>%
   mutate(FirstDetect = min(SurveyDate)) %>%
   ungroup() %>%
-  select(AreaOfInterestID, PermanentID, SpeciesName, FirstDetect) %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID, SpeciesName, FirstDetect) %>%
   unique()
 
 # select native species
@@ -185,14 +186,21 @@ nat_fwc <- plant_fwc %>%
                      IsDetected)) %>% # add detection data (only "Yes")
   full_join(nat_first_detect) %>% # add first detection date
   mutate(IsDetected = replace_na(IsDetected, "No"),
-         FirstDetect = replace_na(FirstDetect, as.Date("2021-06-24")))  # use today's date if not detected
+         Detected = case_when(IsDetected == "Yes" ~ 1,
+                              IsDetected == "No" ~ 0),
+         FirstDetect = replace_na(FirstDetect, as.Date("2021-06-24")),  # use today's date if not detected
+         SurveyMonth = month(SurveyDate),
+         GSYear = case_when(SurveyMonth >= 4 ~ year(SurveyDate),
+                            SurveyMonth < 4 ~ year(SurveyDate) - 1),
+         Area_ha = ShapeArea * 100) # convert lake area from km-squared to hectares
 
 # duplicate surveys in a year
 nat_fwc %>%
-  group_by(AreaOfInterestID, SurveyYear) %>%
+  group_by(AreaOfInterestID, GSYear) %>%
   summarise(surveys = length(unique(SurveyDate))) %>%
   ungroup() %>%
-  filter(surveys > 1) # 41 lakes have multiple surveys in a year
+  filter(surveys > 1) 
+# 41 AOIs have multiple surveys in a year
 
 # check that FirstDetect is accurate
 nat_fwc %>%
@@ -201,55 +209,155 @@ nat_fwc %>%
   unique()
 # all are not detected
 
+# variable mean/sd for centering/scaling
+nat_interval <- nat_fwc %>%
+  group_by(PermanentID, GSYear) %>% # remove redundancy from each species in survey
+  summarise(SurveyDate = max(SurveyDate)) %>%
+  ungroup() %>%
+  group_by(PermanentID) %>%
+  arrange(SurveyDate) %>%
+  mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate))) %>%
+  ungroup() %>%
+  summarise(MeanInterval = mean(SurveyInterval, na.rm = T)) %>%
+  pull(MeanInterval)
+
+nat_area <- nat_fwc %>%
+  select(PermanentID, Area_ha) %>%
+  unique() %>% # remove redundancy from each survey and species in each lake
+  summarise(MeanArea = mean(Area_ha),
+            SDArea = sd(Area_ha))
+
+# invasive plant function - EDIT TO INCLUDE HERBICIDES
+avg_inv_fun <- function(FirstGS, GSYear, PermanentID){
+  
+  # parameters
+  window_start <- FirstGS
+  window_end <- GSYear
+  perm_ID <- PermanentID
+  
+  # average invasive plant cover
+  inv_dat <- inv_fwc2 %>%
+    filter(GSYear <= window_end & GSYear >= window_start & PermanentID == perm_ID) %>%
+    mutate(GSYear = window_end) %>%
+    group_by(GSYear, PermanentID, CommonName) %>% # one value for each invasive species
+    summarise(AvgPropCovered = mean(PropCovered)) %>%
+    ungroup() %>%
+    pivot_wider(names_from = CommonName,
+                values_from = AvgPropCovered) %>%
+    rename(WaterLettuce = "Water lettuce",
+           WaterHyacinth = "Water hyacinth")
+  
+  # output
+  return(inv_dat)
+}
+
 # initial immigration dataset
 nat_init_imm <- nat_fwc %>%
-  filter(SurveyDate <= FirstDetect) %>%
-  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
-  arrange(SurveyDate) %>%
-  mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate)),
-         FirstSurvey = min(SurveyDate)) %>%
+  group_by(PermanentID, SpeciesName) %>%
+  mutate(FirstDetect = min(FirstDetect)) %>% # earliest detection in lake (some lakes have multiple AOIs)
   ungroup() %>%
-  filter(SurveyDate > FirstSurvey) %>% # remove first survey
-  arrange(AreaOfInterestID, SpeciesName, SurveyDate)
+  filter(SurveyDate <= FirstDetect) %>% # remove surveys after first detection
+  group_by(PermanentID, Area_ha, GSYear, SpeciesName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
+  summarise(Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
+            SurveyDate = max(SurveyDate)) %>% # last survey each growing season
+  ungroup() %>%
+  group_by(PermanentID, SpeciesName) %>%
+  arrange(SurveyDate) %>%
+  mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate)), # days between surveys
+         FirstGS = min(GSYear)) %>%
+  ungroup() %>%
+  filter(GSYear > FirstGS) # remove first year (no interval)
+
+# invasive plants for initial immigration dataset
+nat_init_imm2 <- nat_init_imm %>%
+  select(FirstGS, GSYear, PermanentID) %>%
+  unique() %>% # remove repeat row for each species
+  pmap(avg_inv_fun) %>%
+  bind_rows() %>%
+  right_join(nat_init_imm) %>%
+  mutate(SurveyIntervalC = SurveyInterval - nat_interval, # center/scale variables
+         Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea)
 
 # ext/repeat imm dataset
 nat_post_imm <- nat_fwc %>%
-  filter(SurveyDate >= FirstDetect) %>%
-  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
-  arrange(SurveyDate) %>%
-  mutate(Extinct = case_when(lag(IsDetected) == "Yes" & IsDetected == "Yes" ~ 0,
-                             lag(IsDetected) == "Yes" & IsDetected == "No" ~ 1,
-                             lag(IsDetected) == "No" ~ NA_real_),
-         RepeatImm = case_when(lag(IsDetected) == "No" & IsDetected == "No" ~ 0,
-                               lag(IsDetected) == "No" & IsDetected == "Yes" ~ 1,
-                               lag(IsDetected) == "Yes" ~ NA_real_),
-         Switch = case_when(lag(IsDetected) == "No" & IsDetected == "Yes" ~ 1,
-                            lag(IsDetected) == "Yes" & IsDetected == "No" ~ 1,
-                            SurveyDate == FirstDetect ~ 1, # first detection
+  group_by(PermanentID, SpeciesName) %>%
+  mutate(FirstDetect = min(FirstDetect)) %>% # earliest detection in lake (some lakes have multiple AOIs)
+  ungroup() %>%
+  filter(SurveyDate >= FirstDetect) %>% # remove surveys before first detection
+  group_by(PermanentID, Area_ha, GSYear, SpeciesName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
+  summarise(Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
+            SurveyDate = max(SurveyDate)) %>% # last survey each growing season
+  ungroup() %>%
+  group_by(PermanentID, SpeciesName) %>%
+  arrange(GSYear) %>%
+  mutate(FirstGS = min(GSYear),
+         Extinct = case_when(lag(Detected) == 1 & Detected == 1 ~ 0,
+                             lag(Detected) == 1 & Detected == 0 ~ 1,
+                             lag(Detected) == 0 ~ NA_real_,
+                             is.na(lag(Detected)) ~ NA_real_),
+         RepeatImm = case_when(lag(Detected) == 0 & Detected == 0 ~ 0,
+                               lag(Detected) == 0 & Detected == 1 ~ 1,
+                               lag(Detected) == 1 ~ NA_real_,
+                               is.na(lag(Detected)) ~ NA_real_),
+         Switch = case_when(lag(Detected) == 0 & Detected == 1 ~ 1,
+                            lag(Detected) == 1 & Detected == 0 ~ 1,
+                            GSYear == FirstGS ~ 1, # first detection
                             TRUE ~ 0),
          LagSwitch = lag(Switch),
          LagSwitch = replace_na(LagSwitch, 0),
          Window = cumsum(LagSwitch),
          SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate))) %>%
-  ungroup() %>%
-  filter(SurveyDate > FirstDetect) %>% # remove first detection
-  arrange(AreaOfInterestID, SpeciesName, SurveyDate)
+  ungroup()
 
 # extinction dataset
 nat_ext <- nat_post_imm %>%
   filter(!is.na(Extinct)) %>%
-  select(-c(Switch, LagSwitch))
+  select(-c(Switch, LagSwitch)) %>%
+  group_by(PermanentID, SpeciesName, Window) %>%
+  mutate(FirstGS = min(GSYear)) %>% # window start (overwrites overall FirstGS)
+  ungroup()
 
 # check that it worked
 unique(nat_ext$Window)
 
+# invasive plants for extinction dataset
+nat_ext2 <- nat_ext %>%
+  select(FirstGS, GSYear, PermanentID) %>%
+  unique() %>% # remove repeat row for each species
+  pmap(avg_inv_fun) %>%
+  bind_rows() %>%
+  right_join(nat_ext) %>%
+  mutate(SurveyIntervalC = SurveyInterval - nat_interval, # center/scale variables
+         Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea)
+
 # repeat imm dataset
 nat_rept_imm <- nat_post_imm %>%
   filter(!is.na(RepeatImm)) %>%
-  select(-c(Switch, LagSwitch))
+  select(-c(Switch, LagSwitch)) %>%
+  group_by(PermanentID, SpeciesName, Window) %>%
+  mutate(FirstGS = min(GSYear)) %>% # window start (overwrites overall FirstGS)
+  ungroup()
 
 # check that it worked
 unique(nat_rept_imm$Window)
+
+# invasive plants for extinction dataset
+nat_rept_imm2 <- nat_rept_imm %>%
+  select(FirstGS, GSYear, PermanentID) %>%
+  unique() %>% # remove repeat row for each species
+  pmap(avg_inv_fun) %>%
+  bind_rows() %>%
+  right_join(nat_rept_imm) %>%
+  mutate(SurveyIntervalC = SurveyInterval - nat_interval, # center/scale variables
+         Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea)
+
+
+#### start here ####
+
+# move editing above lower in script
+# add herbicides to the native plant datasets through the avg_inv_fun
+# maybe use joined invasive plant and herbicide datasets
+# note that plant_fwc3 was changed to inv_fwc2
 
 
 #### edit control data ####

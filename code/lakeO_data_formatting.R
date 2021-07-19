@@ -52,6 +52,9 @@ totDat <- lakeo2 %>%
          Days = Days / 364,
          AreaCovered_s = (AreaCovered_ha - mean(AreaCovered_ha)) / sd(AreaCovered_ha))
 
+# data attributes
+range(totDat$Year)
+
 
 #### figure ####
 
