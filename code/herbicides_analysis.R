@@ -32,7 +32,7 @@ def_theme <- theme_bw() +
         strip.text = element_text(size = 14, color="black"),
         strip.background = element_blank())
 
-# function to transform data to account for 0's and 1's
+# functions to transform data to account for 0's and 1's
 transform01 <- function(x) {
   n <- sum(!is.na(x))
   (x * (n - 1) + 0.5) / n
@@ -43,6 +43,78 @@ backtransform01 <- function(x) {
   (x * n - 0.5) / (n - 1)
 }  
 
+# function to remove duplicates from invasive plant data
+rem_dups_fun <- function(dat) {
+  
+  if (nrow(dat) == 1){
+    dat2 <- dat
+  } else if (var(dat$AreaCovered_ha) > 0){
+    dat2 <- dat %>%
+      filter(AreaCovered_ha == max(AreaCovered_ha)) # choose survey with maximum area
+  } else if (var(dat$AreaCovered_ha) == 0){
+    dat2 <- dat %>%
+      mutate(DaysDiff = abs(lakeO_days - Days)) %>%
+      filter(DaysDiff == min(DaysDiff)) %>% # choose survey closes to max. abundance time
+      select(-DaysDiff)
+  }
+  
+  return(dat2)
+}
+
+# function to add invasive plants and herbicides to native plant data
+inv_ctrl_fun <- function(FirstGS, GSYear, PermanentID){
+  
+  # parameters
+  window_start <- FirstGS
+  window_end <- GSYear
+  perm_ID <- PermanentID
+  
+  # average invasive plant cover
+  inv_dat <- inv_fwc2 %>%
+    filter(GSYear <= window_end & GSYear >= window_start & PermanentID == perm_ID) %>%
+    mutate(GSYear = window_end) %>%
+    group_by(GSYear, PermanentID, CommonName) %>% # one value for each invasive species
+    summarise(AvgPropCovered = mean(PropCovered)) %>%
+    ungroup() %>%
+    pivot_wider(names_from = CommonName,
+                values_from = AvgPropCovered) %>%
+    rename(WaterLettuce = "Water lettuce",
+           WaterHyacinth = "Water hyacinth")
+  
+  # output
+  return(inv_dat)
+}
+
+# function for cumulative herbicide
+ctrl_lag_fun <- function(GSYear, Lag, DSet){
+  
+  # parameters
+  ModYear <- GSYear
+  
+  # filter dataset
+  if(DSet == "inv"){
+    subdat <- ctrl_inv %>%
+      filter(GSYear <= ModYear & GSYear >= (ModYear - Lag))
+  }
+  
+  # summarize
+  outdat <- subdat %>%
+    group_by(PermanentID, Area_ha, Species, GSYear) %>% # annual summary
+    summarise(AreaTreated_ha = sum(AreaTreated_ha), # add area treated for all treatments in a year
+              AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make full area if it exceeds it
+                                         TRUE ~ AreaTreated_ha),
+              Treatments = length(unique(TreatmentID))) %>% # treatments in a year
+    group_by(PermanentID, Species) %>% # summarize over lag
+    summarise(PropTreated = mean(AreaTreated_ha/Area_ha)/(Lag + 1), # average proportion treated per year 
+              Treatments = sum(Treatments),
+              Treated = as.numeric(Treatments > 0)) %>%
+    ungroup() %>%
+    mutate(GSYear = ModYear,
+           Lag = Lag)
+  
+  # return
+  return(outdat)
+}
 
 
 #### lake O parameters ####
@@ -68,24 +140,6 @@ plant_fwc %>%
 plant_fwc %>%
   filter(SpeciesAcres > 0) %>%
   summarise(min = min(SpeciesAcres)) # 0.01
-
-# function to remove duplicates
-rem_dups_fun <- function(dat) {
-  
-  if (nrow(dat) == 1){
-    dat2 <- dat
-  } else if (var(dat$AreaCovered_ha) > 0){
-    dat2 <- dat %>%
-      filter(AreaCovered_ha == max(AreaCovered_ha)) # choose survey with maximum area
-  } else if (var(dat$AreaCovered_ha) == 0){
-    dat2 <- dat %>%
-      mutate(DaysDiff = abs(lakeO_days - Days)) %>%
-      filter(DaysDiff == min(DaysDiff)) %>% # choose survey closes to max. abundance time
-      select(-DaysDiff)
-  }
-  
-  return(dat2)
-}
 
 # invasive plant dataset
 inv_fwc <- plant_fwc %>% # start with all surveys
@@ -123,6 +177,7 @@ inv_fwc2 <- inv_fwc %>%
   unnest(newdata) %>%
   group_by(PermanentID, Area_ha, GSYear, SpeciesName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
+            SurveyDate = max(SurveyDate),
             SpeciesAcres = sum(SpeciesAcres),
             AreaCovered_ha = sum(AreaCovered_ha),
             EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
@@ -133,7 +188,16 @@ inv_fwc2 <- inv_fwc %>%
          PropCoveredAdj = case_when(PropCovered < 1e-3 ~ 1e-3, # avoid super small values that skew ratios
                            TRUE ~ PropCovered),
          SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
-                                    SpeciesAcres == 0 ~ 0))
+                                    SpeciesAcres == 0 ~ 0)) %>%
+  full_join(inv_fwc %>% # add row for every year for each site/species combo
+              select(PermanentID, SpeciesName) %>%
+              unique() %>%
+              expand_grid(GSYear = min(inv_fwc$GSYear):max(inv_fwc$GSYear))) %>%
+  group_by(PermanentID, SpeciesName) %>%
+  arrange(GSYear) %>% 
+  mutate(PrevPropCovered = lag(PropCovered)) %>% # previous year's PropCovered
+  ungroup() %>%
+  filter(!is.na(PropCovered)) # remove rows with missing surveys
 
 # check that there are no duplicates in same year
 inv_fwc2 %>%
@@ -143,6 +207,180 @@ inv_fwc2 %>%
 
 # save data
 write_csv(inv_fwc2, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_formatted.csv")
+
+
+#### edit control data ####
+
+# non-herbicide methods (from herbicide_initial_visualizations)
+non_herb <- c("Mechanical Harvester", 
+              "Snagging (tree removal)", 
+              "Aquatic Dye (for shading)", 
+              "Grass Carp", "Hand Removal", 
+              "Mechanical (Other)", 
+              "Mechanical Shredder", 
+              "Prescribed Fire")
+
+# duplicates per year/date?
+ctrl_old %>%
+  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & TotalAcres > 0) %>%
+  group_by(AreaOfInterestID, Year, Species) %>%
+  summarise(apps = n(),
+            acres = paste(TotalAcres, collapse = ", ")) %>%
+  filter(apps > 1)
+# yes, 106
+# different acres in same year, probably different events
+
+ctrl_new %>%
+  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & 
+           TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
+  group_by(AreaOfInterestID, BeginDate, Species) %>%
+  summarise(apps = n(),
+            acres = paste(TotalAcres, collapse = ", "),
+            method = paste(ControlMethod, collapse = ", "),
+            id = paste(TreatmentID, collapse = ", ")) %>%
+  filter(apps > 1)
+# yes, 5866
+# for treatments involving more than one herbicide, separate lines for each herbicide type, but they share a treatment ID and acres
+ctrl_new %>%
+  group_by(TreatmentID) %>%
+  summarise(acres = length(unique(TotalAcres)),
+            species = length(unique(Species)),
+            dates = length(unique(BeginDate))) %>%
+  filter(acres > 1 | species > 1 | dates > 1)
+# each treatment ID is a unique application for each species, area, and date
+sum(is.na(ctrl_new$TreatmentID))
+
+# overlap in datasets
+ctrl_old %>%
+  select(AreaOfInterestID, Year) %>%
+  unique() %>%
+  inner_join(ctrl_new %>%
+               select(AreaOfInterestID, Year) %>%
+               unique())
+# 163 lakes
+# potentially different events (some have different acres)
+
+# old herbicide data
+ctrl_old2 <- ctrl_old %>%
+  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & TotalAcres > 0) %>%
+  mutate(AreaTreated_ha = TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100,
+         TreatmentMethod = "unknown",
+         TreatmentID = paste("old", Year, substr(Species, 1, 1), TotalAcres, sep = "_"),
+         TreatmentYear = Year,
+         CtrlSet = "old") %>%
+  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentID, CtrlSet)
+
+# new herbicide data
+ctrl_new2 <- ctrl_new %>%
+  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & 
+           TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
+  group_by(AreaOfInterestID, PermanentID, Species, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%  # captures area treated for an event without duplication due to multiple herbicides
+  mutate(AreaTreated_ha = TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100,
+         TreatmentMethod = paste(ControlMethod, collapse = ", "),
+         TreatmentYear = year(BeginDate),
+         TreatmentMonth = month(BeginDate),
+         TreatmentID = as.character(TreatmentID),
+         CtrlSet = "new") %>%
+  ungroup() %>%
+  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID, CtrlSet) %>%
+  rename(TreatmentDate = BeginDate)
+
+# average treatment month
+ctrl_new2 %>%
+  group_by(Species) %>%
+  summarise(month = mean(TreatmentMonth))
+# 7 for both
+
+# assign old ctrl treatments to average date
+# combine herbicide data
+ctrl <- ctrl_old2 %>%
+  mutate(TreatmentDate = as.Date(paste0(TreatmentYear, "-07-01")),
+         TreatmentMonth = 7) %>%
+  full_join(ctrl_new2) %>%
+  mutate(GSYear = case_when(TreatmentMonth >= 4 ~ TreatmentYear,
+                            TreatmentMonth < 4 ~ TreatmentYear - 1)) # assume growing season starts in April
+
+# save data
+write_csv(ctrl, "intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_formatted.csv")
+
+
+#### combine invasive plant and ctrl data ####
+
+# modify control data to join invasion data
+# if plant survey occurred before treatment, move treatment to following year
+ctrl_inv <- ctrl %>%
+  left_join(inv_fwc2 %>%
+              select(PermanentID, SurveyDate, GSYear) %>% 
+              unique()) %>% # add survey dates for each lake and year
+  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
+         GSYear = case_when(SurveyTreatDays >= 14 | is.na(SurveyDate) ~ GSYear, # survey after treatment/no survey -> keep year
+                            SurveyTreatDays < 14 ~ GSYear + 1)) # survey before or very soon after treatment -> move treatment to next year
+
+# treatments by year and lag
+ctrl_inv2 <- ctrl_inv %>%
+  select(GSYear) %>%
+  unique() %>%
+  expand_grid(tibble(Lag = 0:5)) %>% # remove repeat row for each species
+  mutate(DSet = "inv") %>%
+  pmap(ctrl_lag_fun) %>% # summarizes ctrl_inv for each GS, Lag, PermID, and Sp
+  bind_rows() %>%
+  right_join(ctrl_old2 %>% # join with full possible dataset, removing rows that are not supported
+              select(PermanentID) %>%
+              unique() %>%
+              expand_grid(GSYear = min(ctrl_old2$TreatmentYear):max(ctrl_old2$TreatmentYear)) %>%
+              full_join(ctrl_inv %>% # lakes with treatments relevant to surveys outside of treatment years
+                          filter((CtrlSet == "old" & GSYear > max(ctrl_old2$TreatmentYear)) |
+                                   (CtrlSet == "new" & GSYear > max(ctrl_new2$TreatmentYear))) %>%
+                          select(PermanentID, GSYear) %>% 
+                          unique()) %>%
+              full_join(ctrl_new2 %>%
+                          select(PermanentID) %>%
+                          unique() %>%
+                          expand_grid(GSYear = min(ctrl_new2$TreatmentYear):max(ctrl_new2$TreatmentYear))) %>%
+              expand_grid(tibble(Lag = 0:5)) %>%
+              expand_grid(Species = c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)"))) %>%
+  pivot_wider(names_from = Lag,
+              values_from = c(PropTreated, Treatments, Treated),
+              names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
+  mutate(across(starts_with("Lag"), ~ replace_na(.x, 0))) %>% # replace NA with 0
+  full_join(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants - one row for each species
+                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")))
+
+# all species in each ID-year?
+ctrl_inv2 %>%
+  group_by(PermanentID, GSYear) %>%
+  summarise(sp = length(unique(SpeciesName))) %>%
+  ungroup() %>%
+  filter(sp < 3)
+
+# combine treatment and invasion datasets
+inv_ctrl <- inv_fwc2 %>%
+  inner_join(ctrl_inv2) %>% # only include data from both datasets
+  group_by(SpeciesName) %>%
+  mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
+  ungroup() %>%
+  filter(!is.na(PrevPropCovered)) #  missing initial pop abundance
+
+# check for missing data
+inv_fwc2 %>%
+  select(PermanentID, SpeciesName, GSYear) %>%
+  unique() %>%
+  filter(GSYear >= 1998) %>%
+  anti_join(inv_ctrl %>%
+              select(PermanentID, SpeciesName, GSYear) %>%
+              unique()) %>%
+  select(PermanentID) %>%
+  unique() %>% # 213 total
+  inner_join(ctrl %>%
+              select(PermanentID) %>%
+              unique()) # 143
+# treatment data missing for some years for 143 lakes
+# 70 lakes not in ctrl dataset
+
+# save data
+write_csv(inv_ctrl, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_formatted.csv")
 
 
 #### edit native plant data ####
@@ -227,30 +465,6 @@ nat_area <- nat_fwc %>%
   summarise(MeanArea = mean(Area_ha),
             SDArea = sd(Area_ha))
 
-# invasive plant function - EDIT TO INCLUDE HERBICIDES
-avg_inv_fun <- function(FirstGS, GSYear, PermanentID){
-  
-  # parameters
-  window_start <- FirstGS
-  window_end <- GSYear
-  perm_ID <- PermanentID
-  
-  # average invasive plant cover
-  inv_dat <- inv_fwc2 %>%
-    filter(GSYear <= window_end & GSYear >= window_start & PermanentID == perm_ID) %>%
-    mutate(GSYear = window_end) %>%
-    group_by(GSYear, PermanentID, CommonName) %>% # one value for each invasive species
-    summarise(AvgPropCovered = mean(PropCovered)) %>%
-    ungroup() %>%
-    pivot_wider(names_from = CommonName,
-                values_from = AvgPropCovered) %>%
-    rename(WaterLettuce = "Water lettuce",
-           WaterHyacinth = "Water hyacinth")
-  
-  # output
-  return(inv_dat)
-}
-
 # initial immigration dataset
 nat_init_imm <- nat_fwc %>%
   group_by(PermanentID, SpeciesName) %>%
@@ -258,7 +472,8 @@ nat_init_imm <- nat_fwc %>%
   ungroup() %>%
   filter(SurveyDate <= FirstDetect) %>% # remove surveys after first detection
   group_by(PermanentID, Area_ha, GSYear, SpeciesName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
-  summarise(Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
+  summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
+            Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
             SurveyDate = max(SurveyDate)) %>% # last survey each growing season
   ungroup() %>%
   group_by(PermanentID, SpeciesName) %>%
@@ -285,7 +500,8 @@ nat_post_imm <- nat_fwc %>%
   ungroup() %>%
   filter(SurveyDate >= FirstDetect) %>% # remove surveys before first detection
   group_by(PermanentID, Area_ha, GSYear, SpeciesName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
-  summarise(Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
+  summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
+            Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
             SurveyDate = max(SurveyDate)) %>% # last survey each growing season
   ungroup() %>%
   group_by(PermanentID, SpeciesName) %>%
@@ -350,302 +566,6 @@ nat_rept_imm2 <- nat_rept_imm %>%
   right_join(nat_rept_imm) %>%
   mutate(SurveyIntervalC = SurveyInterval - nat_interval, # center/scale variables
          Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea)
-
-
-#### start here ####
-
-# move editing above lower in script
-# add herbicides to the native plant datasets through the avg_inv_fun
-# maybe use joined invasive plant and herbicide datasets
-# note that plant_fwc3 was changed to inv_fwc2
-
-
-#### edit control data ####
-
-# non-herbicide methods (from herbicide_initial_visualizations)
-non_herb <- c("Mechanical Harvester", 
-              "Snagging (tree removal)", 
-              "Aquatic Dye (for shading)", 
-              "Grass Carp", "Hand Removal", 
-              "Mechanical (Other)", 
-              "Mechanical Shredder", 
-              "Prescribed Fire")
-
-# duplicates per year/date?
-ctrl_old %>%
-  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & TotalAcres > 0) %>%
-  group_by(AreaOfInterestID, Year, Species) %>%
-  summarise(apps = n(),
-            acres = paste(TotalAcres, collapse = ", ")) %>%
-  filter(apps > 1)
-# yes, 106
-# different acres in same year, probably different events
-
-ctrl_new %>%
-  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & 
-           TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
-  group_by(AreaOfInterestID, BeginDate, Species) %>%
-  summarise(apps = n(),
-            acres = paste(TotalAcres, collapse = ", "),
-            method = paste(ControlMethod, collapse = ", "),
-            id = paste(TreatmentID, collapse = ", ")) %>%
-  filter(apps > 1)
-# yes, 5866
-# for treatments involving more than one herbicide, separate lines for each herbicide type, but they share a treatment ID and acres
-ctrl_new %>%
-  group_by(TreatmentID) %>%
-  summarise(acres = length(unique(TotalAcres)),
-            species = length(unique(Species)),
-            dates = length(unique(BeginDate))) %>%
-  filter(acres > 1 | species > 1 | dates > 1)
-# each treatment ID is a unique application for each species, area, and date
-sum(is.na(ctrl_new$TreatmentID))
-
-# overlap in datasets
-ctrl_old %>%
-  select(AreaOfInterestID, Year) %>%
-  unique() %>%
-  inner_join(ctrl_new %>%
-               select(AreaOfInterestID, Year) %>%
-               unique())
-# 163 lakes
-# potentially different events (some have different acres)
-
-# old herbicide data
-ctrl_old2 <- ctrl_old %>%
-  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & TotalAcres > 0) %>%
-  mutate(AreaTreated_ha= TotalAcres * 0.405,
-         Area_ha = ShapeArea * 100,
-         TreatmentMethod = "unknown",
-         TreatmentID = paste("old", Year, substr(Species, 1, 1), TotalAcres, sep = "_"),
-         SurveyYear = Year, # assumes treatment occurred after survey
-         SurveyYearAlt = Year - 1) %>% # assumes treatment occurred before survey
-  select(AreaOfInterestID, PermanentID, Year, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentID, SurveyYear, SurveyYearAlt) %>%
-  rename(TreatmentYear = Year)
-
-# new herbicide data
-ctrl_new2 <- ctrl_new %>%
-  filter(Species %in% c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)") & 
-           TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
-  group_by(AreaOfInterestID, PermanentID, Species, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%  # captures area treated for an event without duplication due to multiple herbicides
-  mutate(AreaTreated_ha = TotalAcres * 0.405,
-         Area_ha = ShapeArea * 100,
-         TreatmentMethod = paste(ControlMethod, collapse = ", "),
-         TreatmentYear = year(BeginDate),
-         TreatmentMonth = month(BeginDate),
-         TreatmentID = as.character(TreatmentID),
-         SurveyYear = case_when(TreatmentMonth >= 4 ~ TreatmentYear,
-                                TreatmentMonth < 4 ~ TreatmentYear - 1)) %>%
-  ungroup() %>%
-  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID, SurveyYear) %>%
-  rename(TreatmentDate = BeginDate) %>%
-  left_join(plant_fwc3 %>%
-              select(AreaOfInterestID, PermanentID, SurveyDate, SurveyYear) %>%
-              unique()) %>%
-  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
-         SurveyYearTreat = case_when(SurveyTreatDays >= 14  ~ SurveyYear - 1,
-                                     SurveyTreatDays < 14 ~ SurveyYear),
-         SurveyYear = case_when(!is.na(SurveyYearTreat) ~ SurveyYearTreat,
-                                is.na(SurveyYearTreat) ~ SurveyYear), # for years without surveys
-         SurveyYearAlt = SurveyYear) %>%
-  select(-c(SurveyYearTreat, SurveyDate))
-
-# combine herbicide data
-ctrl <- ctrl_old2 %>%
-  full_join(ctrl_new2) %>%
-  full_join(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants - one row for each species
-                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) # %>%
-  # mutate(AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make treatment area size of lake if it exceeds it
-  #                                   TRUE ~ AreaTreated_ha)) 
-
-# add zero for missing years (assume no application)
-ctrl2 <- ctrl_old %>% # one row for every lake
-  mutate(Area_ha = ShapeArea * 100) %>%
-  select(AreaOfInterestID, PermanentID, Area_ha) %>%
-  unique() %>%
-  full_join(ctrl_new %>%
-              mutate(Area_ha = ShapeArea * 100) %>%
-              select(AreaOfInterestID, PermanentID, Area_ha) %>%
-              unique()) %>%
-  expand_grid(tibble(SurveyYear = min(ctrl_old2$SurveyYear):max(ctrl_new2$SurveyYear)) %>% # one row per year and species
-                expand_grid(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)),
-                                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")))) %>% 
-  full_join(ctrl) %>%
-  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0), # make area treated zero if the year wasn't included
-         TreatmentEvent = TreatmentID, # NA when no treatment applied
-         TreatmentID = case_when(is.na(TreatmentID) ~ paste("none", TreatmentYear, sep = "_"),
-                                 TRUE ~ TreatmentID)) %>%
-  select(-SurveyYearAlt)
-
-ctrl2Alt <- ctrl_old %>% # one row for every lake
-  mutate(Area_ha = ShapeArea * 100) %>%
-  select(AreaOfInterestID, PermanentID, Area_ha) %>%
-  unique() %>%
-  full_join(ctrl_new %>%
-              mutate(Area_ha = ShapeArea * 100) %>%
-              select(AreaOfInterestID, PermanentID, Area_ha) %>%
-              unique()) %>%
-  expand_grid(tibble(SurveyYearAlt = min(ctrl_old2$SurveyYearAlt):max(ctrl_new2$SurveyYearAlt)) %>% # one row per year and species
-                expand_grid(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)),
-                                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")))) %>% 
-  full_join(ctrl) %>%
-  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0), # make area treated zero if the year wasn't included
-         TreatmentEvent = TreatmentID, # NA when no treatment applied
-         TreatmentID = case_when(is.na(TreatmentID) ~ paste("none", TreatmentYear, sep = "_"),
-                                 TRUE ~ TreatmentID),
-         SurveyYear = SurveyYearAlt) %>%
-  select(-SurveyYearAlt)
-
-# save data
-write_csv(ctrl2, "intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_formatted.csv")
-write_csv(ctrl2Alt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_alt_formatted.csv")
-
-
-#### combine FWC plant and ctrl data ####
-
-plant_ctrl <- ctrl2 %>%
-  group_by(AreaOfInterestID, PermanentID, SurveyYear, Area_ha, Species, SpeciesName) %>%
-  summarise(TotalAreaTreated_ha = sum(AreaTreated_ha),
-            TreatmentDate = min(TreatmentDate)) %>%
-  ungroup() %>%
-  mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
-         Treated = ifelse(TotalAreaTreated_ha > 0, 1, 0),
-         TreatedF = ifelse(Treated == 0, "no", "yes")) %>%
-  left_join(plant_fwc3) %>% # only include years with treatment info
-  group_by(SpeciesName) %>%
-  mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
-  ungroup() %>%
-  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
-  arrange(SurveyYear) %>%
-  mutate(Next1PropCovered = lead(PropCoveredAdj, n = 1), # includes correction for zero abundance
-         Next2PropCovered = lead(PropCoveredAdj, n = 2),
-         Diff1PropCovered = Next1PropCovered/PropCoveredAdj,
-         Diff2PropCovered = Next2PropCovered/PropCoveredAdj,            
-         log_Diff1PropCovered = log(Diff1PropCovered),
-         log_Diff2PropCovered = log(Diff2PropCovered),
-         Next1PropCoveredBeta = lead(PropCoveredBeta, n = 1),
-         Next2PropCoveredBeta = lead(PropCoveredBeta, n = 2),
-         Next1SurveyDate = lead(SurveyDate, n = 1),
-         Next2SurveyDate = lead(SurveyDate, n = 2),
-         Next1SurveyDays = Next1SurveyDate - SurveyDate,
-         Next2SurveyDays = Next2SurveyDate - SurveyDate,
-         TreatSurveyDays = TreatmentDate - SurveyDate,
-         NextSurveyTreatDays = lead(SurveyDate) - TreatmentDate,
-         Detected = as.numeric(sum(Detected, na.rm = T) > 0)) %>% # fills in NA's for detected based on entire survey history
-  ungroup()
-
-plant_ctrlAlt <- ctrl2Alt %>%
-  group_by(AreaOfInterestID, PermanentID, SurveyYear, Area_ha, Species, SpeciesName) %>%
-  summarise(TotalAreaTreated_ha = sum(AreaTreated_ha),
-            TreatmentDate = min(TreatmentDate)) %>%
-  ungroup() %>%
-  mutate(TotalPropTreated = TotalAreaTreated_ha / Area_ha,
-         Treated = ifelse(TotalAreaTreated_ha > 0, 1, 0),
-         TreatedF = ifelse(Treated == 0, "no", "yes")) %>%
-  left_join(plant_fwc3) %>% # only include years with treatment info
-  group_by(SpeciesName) %>%
-  mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
-  ungroup() %>%
-  group_by(AreaOfInterestID, PermanentID, SpeciesName) %>%
-  arrange(SurveyYear) %>%
-  mutate(Next1PropCovered = lead(PropCoveredAdj, n = 1), # includes correction for zero abundance
-         Next2PropCovered = lead(PropCoveredAdj, n = 2),
-         Diff1PropCovered = Next1PropCovered/PropCoveredAdj,
-         Diff2PropCovered = Next2PropCovered/PropCoveredAdj,            
-         log_Diff1PropCovered = log(Diff1PropCovered),
-         log_Diff2PropCovered = log(Diff2PropCovered),
-         Next1PropCoveredBeta = lead(PropCoveredBeta, n = 1),
-         Next2PropCoveredBeta = lead(PropCoveredBeta, n = 2),
-         Next1SurveyDate = lead(SurveyDate, n = 1),
-         Next2SurveyDate = lead(SurveyDate, n = 2),
-         Next1SurveyDays = Next1SurveyDate - SurveyDate,
-         Next2SurveyDays = Next2SurveyDate - SurveyDate,
-         TreatSurveyDays = TreatmentDate - SurveyDate,
-         NextSurveyTreatDays = lead(SurveyDate) - TreatmentDate,
-         Detected = as.numeric(sum(Detected, na.rm = T) > 0)) %>% # fills in NA's for detected based on entire survey history
-  ungroup()
-
-# missing data
-plant_ctrl %>%
-  filter(is.na(PropCovered) | is.na(Next1PropCovered))
-# > 7,000
-
-# treatment without detection?
-treat_no_detect <- plant_ctrl %>%
-  group_by(Species, AreaOfInterestID) %>%
-  mutate(GroupDetected = as.numeric(sum(Detected) > 0)) %>% # were either of the floating plants detected?
-  ungroup() %>%
-  filter(GroupDetected == 0 & TotalPropTreated > 0)
-# 234 examples
-
-treat_no_detect %>%
-  ggplot(aes(x = TotalPropTreated)) +
-  geom_histogram(binwidth = 0.1) +
-  facet_wrap(~ Species)
-
-# look at some of these
-treat_no_detect %>%
-  rename(TreatmentYear = SurveyYear) %>%
-  select(SpeciesName, AreaOfInterestID, TreatmentYear) %>%
-  unique() %>%
-  inner_join(plant_fwc3 %>%
-               select(AreaOfInterestID, SurveyYear, SpeciesName, SpeciesAcres, Detected)) %>%
-  ggplot(aes(x = SurveyYear, y = SpeciesAcres)) +
-  geom_line(aes(color = as.factor(AreaOfInterestID)), show.legend = F) +
-  geom_vline(aes(xintercept = TreatmentYear, color = as.factor(AreaOfInterestID)), show.legend = F) +
-  facet_wrap(~ SpeciesName)
-
-treat_no_detect %>%
-  select(AreaOfInterestID, SurveyYear, Species) %>%
-  unique() %>%
-  ggplot(aes(x = as.factor(AreaOfInterestID))) +
-  geom_bar()
-# some lakes may have surveys missing
-
-# remove missing data for 1 year difference analysis
-plant_ctrl_1year <- plant_ctrl %>%
-  filter(!is.na(PropCovered) & !is.na(Next1PropCovered) & Detected == 1) %>%
-  group_by(SpeciesName) %>% # center variables with appropriate dataset
-  mutate(log_PropCovered = log(PropCoveredAdj),
-         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
-         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
-  ungroup() 
-# Detected == 1: plant must have been detected in the lake at some point
-
-plant_ctrl_1yearAlt <- plant_ctrlAlt %>%
-  filter(!is.na(PropCovered) & !is.na(Next1PropCovered) & Detected == 1) %>%
-  group_by(SpeciesName) %>% # center variables with appropriate dataset
-  mutate(log_PropCovered = log(PropCoveredAdj),
-         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
-         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
-  ungroup() 
-
-# remove missing data for 2 year difference analysis
-plant_ctrl_2year <- plant_ctrl %>%
-  filter(!is.na(PropCovered) & !is.na(Next2PropCovered) & Detected == 1) %>%
-  group_by(SpeciesName) %>% # center variables with appropriate dataset
-  mutate(log_PropCovered = log(PropCoveredAdj),
-         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
-         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
-  ungroup() 
-
-plant_ctrl_2yearAlt <- plant_ctrlAlt %>%
-  filter(!is.na(PropCovered) & !is.na(Next2PropCovered) & Detected == 1) %>%
-  group_by(SpeciesName) %>% # center variables with appropriate dataset
-  mutate(log_PropCovered = log(PropCoveredAdj),
-         log_PropCoveredC = log_PropCovered - mean(log_PropCovered),
-         PropCoveredBetaC = PropCoveredBeta - mean(PropCoveredBeta)) %>%
-  ungroup() 
-
-# check treatment/survey timing
-range(plant_ctrl_1year$TreatSurveyDays, na.rm = T)
-range(plant_ctrl_1year$NextSurveyTreatDays, na.rm = T)
-
-# save data
-write_csv(plant_ctrl_1year, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_formatted.csv")
-write_csv(plant_ctrl_1yearAlt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_alt_formatted.csv")
-write_csv(plant_ctrl_2year, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_2year_formatted.csv")
-write_csv(plant_ctrl_2yearAlt, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_2year_alt_formatted.csv")
 
 
 #### combine native plant, invasive plant, and ctrl data ####
@@ -917,7 +837,7 @@ summary(hyd_mod_1yearAlt)
 # alt 2-year growth
 hyd_mod_2yearAlt <- update(hyd_mod_2year, data = hyd_dat_2yearAlt)
 summary(hyd_mod_2yearAlt)
-# only model with marginal interaction and all had positive treatment effects
+# only model with marginal interaction and all had apositive treatment effects
 
 
 #### fit water hyacinth models ####
