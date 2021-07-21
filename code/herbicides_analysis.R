@@ -180,7 +180,10 @@ filter(surveyor, is.na(Surveyor))
 # remove NAs
 surveyor2 <- surveyor %>%
   filter(!is.na(Surveyor)) %>%
-  mutate(SurveyorExperienceCS = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience))
+  mutate(SurveyorExperienceCS = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
+         SurveyorExperienceB = cut_number(SurveyorExperience, n = 3) %>%
+           fct_recode("low" = "[1,125]", "medium" = "(125,336]", "high" = "(336,1.01e+03]") %>%
+           fct_relevel("high", "medium", "low"))
 
 
 #### edit invasive plant data ####
@@ -228,7 +231,7 @@ inv_fwc <- plant_fwc %>% # start with all surveys
 # remove duplicates
 # summarize by waterbody
 inv_fwc2 <- inv_fwc %>%
-  nest(data = c(SurveyDate, Surveyor, SurveyorExperience, SurveyorExperienceCS, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, SurveyYear, MonthDay, Days, AreaChangeSD, EstAreaCoveredRaw_ha)) %>% # find multiple surveys within area of interest, growing season year, and species
+  nest(data = c(SurveyDate, Surveyor, SurveyorExperience, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, SurveyYear, MonthDay, Days, AreaChangeSD, EstAreaCoveredRaw_ha)) %>% # find multiple surveys within area of interest, growing season year, and species
   mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
   select(-data) %>% # removes 123 rows of data
   unnest(newdata) %>%
@@ -236,7 +239,9 @@ inv_fwc2 <- inv_fwc %>%
   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
             SurveyDate = max(SurveyDate),
             SurveyorExperience = mean(SurveyorExperience, na.rm = T),
-            SurveyorExperienceCS = mean(SurveyorExperienceCS, na.rm = T),
+            SurveyorExperienceB = case_when(SurveyorExperience <= 125 ~ "low",
+                                            SurveyorExperience > 125 & SurveyorExperience <= 336 ~ "medium",
+                                            SurveyorExperience > 336 ~ "high"),
             SpeciesAcres = sum(SpeciesAcres),
             AreaCovered_ha = sum(AreaCovered_ha),
             EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
@@ -247,21 +252,29 @@ inv_fwc2 <- inv_fwc %>%
          PropCoveredAdj = case_when(PropCovered < 1e-3 ~ 1e-3, # avoid super small values that skew ratios
                            TRUE ~ PropCovered),
          SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
-                                    SpeciesAcres == 0 ~ 0)) %>%
+                                    SpeciesAcres == 0 ~ 0),
+         SurveyorExperienceB =  fct_relevel(SurveyorExperienceB, "high", "medium", "low")) %>%
   full_join(inv_fwc %>% # add row for every year for each site/species combo (NA's for missing surveys)
               select(PermanentID, SpeciesName) %>%
               unique() %>%
               expand_grid(GSYear = min(inv_fwc$GSYear):max(inv_fwc$GSYear))) %>%
   group_by(PermanentID, SpeciesName) %>%
   arrange(GSYear) %>% 
-  mutate(PrevPropCovered = lag(PropCovered)) %>% # previous year's PropCovered
-  ungroup()
+  mutate(PrevPropCovered = lag(PropCovered),
+         PrevPropCoveredAdj = lag(PropCoveredAdj)) %>% # previous year's PropCovered
+  ungroup() %>%
+  mutate(LogPropCovered = log(PropCoveredAdj/PrevPropCoveredAdj))
 
 # check that there are no duplicates in same year
 inv_fwc2 %>%
   group_by(PermanentID, GSYear, SpeciesName) %>%
   count() %>%
   filter(n > 1)
+
+# small proportions
+inv_fwc2 %>%
+  filter(!is.na(PropCovered) & PropCovered < 0.01  & PropCovered > 0) %>%
+  ggplot(aes(PropCovered)) + geom_histogram()
 
 # remove missing data
 inv_fwc3 <- inv_fwc2 %>%
@@ -539,14 +552,17 @@ nat_init_imm <- nat_fwc %>%
   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
             Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
             SurveyDate = max(SurveyDate), # last survey each growing season
-            SurveyorExperience = mean(SurveyorExperience, na.rm = T),
-            SurveyorExperienceCS = mean(SurveyorExperienceCS, na.rm = T)) %>%
+            SurveyorExperience = mean(SurveyorExperience, na.rm = T)) %>%
   ungroup() %>%
   group_by(PermanentID, SpeciesName) %>%
   arrange(SurveyDate) %>%
   mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate)), # days between surveys
          FirstGS = min(GSYear)) %>%
   ungroup() %>%
+  mutate(SurveyorExperienceB = case_when(SurveyorExperience <= 125 ~ "low",
+                                         SurveyorExperience > 125 & SurveyorExperience <= 336 ~ "medium",
+                                         SurveyorExperience > 336 ~ "high") %>%
+           fct_relevel("high", "medium", "low")) %>%
   filter(GSYear > FirstGS) # remove first year (no interval)
 
 # ext/repeat imm dataset
@@ -556,8 +572,7 @@ nat_post_imm <- nat_fwc %>%
   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
             Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
             SurveyDate = max(SurveyDate), # last survey each growing season
-            SurveyorExperience = mean(SurveyorExperience, na.rm = T),
-            SurveyorExperienceCS = mean(SurveyorExperienceCS, na.rm = T)) %>%
+            SurveyorExperience = mean(SurveyorExperience, na.rm = T)) %>%
   ungroup() %>%
   group_by(PermanentID, SpeciesName) %>%
   arrange(GSYear) %>%
@@ -578,7 +593,11 @@ nat_post_imm <- nat_fwc %>%
          LagSwitch = replace_na(LagSwitch, 0),
          Window = cumsum(LagSwitch),
          SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate))) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(SurveyorExperienceB = case_when(SurveyorExperience <= 125 ~ "low",
+                                         SurveyorExperience > 125 & SurveyorExperience <= 336 ~ "medium",
+                                         SurveyorExperience > 336 ~ "high") %>%
+           fct_relevel("high", "medium", "low"))
 
 # extinction dataset
 nat_ext <- nat_post_imm %>%
@@ -731,12 +750,13 @@ hydr_ctrl <- inv_ctrl %>%
 
 # subset for hydrilla and all herbicide lags
 hydr_ctrl2 <- hydr_ctrl %>%
-  filter(!is.na(Lag0PropTreated) & !is.na(Lag1PropTreated) & !is.na(Lag2PropTreated) & !is.na(Lag3PropTreated) & !is.na(Lag4PropTreated) & !is.na(Lag5PropTreated) & !is.na(SurveyorExperienceCS))
+  filter(!is.na(Lag0PropTreated) & !is.na(Lag1PropTreated) & !is.na(Lag2PropTreated) & !is.na(Lag3PropTreated) & !is.na(Lag4PropTreated) & !is.na(Lag5PropTreated) & !is.na(SurveyorExperienceB)) %>%
+  mutate(PrevPropCoveredAdjCS = (PrevPropCoveredAdj - mean(PrevPropCoveredAdj)) / sd(PrevPropCoveredAdj))
 
 # figures
-hydr_ctrl2 %>% ggplot(aes(PropCoveredBeta)) + geom_histogram(binwidth = 0.1)
-hydr_ctrl2 %>% ggplot(aes(PrevPropCovered)) + geom_histogram(binwidth = 0.1)
-hydr_ctrl2 %>% ggplot(aes(SurveyorExperienceCS)) + geom_histogram(binwidth = 0.1)
+hydr_ctrl2 %>% ggplot(aes(LogPropCovered)) + geom_histogram(binwidth = 0.1)
+hydr_ctrl2 %>% ggplot(aes(PrevPropCoveredAdjCS)) + geom_histogram(binwidth = 0.1)
+hydr_ctrl2 %>% ggplot(aes(SurveyorExperienceB)) + geom_bar() # should these be re-binned with each data subset?
 hydr_ctrl2 %>% ggplot(aes(Lag0PropTreated)) + geom_histogram(binwidth = 0.1)
 hydr_ctrl2 %>% ggplot(aes(Lag1PropTreated)) + geom_histogram(binwidth = 0.1)
 hydr_ctrl2 %>% ggplot(aes(Lag2PropTreated)) + geom_histogram(binwidth = 0.1)
@@ -748,21 +768,21 @@ hydr_ctrl2 %>% ggplot(aes(Lag5PropTreated)) + geom_histogram(binwidth = 0.1)
 length(unique(hydr_ctrl2$PermanentID))
 length(unique(hydr_ctrl2$GSYear))
 
-# models couldn't converge with surveyor experience - add in after treatment form is chosen
+# tried beta models, but it was difficult to interpret the coefficients
 
 # models
-hydr_prop0_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag0PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag0PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_prop1_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag1PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag1PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_prop2_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag2PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag2PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_prop3_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag3PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag3PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_prop4_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag4PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag4PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_prop5_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag5PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag5PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_trtd0_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag0Treated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag0Treated:SurveyorExperienceCS + (1|PermanentID) + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_trtd1_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag1Treated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag1Treated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_trtd2_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag2Treated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag2Treated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_trtd3_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag3Treated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag3Treated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_trtd4_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag4Treated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag4Treated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
-hydr_trtd5_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag5Treated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag5Treated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl2)
+hydr_prop0_mod <- glmmTMB(LogPropCovered ~ Lag0PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_prop1_mod <- glmmTMB(LogPropCovered ~ Lag1PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_prop2_mod <- glmmTMB(LogPropCovered ~ Lag2PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_prop3_mod <- glmmTMB(LogPropCovered ~ Lag3PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_prop4_mod <- glmmTMB(LogPropCovered ~ Lag4PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_prop5_mod <- glmmTMB(LogPropCovered ~ Lag5PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_trtd0_mod <- glmmTMB(LogPropCovered ~ Lag0Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_trtd1_mod <- glmmTMB(LogPropCovered ~ Lag1Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_trtd2_mod <- glmmTMB(LogPropCovered ~ Lag2Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_trtd3_mod <- glmmTMB(LogPropCovered ~ Lag3Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_trtd4_mod <- glmmTMB(LogPropCovered ~ Lag4Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
+hydr_trtd5_mod <- glmmTMB(LogPropCovered ~ Lag5Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl2)
 
 # compare models
 AIC(hydr_prop0_mod, hydr_prop1_mod, hydr_prop2_mod, hydr_prop3_mod, hydr_prop4_mod, hydr_prop5_mod,
@@ -771,29 +791,233 @@ AIC(hydr_prop0_mod, hydr_prop1_mod, hydr_prop2_mod, hydr_prop3_mod, hydr_prop4_m
   mutate(deltaAIC = AIC - min(AIC))
 
 # best model
-summary(hydr_prop5_mod)
-summary(hydr_prop1_mod) # surveyor exp. still sig
+summary(hydr_prop0_mod)
 
 # use largest possible dataset
 hydr_ctrl3 <- hydr_ctrl %>%
-  filter(!is.na(Lag5PropTreated) & !is.na(SurveyorExperienceCS))
+  filter(!is.na(Lag0PropTreated) & !is.na(SurveyorExperienceB)) %>%
+  mutate(PrevPropCoveredAdjCS = (PrevPropCoveredAdj - mean(PrevPropCoveredAdj)) / sd(PrevPropCoveredAdj))
 
 # figures
-hydr_ctrl3 %>% ggplot(aes(PropCoveredBeta)) + geom_histogram(binwidth = 0.1)
-hydr_ctrl3 %>% ggplot(aes(PrevPropCovered)) + geom_histogram(binwidth = 0.1)
-hydr_ctrl3 %>% ggplot(aes(SurveyorExperienceCS)) + geom_histogram(binwidth = 0.1)
-hydr_ctrl3 %>% ggplot(aes(Lag5PropTreated)) + geom_histogram(binwidth = 0.1)
+hydr_ctrl3 %>% ggplot(aes(LogPropCovered)) + geom_histogram(binwidth = 0.1)
+hydr_ctrl3 %>% ggplot(aes(PrevPropCoveredAdjCS)) + geom_histogram(binwidth = 0.1)
+hydr_ctrl3 %>% ggplot(aes(SurveyorExperience)) + geom_histogram(binwidth = 10)
+hydr_ctrl3 %>% ggplot(aes(SurveyorExperienceB)) + geom_bar()
+hydr_ctrl3 %>% ggplot(aes(Lag0PropTreated)) + geom_histogram(binwidth = 0.1)
 
 # refit model
-hydr_mod <- glmmTMB(PropCoveredBeta ~ PrevPropCovered + PrevPropCovered:Lag5PropTreated + PrevPropCovered:SurveyorExperienceCS + PrevPropCovered:Lag5PropTreated:SurveyorExperienceCS + (1|PermanentID) + (1|GSYear), family = beta_family(), data = hydr_ctrl)
+hydr_mod <- glmmTMB(LogPropCovered ~ Lag0PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = hydr_ctrl3)
 summary(hydr_mod)
 
 # figures
-plot(predictorEffect("PrevPropCovered", hydr_mod))
-# avg surveyor and not treatment:
-  # increasing treatment decreases
-#### start here ####
-# I think it's problematic that surveyor experience is negative
+plot(predictorEffect("Lag0PropTreated", hydr_mod), axes = list(y = list(cex = 0.5), x = list(cex = 0.5)), lattice = list(strip = list(cex = 0.5)))
+# treatment decreases growth rate and this effect is strongest when surveyor is highly experienced, lowest with medium experience
+
+
+#### water lettuce models ####
+
+# subset for water lettuce
+wale_ctrl <- inv_ctrl %>%
+  filter(CommonName == "Water lettuce")
+
+# subset for water lettuce and all herbicide lags
+wale_ctrl2 <- wale_ctrl %>%
+  filter(!is.na(Lag0PropTreated) & !is.na(Lag1PropTreated) & !is.na(Lag2PropTreated) & !is.na(Lag3PropTreated) & !is.na(Lag4PropTreated) & !is.na(Lag5PropTreated) & !is.na(SurveyorExperienceB)) %>%
+  mutate(PrevPropCoveredAdjCS = (PrevPropCoveredAdj - mean(PrevPropCoveredAdj)) / sd(PrevPropCoveredAdj))
+
+# figures
+wale_ctrl2 %>% ggplot(aes(LogPropCovered)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(PrevPropCoveredAdjCS)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(SurveyorExperienceB)) + geom_bar() # should these be re-binned with each data subset?
+wale_ctrl2 %>% ggplot(aes(Lag0PropTreated)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(Lag1PropTreated)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(Lag2PropTreated)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(Lag3PropTreated)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(Lag4PropTreated)) + geom_histogram(binwidth = 0.1)
+wale_ctrl2 %>% ggplot(aes(Lag5PropTreated)) + geom_histogram(binwidth = 0.1)
+
+# random effects
+length(unique(wale_ctrl2$PermanentID))
+length(unique(wale_ctrl2$GSYear))
+
+# models
+wale_prop0_mod <- glmmTMB(LogPropCovered ~ Lag0PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_prop1_mod <- glmmTMB(LogPropCovered ~ Lag1PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_prop2_mod <- glmmTMB(LogPropCovered ~ Lag2PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_prop3_mod <- glmmTMB(LogPropCovered ~ Lag3PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_prop4_mod <- glmmTMB(LogPropCovered ~ Lag4PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_prop5_mod <- glmmTMB(LogPropCovered ~ Lag5PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_trtd0_mod <- glmmTMB(LogPropCovered ~ Lag0Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_trtd1_mod <- glmmTMB(LogPropCovered ~ Lag1Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_trtd2_mod <- glmmTMB(LogPropCovered ~ Lag2Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_trtd3_mod <- glmmTMB(LogPropCovered ~ Lag3Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_trtd4_mod <- glmmTMB(LogPropCovered ~ Lag4Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+wale_trtd5_mod <- glmmTMB(LogPropCovered ~ Lag5Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl2)
+
+# compare models
+AIC(wale_prop0_mod, wale_prop1_mod, wale_prop2_mod, wale_prop3_mod, wale_prop4_mod, wale_prop5_mod,
+    wale_trtd0_mod, wale_trtd1_mod, wale_trtd2_mod, wale_trtd3_mod, wale_trtd4_mod, wale_trtd5_mod) %>%
+  arrange(AIC) %>%
+  mutate(deltaAIC = AIC - min(AIC))
+
+# best model
+summary(wale_prop3_mod)
+
+# use largest possible dataset
+wale_ctrl3 <- wale_ctrl %>%
+  filter(!is.na(Lag3PropTreated) & !is.na(SurveyorExperienceB)) %>%
+  mutate(PrevPropCoveredAdjCS = (PrevPropCoveredAdj - mean(PrevPropCoveredAdj)) / sd(PrevPropCoveredAdj))
+
+# figures
+wale_ctrl3 %>% ggplot(aes(LogPropCovered)) + geom_histogram(binwidth = 0.1)
+wale_ctrl3 %>% ggplot(aes(PrevPropCoveredAdjCS)) + geom_histogram(binwidth = 0.1)
+wale_ctrl3 %>% ggplot(aes(SurveyorExperience)) + geom_histogram(binwidth = 10)
+wale_ctrl3 %>% ggplot(aes(SurveyorExperienceB)) + geom_bar()
+wale_ctrl3 %>% ggplot(aes(Lag3PropTreated)) + geom_histogram(binwidth = 0.1)
+
+# refit model
+wale_mod <- glmmTMB(LogPropCovered ~ Lag3PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wale_ctrl3)
+summary(wale_mod)
+
+# figures
+plot(predictorEffect("Lag3PropTreated", wale_mod), axes = list(y = list(cex = 0.5), x = list(cex = 0.5)), lattice = list(strip = list(cex = 0.5)))
+# treatment decreases growth rate and this effect is strongest when surveyor is highly experienced, lowest with medium experience
+
+
+#### water hyacinth models ####
+
+# subset for water hyacinth
+wahy_ctrl <- inv_ctrl %>%
+  filter(CommonName == "Water hyacinth")
+
+# subset for water hyacinth and all herbicide lags
+wahy_ctrl2 <- wahy_ctrl %>%
+  filter(!is.na(Lag0PropTreated) & !is.na(Lag1PropTreated) & !is.na(Lag2PropTreated) & !is.na(Lag3PropTreated) & !is.na(Lag4PropTreated) & !is.na(Lag5PropTreated) & !is.na(SurveyorExperienceB)) %>%
+  mutate(PrevPropCoveredAdjCS = (PrevPropCoveredAdj - mean(PrevPropCoveredAdj)) / sd(PrevPropCoveredAdj))
+
+# figures
+wahy_ctrl2 %>% ggplot(aes(LogPropCovered)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(PrevPropCoveredAdjCS)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(SurveyorExperienceB)) + geom_bar() # should these be re-binned with each data subset?
+wahy_ctrl2 %>% ggplot(aes(Lag0PropTreated)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(Lag1PropTreated)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(Lag2PropTreated)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(Lag3PropTreated)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(Lag4PropTreated)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl2 %>% ggplot(aes(Lag5PropTreated)) + geom_histogram(binwidth = 0.1)
+
+# random effects
+length(unique(wahy_ctrl2$PermanentID))
+length(unique(wahy_ctrl2$GSYear))
+
+# models
+wahy_prop0_mod <- glmmTMB(LogPropCovered ~ Lag0PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_prop1_mod <- glmmTMB(LogPropCovered ~ Lag1PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_prop2_mod <- glmmTMB(LogPropCovered ~ Lag2PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_prop3_mod <- glmmTMB(LogPropCovered ~ Lag3PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_prop4_mod <- glmmTMB(LogPropCovered ~ Lag4PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_prop5_mod <- glmmTMB(LogPropCovered ~ Lag5PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_trtd0_mod <- glmmTMB(LogPropCovered ~ Lag0Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_trtd1_mod <- glmmTMB(LogPropCovered ~ Lag1Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_trtd2_mod <- glmmTMB(LogPropCovered ~ Lag2Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_trtd3_mod <- glmmTMB(LogPropCovered ~ Lag3Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_trtd4_mod <- glmmTMB(LogPropCovered ~ Lag4Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+wahy_trtd5_mod <- glmmTMB(LogPropCovered ~ Lag5Treated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl2)
+
+# compare models
+AIC(wahy_prop0_mod, wahy_prop1_mod, wahy_prop2_mod, wahy_prop3_mod, wahy_prop4_mod, wahy_prop5_mod,
+    wahy_trtd0_mod, wahy_trtd1_mod, wahy_trtd2_mod, wahy_trtd3_mod, wahy_trtd4_mod, wahy_trtd5_mod) %>%
+  arrange(AIC) %>%
+  mutate(deltaAIC = AIC - min(AIC))
+
+# best model
+summary(wahy_prop2_mod)
+
+# use largest possible dataset
+wahy_ctrl3 <- wahy_ctrl %>%
+  filter(!is.na(Lag2PropTreated) & !is.na(SurveyorExperienceB)) %>%
+  mutate(PrevPropCoveredAdjCS = (PrevPropCoveredAdj - mean(PrevPropCoveredAdj)) / sd(PrevPropCoveredAdj))
+
+# figures
+wahy_ctrl3 %>% ggplot(aes(LogPropCovered)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl3 %>% ggplot(aes(PrevPropCoveredAdjCS)) + geom_histogram(binwidth = 0.1)
+wahy_ctrl3 %>% ggplot(aes(SurveyorExperience)) + geom_histogram(binwidth = 10)
+wahy_ctrl3 %>% ggplot(aes(SurveyorExperienceB)) + geom_bar()
+wahy_ctrl3 %>% ggplot(aes(Lag0PropTreated)) + geom_histogram(binwidth = 0.1)
+
+# refit model
+wahy_mod <- glmmTMB(LogPropCovered ~ Lag2PropTreated * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = wahy_ctrl3)
+summary(wahy_mod)
+
+# figures
+plot(predictorEffect("Lag2PropTreated", wahy_mod), axes = list(y = list(cex = 0.5), x = list(cex = 0.5)), lattice = list(strip = list(cex = 0.5)))
+# treatment decreases growth rate and this effect is strongest when surveyor is highly experienced, lowest with medium experience
+
+
+#### invasive plant figure ####
+
+# figure settings
+fig_theme <- theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.y = element_text(size = 12, color = "black"),
+        axis.text.x = element_text(size = 12, color = "black"),
+        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 16),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        legend.background = element_blank(),
+        legend.position = "none",
+        legend.margin = margin(-0.1, 0, 0.2, 2, unit = "cm"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 16),
+        strip.placement = "outside")
+
+# predicted values
+hydr_pred <- hydr_ctrl3 %>%
+  mutate(SurveyorExperienceB = "high",
+         PrevPropCoveredAdjCS = 0) %>%
+  mutate(Pred = predict(hydr_mod, newdata = ., re.form = NA),
+         PredSE = predict(hydr_mod, newdata = ., re.form = NA, se.fit = T)$se.fit,
+         sig = "yes",
+         LagPropTreated = Lag0PropTreated)
+
+wale_pred <- wale_ctrl3 %>%
+  mutate(SurveyorExperienceB = "high",
+         PrevPropCoveredAdjCS = 0) %>%
+  mutate(Pred = predict(wale_mod, newdata = ., re.form = NA),
+         PredSE = predict(wale_mod, newdata = ., re.form = NA, se.fit = T)$se.fit,
+         sig = "no",
+         LagPropTreated = Lag3PropTreated)
+
+wahy_pred <- wahy_ctrl3 %>%
+  mutate(SurveyorExperienceB = "high",
+         PrevPropCoveredAdjCS = 0) %>%
+  mutate(Pred = predict(wahy_mod, newdata = ., re.form = NA),
+         PredSE = predict(wahy_mod, newdata = ., re.form = NA, se.fit = T)$se.fit,
+         sig = "no",
+         LagPropTreated = Lag2PropTreated)
+
+# combine
+inv_pred <- hydr_pred %>%
+  full_join(wale_pred) %>%
+  full_join(wahy_pred)
+
+# figure
+pdf("output/invasive_plant_herbicide_poster_figure.pdf", width = 10.5, height = 5.5)
+ggplot(inv_pred, aes(x = LagPropTreated, y = LogPropCovered)) +
+  geom_hline(yintercept = 0) +
+  geom_point(alpha = 0.1) +
+  geom_ribbon(aes(y = Pred, ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5) +
+  geom_line(aes(y = Pred, linetype = sig)) +
+  facet_wrap(~ CommonName, scales = "free_x") +
+  scale_linetype_manual(values = c("dashed", "solid"), guide = F) +
+  fig_theme +
+  labs(x = "Average proportion of lake treated", y = "Annual growth rate")
+dev.off()
+
+
 
 
 
