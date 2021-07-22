@@ -1078,19 +1078,31 @@ length(unique(nat_init_imm3$PermanentID))
 length(unique(nat_init_imm3$WindowF))
 
 # models
-# did not run these, they take too long to run
+# save right after because they are slow to run
 init_prop0_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_prop0_mod, file = "output/native_initial_imm_lag0_prop_treated_model.rda")
 init_prop1_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_prop1_mod, file = "output/native_initial_imm_lag1_prop_treated_model.rda")
 init_prop2_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_prop2_mod, file = "output/native_initial_imm_lag2_prop_treated_model.rda")
 init_prop3_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_prop3_mod, file = "output/native_initial_imm_lag3_prop_treated_model.rda")
 init_prop4_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_prop4_mod, file = "output/native_initial_imm_lag4_prop_treated_model.rda")
 init_prop5_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_prop5_mod, file = "output/native_initial_imm_lag5_prop_treated_model.rda")
 init_trtd0_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_trtd0_mod, file = "output/native_initial_imm_lag0_bin_treated_model.rda")
 init_trtd1_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_trtd1_mod, file = "output/native_initial_imm_lag1_bin_treated_model.rda")
 init_trtd2_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_trtd2_mod, file = "output/native_initial_imm_lag2_bin_treated_model.rda")
 init_trtd3_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_trtd3_mod, file = "output/native_initial_imm_lag3_bin_treated_model.rda")
 init_trtd4_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_trtd4_mod, file = "output/native_initial_imm_lag4_bin_treated_model.rda")
 init_trtd5_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+save(init_trtd5_mod, file = "output/native_initial_imm_lag5_bin_treated_model.rda")
 
 # compare models
 AIC(init_prop0_mod, init_prop1_mod, init_prop2_mod, init_prop3_mod, init_prop4_mod, init_prop5_mod,
@@ -1099,39 +1111,27 @@ AIC(init_prop0_mod, init_prop1_mod, init_prop2_mod, init_prop3_mod, init_prop4_m
   mutate(deltaAIC = AIC - min(AIC))
 
 # best model
-summary(init_trtd4_mod)
+summary(init_trtd2_mod)
 
 # use largest possible dataset
 nat_init_imm4 <- nat_init_imm2 %>%
-  filter(!is.na(Lag4TreatedH) & !is.na(Lag4TreatedF) & !is.na(Lag4Hydrilla) & !is.na(Lag4WaterLettuce) & !is.na(Lag4WaterHyacinth) & !is.na(Area_haCS) & !is.na(SurveyIntervalCS))
+  filter(!is.na(Lag2TreatedH) & !is.na(Lag2TreatedF) & !is.na(Lag2Hydrilla) & !is.na(Lag2WaterLettuce) & !is.na(Lag2WaterHyacinth) & !is.na(Area_haCS) & !is.na(SurveyIntervalCS))
 
 # figures
 nat_init_imm4 %>% ggplot(aes(Detected)) + geom_bar()
 nat_init_imm4 %>% ggplot(aes(Area_haCS)) + geom_histogram(binwidth = 0.1)
 nat_init_imm4 %>% ggplot(aes(SurveyIntervalCS)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(Lag4TreatedH)) + geom_bar()
-nat_init_imm4 %>% ggplot(aes(Lag4TreatedF)) + geom_bar()
-nat_init_imm4 %>% ggplot(aes(Lag4Hydrilla)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(Lag4WaterLettuce)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(Lag4WaterHyacinth)) + geom_histogram(binwidth = 0.1)
+nat_init_imm4 %>% ggplot(aes(Lag2TreatedH)) + geom_bar()
+nat_init_imm4 %>% ggplot(aes(Lag2TreatedF)) + geom_bar()
+nat_init_imm4 %>% ggplot(aes(Lag2Hydrilla)) + geom_histogram(binwidth = 0.1)
+nat_init_imm4 %>% ggplot(aes(Lag2WaterLettuce)) + geom_histogram(binwidth = 0.1)
+nat_init_imm4 %>% ggplot(aes(Lag2WaterHyacinth)) + geom_histogram(binwidth = 0.1)
 
 # refit model
-nat_init_mod <- glmmTMB(Detected ~ Area_haCS + SurveyIntervalCS + Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm4)
+nat_init_mod <- glmmTMB(Detected ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm4)
 summary(nat_init_mod)
 
 # save models
-save(init_prop0_mod, file = "output/native_initial_imm_lag0_prop_treated_model.rda")
-save(init_prop1_mod, file = "output/native_initial_imm_lag1_prop_treated_model.rda")
-save(init_prop2_mod, file = "output/native_initial_imm_lag2_prop_treated_model.rda")
-save(init_prop3_mod, file = "output/native_initial_imm_lag3_prop_treated_model.rda")
-save(init_prop4_mod, file = "output/native_initial_imm_lag4_prop_treated_model.rda")
-save(init_prop5_mod, file = "output/native_initial_imm_lag5_prop_treated_model.rda")
-save(init_trtd0_mod, file = "output/native_initial_imm_lag0_bin_treated_model.rda")
-save(init_trtd1_mod, file = "output/native_initial_imm_lag1_bin_treated_model.rda")
-save(init_trtd2_mod, file = "output/native_initial_imm_lag2_bin_treated_model.rda")
-save(init_trtd3_mod, file = "output/native_initial_imm_lag3_bin_treated_model.rda")
-save(init_trtd4_mod, file = "output/native_initial_imm_lag4_bin_treated_model.rda")
-save(init_trtd5_mod, file = "output/native_initial_imm_lag5_bin_treated_model.rda")
 save(nat_init_mod, file = "output/native_initial_imm_treated_model.rda")
 
 
@@ -1497,9 +1497,63 @@ ggplot(inv_pred, aes(x = LagPropTreated, y = LogPropCovered)) +
 dev.off()
 
 
-#### native plant figure ####
+#### native plant figures ####
 
 # predicted values
+init_hydr_pred <- tibble(Lag2Hydrilla = seq(min(nat_init_imm4$Lag2Hydrilla), max(nat_init_imm4$Lag2Hydrilla), length.out = 100)) %>%
+  mutate(Area_haCS = 0,
+         SurveyIntervalCS = 0,
+         Lag2TreatedH = 0,
+         Lag2TreatedF = 0,  
+         Lag2WaterLettuce = mean(nat_init_imm4$Lag2WaterLettuce),
+         Lag2WaterHyacinth = mean(nat_init_imm4$Lag2WaterHyacinth),
+         GSYear = nat_init_imm4$GSYear[1],
+         PermanentID = nat_init_imm4$PermanentID[1],
+         SpeciesName = nat_init_imm4$SpeciesName[1]) %>%
+  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+         sig = "no", 
+         Invasive = "hydrilla",
+         Abundance = Lag2Hydrilla)
+
+init_wale_pred <- init_hydr_pred %>%
+  mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
+         Lag2WaterLettuce = seq(min(nat_init_imm4$Lag2WaterLettuce), max(nat_init_imm4$Lag2WaterLettuce), length.out = 100)) %>%
+  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+         sig = "yes", 
+         Invasive = "water lettuce",
+         Abundance = Lag2WaterLettuce)
+
+init_wahy_pred <- init_hydr_pred %>%
+  mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
+         Lag2WaterHyacinth = seq(min(nat_init_imm4$Lag2WaterHyacinth), max(nat_init_imm4$Lag2WaterHyacinth), length.out = 100)) %>%
+  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+         sig = "no", 
+         Invasive = "water hyacinth",
+         Abundance = Lag2WaterHyacinth)
+
+init_treatH_pred <- init_hydr_pred %>%
+  mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
+         Lag2TreatedH = rep(c(0, 1), 50)) %>%
+  select(-c(Pred, PredSE, Abundance)) %>%
+  unique() %>%
+  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+         sig = "yes",
+         Treated = ifelse(Lag2TreatedH == 0, "no", "yes"), 
+         Invasive = "hydrilla")
+
+init_treatF_pred <- init_treatH_pred %>%
+  mutate(Lag2TreatedH = 0,
+         Lag2TreatedF = c(0, 1)) %>%
+  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+         sig = "yes",
+         Treated = ifelse(Lag2TreatedF == 0, "no", "yes"), 
+         Invasive = "water\nhyacinth/lettuce")
+
 ext_hydr_pred <- tibble(Lag5Hydrilla = seq(min(nat_ext4$Lag5Hydrilla), max(nat_ext4$Lag5Hydrilla), length.out = 100)) %>%
   mutate(Area_haCS = 0,
          SurveyIntervalCS = 0,
@@ -1609,6 +1663,10 @@ rept_treatF_pred <- rept_treatH_pred %>%
          Invasive = "water hyacinth/lettuce")
 
 # combine
+init_pred <- init_hydr_pred %>%
+  full_join(init_wahy_pred) %>%
+  full_join(init_wale_pred)
+
 ext_pred <- ext_hydr_pred %>%
   full_join(ext_wahy_pred) %>%
   full_join(ext_wale_pred)
@@ -1617,6 +1675,9 @@ rept_pred <- rept_hydr_pred %>%
   full_join(rept_wahy_pred) %>%
   full_join(rept_wale_pred)
 
+init_treat <- init_treatH_pred %>%
+  full_join(init_treatF_pred)
+
 ext_treat <- ext_treatH_pred %>%
   full_join(ext_treatF_pred)
 
@@ -1624,6 +1685,17 @@ rept_treat <- rept_treatH_pred %>%
   full_join(rept_treatF_pred)
 
 # abundance figures
+pdf("output/native_immigration_invasive_abundance_poster_figure.pdf", width = 5.5, height = 4)
+ggplot(init_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
+  geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
+  geom_line(aes(linetype = sig), size = 1.5) +
+  scale_fill_viridis_d(end = 0.7, name = "Invasive species") +
+  scale_color_viridis_d(end = 0.7, name = "Invasive species") +
+  scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
+  fig_theme +
+  labs(x = "Invasive plant abundance", y = "Native species immigration")
+dev.off()
+
 pdf("output/native_extinction_invasive_abundance_poster_figure.pdf", width = 5.5, height = 4)
 ggplot(ext_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
@@ -1647,6 +1719,15 @@ ggplot(rept_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive
 dev.off()
 
 # treatment figures
+pdf("output/native_immigration_herbicide_poster_figure.pdf", width = 5, height = 4)
+ggplot(init_treat, aes(x = Treated, y = Pred)) +
+  geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
+  geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
+  scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
+  fig_theme +
+  labs(x = "Lake treated?", y = "Native species immigration")
+dev.off()
+
 pdf("output/native_extinction_herbicide_poster_figure.pdf", width = 5, height = 4)
 ggplot(ext_treat, aes(x = Treated, y = Pred)) +
   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
