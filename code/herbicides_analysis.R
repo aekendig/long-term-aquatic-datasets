@@ -782,8 +782,7 @@ nat_rept_imm2 <- nat_rept_imm %>%
          WindowF = paste0(PermanentID, SpeciesName, Window)) 
 
 # save data
-# write_csv(nat_init_imm2, "intermediate-data/FWC_native_initial_immigration_invasion_herbicide_formatted.csv")
-# didn't save above after figuring out 2000-2001 needed to be removed
+write_csv(nat_init_imm2, "intermediate-data/FWC_native_initial_immigration_invasion_herbicide_formatted.csv")
 write_csv(nat_ext2, "intermediate-data/FWC_native_extinction_invasion_herbicide_formatted.csv")
 write_csv(nat_rept_imm2, "intermediate-data/FWC_native_repeat_immigration_invasion_herbicide_formatted.csv")
 
@@ -1317,15 +1316,15 @@ fig_theme <- theme_bw() +
   theme(panel.background = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        axis.text.y = element_text(size = 12, color = "black"),
-        axis.text.x = element_text(size = 12, color = "black"),
-        axis.title.y = element_text(size = 16),
-        axis.title.x = element_text(size = 16),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 12),
+        axis.text.y = element_text(size = 18, color = "black"),
+        axis.text.x = element_text(size = 18, color = "black"),
+        axis.title.y = element_text(size = 20),
+        axis.title.x = element_text(size = 20),
+        legend.text = element_text(size = 18),
+        legend.title = element_text(size = 20),
         legend.background = element_blank(),
         strip.background = element_blank(),
-        strip.text = element_text(size = 16),
+        strip.text = element_text(size = 20),
         strip.placement = "outside")
 
 # subset and plot data
@@ -1335,12 +1334,17 @@ ctrl_new %>%
            TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>%
   mutate(Invasive = case_when(Species == "Hydrilla verticillata" ~ "hydrilla",
                               Species == "Floating Plants (Eichhornia and Pistia)" ~ "water\nhyacinth/lettuce")) %>%
+  group_by(ControlMethod) %>%
+  mutate(ControlTot = n()) %>%
+  ungroup() %>%
+  mutate(ControlMethod = fct_reorder(ControlMethod, desc(ControlTot))) %>%
   ggplot(aes(x = ControlMethod)) +
   geom_bar(aes(fill = Invasive)) +
   scale_fill_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
   fig_theme +
-  theme(axis.text.x = element_text(size = 12, color = "black", angle = 45, vjust = 1, hjust = 1),
-        legend.position = c(0.8, 0.8)) +
+  theme(axis.text.x = element_text(size = 18, color = "black", angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_text(size = 20, color = "black", hjust = 1),
+        legend.position = c(0.85, 0.7)) +
   labs(x = "Herbicide type", y = "Treatments (2010-2020)")
 dev.off()
 
@@ -1374,7 +1378,7 @@ inv_time_int2 <- inv_fwc2 %>%
 length(unique(inv_time_int2$PermanentID))
 
 # visualize
-pdf("output/invasive_plant_time_series_poster_figure.pdf", width = 5.5, height = 4)
+pdf("output/invasive_plant_time_series_poster_figure.pdf", width = 5, height = 4)
 inv_time_int2 %>%
   group_by(GSYear, CommonName) %>%
   summarise(Area_ha = sum(EstAreaCovered_ha)) %>%
@@ -1382,11 +1386,12 @@ inv_time_int2 %>%
   mutate(LogArea = log10(Area_ha),
          CommonName = tolower(CommonName)) %>%
   ggplot(aes(x = GSYear, y = LogArea, color = CommonName)) +
-  stat_summary(geom = "line", fun = "sum") +
+  stat_summary(geom = "line", fun = "sum", size = 1.5) +
   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
   fig_theme +
-  theme(legend.position = c(0.2, 0.6)) +
-  labs(x = "Year", y = expression(paste("Statewide area covered (", log[10], " ha)", sep = "")))
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 18, color = "black", angle = 30, hjust = 1, vjust = 1)) +
+  labs(x = "Year", y = expression(paste("Area covered (", log[10], " ha)", sep = "")))
 dev.off()
 
 #### native richness time series ####
@@ -1445,11 +1450,12 @@ nat_time_int %>%
   full_join(tibble(GSYear = c(2000, 2001),
                    Richness = c(NA, NA))) %>%
   ggplot(aes(x = GSYear, y = Richness)) +
-  geom_line() +
+  geom_line(size = 1.5) +
   fig_theme +
-  theme(axis.title.y = element_text(size = 16, hjust = 1)) +
-  labs(x = "Year", y = "Statewide native plant species richness")
+  theme(axis.text.x = element_text(size = 18, color = "black", angle = 30, hjust = 1, vjust = 1)) +
+  labs(x = "Year", y = "Native species richness")
 dev.off()
+
 
 #### invasive plant figure ####
 
@@ -1484,16 +1490,20 @@ inv_pred <- hydr_pred %>%
   full_join(wahy_pred)
 
 # figure
-pdf("output/invasive_plant_herbicide_poster_figure.pdf", width = 10.5, height = 4.5)
+pdf("output/invasive_plant_herbicide_poster_figure.pdf", width = 10.5, height = 4)
 ggplot(inv_pred, aes(x = LagPropTreated, y = LogPropCovered)) +
   geom_hline(yintercept = 0) +
-  geom_point(alpha = 0.1) +
-  geom_ribbon(aes(y = Pred, ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5) +
-  geom_line(aes(y = Pred, linetype = sig)) +
+  geom_point(alpha = 0.03, aes(color = CommonName)) +
+  geom_ribbon(aes(y = Pred, ymin = Pred-PredSE, ymax = Pred+PredSE, fill = CommonName), alpha = 0.5) +
+  geom_line(aes(y = Pred, linetype = sig), size = 1.5) +
   facet_wrap(~ CommonName, scales = "free_x") +
-  scale_linetype_manual(values = c("dashed", "solid"), guide = F) +
+  scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
+  scale_x_continuous(breaks = c(0, 1, 2)) +
+  scale_color_viridis_d(end = 0.7, guide = "none") +
+  scale_fill_viridis_d(end = 0.7, guide = "none") +
   fig_theme +
-  labs(x = "Average proportion of lake treated", y = "Annual growth rate")
+  theme(strip.text = element_blank()) +
+  labs(x = "Average proportion of waterbody treated", y = "Annual growth rate")
 dev.off()
 
 
@@ -1660,7 +1670,7 @@ rept_treatF_pred <- rept_treatH_pred %>%
          PredSE = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
          sig = "yes",
          Treated = ifelse(Lag5TreatedF == 0, "no", "yes"), 
-         Invasive = "water hyacinth/lettuce")
+         Invasive = "water\nhyacinth/lettuce")
 
 # combine
 init_pred <- init_hydr_pred %>%
@@ -1685,7 +1695,7 @@ rept_treat <- rept_treatH_pred %>%
   full_join(rept_treatF_pred)
 
 # abundance figures
-pdf("output/native_immigration_invasive_abundance_poster_figure.pdf", width = 5.5, height = 4)
+pdf("output/native_immigration_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
 ggplot(init_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
   geom_line(aes(linetype = sig), size = 1.5) +
@@ -1693,10 +1703,10 @@ ggplot(init_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive
   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
   scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
   fig_theme +
-  labs(x = "Invasive plant abundance", y = "Native species immigration")
+  labs(x = "Invasive plant abundance", y = "Prob. of native species\nimmigration")
 dev.off()
 
-pdf("output/native_extinction_invasive_abundance_poster_figure.pdf", width = 5.5, height = 4)
+pdf("output/native_extinction_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
 ggplot(ext_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
   geom_line(aes(linetype = sig), size = 1.5) +
@@ -1704,10 +1714,10 @@ ggplot(ext_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)
   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
   scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
   fig_theme +
-  labs(x = "Invasive plant abundance", y = "Native species extinction")
+  labs(x = "Invasive plant abundance", y = "Prob. of native species\nextinction")
 dev.off()
 
-pdf("output/native_recolonization_invasive_abundance_poster_figure.pdf", width = 5.5, height = 4)
+pdf("output/native_recolonization_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
 ggplot(rept_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
   geom_line(aes(linetype = sig), size = 1.5) +
@@ -1715,35 +1725,35 @@ ggplot(rept_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive
   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
   scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
   fig_theme +
-  labs(x = "Invasive plant abundance", y = "Native species recolonization")
+  labs(x = "Invasive plant abundance", y = "Prob. of native species\nrecolonization")
 dev.off()
 
 # treatment figures
-pdf("output/native_immigration_herbicide_poster_figure.pdf", width = 5, height = 4)
+pdf("output/native_immigration_herbicide_poster_figure.pdf", width = 6, height = 4)
 ggplot(init_treat, aes(x = Treated, y = Pred)) +
   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
   geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
   scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
   fig_theme +
-  labs(x = "Lake treated?", y = "Native species immigration")
+  labs(x = "Waterbody treated?", y = "Prob. of native species\nimmigration")
 dev.off()
 
-pdf("output/native_extinction_herbicide_poster_figure.pdf", width = 5, height = 4)
+pdf("output/native_extinction_herbicide_poster_figure.pdf", width = 6, height = 4)
 ggplot(ext_treat, aes(x = Treated, y = Pred)) +
   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
   geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
   scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
   fig_theme +
-  labs(x = "Lake treated?", y = "Native species extinction")
+  labs(x = "Waterbody treated?", y = "Prob. of native species\nextinction")
 dev.off()
 
-pdf("output/native_recolonization_herbicide_poster_figure.pdf", width = 5, height = 4)
+pdf("output/native_recolonization_herbicide_poster_figure.pdf", width = 6, height = 4)
 ggplot(rept_treat, aes(x = Treated, y = Pred)) +
   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
   geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
   scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
   fig_theme +
-  labs(x = "Lake treated?", y = "Native species recolonization")
+  labs(x = "Waterbody treated?", y = "Prob. of native species\nrecolonization")
 dev.off()
 
 #### older analyses below ####
