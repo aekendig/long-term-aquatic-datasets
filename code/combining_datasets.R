@@ -240,6 +240,7 @@ taxa_list <- fwc_plant3 %>%
   select(SpeciesName) %>%
   unique() %>%
   mutate(Taxon = str_replace_all(SpeciesName, " spp.| spp| sp.| sp", ""), # for genus-level
+         Taxon = str_replace_all(Taxon, ", sub| \\(exotic\\)| \\(other natives\\)| \\(other\\)|, natives|, emersed", ""), # for origin/growth type
          Taxon = str_replace(Taxon, "\\/.*", ""), # anything after /
          Taxon = str_replace(Taxon, "sub\\.", "ssp."),
          words = str_count(Taxon, pattern = " "))
