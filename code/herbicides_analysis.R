@@ -11,12 +11,15 @@ library(effects)
 library(GGally)
 library(lme4)
 library(glmmTMB)
+library(ggeffects)
 
 # import data
 ctrl_old <- read_csv("intermediate-data/FWC_control_old_formatted.csv")
 ctrl_new <- read_csv("intermediate-data/FWC_control_new_formatted.csv")
 plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 dayDat <- read_csv("intermediate-data/LakeO_day_data_for_model.csv")
+herb_type <- read_csv("intermediate-data/herbicide_types.csv")
+plant_detect <- read_csv("intermediate-data/FWC_plant_survey_first_detection_manual.csv")
 
 # load models
 load("output/lakeO_intraannual_veg_change_mod.rda")
@@ -87,10 +90,10 @@ ctrl_lag_fun <- function(GSYear, Lag, DSet){
   
   # summarize
   outdat <- subdat %>%
-    group_by(PermanentID, SpeciesName, Species, GSYear) %>% # annual summary
+    group_by(PermanentID, TaxonName, Species, GSYear) %>% # annual summary
     summarise(PropTreated = sum(PropTreated)) %>% # add proportion lake treated for all treatments in a year (can exceed 1)
     ungroup() %>%
-    group_by(PermanentID, SpeciesName, Species) %>% # summarize over lag years
+    group_by(PermanentID, TaxonName, Species) %>% # summarize over lag years
     summarise(PropTreated = mean(PropTreated), # average proportion treated per year 
               Treated = as.numeric(PropTreated > 0)) %>%
     ungroup() %>%
@@ -113,10 +116,10 @@ inv_lag_fun <- function(GSYear, Lag){
   
   # summarize
   outdat <- subdat %>%
-    group_by(PermanentID, SpeciesName) %>% # summarize over lag
+    group_by(PermanentID, TaxonName) %>% # summarize over lag
     summarise(PropCovered = mean(PropCovered)) %>%
     ungroup() %>%
-    pivot_wider(names_from = SpeciesName,
+    pivot_wider(names_from = TaxonName,
                 values_from = PropCovered) %>%
     rename(Hydrilla = "Hydrilla verticillata",
            WaterLettuce = "Pistia stratiotes",
@@ -132,7 +135,7 @@ inv_lag_fun <- function(GSYear, Lag){
 time_int_fun <- function(year1){
   
   dat <- inv_fwc2 %>% # all possible surveys
-    filter(SpeciesName == "Hydrilla verticillata")
+    filter(TaxonName == "Hydrilla verticillata" & GSYear < 2020)
   
   dat2 <- dat %>%
     filter(GSYear >= year1 & is.na(EstAreaCovered_ha)) %>% # select missing years
@@ -159,7 +162,7 @@ time_int_fun <- function(year1){
 time_int_fun2 <- function(year1){
   
   dat <- nat_fwc %>% 
-    filter(SpeciesName == nat_fwc$SpeciesName[1]) %>%
+    filter(TaxonName == nat_fwc$TaxonName[1] & GSYear < 2020) %>%
     full_join(inv_fwc2 %>%
                 select(PermanentID, GSYear) %>%
                 unique()) # all possible surveys
@@ -239,10 +242,10 @@ plant_fwc %>%
 inv_fwc <- plant_fwc %>% # start with all surveys
   select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor) %>%
   unique() %>% # one row per survey
-  expand_grid(tibble(SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>% # one row per species per survey
+  expand_grid(tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>% # one row per species per survey
   full_join(plant_fwc %>% # add invasive plant information
-              filter(SpeciesName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")) %>%
-              select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, SpeciesName, SpeciesAcres)) %>%
+              filter(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes")) %>%
+              select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, TaxonName, SpeciesAcres)) %>%
   mutate(SpeciesAcres = replace_na(SpeciesAcres, 0), # cover 0 when it wasn't in a survey
          Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
          AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
@@ -253,12 +256,12 @@ inv_fwc <- plant_fwc %>% # start with all surveys
                             SurveyMonth < 4 ~ SurveyYear - 1), # assume growing season starts in April
          MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
                               SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-"))), # this is for joining dayDat
-         CommonName = case_when(SpeciesName == "Eichhornia crassipes" ~ "Water hyacinth", 
-                                SpeciesName == "Hydrilla verticillata" ~ "Hydrilla", 
-                                SpeciesName == "Pistia stratiotes" ~ "Water lettuce")) %>%
+         CommonName = case_when(TaxonName == "Eichhornia crassipes" ~ "Water hyacinth", 
+                                TaxonName == "Hydrilla verticillata" ~ "Hydrilla", 
+                                TaxonName == "Pistia stratiotes" ~ "Water lettuce")) %>%
   left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
   mutate(AreaChangeSD = lakeO_beta1 * (lakeO_days-Days) + lakeO_beta2 * (lakeO_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
-  group_by(AreaOfInterestID, SpeciesName) %>% # take standard deviation by survey area and species
+  group_by(AreaOfInterestID, TaxonName) %>% # take standard deviation by survey area and species
   mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha)) %>% # calculate est. max abundance, NA if only one value is available
   ungroup() %>%
   left_join(surveyor2) # surveyor experience
@@ -270,7 +273,7 @@ inv_fwc2 <- inv_fwc %>%
   mutate(newdata = map(data, ~rem_dups_fun(.))) %>% # remove duplicates
   select(-data) %>% # removes 123 rows of data
   unnest(newdata) %>%
-  group_by(PermanentID, Area_ha, GSYear, SpeciesName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
+  group_by(PermanentID, Area_ha, GSYear, TaxonName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
             SurveyDate = max(SurveyDate),
             SurveyorExperience = mean(SurveyorExperience, na.rm = T),
@@ -290,10 +293,10 @@ inv_fwc2 <- inv_fwc %>%
                                     SpeciesAcres == 0 ~ 0),
          SurveyorExperienceB =  fct_relevel(SurveyorExperienceB, "high", "medium", "low")) %>%
   full_join(inv_fwc %>% # add row for every year for each site/species combo (NA's for missing surveys)
-              select(PermanentID, SpeciesName) %>%
+              select(PermanentID, TaxonName) %>%
               unique() %>%
               expand_grid(GSYear = min(inv_fwc$GSYear):max(inv_fwc$GSYear))) %>%
-  group_by(PermanentID, SpeciesName) %>%
+  group_by(PermanentID, TaxonName) %>%
   arrange(GSYear) %>% 
   mutate(PrevPropCovered = lag(PropCovered),
          PrevPropCoveredAdj = lag(PropCoveredAdj)) %>% # previous year's PropCovered
@@ -302,7 +305,7 @@ inv_fwc2 <- inv_fwc %>%
 
 # check that there are no duplicates in same year
 inv_fwc2 %>%
-  group_by(PermanentID, GSYear, SpeciesName) %>%
+  group_by(PermanentID, GSYear, TaxonName) %>%
   count() %>%
   filter(n > 1)
 
@@ -406,7 +409,7 @@ ctrl_new2 <- ctrl_new %>%
          AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make full area if it exceeds it
                                     TRUE ~ AreaTreated_ha),
          PropTreated = AreaTreated_ha / Area_ha,
-         TreatmentMethod = paste(unique(ControlMethod), collapse = ", "),
+         TreatmentMethod = paste(sort(unique(ControlMethod)), collapse = " + "),
          TreatmentYear = year(BeginDate),
          TreatmentMonth = month(BeginDate),
          TreatmentID = as.character(TreatmentID),
@@ -452,9 +455,9 @@ write_csv(ctrl, "intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_form
 # if plant survey occurred before treatment, move treatment to following year
 ctrl_inv <- ctrl %>%
   full_join(tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants
-                   SpeciesName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>%
+                   TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))) %>%
   left_join(inv_fwc3 %>%
-              select(PermanentID, SpeciesName, SurveyDate, GSYear) %>% 
+              select(PermanentID, TaxonName, SurveyDate, GSYear) %>% 
               unique()) %>% # add survey dates for each lake and year
   mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
          GSYear = case_when(is.na(SurveyTreatDays) | SurveyTreatDays >= 14 ~ GSYear, # no survey/survey after treatment -> keep year
@@ -475,18 +478,18 @@ ctrl_inv2 <- ctrl_inv %>%
 # combine treatment and invasion datasets
 inv_ctrl <- inv_fwc3 %>%
   inner_join(ctrl_inv2) %>% # only include data from both datasets
-  group_by(SpeciesName) %>%
+  group_by(TaxonName) %>%
   mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
   ungroup() %>%
   filter(!is.na(PrevPropCovered)) #  missing initial pop abundance
 
 # check for missing data
 inv_fwc3 %>%
-  select(PermanentID, SpeciesName, GSYear) %>%
+  select(PermanentID, TaxonName, GSYear) %>%
   unique() %>%
   filter(GSYear >= 1998) %>%
   anti_join(inv_ctrl %>%
-              select(PermanentID, SpeciesName, GSYear) %>%
+              select(PermanentID, TaxonName, GSYear) %>%
               unique()) %>%
   select(PermanentID) %>%
   unique() %>% # 210 total
@@ -504,7 +507,7 @@ write_csv(inv_ctrl, "intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_her
 
 # one origin per species?
 plant_fwc %>%
-  group_by(SpeciesName) %>%
+  group_by(TaxonName) %>%
   summarise(orig = length(unique(Origin))) %>%
   ungroup() %>%
   filter(orig != 1)
@@ -516,32 +519,46 @@ plant_fwc %>%
   unique()
 
 # first year detected
-nat_first_detect <- plant_fwc %>%
-  filter(Origin == "Native") %>%
-  group_by(PermanentID, SpeciesName) %>%
-  summarise(FirstDetect = min(SurveyDate)) %>%
+first_detect <- plant_fwc %>%
+  group_by(TaxonName, PermanentID) %>%
+  summarise(FirstDetect = min(SurveyDate),
+            FirstYear = min(SurveyYear)) %>%
   ungroup()
+
+# first detection across all lakes
+plant_fwc %>%
+  group_by(TaxonName) %>%
+  summarise(FirstYear = min(SurveyYear)) %>%
+  ggplot(aes(x = FirstYear)) +
+  geom_bar()
+
+# use species from first two years
+sort(unique(first_detect$FirstYear))[1:2]
 
 # native species data missing 2000-20001
 plant_fwc %>%
   filter(Origin == "Native") %>% 
   filter(year(SurveyDate) %in% c(2000, 20001) & IsDetected == "Yes")
 
+# species samples continuously 
+plant_cont <- plant_detect %>%
+  filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)))
+
 # select native species
 # used clustering algorithm in Open Refine to look for mispelled names (none)
 nat_fwc <- plant_fwc %>%
-  filter(Origin == "Native") %>%
-  select(SpeciesName, Habitat, HabitatShortName) %>%
+  filter(TaxonName %in% plant_cont$TaxonName & Origin == "Native") %>%
+  select(TaxonName, Habitat, HabitatShortName) %>%
   unique() %>% # full native species list
   expand_grid(plant_fwc %>%
                 select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor) %>%
                 unique()) %>% # full survey list (row for every species in every survey)
   full_join(plant_fwc %>%
-              filter(Origin == "Native") %>%
-              select(SpeciesName, Habitat, HabitatShortName, 
+              filter(TaxonName %in% plant_cont$TaxonName & Origin == "Native") %>%
+              select(TaxonName, Habitat, HabitatShortName, 
                      AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, 
                      IsDetected)) %>% # add detection data (only "Yes")
-  full_join(nat_first_detect) %>% # add first detection date
+  left_join(first_detect %>% select(TaxonName, PermanentID, FirstDetect)) %>% # add first detection date
   left_join(surveyor2) %>% # add surveyor experience
   mutate(IsDetected = replace_na(IsDetected, "No"),
          IsDetected = case_when(year(SurveyDate) %in% c(2000, 2001) ~ NA_character_, # no native species these years
@@ -561,7 +578,7 @@ nat_fwc %>%
   summarise(surveys = length(unique(SurveyDate))) %>%
   ungroup() %>%
   filter(surveys > 1) 
-# 41 AOIs have multiple surveys in a year
+# 40 AOIs have multiple surveys in a year
 
 # check that FirstDetect is accurate
 nat_fwc %>%
@@ -589,35 +606,36 @@ nat_area <- nat_fwc %>%
             SDArea = sd(Area_ha))
 
 # initial immigration dataset
-nat_init_imm <- nat_fwc %>%
-  filter(SurveyDate <= FirstDetect) %>% # remove surveys after first detection
-  group_by(PermanentID, Area_ha, GSYear, SpeciesName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
-  summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
-            Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
-            SurveyDate = max(SurveyDate), # last survey each growing season
-            SurveyorExperience = mean(SurveyorExperience, na.rm = T)) %>%
-  ungroup() %>%
-  group_by(PermanentID, SpeciesName) %>%
-  arrange(SurveyDate) %>%
-  mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate)), # days between surveys
-         FirstGS = min(GSYear)) %>%
-  ungroup() %>%
-  mutate(SurveyorExperienceB = case_when(SurveyorExperience <= 125 ~ "low",
-                                         SurveyorExperience > 125 & SurveyorExperience <= 336 ~ "medium",
-                                         SurveyorExperience > 336 ~ "high") %>%
-           fct_relevel("high", "medium", "low")) %>%
-  filter(GSYear > FirstGS) # remove first year (no interval)
+# not going to do this analysis because selected for species present in initial surveys
+# nat_init_imm <- nat_fwc %>%
+#   filter(SurveyDate <= FirstDetect) %>% # remove surveys after first detection
+#   group_by(PermanentID, Area_ha, GSYear, TaxonName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
+#   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
+#             Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
+#             SurveyDate = max(SurveyDate), # last survey each growing season
+#             SurveyorExperience = mean(SurveyorExperience, na.rm = T)) %>%
+#   ungroup() %>%
+#   group_by(PermanentID, TaxonName) %>%
+#   arrange(SurveyDate) %>%
+#   mutate(SurveyInterval = as.numeric(SurveyDate - lag(SurveyDate)), # days between surveys
+#          FirstGS = min(GSYear)) %>%
+#   ungroup() %>%
+#   mutate(SurveyorExperienceB = case_when(SurveyorExperience <= 125 ~ "low",
+#                                          SurveyorExperience > 125 & SurveyorExperience <= 336 ~ "medium",
+#                                          SurveyorExperience > 336 ~ "high") %>%
+#            fct_relevel("high", "medium", "low")) %>%
+#   filter(GSYear > FirstGS) # remove first year (no interval)
 
 # ext/repeat imm dataset
 nat_post_imm <- nat_fwc %>%
   filter(SurveyDate >= FirstDetect) %>% # remove surveys before first detection
-  group_by(PermanentID, Area_ha, GSYear, SpeciesName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
+  group_by(PermanentID, Area_ha, GSYear, TaxonName, Habitat, HabitatShortName) %>% # summarize over multiple surveys per year and lake
   summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
             Detected = as.numeric(sum(Detected) > 0), # was species detected that growing season?
             SurveyDate = max(SurveyDate), # last survey each growing season
             SurveyorExperience = mean(SurveyorExperience, na.rm = T)) %>%
   ungroup() %>%
-  group_by(PermanentID, SpeciesName) %>%
+  group_by(PermanentID, TaxonName) %>%
   arrange(GSYear) %>%
   mutate(FirstGS = min(GSYear),
          Extinct = case_when(lag(Detected) == 1 & Detected == 1 ~ 0,
@@ -665,17 +683,17 @@ unique(nat_rept_imm$Window)
 
 # modify control data to join native datasets
 # if plant survey occurred before treatment, move treatment to following year
-ctrl_nat_init_imm <- ctrl %>%
-  left_join(nat_init_imm %>%
-              select(PermanentID, SpeciesName, GSYear, SurveyDate) %>%
-              unique()) %>% # add survey dates for each lake and year
-  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
-         GSYear = case_when(SurveyTreatDays >= 14 | is.na(SurveyTreatDays) ~ GSYear, # survey after treatment/no survey -> keep year
-                            SurveyTreatDays < 14 ~ GSYear + 1)) # survey before or very soon after treatment -> move treatment to next year
+# ctrl_nat_init_imm <- ctrl %>%
+#   left_join(nat_init_imm %>%
+#               select(PermanentID, TaxonName, GSYear, SurveyDate) %>%
+#               unique()) %>% # add survey dates for each lake and year
+#   mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
+#          GSYear = case_when(SurveyTreatDays >= 14 | is.na(SurveyTreatDays) ~ GSYear, # survey after treatment/no survey -> keep year
+#                             SurveyTreatDays < 14 ~ GSYear + 1)) # survey before or very soon after treatment -> move treatment to next year
 
 ctrl_nat_ext <- ctrl %>%
   left_join(nat_ext %>%
-              select(PermanentID, SpeciesName, GSYear, SurveyDate) %>%
+              select(PermanentID, TaxonName, GSYear, SurveyDate) %>%
               unique()) %>% # add survey dates for each lake and year
   mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
          GSYear = case_when(SurveyTreatDays >= 14 | is.na(SurveyTreatDays) ~ GSYear, # survey after treatment/no survey -> keep year
@@ -683,25 +701,25 @@ ctrl_nat_ext <- ctrl %>%
 
 ctrl_nat_rept_imm <- ctrl %>%
   left_join(nat_rept_imm %>%
-              select(PermanentID, SpeciesName, GSYear, SurveyDate) %>%
+              select(PermanentID, TaxonName, GSYear, SurveyDate) %>%
               unique()) %>% # add survey dates for each lake and year
   mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
          GSYear = case_when(SurveyTreatDays >= 14 | is.na(SurveyTreatDays) ~ GSYear, # survey after treatment/no survey -> keep year
                             SurveyTreatDays < 14 ~ GSYear + 1)) # survey before or very soon after treatment -> move treatment to next year
 
 # treatments by year and lag
-ctrl_nat_init_imm2 <- ctrl_nat_init_imm %>%
-  select(GSYear) %>%
-  unique() %>%
-  expand_grid(tibble(Lag = 0:5)) %>% # remove repeat row for each species
-  mutate(DSet = "nat_init_imm") %>%
-  pmap(ctrl_lag_fun) %>% # summarizes ctrl_nat_init_imm for each GS, Lag, PermID, and Sp
-  bind_rows() %>%
-  mutate(Species = fct_recode(Species, "F" = "Floating Plants (Eichhornia and Pistia)",
-                              "H" = "Hydrilla verticillata")) %>%
-  pivot_wider(names_from = c(Lag, Species),
-              values_from = c(PropTreated, Treated),
-              names_glue = "Lag{Lag}{.value}{Species}") # make treatments wide by lag
+# ctrl_nat_init_imm2 <- ctrl_nat_init_imm %>%
+#   select(GSYear) %>%
+#   unique() %>%
+#   expand_grid(tibble(Lag = 0:5)) %>% # remove repeat row for each species
+#   mutate(DSet = "nat_init_imm") %>%
+#   pmap(ctrl_lag_fun) %>% # summarizes ctrl_nat_init_imm for each GS, Lag, PermID, and Sp
+#   bind_rows() %>%
+#   mutate(Species = fct_recode(Species, "F" = "Floating Plants (Eichhornia and Pistia)",
+#                               "H" = "Hydrilla verticillata")) %>%
+#   pivot_wider(names_from = c(Lag, Species),
+#               values_from = c(PropTreated, Treated),
+#               names_glue = "Lag{Lag}{.value}{Species}") # make treatments wide by lag
 
 ctrl_nat_ext2 <- ctrl_nat_ext %>%
   select(GSYear) %>%
@@ -730,15 +748,15 @@ ctrl_nat_rept_imm2 <- ctrl_nat_rept_imm %>%
               names_glue = "Lag{Lag}{.value}{Species}") # make treatments wide by lag
 
 # invasive abundance by year and lag
-inv_nat_init_imm <- nat_init_imm %>%
-  select(GSYear) %>%
-  unique() %>%
-  expand_grid(tibble(Lag = 0:5)) %>%
-  pmap(inv_lag_fun) %>% # summarizes inv_fwc2 for each GS, Lag, PermID, and Sp
-  bind_rows() %>%
-  pivot_wider(names_from = Lag,
-              values_from = c(Hydrilla, WaterLettuce, WaterHyacinth),
-              names_glue = "Lag{Lag}{.value}") # make treatments wide by lag
+# inv_nat_init_imm <- nat_init_imm %>%
+#   select(GSYear) %>%
+#   unique() %>%
+#   expand_grid(tibble(Lag = 0:5)) %>%
+#   pmap(inv_lag_fun) %>% # summarizes inv_fwc2 for each GS, Lag, PermID, and Sp
+#   bind_rows() %>%
+#   pivot_wider(names_from = Lag,
+#               values_from = c(Hydrilla, WaterLettuce, WaterHyacinth),
+#               names_glue = "Lag{Lag}{.value}") # make treatments wide by lag
 
 inv_nat_ext <- nat_ext %>%
   select(GSYear) %>%
@@ -761,28 +779,28 @@ inv_nat_rept_imm <- nat_rept_imm %>%
               names_glue = "Lag{Lag}{.value}") # make treatments wide by lag
 
 # combine dataset for initial immigration
-nat_init_imm2 <- nat_init_imm %>%
-  inner_join(ctrl_nat_init_imm2) %>%
-  left_join(inv_nat_init_imm) %>%
-  mutate(SurveyIntervalCS = (SurveyInterval - nat_interval$MeanInterval) / nat_interval$SDInterval, 
-         Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea) # center/scale variables
+# nat_init_imm2 <- nat_init_imm %>%
+#   inner_join(ctrl_nat_init_imm2) %>%
+#   left_join(inv_nat_init_imm) %>%
+#   mutate(SurveyIntervalCS = (SurveyInterval - nat_interval$MeanInterval) / nat_interval$SDInterval, 
+#          Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea) # center/scale variables
 
 nat_ext2 <- nat_ext %>%
   inner_join(ctrl_nat_ext2) %>%
   left_join(inv_nat_ext) %>%
   mutate(SurveyIntervalCS = (SurveyInterval - nat_interval$MeanInterval) / nat_interval$SDInterval, 
          Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea, # center/scale variables
-         WindowF = paste0(PermanentID, SpeciesName, Window)) 
+         WindowF = paste0(PermanentID, TaxonName, Window)) 
 
 nat_rept_imm2 <- nat_rept_imm %>%
   inner_join(ctrl_nat_rept_imm2) %>%
   left_join(inv_nat_rept_imm) %>%
   mutate(SurveyIntervalCS = (SurveyInterval - nat_interval$MeanInterval) / nat_interval$SDInterval, 
          Area_haCS = (Area_ha - nat_area$MeanArea) / nat_area$SDArea, # center/scale variables
-         WindowF = paste0(PermanentID, SpeciesName, Window)) 
+         WindowF = paste0(PermanentID, TaxonName, Window)) 
 
 # save data
-write_csv(nat_init_imm2, "intermediate-data/FWC_native_initial_immigration_invasion_herbicide_formatted.csv")
+# write_csv(nat_init_imm2, "intermediate-data/FWC_native_initial_immigration_invasion_herbicide_formatted.csv")
 write_csv(nat_ext2, "intermediate-data/FWC_native_extinction_invasion_herbicide_formatted.csv")
 write_csv(nat_rept_imm2, "intermediate-data/FWC_native_repeat_immigration_invasion_herbicide_formatted.csv")
 
@@ -1046,95 +1064,96 @@ save(wahy_mod, file = "output/water_hyacinth_treated_model.rda")
 
 #### native plant initial immigration ####
 
-# did not run these models yet, very slow
-
 # subset for all herbicide and abundance lags
-nat_init_imm3 <- nat_init_imm2 %>%
-  filter(!is.na(Lag0PropTreatedH) & !is.na(Lag1PropTreatedH) & !is.na(Lag2PropTreatedH) & !is.na(Lag3PropTreatedH) & !is.na(Lag4PropTreatedH) & !is.na(Lag5PropTreatedH) & 
-           !is.na(Lag0PropTreatedF) & !is.na(Lag1PropTreatedF) & !is.na(Lag2PropTreatedF) & !is.na(Lag3PropTreatedF) & !is.na(Lag4PropTreatedF) & !is.na(Lag5PropTreatedF) & 
-           !is.na(Lag0Hydrilla) & !is.na(Lag1Hydrilla) & !is.na(Lag2Hydrilla) & !is.na(Lag3Hydrilla) & !is.na(Lag4Hydrilla) & !is.na(Lag5Hydrilla) & 
-           !is.na(Lag0WaterLettuce) & !is.na(Lag1WaterLettuce) & !is.na(Lag2WaterLettuce) & !is.na(Lag3WaterLettuce) & !is.na(Lag4WaterLettuce) & !is.na(Lag5WaterLettuce) & 
-           !is.na(Lag0WaterHyacinth) & !is.na(Lag1WaterHyacinth) & !is.na(Lag2WaterHyacinth) & !is.na(Lag3WaterHyacinth) & !is.na(Lag4WaterHyacinth) & !is.na(Lag5WaterHyacinth) &
-           !is.na(HabitatShortName) & !is.na(SurveyIntervalCS) & !is.na(Area_haCS)) %>%
-  mutate(HabitatShortName = fct_relevel(HabitatShortName, "E", "S", "C", "F", "U"))
-
-# figures
-nat_init_imm3 %>% ggplot(aes(Detected)) + geom_bar()
-nat_init_imm3 %>% ggplot(aes(Area_haCS)) + geom_histogram(binwidth = 0.1)
-nat_init_imm3 %>% ggplot(aes(HabitatShortName)) + geom_bar()
-nat_init_imm3 %>% ggplot(aes(SurveyIntervalCS)) + geom_histogram(binwidth = 0.1)
-nat_init_imm3 %>% ggplot(aes(Lag0PropTreatedH)) + geom_histogram(binwidth = 0.1)
-nat_init_imm3 %>% ggplot(aes(Lag0PropTreatedF)) + geom_histogram(binwidth = 0.1)
-nat_init_imm3 %>% ggplot(aes(Lag0Hydrilla)) + geom_histogram(binwidth = 0.1)
-nat_init_imm3 %>% ggplot(aes(Lag0WaterLettuce)) + geom_histogram(binwidth = 0.1)
-nat_init_imm3 %>% ggplot(aes(Lag0WaterHyacinth)) + geom_histogram(binwidth = 0.1)
-# nat_init_imm3 %>% select(starts_with("Lag0")) %>% ggpairs()
-
-# random effects
-length(unique(nat_init_imm3$GSYear))
-length(unique(nat_init_imm3$SpeciesName))
-length(unique(nat_init_imm3$PermanentID))
-length(unique(nat_init_imm3$WindowF))
-
-# models
-# save right after because they are slow to run
-init_prop0_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_prop0_mod, file = "output/native_initial_imm_lag0_prop_treated_model.rda")
-init_prop1_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_prop1_mod, file = "output/native_initial_imm_lag1_prop_treated_model.rda")
-init_prop2_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_prop2_mod, file = "output/native_initial_imm_lag2_prop_treated_model.rda")
-init_prop3_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_prop3_mod, file = "output/native_initial_imm_lag3_prop_treated_model.rda")
-init_prop4_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_prop4_mod, file = "output/native_initial_imm_lag4_prop_treated_model.rda")
-init_prop5_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_prop5_mod, file = "output/native_initial_imm_lag5_prop_treated_model.rda")
-init_trtd0_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_trtd0_mod, file = "output/native_initial_imm_lag0_bin_treated_model.rda")
-init_trtd1_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_trtd1_mod, file = "output/native_initial_imm_lag1_bin_treated_model.rda")
-init_trtd2_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_trtd2_mod, file = "output/native_initial_imm_lag2_bin_treated_model.rda")
-init_trtd3_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_trtd3_mod, file = "output/native_initial_imm_lag3_bin_treated_model.rda")
-init_trtd4_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_trtd4_mod, file = "output/native_initial_imm_lag4_bin_treated_model.rda")
-init_trtd5_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
-save(init_trtd5_mod, file = "output/native_initial_imm_lag5_bin_treated_model.rda")
-
-# compare models
-AIC(init_prop0_mod, init_prop1_mod, init_prop2_mod, init_prop3_mod, init_prop4_mod, init_prop5_mod,
-    init_trtd0_mod, init_trtd1_mod, init_trtd2_mod, init_trtd3_mod, init_trtd4_mod, init_trtd5_mod) %>%
-  arrange(AIC) %>%
-  mutate(deltaAIC = AIC - min(AIC))
-
-# best model
-summary(init_trtd2_mod)
-
-# use largest possible dataset
-nat_init_imm4 <- nat_init_imm2 %>%
-  filter(!is.na(Lag2TreatedH) & !is.na(Lag2TreatedF) & !is.na(Lag2Hydrilla) & !is.na(Lag2WaterLettuce) & !is.na(Lag2WaterHyacinth) & !is.na(Area_haCS) & !is.na(SurveyIntervalCS))
-
-# figures
-nat_init_imm4 %>% ggplot(aes(Detected)) + geom_bar()
-nat_init_imm4 %>% ggplot(aes(Area_haCS)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(SurveyIntervalCS)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(Lag2TreatedH)) + geom_bar()
-nat_init_imm4 %>% ggplot(aes(Lag2TreatedF)) + geom_bar()
-nat_init_imm4 %>% ggplot(aes(Lag2Hydrilla)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(Lag2WaterLettuce)) + geom_histogram(binwidth = 0.1)
-nat_init_imm4 %>% ggplot(aes(Lag2WaterHyacinth)) + geom_histogram(binwidth = 0.1)
-
-# refit model
-nat_init_mod <- glmmTMB(Detected ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_init_imm4)
-summary(nat_init_mod)
-
-# save models
-save(nat_init_mod, file = "output/native_initial_imm_treated_model.rda")
+# nat_init_imm3 <- nat_init_imm2 %>%
+#   filter(!is.na(Lag0PropTreatedH) & !is.na(Lag1PropTreatedH) & !is.na(Lag2PropTreatedH) & !is.na(Lag3PropTreatedH) & !is.na(Lag4PropTreatedH) & !is.na(Lag5PropTreatedH) & 
+#            !is.na(Lag0PropTreatedF) & !is.na(Lag1PropTreatedF) & !is.na(Lag2PropTreatedF) & !is.na(Lag3PropTreatedF) & !is.na(Lag4PropTreatedF) & !is.na(Lag5PropTreatedF) & 
+#            !is.na(Lag0Hydrilla) & !is.na(Lag1Hydrilla) & !is.na(Lag2Hydrilla) & !is.na(Lag3Hydrilla) & !is.na(Lag4Hydrilla) & !is.na(Lag5Hydrilla) & 
+#            !is.na(Lag0WaterLettuce) & !is.na(Lag1WaterLettuce) & !is.na(Lag2WaterLettuce) & !is.na(Lag3WaterLettuce) & !is.na(Lag4WaterLettuce) & !is.na(Lag5WaterLettuce) & 
+#            !is.na(Lag0WaterHyacinth) & !is.na(Lag1WaterHyacinth) & !is.na(Lag2WaterHyacinth) & !is.na(Lag3WaterHyacinth) & !is.na(Lag4WaterHyacinth) & !is.na(Lag5WaterHyacinth) &
+#            !is.na(HabitatShortName) & !is.na(SurveyIntervalCS) & !is.na(Area_haCS)) %>%
+#   mutate(HabitatShortName = fct_relevel(HabitatShortName, "E", "S", "C", "F", "U"))
+# 
+# # figures
+# nat_init_imm3 %>% ggplot(aes(Detected)) + geom_bar()
+# nat_init_imm3 %>% ggplot(aes(Area_haCS)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm3 %>% ggplot(aes(HabitatShortName)) + geom_bar()
+# nat_init_imm3 %>% ggplot(aes(SurveyIntervalCS)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm3 %>% ggplot(aes(Lag0PropTreatedH)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm3 %>% ggplot(aes(Lag0PropTreatedF)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm3 %>% ggplot(aes(Lag0Hydrilla)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm3 %>% ggplot(aes(Lag0WaterLettuce)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm3 %>% ggplot(aes(Lag0WaterHyacinth)) + geom_histogram(binwidth = 0.1)
+# # nat_init_imm3 %>% select(starts_with("Lag0")) %>% ggpairs()
+# 
+# # random effects
+# length(unique(nat_init_imm3$GSYear))
+# length(unique(nat_init_imm3$TaxonName))
+# length(unique(nat_init_imm3$PermanentID))
+# length(unique(nat_init_imm3$WindowF))
+# 
+# # models
+# # save right after because they are slow to run
+# init_prop0_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_prop0_mod, file = "output/native_initial_imm_lag0_prop_treated_model.rda")
+# init_prop1_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_prop1_mod, file = "output/native_initial_imm_lag1_prop_treated_model.rda")
+# init_prop2_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_prop2_mod, file = "output/native_initial_imm_lag2_prop_treated_model.rda")
+# init_prop3_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_prop3_mod, file = "output/native_initial_imm_lag3_prop_treated_model.rda")
+# init_prop4_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_prop4_mod, file = "output/native_initial_imm_lag4_prop_treated_model.rda")
+# init_prop5_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_prop5_mod, file = "output/native_initial_imm_lag5_prop_treated_model.rda")
+# init_trtd0_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_trtd0_mod, file = "output/native_initial_imm_lag0_bin_treated_model.rda")
+# init_trtd1_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_trtd1_mod, file = "output/native_initial_imm_lag1_bin_treated_model.rda")
+# init_trtd2_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_trtd2_mod, file = "output/native_initial_imm_lag2_bin_treated_model.rda")
+# init_trtd3_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_trtd3_mod, file = "output/native_initial_imm_lag3_bin_treated_model.rda")
+# init_trtd4_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_trtd4_mod, file = "output/native_initial_imm_lag4_bin_treated_model.rda")
+# init_trtd5_mod <- glmer(Detected ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm3)
+# save(init_trtd5_mod, file = "output/native_initial_imm_lag5_bin_treated_model.rda")
+# 
+# # compare models
+# AIC(init_prop0_mod, init_prop1_mod, init_prop2_mod, init_prop3_mod, init_prop4_mod, init_prop5_mod,
+#     init_trtd0_mod, init_trtd1_mod, init_trtd2_mod, init_trtd3_mod, init_trtd4_mod, init_trtd5_mod) %>%
+#   arrange(AIC) %>%
+#   mutate(deltaAIC = AIC - min(AIC))
+# 
+# # best model
+# summary(init_trtd2_mod)
+# 
+# # use largest possible dataset
+# nat_init_imm4 <- nat_init_imm2 %>%
+#   filter(!is.na(Lag2TreatedH) & !is.na(Lag2TreatedF) & !is.na(Lag2Hydrilla) & !is.na(Lag2WaterLettuce) & !is.na(Lag2WaterHyacinth) & !is.na(Area_haCS) & !is.na(SurveyIntervalCS))
+# 
+# # figures
+# nat_init_imm4 %>% ggplot(aes(Detected)) + geom_bar()
+# nat_init_imm4 %>% ggplot(aes(Area_haCS)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm4 %>% ggplot(aes(SurveyIntervalCS)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm4 %>% ggplot(aes(Lag2TreatedH)) + geom_bar()
+# nat_init_imm4 %>% ggplot(aes(Lag2TreatedF)) + geom_bar()
+# nat_init_imm4 %>% ggplot(aes(Lag2Hydrilla)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm4 %>% ggplot(aes(Lag2WaterLettuce)) + geom_histogram(binwidth = 0.1)
+# nat_init_imm4 %>% ggplot(aes(Lag2WaterHyacinth)) + geom_histogram(binwidth = 0.1)
+# 
+# # refit model
+# nat_init_mod <- glmmTMB(Detected ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_init_imm4)
+# summary(nat_init_mod)
+# 
+# # save models
+# save(nat_init_mod, file = "output/native_initial_imm_treated_model.rda")
 
 
 #### native plant repeat immigration ####
+
+# check habitat types
+unique(nat_rept_imm2$Habitat)
 
 # subset for all herbicide and abundance lags
 nat_rept_imm3 <- nat_rept_imm2 %>%
@@ -1143,8 +1162,7 @@ nat_rept_imm3 <- nat_rept_imm2 %>%
            !is.na(Lag0Hydrilla) & !is.na(Lag1Hydrilla) & !is.na(Lag2Hydrilla) & !is.na(Lag3Hydrilla) & !is.na(Lag4Hydrilla) & !is.na(Lag5Hydrilla) & 
            !is.na(Lag0WaterLettuce) & !is.na(Lag1WaterLettuce) & !is.na(Lag2WaterLettuce) & !is.na(Lag3WaterLettuce) & !is.na(Lag4WaterLettuce) & !is.na(Lag5WaterLettuce) & 
            !is.na(Lag0WaterHyacinth) & !is.na(Lag1WaterHyacinth) & !is.na(Lag2WaterHyacinth) & !is.na(Lag3WaterHyacinth) & !is.na(Lag4WaterHyacinth) & !is.na(Lag5WaterHyacinth) &
-           !is.na(HabitatShortName) & !is.na(SurveyIntervalCS) & !is.na(Area_haCS) & !is.na(WindowF)) %>%
-  mutate(HabitatShortName = fct_relevel(HabitatShortName, "E", "S", "F", "C", "U"))
+           !is.na(SurveyIntervalCS) & !is.na(Area_haCS))
 
 # figures
 nat_rept_imm3 %>% ggplot(aes(RepeatImm)) + geom_bar()
@@ -1157,30 +1175,33 @@ nat_rept_imm3 %>% ggplot(aes(Lag0Hydrilla)) + geom_histogram(binwidth = 0.1)
 nat_rept_imm3 %>% ggplot(aes(Lag0WaterLettuce)) + geom_histogram(binwidth = 0.1)
 nat_rept_imm3 %>% ggplot(aes(Lag0WaterHyacinth)) + geom_histogram(binwidth = 0.1)
 # nat_rept_imm3 %>% select(starts_with("Lag0")) %>% ggpairs()
+# correlations ~ 0.4 between invasive species and their treatment types
 
 # random effects
 length(unique(nat_rept_imm3$GSYear))
-length(unique(nat_rept_imm3$SpeciesName))
+length(unique(nat_rept_imm3$TaxonName))
 length(unique(nat_rept_imm3$PermanentID))
 length(unique(nat_rept_imm3$WindowF))
 
 # models
-rept_prop0_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_prop1_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_prop2_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_prop3_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_prop4_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_prop5_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_trtd0_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_trtd1_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_trtd2_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_trtd3_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_trtd4_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-rept_trtd5_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
-# rept_prop4_mod didn't converge
+rept_prop0_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_prop1_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_prop2_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_prop3_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_prop4_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_prop5_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_trtd0_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_trtd1_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_trtd2_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_trtd3_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_trtd4_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+rept_trtd5_mod <- glmer(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm3)
+# rept_prop2_mod and rept_prop5_mod  didn't converge
+# rept_prop4_mod error: no applicable method for 'depth' applied to an object of class "NULL"
+# rept_trtd5_mod error: no applicable method for 'depth' applied to an object of class "NULL"
 
 # compare models
-AIC(rept_prop0_mod, rept_prop1_mod, rept_prop2_mod, rept_prop3_mod, rept_prop4_mod, rept_prop5_mod,
+AIC(rept_prop0_mod, rept_prop1_mod, rept_prop3_mod, rept_prop4_mod,
     rept_trtd0_mod, rept_trtd1_mod, rept_trtd2_mod, rept_trtd3_mod, rept_trtd4_mod, rept_trtd5_mod) %>%
   arrange(AIC) %>%
   mutate(deltaAIC = AIC - min(AIC))
@@ -1203,7 +1224,7 @@ nat_rept_imm4 %>% ggplot(aes(Lag5WaterLettuce)) + geom_histogram(binwidth = 0.1)
 nat_rept_imm4 %>% ggplot(aes(Lag5WaterHyacinth)) + geom_histogram(binwidth = 0.1)
 
 # refit model
-nat_rept_mod <- glmmTMB(RepeatImm ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_rept_imm4)
+nat_rept_mod <- glmmTMB(RepeatImm ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_rept_imm4)
 summary(nat_rept_mod)
 
 # save models
@@ -1224,6 +1245,9 @@ save(nat_rept_mod, file = "output/native_repeat_imm_treated_model.rda")
 
 #### native plant extinction ####
 
+# check habitat types
+unique(nat_ext2$Habitat)
+
 # subset for all herbicide and abundance lags
 nat_ext3 <- nat_ext2 %>%
   filter(!is.na(Lag0PropTreatedH) & !is.na(Lag1PropTreatedH) & !is.na(Lag2PropTreatedH) & !is.na(Lag3PropTreatedH) & !is.na(Lag4PropTreatedH) & !is.na(Lag5PropTreatedH) & 
@@ -1231,8 +1255,7 @@ nat_ext3 <- nat_ext2 %>%
            !is.na(Lag0Hydrilla) & !is.na(Lag1Hydrilla) & !is.na(Lag2Hydrilla) & !is.na(Lag3Hydrilla) & !is.na(Lag4Hydrilla) & !is.na(Lag5Hydrilla) & 
            !is.na(Lag0WaterLettuce) & !is.na(Lag1WaterLettuce) & !is.na(Lag2WaterLettuce) & !is.na(Lag3WaterLettuce) & !is.na(Lag4WaterLettuce) & !is.na(Lag5WaterLettuce) & 
            !is.na(Lag0WaterHyacinth) & !is.na(Lag1WaterHyacinth) & !is.na(Lag2WaterHyacinth) & !is.na(Lag3WaterHyacinth) & !is.na(Lag4WaterHyacinth) & !is.na(Lag5WaterHyacinth) &
-           !is.na(HabitatShortName) & !is.na(SurveyIntervalCS) & !is.na(Area_haCS) & !is.na(WindowF)) %>%
-  mutate(HabitatShortName = fct_relevel(HabitatShortName, "E", "S", "F", "C", "U"))
+           !is.na(SurveyIntervalCS) & !is.na(Area_haCS))
 
 # figures
 nat_ext3 %>% ggplot(aes(Extinct)) + geom_bar()
@@ -1248,23 +1271,46 @@ nat_ext3 %>% ggplot(aes(Lag0WaterHyacinth)) + geom_histogram(binwidth = 0.1)
 
 # random effects
 length(unique(nat_ext3$GSYear))
-length(unique(nat_ext3$SpeciesName))
+length(unique(nat_ext3$TaxonName))
 length(unique(nat_ext3$PermanentID))
 length(unique(nat_ext3$WindowF))
 
 # models
-ext_prop0_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_prop1_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_prop2_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_prop3_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_prop4_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_prop5_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_trtd0_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_trtd1_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_trtd2_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_trtd3_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_trtd4_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
-ext_trtd5_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+ext_prop0_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag0PropTreatedH + Lag0PropTreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_prop0_mod, file = "output/native_extinction_lag0_prop_treated_model.rda")
+
+ext_prop1_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag1PropTreatedH + Lag1PropTreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_prop1_mod, file = "output/native_extinction_lag1_prop_treated_model.rda")
+
+ext_prop2_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag2PropTreatedH + Lag2PropTreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_prop2_mod, file = "output/native_extinction_lag2_prop_treated_model.rda")
+
+ext_prop3_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag3PropTreatedH + Lag3PropTreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_prop3_mod, file = "output/native_extinction_lag3_prop_treated_model.rda")
+
+ext_prop4_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag4PropTreatedH + Lag4PropTreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_prop4_mod, file = "output/native_extinction_lag4_prop_treated_model.rda")
+
+ext_prop5_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag5PropTreatedH + Lag5PropTreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_prop5_mod, file = "output/native_extinction_lag5_prop_treated_model.rda")
+
+ext_trtd0_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag0TreatedH + Lag0TreatedF + Lag0Hydrilla + Lag0WaterLettuce + Lag0WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_trtd0_mod, file = "output/native_extinction_lag0_bin_treated_model.rda")
+
+ext_trtd1_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag1TreatedH + Lag1TreatedF + Lag1Hydrilla + Lag1WaterLettuce + Lag1WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_trtd1_mod, file = "output/native_extinction_lag1_bin_treated_model.rda")
+
+ext_trtd2_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag2TreatedH + Lag2TreatedF + Lag2Hydrilla + Lag2WaterLettuce + Lag2WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_trtd2_mod, file = "output/native_extinction_lag2_bin_treated_model.rda")
+
+ext_trtd3_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag3TreatedH + Lag3TreatedF + Lag3Hydrilla + Lag3WaterLettuce + Lag3WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_trtd3_mod, file = "output/native_extinction_lag3_bin_treated_model.rda")
+
+ext_trtd4_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag4TreatedH + Lag4TreatedF + Lag4Hydrilla + Lag4WaterLettuce + Lag4WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_trtd4_mod, file = "output/native_extinction_lag4_bin_treated_model.rda")
+
+ext_trtd5_mod <- glmer(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext3)
+save(ext_trtd5_mod, file = "output/native_extinction_lag5_bin_treated_model.rda")
 
 # compare models
 AIC(ext_prop0_mod, ext_prop1_mod, ext_prop2_mod, ext_prop3_mod, ext_prop4_mod, ext_prop5_mod,
@@ -1290,22 +1336,8 @@ nat_ext4 %>% ggplot(aes(Lag5WaterLettuce)) + geom_histogram(binwidth = 0.1)
 nat_ext4 %>% ggplot(aes(Lag5WaterHyacinth)) + geom_histogram(binwidth = 0.1)
 
 # refit model
-nat_ext_mod <- glmmTMB(Extinct ~ Area_haCS + SurveyIntervalCS + Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth + (1|GSYear) + (1|SpeciesName) + (1|PermanentID), family = binomial(), data = nat_ext4)
+nat_ext_mod <- glmmTMB(Extinct ~ Area_haCS + SurveyIntervalCS + HabitatShortName * (Lag5TreatedH + Lag5TreatedF + Lag5Hydrilla + Lag5WaterLettuce + Lag5WaterHyacinth) + (1|GSYear) + (1|TaxonName) + (1|PermanentID), family = binomial(), data = nat_ext4)
 summary(nat_ext_mod)
-
-# save models
-save(ext_prop0_mod, file = "output/native_extinction_lag0_prop_treated_model.rda")
-save(ext_prop1_mod, file = "output/native_extinction_lag1_prop_treated_model.rda")
-save(ext_prop2_mod, file = "output/native_extinction_lag2_prop_treated_model.rda")
-save(ext_prop3_mod, file = "output/native_extinction_lag3_prop_treated_model.rda")
-save(ext_prop4_mod, file = "output/native_extinction_lag4_prop_treated_model.rda")
-save(ext_prop5_mod, file = "output/native_extinction_lag5_prop_treated_model.rda")
-save(ext_trtd0_mod, file = "output/native_extinction_lag0_bin_treated_model.rda")
-save(ext_trtd1_mod, file = "output/native_extinction_lag1_bin_treated_model.rda")
-save(ext_trtd2_mod, file = "output/native_extinction_lag2_bin_treated_model.rda")
-save(ext_trtd3_mod, file = "output/native_extinction_lag3_bin_treated_model.rda")
-save(ext_trtd4_mod, file = "output/native_extinction_lag4_bin_treated_model.rda")
-save(ext_trtd5_mod, file = "output/native_extinction_lag5_bin_treated_model.rda")
 save(nat_ext_mod, file = "output/native_extinction_treated_model.rda")
 
 
@@ -1368,7 +1400,7 @@ inv_time_int %>%
 
 # filter 
 inv_time_int2 <- inv_fwc2 %>%
-  filter(GSYear >= 1994 & GSYear <= (1994 + 26)) %>%
+  filter(GSYear >= 1994 & GSYear < (1994 + 26)) %>%
   group_by(PermanentID) %>%
   mutate(NAVals = sum(is.na(EstAreaCovered_ha))) %>%
   ungroup() %>%
@@ -1402,7 +1434,7 @@ dev.off()
 #   unique() %>%
 #   mutate(out = map(GSYear, time_int_fun2)) %>%
 #   unnest(cols = out) %>%
-#   mutate(data_points = years_out * lakes) 
+#   mutate(data_points = years_out * lakes)
 # 
 # ggplot(nat_time_int, aes(x = data_points)) +
 #   geom_histogram()
@@ -1411,10 +1443,10 @@ dev.off()
 # nat_time_int %>%
 #   filter(data_points == max(data_points))
 # 
-# # filter 
+# # filter
 # # remove last year (not full data)
 # nat_time_int2 <- nat_fwc %>%
-#   filter(GSYear >= 2002 & GSYear <= (2002 + 17)) %>%
+#   filter(GSYear >= 2002 & GSYear < (2002 + 18)) %>%
 #   full_join(nat_fwc %>%
 #               select(PermanentID) %>%
 #               unique() %>%
@@ -1441,7 +1473,7 @@ length(unique(nat_time_int$PermanentID))
 # summarize and plot
 pdf("output/native_richness_time_series_poster_figure.pdf", width = 5, height = 4)
 nat_time_int %>%
-  group_by(GSYear, SpeciesName) %>%
+  group_by(GSYear, TaxonName) %>%
   summarise(Detected = as.numeric(sum(Detected) > 0)) %>%
   ungroup() %>%
   group_by(GSYear) %>%
@@ -1455,6 +1487,16 @@ nat_time_int %>%
   theme(axis.text.x = element_text(size = 18, color = "black", angle = 30, hjust = 1, vjust = 1)) +
   labs(x = "Year", y = "Native species richness")
 dev.off()
+
+# similar figure with longest continuous native species dataset
+
+# are all species in 2020 survey?
+nat_time_int2 %>%
+  select(TaxonName) %>%
+  unique() %>%
+  left_join(plant_detect) %>%
+  filter(Survey2020 != 1)
+# all were in survey
 
 
 #### invasive plant figure ####
@@ -1510,61 +1552,64 @@ dev.off()
 #### native plant figures ####
 
 # predicted values
-init_hydr_pred <- tibble(Lag2Hydrilla = seq(min(nat_init_imm4$Lag2Hydrilla), max(nat_init_imm4$Lag2Hydrilla), length.out = 100)) %>%
-  mutate(Area_haCS = 0,
-         SurveyIntervalCS = 0,
-         Lag2TreatedH = 0,
-         Lag2TreatedF = 0,  
-         Lag2WaterLettuce = mean(nat_init_imm4$Lag2WaterLettuce),
-         Lag2WaterHyacinth = mean(nat_init_imm4$Lag2WaterHyacinth),
-         GSYear = nat_init_imm4$GSYear[1],
-         PermanentID = nat_init_imm4$PermanentID[1],
-         SpeciesName = nat_init_imm4$SpeciesName[1]) %>%
-  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
-         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
-         Invasive = "hydrilla",
-         Abundance = Lag2Hydrilla)
-
-init_wale_pred <- init_hydr_pred %>%
-  mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
-         Lag2WaterLettuce = seq(min(nat_init_imm4$Lag2WaterLettuce), max(nat_init_imm4$Lag2WaterLettuce), length.out = 100)) %>%
-  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
-         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes", 
-         Invasive = "water lettuce",
-         Abundance = Lag2WaterLettuce)
-
-init_wahy_pred <- init_hydr_pred %>%
-  mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
-         Lag2WaterHyacinth = seq(min(nat_init_imm4$Lag2WaterHyacinth), max(nat_init_imm4$Lag2WaterHyacinth), length.out = 100)) %>%
-  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
-         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
-         Invasive = "water hyacinth",
-         Abundance = Lag2WaterHyacinth)
-
-init_treatH_pred <- init_hydr_pred %>%
-  mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
-         Lag2TreatedH = rep(c(0, 1), 50)) %>%
-  select(-c(Pred, PredSE, Abundance)) %>%
-  unique() %>%
-  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
-         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes",
-         Treated = ifelse(Lag2TreatedH == 0, "no", "yes"), 
-         Invasive = "hydrilla")
-
-init_treatF_pred <- init_treatH_pred %>%
-  mutate(Lag2TreatedH = 0,
-         Lag2TreatedF = c(0, 1)) %>%
-  mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
-         PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes",
-         Treated = ifelse(Lag2TreatedF == 0, "no", "yes"), 
-         Invasive = "water\nhyacinth/lettuce")
+# init_hydr_pred <- tibble(Lag2Hydrilla = seq(min(nat_init_imm4$Lag2Hydrilla), max(nat_init_imm4$Lag2Hydrilla), length.out = 100)) %>%
+#   mutate(Area_haCS = 0,
+#          SurveyIntervalCS = 0,
+#          Lag2TreatedH = 0,
+#          Lag2TreatedF = 0,  
+#          Lag2WaterLettuce = mean(nat_init_imm4$Lag2WaterLettuce),
+#          Lag2WaterHyacinth = mean(nat_init_imm4$Lag2WaterHyacinth),
+#          GSYear = nat_init_imm4$GSYear[1],
+#          PermanentID = nat_init_imm4$PermanentID[1],
+#          TaxonName = nat_init_imm4$TaxonName[1]) %>%
+#   mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+#          PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+#          sig = "no", 
+#          Invasive = "hydrilla",
+#          Abundance = Lag2Hydrilla)
+# 
+# init_wale_pred <- init_hydr_pred %>%
+#   mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
+#          Lag2WaterLettuce = seq(min(nat_init_imm4$Lag2WaterLettuce), max(nat_init_imm4$Lag2WaterLettuce), length.out = 100)) %>%
+#   mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+#          PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+#          sig = "yes", 
+#          Invasive = "water lettuce",
+#          Abundance = Lag2WaterLettuce)
+# 
+# init_wahy_pred <- init_hydr_pred %>%
+#   mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
+#          Lag2WaterHyacinth = seq(min(nat_init_imm4$Lag2WaterHyacinth), max(nat_init_imm4$Lag2WaterHyacinth), length.out = 100)) %>%
+#   mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+#          PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+#          sig = "no", 
+#          Invasive = "water hyacinth",
+#          Abundance = Lag2WaterHyacinth)
+# 
+# init_treatH_pred <- init_hydr_pred %>%
+#   mutate(Lag2Hydrilla = mean(nat_init_imm4$Lag2Hydrilla),
+#          Lag2TreatedH = rep(c(0, 1), 50)) %>%
+#   select(-c(Pred, PredSE, Abundance)) %>%
+#   unique() %>%
+#   mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+#          PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+#          sig = "yes",
+#          Treated = ifelse(Lag2TreatedH == 0, "no", "yes"), 
+#          Invasive = "hydrilla")
+# 
+# init_treatF_pred <- init_treatH_pred %>%
+#   mutate(Lag2TreatedH = 0,
+#          Lag2TreatedF = c(0, 1)) %>%
+#   mutate(Pred = predict(nat_init_mod, newdata = ., type = "response", re.form = NA),
+#          PredSE = predict(nat_init_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
+#          sig = "yes",
+#          Treated = ifelse(Lag2TreatedF == 0, "no", "yes"), 
+#          Invasive = "water\nhyacinth/lettuce")
 
 ext_hydr_pred <- tibble(Lag5Hydrilla = seq(min(nat_ext4$Lag5Hydrilla), max(nat_ext4$Lag5Hydrilla), length.out = 100)) %>%
+  expand_grid(nat_ext4 %>%
+                select(Habitat, HabitatShortName) %>%
+                unique()) %>%
   mutate(Area_haCS = 0,
          SurveyIntervalCS = 0,
          Lag5TreatedH = 0,
@@ -1573,52 +1618,65 @@ ext_hydr_pred <- tibble(Lag5Hydrilla = seq(min(nat_ext4$Lag5Hydrilla), max(nat_e
          Lag5WaterHyacinth = mean(nat_ext4$Lag5WaterHyacinth),
          GSYear = nat_ext4$GSYear[1],
          PermanentID = nat_ext4$PermanentID[1],
-         SpeciesName = nat_ext4$SpeciesName[1]) %>%
+         TaxonName = nat_ext4$TaxonName[1]) %>%
   mutate(Pred = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "yes",
+                         HabitatShortName == "S" ~ "no"),
          Invasive = "hydrilla",
          Abundance = Lag5Hydrilla)
 
 ext_wale_pred <- ext_hydr_pred %>%
   mutate(Lag5Hydrilla = mean(nat_ext4$Lag5Hydrilla),
-         Lag5WaterLettuce = seq(min(nat_ext4$Lag5WaterLettuce), max(nat_ext4$Lag5WaterLettuce), length.out = 100)) %>%
+         Lag5WaterLettuce = rep(seq(min(nat_ext4$Lag5WaterLettuce), max(nat_ext4$Lag5WaterLettuce), length.out = 100), each = 3)) %>%
   mutate(Pred = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes", 
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "no",
+                         HabitatShortName == "S" ~ "no"),
          Invasive = "water lettuce",
          Abundance = Lag5WaterLettuce)
 
 ext_wahy_pred <- ext_hydr_pred %>%
   mutate(Lag5Hydrilla = mean(nat_ext4$Lag5Hydrilla),
-         Lag5WaterHyacinth = seq(min(nat_ext4$Lag5WaterHyacinth), max(nat_ext4$Lag5WaterHyacinth), length.out = 100)) %>%
+         Lag5WaterHyacinth = rep(seq(min(nat_ext4$Lag5WaterHyacinth), max(nat_ext4$Lag5WaterHyacinth), length.out = 100), each = 3)) %>%
   mutate(Pred = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "yes",
+                         HabitatShortName == "S" ~ "yes"), 
          Invasive = "water hyacinth",
          Abundance = Lag5WaterHyacinth)
 
 ext_treatH_pred <- ext_hydr_pred %>%
-  mutate(Lag5Hydrilla = mean(nat_ext4$Lag5Hydrilla),
-         Lag5TreatedH = rep(c(0, 1), 50)) %>%
-  select(-c(Pred, PredSE, Abundance)) %>%
+  mutate(Lag5Hydrilla = mean(nat_ext4$Lag5Hydrilla)) %>%
+  select(-c(Pred, PredSE, Abundance, Lag5TreatedH)) %>%
   unique() %>%
+  expand_grid(tibble(Lag5TreatedH = c(0, 1))) %>%
   mutate(Pred = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes",
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "no",
+                         HabitatShortName == "S" ~ "no"), 
          Treated = ifelse(Lag5TreatedH == 0, "no", "yes"), 
          Invasive = "hydrilla")
 
 ext_treatF_pred <- ext_treatH_pred %>%
   mutate(Lag5TreatedH = 0,
-         Lag5TreatedF = c(0, 1)) %>%
+         Lag5TreatedF = rep(c(0, 1), 3)) %>%
   mutate(Pred = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_ext_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes",
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "no",
+                         HabitatShortName == "S" ~ "no"),
          Treated = ifelse(Lag5TreatedF == 0, "no", "yes"), 
          Invasive = "water\nhyacinth/lettuce")
 
 rept_hydr_pred <- tibble(Lag5Hydrilla = seq(min(nat_rept_imm4$Lag5Hydrilla), max(nat_rept_imm4$Lag5Hydrilla), length.out = 100)) %>%
+  expand_grid(nat_rept_imm4 %>%
+                select(Habitat, HabitatShortName) %>%
+                unique()) %>%
   mutate(Area_haCS = 0,
          SurveyIntervalCS = 0,
          Lag5TreatedH = 0,
@@ -1627,55 +1685,65 @@ rept_hydr_pred <- tibble(Lag5Hydrilla = seq(min(nat_rept_imm4$Lag5Hydrilla), max
          Lag5WaterHyacinth = mean(nat_rept_imm4$Lag5WaterHyacinth),
          GSYear = nat_rept_imm4$GSYear[1],
          PermanentID = nat_rept_imm4$PermanentID[1],
-         SpeciesName = nat_rept_imm4$SpeciesName[1]) %>%
+         TaxonName = nat_rept_imm4$TaxonName[1]) %>%
   mutate(Pred = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "yes",
+                         HabitatShortName == "S" ~ "yes"),
          Invasive = "hydrilla",
          Abundance = Lag5Hydrilla)
 
 rept_wale_pred <- rept_hydr_pred %>%
   mutate(Lag5Hydrilla = mean(nat_rept_imm4$Lag5Hydrilla),
-         Lag5WaterLettuce = seq(min(nat_rept_imm4$Lag5WaterLettuce), max(nat_rept_imm4$Lag5WaterLettuce), length.out = 100)) %>%
+         Lag5WaterLettuce = rep(seq(min(nat_rept_imm4$Lag5WaterLettuce), max(nat_rept_imm4$Lag5WaterLettuce), length.out = 100), each = 3)) %>%
   mutate(Pred = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "no",
+                         HabitatShortName == "S" ~ "yes"),
          Invasive = "water lettuce",
          Abundance = Lag5WaterLettuce)
 
 rept_wahy_pred <- rept_hydr_pred %>%
   mutate(Lag5Hydrilla = mean(nat_rept_imm4$Lag5Hydrilla),
-         Lag5WaterHyacinth = seq(min(nat_rept_imm4$Lag5WaterHyacinth), max(nat_rept_imm4$Lag5WaterHyacinth), length.out = 100)) %>%
+         Lag5WaterHyacinth = rep(seq(min(nat_rept_imm4$Lag5WaterHyacinth), max(nat_rept_imm4$Lag5WaterHyacinth), length.out = 100), each = 3)) %>%
   mutate(Pred = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "no", 
+         sig = case_when(HabitatShortName == "E" ~ "no",
+                         HabitatShortName == "F" ~ "yes",
+                         HabitatShortName == "S" ~ "no"), 
          Invasive = "water hyacinth",
          Abundance = Lag5WaterHyacinth)
 
 rept_treatH_pred <- rept_hydr_pred %>%
-  mutate(Lag5Hydrilla = mean(nat_rept_imm4$Lag5Hydrilla),
-         Lag5TreatedH = rep(c(0, 1), 50)) %>%
-  select(-c(Pred, PredSE, Abundance)) %>%
+  mutate(Lag5Hydrilla = mean(nat_rept_imm4$Lag5Hydrilla)) %>%
+  select(-c(Pred, PredSE, Abundance, Lag5TreatedH)) %>%
   unique() %>%
+  expand_grid(tibble(Lag5TreatedH = c(0, 1))) %>%
   mutate(Pred = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes",
+         sig = case_when(HabitatShortName == "E" ~ "yes",
+                         HabitatShortName == "F" ~ "no",
+                         HabitatShortName == "S" ~ "yes"), 
          Treated = ifelse(Lag5TreatedH == 0, "no", "yes"), 
          Invasive = "hydrilla")
 
 rept_treatF_pred <- rept_treatH_pred %>%
   mutate(Lag5TreatedH = 0,
-         Lag5TreatedF = c(0, 1)) %>%
+         Lag5TreatedF = rep(c(0, 1), 3)) %>%
   mutate(Pred = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA),
          PredSE = predict(nat_rept_mod, newdata = ., type = "response", re.form = NA, se.fit = T)$se.fit,
-         sig = "yes",
+         sig = case_when(HabitatShortName == "E" ~ "yes",
+                         HabitatShortName == "F" ~ "yes",
+                         HabitatShortName == "S" ~ "yes"), 
          Treated = ifelse(Lag5TreatedF == 0, "no", "yes"), 
          Invasive = "water\nhyacinth/lettuce")
 
 # combine
-init_pred <- init_hydr_pred %>%
-  full_join(init_wahy_pred) %>%
-  full_join(init_wale_pred)
+# init_pred <- init_hydr_pred %>%
+#   full_join(init_wahy_pred) %>%
+#   full_join(init_wale_pred)
 
 ext_pred <- ext_hydr_pred %>%
   full_join(ext_wahy_pred) %>%
@@ -1685,8 +1753,8 @@ rept_pred <- rept_hydr_pred %>%
   full_join(rept_wahy_pred) %>%
   full_join(rept_wale_pred)
 
-init_treat <- init_treatH_pred %>%
-  full_join(init_treatF_pred)
+# init_treat <- init_treatH_pred %>%
+#   full_join(init_treatF_pred)
 
 ext_treat <- ext_treatH_pred %>%
   full_join(ext_treatF_pred)
@@ -1695,66 +1763,359 @@ rept_treat <- rept_treatH_pred %>%
   full_join(rept_treatF_pred)
 
 # abundance figures
-pdf("output/native_immigration_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
-ggplot(init_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
-  geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
-  geom_line(aes(linetype = sig), size = 1.5) +
-  scale_fill_viridis_d(end = 0.7, name = "Invasive species") +
-  scale_color_viridis_d(end = 0.7, name = "Invasive species") +
-  scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
-  fig_theme +
-  labs(x = "Invasive plant abundance", y = "Prob. of native species\nimmigration")
-dev.off()
+# pdf("output/native_immigration_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
+# ggplot(init_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
+#   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
+#   geom_line(aes(linetype = sig), size = 1.5) +
+#   scale_fill_viridis_d(end = 0.7, name = "Invasive species") +
+#   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
+#   scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
+#   fig_theme +
+#   labs(x = "Invasive plant abundance", y = "Prob. of native species\nimmigration")
+# dev.off()
 
-pdf("output/native_extinction_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
+pdf("output/native_extinction_invasive_abundance_poster_figure.pdf", width = 11, height = 4)
 ggplot(ext_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
   geom_line(aes(linetype = sig), size = 1.5) +
+  facet_wrap(~ Habitat) +
   scale_fill_viridis_d(end = 0.7, name = "Invasive species") +
   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
   scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
   fig_theme +
-  labs(x = "Invasive plant abundance", y = "Prob. of native species\nextinction")
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 18, color = "black", angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = "Invasive plant abundance", y = "Prob. of native species\nextirpation")
 dev.off()
 
-pdf("output/native_recolonization_invasive_abundance_poster_figure.pdf", width = 6.5, height = 4)
+pdf("output/native_recolonization_invasive_abundance_poster_figure.pdf", width = 11, height = 4)
 ggplot(rept_pred, aes(x = Abundance, y = Pred, fill = Invasive, color = Invasive)) +
   geom_ribbon(aes(ymin = Pred-PredSE, ymax = Pred+PredSE), alpha = 0.5, color = NA) +
   geom_line(aes(linetype = sig), size = 1.5) +
+  facet_wrap(~ Habitat) +
   scale_fill_viridis_d(end = 0.7, name = "Invasive species") +
   scale_color_viridis_d(end = 0.7, name = "Invasive species") +
   scale_linetype_manual(values = c("dashed", "solid"), guide = "none") +
   fig_theme +
+  theme(legend.position = c(0.85, 0.6),
+        axis.text.x = element_text(size = 18, color = "black", angle = 45, vjust = 1, hjust = 1)) +
   labs(x = "Invasive plant abundance", y = "Prob. of native species\nrecolonization")
 dev.off()
 
 # treatment figures
-pdf("output/native_immigration_herbicide_poster_figure.pdf", width = 6, height = 4)
-ggplot(init_treat, aes(x = Treated, y = Pred)) +
-  geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
-  geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
-  scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
-  fig_theme +
-  labs(x = "Waterbody treated?", y = "Prob. of native species\nimmigration")
-dev.off()
+# pdf("output/native_immigration_herbicide_poster_figure.pdf", width = 6, height = 4)
+# ggplot(init_treat, aes(x = Treated, y = Pred)) +
+#   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
+#   geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
+#   scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
+#   fig_theme +
+#   labs(x = "Waterbody treated?", y = "Prob. of native species\nimmigration")
+# dev.off()
 
-pdf("output/native_extinction_herbicide_poster_figure.pdf", width = 6, height = 4)
+pdf("output/native_extinction_herbicide_poster_figure.pdf", width = 11, height = 4)
 ggplot(ext_treat, aes(x = Treated, y = Pred)) +
   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
   geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
+  facet_wrap(~ Habitat) +
   scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
   fig_theme +
-  labs(x = "Waterbody treated?", y = "Prob. of native species\nextinction")
+  labs(x = "Waterbody treated?", y = "Prob. of native species\nextirpation")
 dev.off()
 
-pdf("output/native_recolonization_herbicide_poster_figure.pdf", width = 6, height = 4)
+pdf("output/native_recolonization_herbicide_poster_figure.pdf", width = 11, height = 4)
 ggplot(rept_treat, aes(x = Treated, y = Pred)) +
   geom_errorbar(aes(ymin = Pred-PredSE, ymax = Pred+PredSE, color = Invasive), width = 0.2, position = position_dodge(0.4)) +
   geom_point(size = 4, aes(color = Invasive), position = position_dodge(0.4)) +
+  facet_wrap(~ Habitat) +
   scale_color_viridis_d(end = 0.5, name = "Treated invasive\nspecies") +
   fig_theme +
   labs(x = "Waterbody treated?", y = "Prob. of native species\nrecolonization")
 dev.off()
+
+
+#### native plant values for text ####
+
+# extirpation model
+summary(nat_ext_mod)
+
+# emersed plants
+ggemmeans(nat_ext_mod, "Lag5Hydrilla [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_ext_mod, "Lag5WaterLettuce [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_ext_mod, "Lag5WaterHyacinth [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_ext_mod, "Lag5TreatedH [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_ext_mod, "Lag5TreatedF [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+# floating plants
+ggemmeans(nat_ext_mod, "Lag5Hydrilla [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_ext_mod, "Lag5WaterLettuce [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_ext_mod, "Lag5WaterHyacinth [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_ext_mod, "Lag5TreatedH [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_ext_mod, "Lag5TreatedF [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+# submersed plants
+ggemmeans(nat_ext_mod, "Lag5Hydrilla [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_ext_mod, "Lag5WaterLettuce [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_ext_mod, "Lag5WaterHyacinth [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_ext_mod, "Lag5TreatedH [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_ext_mod, "Lag5TreatedF [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+# recolonization model model
+summary(nat_rept_mod)
+
+# emersed plants
+ggemmeans(nat_rept_mod, "Lag5Hydrilla [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_rept_mod, "Lag5WaterLettuce [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_rept_mod, "Lag5WaterHyacinth [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_rept_mod, "Lag5TreatedH [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+ggemmeans(nat_rept_mod, "Lag5TreatedF [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "E"))
+
+# floating plants
+ggemmeans(nat_rept_mod, "Lag5Hydrilla [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_rept_mod, "Lag5WaterLettuce [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_rept_mod, "Lag5WaterHyacinth [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_rept_mod, "Lag5TreatedH [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+ggemmeans(nat_rept_mod, "Lag5TreatedF [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "F"))
+
+# submersed plants
+ggemmeans(nat_rept_mod, "Lag5Hydrilla [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_rept_mod, "Lag5WaterLettuce [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_rept_mod, "Lag5WaterHyacinth [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0, Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_rept_mod, "Lag5TreatedH [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedF = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+ggemmeans(nat_rept_mod, "Lag5TreatedF [0,1]",
+          condition = c(Area_haCS = 0, SurveyIntervalCS = 0,
+                        Lag5TreatedH = 0,
+                        Lag5Hydrilla = 0, Lag5WaterLettuce = 0, Lag5WaterHyacinth = 0,
+                        HabitatShortName = "S"))
+
+
+#### hydrilla/herb type models ####
+
+# format control data
+ctrl_hyd <- ctrl_new %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
+  mutate(Methods = case_when(ControlMethod == "Endothall + Diquat" ~ 2,
+                             TRUE ~ 1)) %>%
+  uncount(Methods) %>% # repeat rows by Methods
+  mutate(DupRow = duplicated(.),
+         ControlMethod = case_when(ControlMethod == "Endothall + Diquat" & DupRow == F ~ "Endothall", # separate endothall + diquat into separate rows
+                                   ControlMethod == "Endothall + Diquat" & DupRow == T ~ "Diquat", # checked that this works correctly before + after with summary
+                                   ControlMethod != "Endothall + Diquat" ~ ControlMethod)) %>%
+  left_join(herb_type)
+
+# ways to group herbicide types 
+pdf("output/hydrilla_active_ingredient_poster_figure.pdf", width = 5, height = 4)
+ggplot(ctrl_hyd, aes(ActiveIngredient)) +
+  geom_bar() +
+  fig_theme +
+  theme(axis.text.x = element_text(size = 18, color = "black", angle = 45, hjust = 1, vjust = 1),
+        axis.title.y = element_text(size = 20, hjust = 1)) +
+  labs(x = "Active ingredient", y = "Applications for hydrilla")
+dev.off()
+
+#### start here ####
+# need to get amt active ingredient into same units
+# below is copied from herbicide data formatting
+# endothall dataset
+end_hyd <- ctrl_hyd  %>%
+  mutate(Endothall = case_when(ActiveIngredient == "Endothall" ~ 1,
+                               TRUE ~ 0)) %>%
+  group_by(AreaOfInterestID, PermanentID, Species, BeginDate, TreatmentID, TotalAcres, ShapeArea, Endothall) %>%  # captures area treated for an event without duplication due to multiple herbicides
+  mutate(AreaTreated_ha = TotalAcres * 0.405,
+         Area_ha = ShapeArea * 100,
+         AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make full area if it exceeds it
+                                    TRUE ~ AreaTreated_ha),
+         AmtActiveIngUsed = sum(AmtActiveIngUsed),
+         PropTreated = AreaTreated_ha / Area_ha,
+         TreatmentMethod = paste(sort(unique(ControlMethod)), collapse = " + "),
+         TreatmentYear = year(BeginDate),
+         TreatmentMonth = month(BeginDate),
+         TreatmentID = as.character(TreatmentID),
+         CtrlSet = "new",
+         GSYear = case_when(TreatmentMonth >= 4 ~ TreatmentYear,
+                            TreatmentMonth < 4 ~ TreatmentYear - 1)) %>%
+  ungroup() %>%
+  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID, CtrlSet, GSYear) %>%
+  rename(TreatmentDate = BeginDate) %>%
+  unique()
+  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, TreatmentMonth, BeginDate, TreatmentID, CtrlSet, GSYear) %>%
+  rename(TreatmentDate = BeginDate) 
+  left_join(inv_fwc3 %>%
+              select(PermanentID, TaxonName, SurveyDate, GSYear) %>% 
+              unique()) %>% # add survey dates for each lake and year
+  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
+         GSYear = case_when(is.na(SurveyTreatDays) | SurveyTreatDays >= 14 ~ GSYear, # no survey/survey after treatment -> keep year
+                            SurveyTreatDays < 14 ~ GSYear + 1)) # survey before or very soon after treatment -> move treatment to next year
+
+# treatments by year and lag
+ctrl_inv2 <- ctrl_inv %>%
+  select(GSYear) %>%
+  unique() %>%
+  expand_grid(tibble(Lag = 0:5)) %>% # remove repeat row for each species
+  mutate(DSet = "inv") %>%
+  pmap(ctrl_lag_fun) %>% # summarizes ctrl_inv for each GS, Lag, PermID, and Sp
+  bind_rows() %>%
+  pivot_wider(names_from = Lag,
+              values_from = c(PropTreated, Treated),
+              names_glue = "Lag{Lag}{.value}") # make treatments wide by lag
+
+
+#### floating/herb type models ####
+
+# format control data
+ctrl_float <- ctrl_new %>%
+  filter(Species == "Floating Plants (Eichhornia and Pistia)" & TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
+  left_join(herb_type)
+
+# ways to group herbicide types 
+pdf("output/floating_active_ingredient_poster_figure.pdf", width = 5, height = 4)
+ggplot(ctrl_float, aes(ActiveIngredient)) +
+  geom_bar() +
+  fig_theme +
+  theme(axis.text.x = element_text(size = 18, color = "black", angle = 45, hjust = 1, vjust = 1),
+        axis.title.y = element_text(size = 20, hjust = 1)) +
+  labs(x = "Active ingredient", y = "Applications for floating")
+dev.off()
+
 
 #### older analyses below ####
 
