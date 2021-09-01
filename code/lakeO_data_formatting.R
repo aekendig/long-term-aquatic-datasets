@@ -12,10 +12,13 @@ rm(list = ls())
 library(tidyverse)
 library(lubridate)
 library(lme4)
+library(scales)
 
 # import data
 lakeo <- read_csv("original-data/Lake_O_Helicopter_Data_1989_2020_by_Section.csv")
 
+# figure settings
+source("code/figure_settings.R")
 
 #### edit data ####
 
@@ -115,9 +118,9 @@ pdf("output/lakeO_intraannual_veg_change_mod.pdf")
 ggplot(totDat, aes(MonthDay, AreaCovered_s)) +
   geom_line(aes(color = Yearf)) +
   geom_line(data = fitDat, color = "black", size = 2) +
-  xlab("Month and day (ignore year)") +
-  ylab("Standardized area covered") +
-  theme_bw()
+  labs(x = "Month", y = "Standardized area covered", color = "Year") +
+  scale_x_date(labels = date_format("%b")) +
+  def_theme
 
 ggplot(totDat, aes(MonthDay, AreaCovered_acres)) +
   geom_line(aes(color = Yearf)) +

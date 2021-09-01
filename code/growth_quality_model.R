@@ -8,7 +8,7 @@ qual_model <- function(dat, lag_interval, mod_name){
   # abu_mod <- glmmTMB(LogPropCovered ~ Trt * SurveyorExperienceB + PrevPropCoveredAdjCS + (1|PermanentID) + (1|GSYear), family = gaussian(), data = dat)  
   # 
   # # save model
-  # save(abu_mod, file = paste0(mod_name, "_model.rda"))
+  # save(abu_mod, file = paste0("output/", mod_name, "_model.rda"))
   # 
   # return model object
   return(dat)
