@@ -1,6 +1,7 @@
 #### info ####
 
 # goal: see how FWRI compares to FWC
+# note: shape area for these two datasets differ, not sure why
 
 
 #### set-up ####
@@ -29,34 +30,26 @@ fwri_fun <- function(code){
                 filter(Code == code) %>%
                 select(AOI, Lake, PermanentID, Year, Date, Site, Abundance)) %>%
     mutate(Abundance = replace_na(Abundance, 0), # species cover 0 when it wasn't in a survey
-           FWRI_Date = as.Date(Date),
-           FWRI_Month = month(Date)) %>%
-    group_by(AOI, Lake, PermanentID, Year, FWRI_Month, FWRI_Date) %>% # checked above for duplicates within sites - none
-    summarise(Area_sites = n(),
-              AreaCovered_sites1 = sum(Abundance > 0),
-              AreaCovered_sites2 = sum(Abundance > 1),
-              AreaCovered_sites3 = sum(Abundance > 2)) %>%
-    ungroup() %>%
-    mutate(AOI = case_when(AOI %in% c("NorthConway", "SouthConway") ~ "Conway", # combine these lakes (one lake in FWC data)
+           AOI = case_when(AOI %in% c("NorthConway", "SouthConway") ~ "Conway", # combine these lakes (one lake in FWC data)
                            TRUE ~ AOI),
            Lake = case_when(Lake %in% c("North Conway", "South Conway") ~ "Conway",
-                            TRUE ~ Lake)) %>%
-    group_by(AOI, Lake, PermanentID, Year, FWRI_Month) %>%
-    summarise(Area_sites = sum(Area_sites), # combine north and south conway data
-              AreaCovered_sites1 = sum(AreaCovered_sites1),
-              AreaCovered_sites2 = sum(AreaCovered_sites2),
-              AreaCovered_sites3 = sum(AreaCovered_sites3),
-              FWRI_Date = min(FWRI_Date)) %>%
+                            TRUE ~ Lake),
+           FWRI_Month = month(Date)) %>%
+    group_by(AOI, Lake, PermanentID, Year, FWRI_Month) %>% # checked above for duplicates within sites - none
+    summarise(Sites = n(),
+              SitesOcc1 = sum(Abundance > 0),
+              SitesOcc2 = sum(Abundance > 1),
+              SitesOcc3 = sum(Abundance > 2),
+              DateMin = min(Date),
+              DateMax = max(Date)) %>%
     ungroup() %>%
-    mutate(FWRI_PropCovered1 = AreaCovered_sites1 / Area_sites,
-           FWRI_PropCovered2 = AreaCovered_sites2 / Area_sites,
-           FWRI_PropCovered3 = AreaCovered_sites3 / Area_sites,
-           FWRI_SitesUnOcc1 = Area_sites - AreaCovered_sites1,
-           FWRI_SitesUnOcc2 = Area_sites - AreaCovered_sites2,
-           FWRI_SitesUnOcc3 = Area_sites - AreaCovered_sites3) %>%
-    rename(FWRI_Year = Year, FWRI_SitesOcc1 = AreaCovered_sites1, FWRI_SitesOcc2 = AreaCovered_sites2, FWRI_SitesOcc3 = AreaCovered_sites3) %>%
-    select(-Area_sites) %>%
+    mutate(PropCovered1 = SitesOcc1 / Sites,
+           PropCovered2 = SitesOcc2 / Sites,
+           PropCovered3 = SitesOcc3 / Sites,
+           SurveyDays = difftime(DateMax, DateMin, units = "days")) %>%
     filter(!(AOI %in% c("Orange", "Eustis2")))
+  # Orange has 2 sets of surveys: one for full lake and one for open water
+  # Eustis2 is probably EastToho in 2019 based on coordiantes, but that lake has a survey that year
   
   return(dat_out)
 }
@@ -65,32 +58,18 @@ fwc_fun <- function(species){
   
   dat_out <- fwc %>% # start with all surveys (no species means abundance = 0)
     filter(SpeciesName != species) %>%
-    select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate) %>%
+    select(AreaOfInterest, AreaOfInterestID, PermanentID, WaterbodyAcres, SurveyDate) %>%
     unique() %>% # don't need a row for each species
     left_join(fwc %>% # add species information
                 filter(SpeciesName == species) %>%
-                select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, SpeciesAcres)) %>%
-    mutate(SpeciesAcres = replace_na(SpeciesAcres, 0), # species cover 0 when it wasn't in a survey
-           Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
-           AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
-           AreaCovered_ha = case_when(AreaCovered_ha > Area_ha ~ Area_ha,
-                                      TRUE ~ AreaCovered_ha), # make plant cover the size of the lake area if it exceeds it
-           FWC_PropCovered = AreaCovered_ha / Area_ha,
-           FWC_AreaCovered_ha = round(AreaCovered_ha),
-           FWC_AreaUnCovered_ha = round(Area_ha) - FWC_AreaCovered_ha,
-           FWC_Year = year(SurveyDate),
+                select(AreaOfInterest, AreaOfInterestID, PermanentID, WaterbodyAcres, SurveyDate, SpeciesAcres)) %>%
+    mutate(AreaCovered_Acres = replace_na(SpeciesAcres, 0), # species cover 0 when it wasn't in a survey
+           AreaCovered_Acres = case_when(AreaCovered_Acres > WaterbodyAcres ~ WaterbodyAcres,
+                                      TRUE ~ AreaCovered_Acres), # make plant cover the size of the lake area if it exceeds it
+           PropCovered = AreaCovered_Acres / WaterbodyAcres,
+           Year = year(SurveyDate),
            FWC_Month = month(SurveyDate)) %>%
-    group_by(AreaOfInterestID, FWC_Year) %>% # remove reports of zero when there is another report that year
-    mutate(AreaCoveredAnnAvg_ha = mean(AreaCovered_ha),
-           FirstSurveyPerYear = min(SurveyDate)) %>%
-    ungroup() %>%
-    filter(!(AreaCoveredAnnAvg_ha > 0 & AreaCovered_ha == 0) & # kept report is non-zero
-             !(AreaCovered_ha == 0 & SurveyDate != FirstSurveyPerYear)) %>% # kept report is zero
-    select(AreaOfInterest, AreaOfInterestID, PermanentID, FWC_Year, FWC_Month, SurveyDate, FWC_AreaCovered_ha, FWC_AreaUnCovered_ha, FWC_PropCovered) %>%
-    rename(FWC_Date = SurveyDate) %>%
     filter(!(AreaOfInterestID %in% c(402, 469, 42, 220, 436)))
-  # Harris (177) and Little Harris (244) are the same lake
-  # Red Water (365) and Little Red Water (250) are the same lake
   
   return(dat_out)
 }
@@ -128,54 +107,48 @@ chg_fun <- function(dat){
 fwri_hydr <- fwri_fun("HYDR")
 fwc_hydr <- fwc_fun("Hydrilla verticillata")
 
-# check lakes that will be excluded
-anti_join(fwri_hydr, fwc_hydr) %>%
-  select(AOI, PermanentID) %>%
-  unique()
-
-# check date formatting
-tz(fwri_hydr$FWRI_Date)
-tz(fwc_hydr$FWC_Date)
-
 # combine data
 hydr <- fwri_hydr %>%
   inner_join(fwc_hydr) %>%
-  mutate(TimeDiff = abs(FWC_Date - FWRI_Date)) %>%
-  filter(TimeDiff <= 150)
+  mutate(AreaCovered1_Acres = PropCovered1 * WaterbodyAcres,
+         AreaCovered2_Acres = PropCovered2 * WaterbodyAcres,
+         AreaCovered3_Acres = PropCovered3 * WaterbodyAcres,
+         TimeDiff = abs(difftime(SurveyDate, DateMax, units = "days")))
 
-# duplicate AOI's
-hydr %>%
-  group_by(PermanentID) %>%
-  summarise(FWRI_AOI = length(unique(AOI)),
-            FWC_AOI = length(unique(AreaOfInterestID))) %>%
-  ungroup() %>%
-  filter(FWRI_AOI > 1 | FWC_AOI > 1) %>%
-  left_join(hydr %>%
-              select(PermanentID, AOI, AreaOfInterest, AreaOfInterestID) %>%
-              unique())
-# two lakes that have same coordinates in FWC dataset
-
-# duplicate FWC dates for each FWRI
-hydr %>%
-  group_by(PermanentID, AreaOfInterestID, FWRI_Date) %>%
-  summarise(FWC_surveys = length(unique(FWC_Date))) %>%
-  ungroup() %>%
-  filter(FWC_surveys > 1)
-
-# figure
-ggplot(hydr, aes(FWC_PropCovered, FWRI_PropCovered1, 
-                 group = as.factor(AreaOfInterestID), 
-                 color = as.numeric(TimeDiff))) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-  geom_point()
-
+# Harris (177) and Little Harris (244) are the same lake
+# Red Water (365) and Little Red Water (250) are the same lake
 # check duplicate lakes
 filter(hydr, PermanentID == "112047993") %>% data.frame()  # all 0's
-filter(hydr, PermanentID == "120024301") %>% data.frame() # different values
+filter(hydr, PermanentID == "120024301") %>% data.frame() # different values, different waterbody sizes
 
 # remove duplicates
 hydr2 <- hydr %>%
   filter(AreaOfInterestID != 365)
+
+# visualize
+ggplot(hydr, aes(x = AreaCovered_Acres, y = AreaCovered1_Acres, color = Lake)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(show.legend = F, size = TimeDiff)
+
+ggplot(hydr, aes(x = AreaCovered_Acres, y = AreaCovered2_Acres, color = Lake)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(show.legend = F)
+
+ggplot(hydr, aes(x = AreaCovered_Acres, y = AreaCovered3_Acres, color = Lake)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(show.legend = F)
+
+# correlations
+cor.test(~ AreaCovered_Acres + AreaCovered1_Acres, data = hydr) # 0.85, sig
+cor.test(~ AreaCovered_Acres + AreaCovered2_Acres, data = hydr) # 0.84, sig
+cor.test(~ AreaCovered_Acres + AreaCovered3_Acres, data = hydr) # 0.81, sig
+
+
+
+
+
+
+
 
 # remove zeros
 hydrP <- hydr2 %>%

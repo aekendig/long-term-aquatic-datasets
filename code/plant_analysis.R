@@ -1,6 +1,7 @@
 #### set-up ####
 
 # this script is a condensed version of herbicides_analysis.R
+# left off condensing sections and fitting models with water quality
 
 # clear environment
 rm(list = ls())

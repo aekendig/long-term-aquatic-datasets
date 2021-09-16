@@ -92,11 +92,10 @@ for(i in 1:fYears){
         select(-Date)
     }
     
-    # change all dates to earliest date
+    # change missing dates to earliest date
     if("Date" %in% colnames(temp_dat)){
-      temp_dat$Date <- min(temp_dat$Date, na.rm = T)
+      temp_dat$Date[is.na(temp_dat$Date)] <- min(temp_dat$Date, na.rm = T)
     }
-    
     
     # add columns
     temp_dat2 <- temp_dat %>%
@@ -708,9 +707,9 @@ surveys5 %>%
 unique(surveys5$Abundance)
 
 filter(surveys5, Abundance > 3)
-# likely type-o's and should be 1
+# likely type-o's and should be 1 (10 and 11)
 
-# remove 0 abundance and fix type-o's
+# fix type-o's
 surveys6 <- surveys5 %>%
   mutate(Abundance = case_when(Abundance > 3 ~ 1,
                                TRUE ~ Abundance))
@@ -865,7 +864,8 @@ write_csv(surv_gis, "gis/data/FWRI_Coordinates.csv")
 
 # import data
 # see FWRI_lakes_map_methods for notes
-surv_gis2 <- read_csv("gis/intermediate-data/FWRI_plants_edited.csv")
+# surv_gis2 <- read_csv("gis/intermediate-data/FWRI_plants_edited.csv")
+# the lake area values in this dataset are off from the gis one added to FWC plant survey data
 
 # check lakes with different spellings
 surveys9 %>%
@@ -887,21 +887,185 @@ surveys9 %>%
 # fix names
 # add permanent ID's
 surveys10 <- surveys9 %>%
-  left_join(surv_gis2 %>%
-              select(AOI, Lake, Permanent_, GNIS_ID, GNIS_Name, AreaSqKm, FType, FCode, ShapeSource)) %>%
+  # left_join(surv_gis2 %>%
+  #             select(AOI, Lake, Permanent_, GNIS_ID, GNIS_Name, AreaSqKm, FType, FCode, ShapeSource)) %>%
   mutate(AOI = case_when(AOI == "Conway(NorthLobe)" ~ "NorthConway",
                          AOI == "Conway(SouthLobe)" ~ "SouthConway",
                          TRUE ~ AOI),
          Lake = case_when(Lake == "Conway (North Lobe)" ~ "North Conway",
                           Lake == "Conway (South Lobe)" ~ "South Conway",
-                          TRUE ~ Lake)) %>%
-  rename(PermanentID = Permanent_,
-         GNISID = GNIS_ID,
-         GNISName = GNIS_Name,
-         Area_SqKm = AreaSqKm)
+                          TRUE ~ Lake))
+# %>%
+  # rename(PermanentID = Permanent_,
+  #        GNISID = GNIS_ID,
+  #        GNISName = GNIS_Name,
+  #        Area_SqKm = AreaSqKm)
 
+
+#### survey dates ####
+
+# one survey per year?
+survDays <- surveys10 %>%
+  group_by(Lake, AOI, Year) %>%
+  summarise(MaxDate = max(Date),
+            MinDate = min(Date),
+            SurveyDays = difftime(MaxDate, MinDate, units = "days")) %>%
+  ungroup()
+
+ggplot(survDays, aes(x = SurveyDays)) +
+  geom_histogram()
+# no, some are long
+
+survDays %>%
+  filter(SurveyDays <= 100) %>%
+  ggplot(aes(x = SurveyDays)) +
+  geom_histogram()
+
+# examine lakes
+filter(survDays, SurveyDays > 20) %>%
+  arrange(desc(SurveyDays)) %>%
+  data.frame()
+# some years are entered incorrectly
+
+# look at ones that are likely incorrect
+filter(survDays, SurveyDays > 100) %>%
+  inner_join(surveys10) %>%
+  select(Lake, Year, Date) %>%
+  unique() %>%
+  arrange(Lake, Date) %>%
+  data.frame()
+# Kings Bay was two separate surveys
+
+# reformat dates
+surveys11 <- surveys10 %>%
+  mutate(Month = month(Date),
+         Day = day(Date),
+         DateYear = year(Date),
+         DateYear = case_when(Lake == "Harris" & Year == 2019 & DateYear > 2019 ~ 2019,
+                              Lake == "Istokpoga" & Year == 2015 & Month == 1 ~ 2016,
+                              Lake == "Istokpoga" & Year == 2015 & Month == 12 ~ 2015,
+                              Lake == "Istokpoga" & Year == 2018 & DateYear == 2108 ~ 2018,
+                              Lake == "Monroe" & Year == 2019 ~ 2019,
+                              TRUE ~ DateYear)) %>%
+  rowwise() %>%
+  mutate(Date = paste(DateYear, Month, Day, sep = "-")) %>%
+  ungroup() %>%
+  mutate(Date = as.POSIXct(Date, tz = "America/New_York"))
+
+# recheck dates
+surveys11 %>%
+  group_by(Lake, AOI, Year) %>%
+  summarise(MaxDate = max(Date),
+            MinDate = min(Date),
+            SurveyDays = difftime(MaxDate, MinDate, units = "days")) %>%
+  ungroup() %>%
+  filter(SurveyDays > 20) %>%
+  arrange(desc(SurveyDays))
+
+
+#### site IDs ####
+
+# sites not sampled every year
+site_prob <- surveys11 %>%
+  group_by(Lake, AOI, Site) %>%
+  summarise(YearsSampled = n_distinct(Year)) %>%
+  ungroup() %>%
+  full_join(surveys11 %>%
+              group_by(Lake, AOI) %>%
+              summarise(Years = n_distinct(Year)) %>%
+              ungroup()) %>%
+  filter(YearsSampled < Years) %>%
+  group_by(Lake, AOI) %>%
+  count() 
+
+site_prob %>%
+  data.frame()
+# visually check in coordinate check pdf
+
+# sites look the same: site numbers changed between years?
+# Big Henderson
+# Butler
+# Down
+# Eloise
+# Hartridge
+# Howard
+# Johns
+# LittleConway
+# Louise
+# NorthConway
+# Panasoffkee
+# Pierce
+# Sheen
+# SouthConway
+# Tibet
+# Trafford
+
+# more sites added?
+# Dora
+# George
+# Griffin
+# Harris
+# KingsBay
+# Monroe
+# Orange
+# OrangeOpenWater
+# Tarpon
+
+# error already identified
+# Eustis
+
+# sites are not the same over time
+
+# provide new site ID based on coordinates
+surveys12 <- surveys11 %>%
+  mutate(SiteNew = case_when(AOI %in% site_prob$AOI ~ paste(round(X, 4), round(Y, 4), sep = "_"),
+                             TRUE ~ as.character(Site))) %>%
+  group_by(Lake, AOI) %>%
+  mutate(SiteNew = as.numeric(as.factor(SiteNew))) %>%
+  ungroup()
+
+# visualize
+surveys12 %>%
+  select(Lake, AOI, SiteNew) %>%
+  unique() %>%
+  ggplot(aes(x = SiteNew, y = AOI)) +
+  geom_line()
+
+# make sure sites within a year aren't grouped
+surveys12 %>%
+  group_by(Lake, AOI, Year, SiteNew) %>%
+  summarise(Sites = n_distinct(Site)) %>%
+  ungroup() %>%
+  filter(Sites > 1) %>%
+  group_by(Lake, AOI, Year) %>%
+  count() %>%
+  data.frame()
+#### start here ####
+# Lake George: tons of samples, probably needs more decimal points
+# Kings Bay: two samplings in 2015
+
+# should have around 16 lakes with inconsistent sites
+surveys12 %>%
+  group_by(Lake, AOI, SiteNew) %>%
+  summarise(Sites = n_distinct(Site)) %>%
+  ungroup() %>%
+  filter(Sites > 1) %>%
+  group_by(Lake, AOI) %>%
+  count() %>%
+  data.frame()
+# all listed above except Orange, Open Orange, and Dora are included
+# these three may have added points in just one year
+
+# check number of site IDs
+surveys12 %>%
+  group_by(Lake, AOI) %>%
+  summarise(Sites = n_distinct(Site),
+            SiteNews = n_distinct(SiteNew)) %>%
+  ungroup() %>%
+  filter(Sites < SiteNews) %>%
+  data.frame()
 
 #### output ####
 
-write_csv(surveys10, "intermediate-data/FWRI_plant_formatted.csv")
+write_csv(surveys11, "intermediate-data/FWRI_plant_formatted.csv")
 
