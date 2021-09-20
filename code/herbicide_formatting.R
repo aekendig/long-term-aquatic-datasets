@@ -37,7 +37,7 @@ herbicide_dataset <- function(ctrl_old, ctrl_new, taxa){
            AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make full area if it exceeds it
                                       TRUE ~ AreaTreated_ha),
            PropTreated = AreaTreated_ha / Area_ha,
-           TreatmentMethod = paste(sort(unique(ControlMethod)), collapse = " + "),
+           TreatmentMethod = paste(sort(unique(ControlMethod)), collapse = " + "), # combines control methods
            TreatmentYear = year(BeginDate),
            TreatmentMonth = month(BeginDate),
            TreatmentID = as.character(TreatmentID),

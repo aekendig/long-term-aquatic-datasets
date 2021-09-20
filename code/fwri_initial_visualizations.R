@@ -15,6 +15,10 @@ library(lubridate)
 # import data
 fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
                  col_types = list(Depth_ft = col_double()))
+fwri_gis <- read_csv("gis/intermediate-data/FWRI_plants_edited.csv")
+# gis needs to be checked
+# see fwri_data_formatting for details
+ctrl_new <- read_csv("intermediate-data/FWC_control_new_formatted.csv")
 
 
 #### edit data ####
@@ -107,3 +111,50 @@ ggplot(fwri_hydr_prop, aes(x = Year, y = PropCovered, color = AOI)) +
   geom_line(show.legend = F) +
   facet_wrap(~ MinAbundance)
 
+# hydrilla control
+ctrl_hydr <- ctrl_new %>%
+  filter(Species == "Hydrilla verticillata" & TotalAcres > 0) %>%
+  select(PermanentID, ShapeArea, Year, TreatmentID, TotalAcres) %>%
+  unique() %>% # removes duplication due to multiple herbicides with one treatment
+  group_by(PermanentID, ShapeArea, Year) %>%
+  summarise(Control_acres = sum(TotalAcres)) %>%
+  mutate(Control = 1,
+         Area_acres = ShapeArea * 247.105, # convert from square km
+         Control_acres = case_when(Control_acres > Area_acres ~ Area_acres, # reduce if greater than lake size
+                                   TRUE ~ Control_acres)) %>%
+  select(-ShapeArea)
+
+# add control data
+fwri_hydr_ctrl <- fwri_hydr_prop %>%
+  left_join(fwri_gis %>%
+              select(AOI, Lake, Permanent_) %>%
+              rename(PermanentID = Permanent_)) %>%
+  left_join(ctrl_hydr %>%
+              select(PermanentID, Area_acres) %>%
+              unique()) %>%
+  left_join(ctrl_hydr) %>%
+  mutate(Control = replace_na(Control, 0),
+         Control_acres = replace_na(Control_acres, 0),
+         Occ_acres = PropCovered * Area_acres,
+         Control_prop = case_when(is.na(Occ_acres) & Control == 0 ~ 0, # no shape area info (not in ctrl_hydr)
+                                  Occ_acres == 0 ~ 0, # dividing by 0
+                                  TRUE ~ Control_acres / Occ_acres))
+
+ggplot(fwri_hydr_ctrl, aes(x = Year, y = PropCovered, color = AOI, fill = as.factor(Control))) +
+  geom_point(show.legend = F, shape = 21) +
+  geom_line(show.legend = F) +
+  scale_fill_manual(values = c("white", "black")) +
+  facet_wrap(~ MinAbundance)
+
+ggplot(fwri_hydr_ctrl, aes(x = as.factor(Control), y = PropCovered)) +
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ MinAbundance)
+# treated lake-year combos have higher initial hydrilla abundance
+
+ggplot(fwri_hydr_ctrl, aes(x = PropCovered, y = Control_prop)) +
+  geom_point() +
+  facet_wrap(~ MinAbundance, scales = "free")
+# much larger areas treated than estimated by plant survey
+# survey may have occurred after treatment within the same year
+# need to format control data like I did in plant_analysis.R
