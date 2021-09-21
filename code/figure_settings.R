@@ -5,7 +5,6 @@ def_theme_facet <- theme_bw() +
         panel.background = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
         legend.text = element_text(size = 12),
         legend.title = element_text(size = 14),
         legend.box.margin = margin(-10, -10, -10, -10),

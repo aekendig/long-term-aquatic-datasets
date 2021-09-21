@@ -26,14 +26,15 @@ herbicide_abundance_dataset <- function(ctrl_dat, abu_dat, taxa){
                                  mutate(GSYear = .x,
                                         Lag = .y))) %>%
     pivot_wider(names_from = Lag,
-                values_from = c(PropTreated, Treated),
+                values_from = c(PropTreated, Treated, AreaTreated_ha),
                 names_glue = "Lag{Lag}{.value}") # make treatments wide by lag
   
   # combine treatment and invasion datasets
   abu_ctrl <- abu_dat %>%
     inner_join(ctrl_abu2) %>% # only include data from both datasets
     group_by(TaxonName) %>%
-    mutate(PropCoveredBeta = transform01(PropCovered)) %>% # uses sample size within species, leaving out NA's
+    mutate(PropCoveredBeta = transform01(PropCovered),  # uses sample size within species, leaving out NA's
+           PrevPropCoveredBeta = transform01(PrevPropCovered)) %>%
     ungroup() %>%
     filter(!is.na(PrevPropCovered)) #  missing initial pop abundance
   
