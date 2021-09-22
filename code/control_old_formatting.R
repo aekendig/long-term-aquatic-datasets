@@ -1,4 +1,4 @@
-herbicide_old_dataset <- function(ctrl_old, taxa){
+ctrl_old_dataset <- function(ctrl_old, taxa){
   
   # old herbicide data
   ctrl_old2 <- ctrl_old %>%
@@ -18,16 +18,6 @@ herbicide_old_dataset <- function(ctrl_old, taxa){
                               TreatmentMonth < 4 ~ TreatmentYear - 1)) %>%
     select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, TreatmentMonth, TreatmentDate, TreatmentID, CtrlSet, GSYear)
   
-  # combine herbicide data
-  ctrl_old3 <- ctrl_old2 %>%
-    full_join(ctrl_old2 %>% # all possible measurements
-                select(PermanentID) %>%
-                unique() %>%
-                expand_grid(GSYear = min(ctrl_old2$TreatmentYear):max(ctrl_old2$TreatmentYear)) %>% 
-                expand_grid(Species = unique(ctrl_old2$Species))) %>% # one row for each species
-    mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0),
-           PropTreated = replace_na(PropTreated, 0)) # no herbicide applied that year
-  
-  return(ctrl_old3)
+  return(ctrl_old2)
 }
 

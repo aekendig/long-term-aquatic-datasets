@@ -1,4 +1,4 @@
-herbicide_new_dataset <- function(ctrl_new, taxa){
+non_herb_new_dataset <- function(ctrl_new, taxa){
   
   # non-herbicide methods (from herbicide_initial_visualizations)
   non_herb <- c("Mechanical Harvester", 
@@ -13,7 +13,7 @@ herbicide_new_dataset <- function(ctrl_new, taxa){
   # remove 38 cases in which control method is unknown
   ctrl_new2 <- ctrl_new %>%
     filter(Species %in% taxa$Species & 
-             TotalAcres > 0 & !is.na(ControlMethod) & !(ControlMethod %in% non_herb)) %>% # herbicide control only
+             TotalAcres > 0 & !is.na(ControlMethod) & ControlMethod %in% non_herb) %>% # herbicide control only
     group_by(AreaOfInterestID, PermanentID, Species, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%  # captures area treated for an event without duplication due to multiple herbicides
     mutate(AreaTreated_ha = TotalAcres * 0.405,
            Area_ha = ShapeArea * 100,

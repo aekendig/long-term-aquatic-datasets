@@ -14,6 +14,7 @@ library(glmmTMB)
 library(effects)
 library(car) # for logit
 library(fixest) # FE models
+library(GGally)
 # library(lfe) # FE models
 # library(alpaca) # FE models
 # library(lme4) # use glmmTMB unless it's too slow
@@ -45,10 +46,14 @@ source("code/native_interval.R")
 source("code/okeechobee_growth.R")
 source("code/surveyor_experience.R")
 source("code/plant_abundance_formatting.R")
-source("code/herbicide_formatting.R")
-source("code/herbicide_old_formatting.R")
+# source("code/herbicide_formatting.R")
+source("code/control_old_formatting.R")
+source("code/control_new_formatting.R")
 source("code/herbicide_new_formatting.R")
+source("code/non_herbicide_new_formatting.R")
+source("code/abundance_old_control_formatting.R")
 source("code/abundance_herbicide_formatting.R")
+source("code/abundance_non_herbicide_formatting.R")
 source("code/growth_model.R")
 source("code/cumulative_quality.R")
 source("code/abundance_quality_formatting.R")
@@ -76,16 +81,17 @@ inv_fwc3 <- inv_fwc2 %>%
 #           inv_fwc3_check)
 
 
-#### herbicide data formatting ####
+#### control data formatting ####
 
 herb_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)"))
 
 # ctrl <- herbicide_dataset(ctrl_old, ctrl_new, herb_taxa) # new and old control datasets combined
-herb_old <- herbicide_old_dataset(ctrl_old, herb_taxa) # note that this includes herbicide and non-herbicide methods
+ctrl_old2 <- ctrl_old_dataset(ctrl_old, herb_taxa) # note that this includes herbicide and non-herbicide methods
 herb_new <- herbicide_new_dataset(ctrl_new, herb_taxa)
+non_herb_new <- non_herb_new_dataset(ctrl_new, herb_taxa)
 
 # overlap
-herb_old %>%
+ctrl_old2 %>%
   filter(AreaTreated_ha > 0) %>%
   select(PermanentID, Species, GSYear) %>%
   unique() %>%
@@ -94,17 +100,11 @@ herb_old %>%
                select(PermanentID, Species, GSYear) %>%
                unique())
 # yes, 2010 is repeated in both, 154 cases
+# remove before joining with abundance
 
-# remove overlapping data
-herb_new2 <- herb_new %>%
-  anti_join(herb_old %>%
-              filter(AreaTreated_ha > 0) %>%
-              select(PermanentID, Species, GSYear) %>%
-              unique()) # unclear what the total herbicide amount was for this growing season
-
-# compare with previous version
-# ctrl_check <- read_csv("intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_formatted.csv")
-# all_equal(ctrl, ctrl_check)
+# make sure appropriate years are covered
+range(herb_new$GSYear)
+range(non_herb_new$GSYear)
 
 
 #### combine invasive plant and ctrl data ####
@@ -112,15 +112,13 @@ herb_new2 <- herb_new %>%
 herb_inv_taxa <- tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants
                         TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))
 
-# inv_ctrl <- herbicide_abundance_dataset(ctrl, inv_fwc3, herb_inv_taxa)
-inv_herb_new <- herbicide_abundance_dataset(herb_new2, inv_fwc3, herb_inv_taxa)
+# adjust gs year for old ctrl
+inv_ctrl_old <- old_ctrl_abundance_dataset(ctrl_old2, inv_fwc3, herb_inv_taxa)
 
-# compare with previous version
-# inv_ctrl_check <- read_csv("intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_formatted.csv") %>%
-#   rename(TaxonName = SpeciesName)
-# all_equal(inv_ctrl %>% mutate(SurveyorExperienceB = as.character(SurveyorExperienceB),
-#                               SurveyorExperience = if_else(is.na(SurveyorExperience), NA_real_, SurveyorExperience)), 
-#           inv_ctrl_check)
+# format herbicide and non-herbicide datasets
+inv_herb_new <- herbicide_abundance_dataset(ctrl_new, inv_ctrl_old, herb_new, inv_fwc3, herb_inv_taxa)
+inv_ctrl_new <- non_herb_abundance_dataset(ctrl_new, inv_ctrl_old, non_herb_new, inv_herb_new, herb_inv_taxa)
+# note that the above contains missing control data
 
 
 #### combine invasive plant and quality data ####
@@ -128,19 +126,19 @@ inv_herb_new <- herbicide_abundance_dataset(herb_new2, inv_fwc3, herb_inv_taxa)
 # inv_qual <- quality_abundance_dataset(qual, inv_fwc3)
 
 
-#### how does invasion affect treatment? ####
+#### how does invasion affect herbicide treatment? ####
 
-# subset for lakes with invasions
-inv_treat_new <- inv_herb_new %>%
-  filter(!is.na(Lag0PropTreated) & PrevSpeciesPresent == 1) %>%
-  mutate(Treated = fct_recode(as.character(Lag0Treated), "Untreated" = "0", "Treated" = "1"),
-         AreaTreatedAdj_ha = case_when(Lag0AreaTreated_ha > Area_ha ~ Area_ha, # if area treated in a year exceeds lake size, use lake size
-                                       TRUE ~ Lag0AreaTreated_ha),
-         AreaTreatedRounded_ha = round(AreaTreatedAdj_ha), # round for glm
-         AreaUntreatedRounded_ha = round(Area_ha) - AreaTreatedRounded_ha,
-         PropTreatedAdj = AreaTreatedAdj_ha/Area_ha,
+# subset for lakes with invasions and available herbicide data
+inv_treat_new <- inv_ctrl_new %>%
+  filter(!is.na(PropHerbTreated) & PrevSpeciesPresent == 1) %>%
+  mutate(Treated = fct_recode(as.character(HerbTreated), "Untreated" = "0", "Treated" = "1"),
+         AreaHerbTreatedAdj_ha = case_when(AreaHerbTreated_ha > Area_ha ~ Area_ha, # if area treated in a year exceeds lake size, use lake size
+                                           TRUE ~ AreaHerbTreated_ha),
+         AreaHerbTreatedRounded_ha = round(AreaHerbTreatedAdj_ha), # round for glm
+         AreaHerbUntreatedRounded_ha = round(Area_ha) - AreaHerbTreatedRounded_ha,
+         PropHerbTreatedAdj = AreaHerbTreatedAdj_ha/Area_ha,
          Log10Area_ha = log10(Area_ha),
-         LogitPropTreated = logit(PropTreatedAdj, adjust = prop_adjust),
+         LogitPropHerbTreated = logit(PropHerbTreatedAdj, adjust = prop_adjust),
          Log10PrevAreaCovered_ha = log10(PrevAreaCoveredRaw_ha),
          LogitPrevPropCovered = logit(PrevPropCovered, adjust = prop_adjust),
          PrevAreaCoveredCS_ha = (PrevAreaCoveredRaw_ha - mean(PrevAreaCoveredRaw_ha)) / sd(PrevAreaCoveredRaw_ha),
@@ -190,36 +188,36 @@ ggplot(inv_treat_new2, aes(x = LogitPrevPropCovered)) +
   def_theme_facet
 
 # check proportion conversion
-ggplot(inv_treat_new2, aes(x = PropTreatedAdj, y = LogitPropTreated)) +
+ggplot(inv_treat_new2, aes(x = PropHerbTreatedAdj, y = LogitPropHerbTreated)) +
   geom_point()
 
 # invasion/treatment relationships
-ggplot(inv_treat_new2, aes(x = PrevPropCovered, y = PropTreatedAdj)) +
+ggplot(inv_treat_new2, aes(x = PrevPropCovered, y = PropHerbTreatedAdj)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = PropTreatedAdj)) +
+ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = PropHerbTreatedAdj)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = PrevAreaCoveredCS_ha, y = PropTreatedAdj)) +
+ggplot(inv_treat_new2, aes(x = PrevAreaCoveredCS_ha, y = PropHerbTreatedAdj)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = PrevPropCovered, y = LogitPropTreated)) +
+ggplot(inv_treat_new2, aes(x = PrevPropCovered, y = LogitPropHerbTreated)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = LogitPropTreated)) +
+ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = LogitPropHerbTreated)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = LogitPrevPropCovered, y = LogitPropTreated)) +
+ggplot(inv_treat_new2, aes(x = LogitPrevPropCovered, y = LogitPropHerbTreated)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
@@ -234,32 +232,34 @@ summary(inv_area_mod2)
 # larger lakes have smaller proportions covered
 
 # mixed-effects herbicide models
-inv_herb_mod1 <- glmmTMB(cbind(AreaTreatedRounded_ha, AreaUntreatedRounded_ha) ~ Log10PrevAreaCovered_ha * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
+inv_herb_mod1 <- glmmTMB(cbind(AreaHerbTreatedRounded_ha, AreaHerbUntreatedRounded_ha) ~ Log10PrevAreaCovered_ha * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
 summary(inv_herb_mod1)
 # larger invasions have more proportion (lake) treated
 # larger lakes have less proportion treated
 
-inv_herb_mod2 <- glmmTMB(cbind(AreaTreatedRounded_ha, AreaUntreatedRounded_ha) ~ PrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
+inv_herb_mod2 <- glmmTMB(cbind(AreaHerbTreatedRounded_ha, AreaHerbUntreatedRounded_ha) ~ PrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
 summary(inv_herb_mod2)
 # larger invasions have more proportion (lake) treated
 # larger lakes have less proportion treated
 
-inv_herb_mod3 <- glmmTMB(cbind(AreaTreatedRounded_ha, AreaUntreatedRounded_ha) ~ LogitPrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
+inv_herb_mod3 <- glmmTMB(cbind(AreaHerbTreatedRounded_ha, AreaHerbUntreatedRounded_ha) ~ LogitPrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
 summary(inv_herb_mod3)
+# same as above
 
 # fixed-effects herbicide models
 # no fe methods available for cbind(success, failure) or beta distributions
-inv_herb_mod4 <- feols(LogitPropTreated ~ Log10PrevAreaCovered_ha * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+inv_herb_mod4 <- feols(LogitPropHerbTreated ~ Log10PrevAreaCovered_ha * CommonName | PermanentID + GSYear, data = inv_treat_new2)
 summary(inv_herb_mod4)
 # Log10Area_ha and AreaGroup are collinear with PermanentID
 # invasion size increases treatment
 
-inv_herb_mod5 <- feols(LogitPropTreated ~ PrevPropCovered * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+inv_herb_mod5 <- feols(LogitPropHerbTreated ~ PrevPropCovered * CommonName | PermanentID + GSYear, data = inv_treat_new2)
 summary(inv_herb_mod5)
 # invasion size increases treatment
 
-inv_herb_mod6 <- feols(LogitPropTreated ~ LogitPrevPropCovered * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+inv_herb_mod6 <- feols(LogitPropHerbTreated ~ LogitPrevPropCovered * CommonName | PermanentID + GSYear, data = inv_treat_new2)
 summary(inv_herb_mod6)
+# same as above
 
 # predicted data
 inv_treat_pred <- inv_treat_new2 %>%
@@ -300,7 +300,7 @@ inv_treat_change <- inv_treat_pred %>%
 pdf("output/new_herbicide_invasion_area.pdf", width = 11, height = 4)
 inv_treat_pred %>%
   ggplot(aes(x = PrevAreaCoveredRaw_ha, y = pred4)) +
-  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogitPropTreated)) +
+  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogitPropHerbTreated)) +
   geom_line(color = "#009193", size = 1.5) +
   geom_text(data = inv_treat_change, y = 6.5, aes(label = ChangeProp4), 
             parse = T, check_overlap = T, hjust = 1, vjust = 1, size = 4) +
@@ -316,7 +316,7 @@ dev.off()
 pdf("output/new_herbicide_invasion_proportion.pdf", width = 11, height = 4)
 inv_treat_pred %>%
   ggplot(aes(x = LogitPrevPropCovered, y = pred6)) +
-  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogitPropTreated)) +
+  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogitPropHerbTreated)) +
   geom_line(color = "#009193", size = 1.5) +
   geom_text(data = inv_treat_change, y = 6.5, aes(label = ChangeProp6), 
             parse = T, check_overlap = T, hjust = 1, vjust = 1, size = 4,
@@ -328,22 +328,151 @@ inv_treat_pred %>%
 dev.off()
 
 
-#### start here ####
-#### how does treatment affect invasion? ####
+#### how does herbicide treatment affect invasion? ####
+
+# previous prop groups
+prev_prop_group <- inv_treat_new2 %>%
+  select(CommonName, LogitPrevPropCovered) %>%
+  unique() %>%
+  group_by(CommonName) %>%
+  mutate(PrevPropGroup = cut_interval(LogitPrevPropCovered, n = 3)) %>%
+  ungroup()
+
+levels(prev_prop_group$PrevPropGroup) <- rep(c("small", "medium", "large"), 3)
+
+# subset for lakes with non-herbicide info
+inv_treat_new3 <- inv_treat_new2 %>%
+  filter(!is.na(PropNonHerbTreated)) %>% # should be same number of rows as inv_treat_new2
+  mutate(AreaNonHerbTreatedAdj_ha = case_when(AreaNonHerbTreated_ha > Area_ha ~ Area_ha, # if area treated in a year exceeds lake size, use lake size
+                                              TRUE ~ AreaNonHerbTreated_ha),
+         PropNonHerbTreatedAdj = AreaNonHerbTreatedAdj_ha/Area_ha,
+         LogitPropNonHerbTreated = logit(PropNonHerbTreatedAdj, adjust = prop_adjust),
+         PerHaCoverChange = (EstAreaCoveredRaw_ha - PrevAreaCoveredRaw_ha) / PrevAreaCoveredRaw_ha,
+         LogitPropCovered = logit(PropCovered, adjust = prop_adjust),
+         LogRatioGrowth = if_else(LogRatioCovered > 0, 1, 0)) %>%
+  left_join(prev_prop_group)
+
+# dataset for invasive plants
+inv_chg <- inv_treat_new3 %>%
+  filter(CommonName == "Water hyacinth") %>%
+  select(PermanentID, GSYear, LogRatioCovered) %>%
+  rename("WaterHyacinth" = "LogRatioCovered") %>%
+  full_join(inv_treat_new3 %>%
+              filter(CommonName == "Water lettuce") %>%
+              select(PermanentID, GSYear, LogRatioCovered) %>%
+              rename("WaterLettuce" = "LogRatioCovered")) %>%
+  full_join(inv_treat_new3 %>%
+              filter(CommonName == "Hydrilla") %>%
+              select(PermanentID, GSYear, LogRatioCovered) %>%
+              rename("Hydrilla" = "LogRatioCovered"))
+
+# plant relationships
+ggpairs(inv_chg %>% select(-c(PermanentID, GSYear)))
+# missing values from years where initial abundance of one is zero
+# growth is positively correlated
 
 # treatment variables
-ggplot(inv_treat_new2, aes(x = LogitPropTreated, y = Lag0TreatmentDays)) +
+ggplot(inv_treat_new3, aes(x = LogitPropHerbTreated, y = HerbTreatmentDays)) +
   geom_point() +
   geom_smooth(method = "lm", formula = y ~ x)
+# positively correlated
 
-# fit model
-inv_chg_mod1 <- feols(LogRatioCovered ~ (LogitPropTreated + Log10PrevAreaCovered_ha) * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+inv_treat_new3 %>%
+  filter(PerHaCoverChange < 100) %>%
+  ggplot(aes(x = PerHaCoverChange)) +
+  geom_histogram(binwidth = 1)
+
+# regression relationships
+ggplot(inv_treat_new3, aes(x = LogitPrevPropCovered, y = LogRatioCovered, color = as.factor(HerbTreated))) +
+  # geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_treat_new3, aes(x = LogitPrevPropCovered, y = PerHaCoverChange, color = as.factor(HerbTreated))) +
+  # geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+# looks similar to above
+
+ggplot(inv_treat_new3, aes(x = LogitPrevPropCovered, y = LogitPropCovered, color = as.factor(HerbTreated))) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_treat_new3, aes(x = PrevPropGroup, y = LogRatioCovered)) +
+  geom_boxplot() +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_treat_new3, aes(x = LogitPropHerbTreated, y = LogRatioCovered)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_treat_new3, aes(x = LogitPropHerbTreated, y = PerHaCoverChange)) +
+  # geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+# water lettuce becomes negative
+
+ggplot(inv_treat_new3, aes(x = LogitPropHerbTreated, y = LogRatioCovered)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_grid(CommonName ~ PrevPropGroup, scales = "free")
+# herbicide has positive effects even after taking initial abundance into consideration
+
+ggplot(inv_treat_new3, aes(x = LogitPropHerbTreated, y = LogRatioGrowth)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "glm", formula = y ~ x) +
+  facet_grid(CommonName ~ PrevPropGroup, scales = "free")
+# still positive effects of herbicides for floating plants
+
+ggplot(inv_treat_new3, aes(x = LogitPropNonHerbTreated, y = LogRatioCovered)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+# non-herb methods not that useful for water hyacinth and lettuce (very few)
+
+# divide data by species
+# without intercept in FE model, not sure how to interpret species coefficients
+hyd_treat_new <- inv_treat_new3 %>%
+  filter(CommonName == "Hydrilla")
+why_treat_new <- inv_treat_new3 %>%
+  filter(CommonName == "Water hyacinth")
+wle_treat_new <- inv_treat_new3 %>%
+  filter(CommonName == "Water lettuce")
+
+# fixed effect models
+inv_chg_mod1 <- feols(LogRatioCovered ~ (LogitPropHerbTreated + LogitPrevPropCovered) * CommonName | PermanentID + GSYear, data = inv_treat_new3)
 summary(inv_chg_mod1)
+  
+hyd_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + LogitPropNonHerbTreated | PermanentID + GSYear, data = hyd_treat_new)
+summary(hyd_chg_mod1)
+# estimate for herbicide effect doesn't change much when non-herbicide treatments are accounted for
+
+why_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered | PermanentID + GSYear, data = why_treat_new)
+summary(why_chg_mod1)
+
+wle_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered | PermanentID + GSYear, data = wle_treat_new)
+summary(wle_chg_mod1)
+
+# mixed effect models
+hyd_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = hyd_treat_new)
+summary(hyd_chg_mod2)
+
+why_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = why_treat_new)
+summary(why_chg_mod2)
+
+wle_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = wle_treat_new)
+summary(wle_chg_mod2)
 
 # predicted data
 inv_chg_pred <- inv_treat_new2 %>%
-  select(CommonName, LogitPropTreated, Log10PrevAreaCovered_ha) %>%
+  select(CommonName, LogitPropHerbTreated) %>%
   unique() %>%
+  left_join(inv_treat_new2 %>%
+              group_by(CommonName) %>%
+              summarise(LogitPrevPropCovered = mean(LogitPrevPropCovered)) %>%
+              ungroup()) %>%
   mutate(PermanentID = inv_treat_new2 %>%
            group_by(PermanentID) %>%
            count() %>%
@@ -351,22 +480,27 @@ inv_chg_pred <- inv_treat_new2 %>%
            select(PermanentID) %>%
            head(n = 1) %>% 
            pull(), # select most sampled lake
-         GSYear = "2018", 
-         Log10PrevAreaCovered_ha = mean(Log10PrevAreaCovered_ha)) %>%
-  mutate(pred1 = predict(inv_chg_mod1, newdata = .))
+         GSYear = "2018") %>%
+  mutate(pred1 = predict(inv_chg_mod1, newdata = .),
+         pValue = case_when(CommonName == "Hydrilla" ~ "P = 0.12",
+                            CommonName == "Water hyacinth" ~ "P = 0.09",
+                            CommonName == "Water lettuce" ~ "P < 0.001"))
 
 # figure
+pdf("output/new_invasion_herbicide.pdf", width = 11, height = 4)
 inv_chg_pred %>%
-  ggplot(aes(x = LogitPropTreated, y = pred1)) +
+  ggplot(aes(x = LogitPropHerbTreated, y = pred1)) +
+  geom_hline(yintercept = 0) +
   geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogRatioCovered)) +
   geom_line(color = "#009193", size = 1.5) +
-  # geom_text(data = inv_treat_change, y = 6.5, aes(label = ChangeProp4), 
-  #           parse = T, check_overlap = T, hjust = 1, vjust = 1, size = 4) +
+  geom_text(aes(label = pValue, x = max(LogitPropHerbTreated)), y = 7.5, check_overlap = T, 
+            hjust = 1, vjust = 1, size = 4) +
   facet_wrap(~ CommonName, scales = "free_x") +
   xlab("Proportion of waterbody treated (log-odds)") +
-  ylab("Change in area covered by species (log-ratio)") +
+  ylab("Change in area covered by sp. (log-ratio)") +
   def_theme_facet +
   theme(axis.text.x = element_text(size = 10, color="black"))
+dev.off()
 
 
 #### subset data ####
