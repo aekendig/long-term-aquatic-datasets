@@ -11,9 +11,12 @@ library(tidyverse)
 library(magrittr) # abundance_dataset
 library(lubridate) # abundance_dataset
 library(glmmTMB)
-library(lme4)
 library(effects)
-library(car)
+library(car) # for logit
+library(fixest) # FE models
+# library(lfe) # FE models
+# library(alpaca) # FE models
+# library(lme4) # use glmmTMB unless it's too slow
 
 # library(GGally)
 # library(lme4)
@@ -33,7 +36,7 @@ qual <- read_csv("intermediate-data/LW_quality_formatted.csv",
 
 # source functions
 source("code/figure_settings.R")
-source("code/beta_transformations.R")
+source("code/proportion_transformations.R")
 source("code/abundance_duplicates.R")
 source("code/cumulative_herbicides.R")
 source("code/cumulative_abundance.R")
@@ -50,6 +53,9 @@ source("code/growth_model.R")
 source("code/cumulative_quality.R")
 source("code/abundance_quality_formatting.R")
 source("code/growth_quality_model.R")
+
+# prevent scientific notation
+options(scipen = 999)
 
 
 #### invasive plant data formatting ####
@@ -78,6 +84,24 @@ herb_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichh
 herb_old <- herbicide_old_dataset(ctrl_old, herb_taxa) # note that this includes herbicide and non-herbicide methods
 herb_new <- herbicide_new_dataset(ctrl_new, herb_taxa)
 
+# overlap
+herb_old %>%
+  filter(AreaTreated_ha > 0) %>%
+  select(PermanentID, Species, GSYear) %>%
+  unique() %>%
+  inner_join(herb_new %>%
+               filter(AreaTreated_ha > 0) %>%
+               select(PermanentID, Species, GSYear) %>%
+               unique())
+# yes, 2010 is repeated in both, 154 cases
+
+# remove overlapping data
+herb_new2 <- herb_new %>%
+  anti_join(herb_old %>%
+              filter(AreaTreated_ha > 0) %>%
+              select(PermanentID, Species, GSYear) %>%
+              unique()) # unclear what the total herbicide amount was for this growing season
+
 # compare with previous version
 # ctrl_check <- read_csv("intermediate-data/FWC_hydrilla_pistia_eichhornia_herbicide_formatted.csv")
 # all_equal(ctrl, ctrl_check)
@@ -89,7 +113,7 @@ herb_inv_taxa <- tibble(Species = c("Hydrilla verticillata", rep("Floating Plant
                         TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))
 
 # inv_ctrl <- herbicide_abundance_dataset(ctrl, inv_fwc3, herb_inv_taxa)
-inv_herb_new <- herbicide_abundance_dataset(herb_new, inv_fwc3, herb_inv_taxa)
+inv_herb_new <- herbicide_abundance_dataset(herb_new2, inv_fwc3, herb_inv_taxa)
 
 # compare with previous version
 # inv_ctrl_check <- read_csv("intermediate-data/FWC_hydrilla_pistia_eichhornia_survey_herbicide_formatted.csv") %>%
@@ -106,134 +130,243 @@ inv_herb_new <- herbicide_abundance_dataset(herb_new, inv_fwc3, herb_inv_taxa)
 
 #### how does invasion affect treatment? ####
 
-# whether or not lakes are treated
+# subset for lakes with invasions
 inv_treat_new <- inv_herb_new %>%
+  filter(!is.na(Lag0PropTreated) & PrevSpeciesPresent == 1) %>%
   mutate(Treated = fct_recode(as.character(Lag0Treated), "Untreated" = "0", "Treated" = "1"),
-         Log10PrevAreaCovered_ha = log10(PrevAreaCoveredRaw),
-         LogitPrevPropCovered = logit(PrevPropCoveredBeta)) %>%
-  filter(!is.na(Lag0PropTreated) & PrevAreaCoveredRaw > 0)
+         AreaTreatedAdj_ha = case_when(Lag0AreaTreated_ha > Area_ha ~ Area_ha, # if area treated in a year exceeds lake size, use lake size
+                                       TRUE ~ Lag0AreaTreated_ha),
+         AreaTreatedRounded_ha = round(AreaTreatedAdj_ha), # round for glm
+         AreaUntreatedRounded_ha = round(Area_ha) - AreaTreatedRounded_ha,
+         PropTreatedAdj = AreaTreatedAdj_ha/Area_ha,
+         Log10Area_ha = log10(Area_ha),
+         LogitPropTreated = logit(PropTreatedAdj, adjust = prop_adjust),
+         Log10PrevAreaCovered_ha = log10(PrevAreaCoveredRaw_ha),
+         LogitPrevPropCovered = logit(PrevPropCovered, adjust = prop_adjust),
+         PrevAreaCoveredCS_ha = (PrevAreaCoveredRaw_ha - mean(PrevAreaCoveredRaw_ha)) / sd(PrevAreaCoveredRaw_ha),
+         PrevAreaCoveredRounded_ha = case_when(PrevAreaCoveredRaw_ha > Area_ha ~ round(Area_ha), # if area covered exceed lake size, use lake size
+                                               TRUE ~ round(PrevAreaCoveredRaw_ha)), # round for glm
+         PrevAreaUncoveredRounded_ha = round(Area_ha) - PrevAreaCoveredRounded_ha)
 
-inv_treat_new_sum <- inv_treat_new %>%
+# divide lake areas into groups
+inv_treat_area <- inv_treat_new %>%
+  select(PermanentID, Area_ha) %>%
+  unique() %>%
+  mutate(AreaGroup = cut_number(Area_ha, n = 3))
+
+# rename lake groups
+levels(inv_treat_area$AreaGroup) <- c("small", "medium", "large")
+
+inv_treat_new2 <- inv_treat_new %>%
+  left_join(inv_treat_area)
+
+inv_treat_new_sum <- inv_treat_new2 %>%
   group_by(Treated) %>%
   summarise(Log10PrevAreaCovered_ha = mean(Log10PrevAreaCovered_ha),
             LogitPrevPropCovered = mean(LogitPrevPropCovered)) %>%
   ungroup()
 
 # t-tests
-inv_treat_mod1 <- t.test(Log10PrevAreaCovered_ha ~ Treated, data = inv_treat_new)
+inv_treat_mod1 <- t.test(Log10PrevAreaCovered_ha ~ Treated, data = inv_treat_new2)
 inv_treat_mod1
 # treated invasions have larger total area than untreated invasions
 
-inv_treat_mod2 <- t.test(LogitPrevPropCovered ~ Treated, data = inv_treat_new)
+inv_treat_mod2 <- t.test(LogitPrevPropCovered ~ Treated, data = inv_treat_new2)
 inv_treat_mod2
 # treated invasions have larger proportion of lake covered than untreated invasions
+# magnitude of difference seems small
 
 # histogram to illustrate
-ggplot(inv_treat_new, aes(x = Log10PrevAreaCovered_ha)) +
+ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha)) +
   geom_histogram() +
   geom_vline(data = inv_treat_new_sum, aes(xintercept = Log10PrevAreaCovered_ha)) +
   facet_wrap(~ Treated) +
   def_theme_facet
 
-ggplot(inv_treat_new, aes(x = LogitPrevPropCovered)) +
+ggplot(inv_treat_new2, aes(x = LogitPrevPropCovered)) +
   geom_histogram() +
   geom_vline(data = inv_treat_new_sum, aes(xintercept = LogitPrevPropCovered)) +
   facet_wrap(~ Treated) +
   def_theme_facet
 
-# subset for lake-year combinations with treatment and invasions
-inv_treat_new2 <- inv_treat_new %>%
-  filter(PrevAreaCoveredRaw > 0 & Lag0PropTreated > 0 & !is.na(Area_ha)) %>%
-  mutate(AreaTreated_ha = case_when(Lag0AreaTreated_ha > Area_ha ~ round(Area_ha), # if area treated exceed lake size, use lake size
-                                    TRUE ~ round(Lag0AreaTreated_ha)), # round for glm
-         AreaUntreated_ha = round(Area_ha) - AreaTreated_ha,
-         PrevPercCovered = PrevPropCovered * 100,
-         Log10Area_ha = log10(Area_ha),
-         PrevAreaCoveredCS_ha = (PrevAreaCoveredRaw - mean(PrevAreaCoveredRaw)) / sd(PrevAreaCoveredRaw),
-         AreaCS_ha = (Area_ha - mean(Area_ha)) / sd(Area_ha),
-         PrevAreaCoveredRounded_ha = case_when(PrevAreaCoveredRaw > Area_ha ~ round(Area_ha), # if area covered exceed lake size, use lake size
-                                               TRUE ~ round(PrevAreaCoveredRaw)),
-         PrevAreaUncoveredRounded_ha = round(Area_ha) - PrevAreaCoveredRounded_ha)
+# check proportion conversion
+ggplot(inv_treat_new2, aes(x = PropTreatedAdj, y = LogitPropTreated)) +
+  geom_point()
 
-ggplot(inv_treat_new2, aes(x = PrevPercCovered, y = AreaTreated_ha/Area_ha)) +
+# invasion/treatment relationships
+ggplot(inv_treat_new2, aes(x = PrevPropCovered, y = PropTreatedAdj)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = AreaTreated_ha/Area_ha)) +
+ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = PropTreatedAdj)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_treat_new2, aes(x = PrevAreaCoveredCS_ha, y = AreaTreated_ha/Area_ha)) +
+ggplot(inv_treat_new2, aes(x = PrevAreaCoveredCS_ha, y = PropTreatedAdj)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "glm", formula = y ~ x) +
   facet_wrap(~ CommonName, scales = "free")
 
-# area model
+ggplot(inv_treat_new2, aes(x = PrevPropCovered, y = LogitPropTreated)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "glm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_treat_new2, aes(x = Log10PrevAreaCovered_ha, y = LogitPropTreated)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "glm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_treat_new2, aes(x = LogitPrevPropCovered, y = LogitPropTreated)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "glm", formula = y ~ x) +
+  facet_wrap(~ CommonName, scales = "free")
+
+# area models
 inv_area_mod1 <- glmmTMB(Log10PrevAreaCovered_ha ~ Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2)
 summary(inv_area_mod1)
+# larger lakes have larger invasions
 
 inv_area_mod2 <- glmmTMB(cbind(PrevAreaCoveredRounded_ha, PrevAreaUncoveredRounded_ha) ~ Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family = "binomial")
-summary(inv_area_mod2) # only marginally sig
+summary(inv_area_mod2)
+# larger lakes have smaller proportions covered
 
-# model
-inv_herb_mod1 <- glmmTMB(cbind(AreaTreated_ha, AreaUntreated_ha) ~ Log10PrevAreaCovered_ha * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
+# mixed-effects herbicide models
+inv_herb_mod1 <- glmmTMB(cbind(AreaTreatedRounded_ha, AreaUntreatedRounded_ha) ~ Log10PrevAreaCovered_ha * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
 summary(inv_herb_mod1)
-# larger invasions lead to greater treatment for all three species
-# can't converge with glmer
+# larger invasions have more proportion (lake) treated
+# larger lakes have less proportion treated
 
-inv_herb_mod2 <- glmmTMB(cbind(AreaTreated_ha, AreaUntreated_ha) ~ PrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
+inv_herb_mod2 <- glmmTMB(cbind(AreaTreatedRounded_ha, AreaUntreatedRounded_ha) ~ PrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
 summary(inv_herb_mod2)
-# larger invasions lead to greater treatment for all three species
+# larger invasions have more proportion (lake) treated
+# larger lakes have less proportion treated
 
-# is there an issue with including area? It increases both AreaCovered 
+inv_herb_mod3 <- glmmTMB(cbind(AreaTreatedRounded_ha, AreaUntreatedRounded_ha) ~ LogitPrevPropCovered * CommonName + Log10Area_ha + (1|PermanentID) + (1|GSYear), data = inv_treat_new2, family= "binomial")
+summary(inv_herb_mod3)
+
+# fixed-effects herbicide models
+# no fe methods available for cbind(success, failure) or beta distributions
+inv_herb_mod4 <- feols(LogitPropTreated ~ Log10PrevAreaCovered_ha * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+summary(inv_herb_mod4)
+# Log10Area_ha and AreaGroup are collinear with PermanentID
+# invasion size increases treatment
+
+inv_herb_mod5 <- feols(LogitPropTreated ~ PrevPropCovered * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+summary(inv_herb_mod5)
+# invasion size increases treatment
+
+inv_herb_mod6 <- feols(LogitPropTreated ~ LogitPrevPropCovered * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+summary(inv_herb_mod6)
+
+# predicted data
+inv_treat_pred <- inv_treat_new2 %>%
+  select(CommonName, PrevPropCovered, LogitPrevPropCovered, Log10PrevAreaCovered_ha, PrevAreaCoveredRaw_ha) %>%
+  unique() %>%
+  mutate(PermanentID = inv_treat_new2 %>%
+           group_by(PermanentID) %>%
+           count() %>%
+           arrange(desc(n)) %>%
+           select(PermanentID) %>%
+           head(n = 1) %>% 
+           pull(), # select most sampled lake
+         GSYear = "2018") %>%
+  mutate(pred4 = predict(inv_herb_mod4, newdata = .),
+         pred6 = predict(inv_herb_mod6, newdata = .),
+         pred4_prop = inv_logit_adjust(pred4, a = prop_adjust),
+         pred6_prop = inv_logit_adjust(pred6, a = prop_adjust))
+
+# check proportion conversion
+ggplot(inv_treat_pred, aes(x = pred4_prop, y = pred4)) +
+  geom_point()
+
+# change in prop for each species
+inv_treat_change <- inv_treat_pred %>%
+  group_by(CommonName) %>%
+  summarise(Log10PrevAreaCovered_ha = max(Log10PrevAreaCovered_ha),
+            PrevAreaCoveredRaw_ha = max(PrevAreaCoveredRaw_ha),
+            LogitPrevPropCovered = max(LogitPrevPropCovered),
+            MinProp4 = min(pred4_prop),
+            MaxProp4 = max(pred4_prop),
+            MinProp6 = min(pred6_prop),
+            MaxProp6 = max(pred6_prop)) %>%
+  ungroup() %>%
+  mutate(ChangeProp4 = paste("Delta == ", round(MaxProp4 - MinProp4, 2), sep = ""),
+         ChangeProp6 = paste("Delta == ", round(MaxProp6 - MinProp6, 2), sep = ""))
 
 # figure
-inv_treat_new2 %>%
-  select(CommonName) %>%
-  unique() %>%
-  expand_grid(PrevPropCovered = seq(0, 1, length.out = 100)) %>%
-  mutate(Area_ha = mean(inv_treat_new2$Area_ha),
-         Log10Area_ha = log10(Area_ha),
-         Log10PrevAreaCovered_ha = log10(PrevPropCovered * Area_ha),
-         PermanentID = NA,
-         GSYear = NA) %>%
-  mutate(pred = predict(inv_herb_mod2, newdata = ., re.form = NA, type = "response")) %>%
-  ggplot(aes(x = PrevPropCovered, y = pred)) +
-  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = AreaTreated_ha/Area_ha)) +
-  geom_line(color = "red", size = 1.5) +
-  facet_wrap(~ CommonName, scales = "free") +
-  # xlab(expression(paste("Area covered by species (", log[10], " ha)", sep = ""))) +
-  xlab("Proportion of waterbody covered by species") +
-  ylab("Proportion of waterbody treated") +
-  def_theme_facet
+pdf("output/new_herbicide_invasion_area.pdf", width = 11, height = 4)
+inv_treat_pred %>%
+  ggplot(aes(x = PrevAreaCoveredRaw_ha, y = pred4)) +
+  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogitPropTreated)) +
+  geom_line(color = "#009193", size = 1.5) +
+  geom_text(data = inv_treat_change, y = 6.5, aes(label = ChangeProp4), 
+            parse = T, check_overlap = T, hjust = 1, vjust = 1, size = 4) +
+  facet_wrap(~ CommonName, scales = "free_x") +
+  scale_x_log10(breaks = c(0.1, 1, 10, 100, 1000, 10000),
+                labels = c(0.1, 1, 10, 100, 1000, 10000)) +
+  xlab("Area covered by species (ha)") +
+  ylab("Proportion of waterbody treated (log-odds)") +
+  def_theme_facet +
+  theme(axis.text.x = element_text(size = 10, color="black"))
+dev.off()
 
-inv_treat_new2 %>%
-  select(CommonName) %>%
-  unique() %>%
-  expand_grid(PrevPropCovered = seq(0, 1, length.out = 100)) %>%
-  mutate(Area_ha = mean(inv_treat_new2$Area_ha),
-         Log10Area_ha = log10(Area_ha),
-         Log10PrevAreaCovered_ha = log10(PrevPropCovered * Area_ha),
-         PermanentID = NA,
-         GSYear = NA) %>%
-  mutate(pred = predict(inv_herb_mod2, newdata = ., re.form = NA, type = "response")) %>%
-  ggplot(aes(x = PrevPropCovered, y = pred)) +
-  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = AreaTreated_ha/Area_ha)) +
-  geom_line(color = "red", size = 1.5) +
-  facet_wrap(~ CommonName, scales = "free") +
-  # xlab(expression(paste("Area covered by species (", log[10], " ha)", sep = ""))) +
-  xlab("Proportion of waterbody covered by species") +
-  ylab("Proportion of waterbody treated") +
-  xlim(0, 0.25) +
+pdf("output/new_herbicide_invasion_proportion.pdf", width = 11, height = 4)
+inv_treat_pred %>%
+  ggplot(aes(x = LogitPrevPropCovered, y = pred6)) +
+  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogitPropTreated)) +
+  geom_line(color = "#009193", size = 1.5) +
+  geom_text(data = inv_treat_change, y = 6.5, aes(label = ChangeProp6), 
+            parse = T, check_overlap = T, hjust = 1, vjust = 1, size = 4,
+            nudge_x = -0.7) +
+  facet_wrap(~ CommonName, scales = "free_x") +
+  xlab("Proportion of waterbody covered by species (log-odds)") +
+  ylab("Proportion of waterbody treated (log-odds)") +
   def_theme_facet
+dev.off()
 
-# the proportion of lake covered by a species has a significant, but small effect on the proportion of waterbody treated
-# larger lakes have lower proportions treated, but larger lakes do not necessarily have larger proportions covered
+
 #### start here ####
-# okay to use proportion treated to predict change in pop now?
-# need to deal with these significant small effects?
+#### how does treatment affect invasion? ####
+
+# treatment variables
+ggplot(inv_treat_new2, aes(x = LogitPropTreated, y = Lag0TreatmentDays)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x)
+
+# fit model
+inv_chg_mod1 <- feols(LogRatioCovered ~ (LogitPropTreated + Log10PrevAreaCovered_ha) * CommonName | PermanentID + GSYear, data = inv_treat_new2)
+summary(inv_chg_mod1)
+
+# predicted data
+inv_chg_pred <- inv_treat_new2 %>%
+  select(CommonName, LogitPropTreated, Log10PrevAreaCovered_ha) %>%
+  unique() %>%
+  mutate(PermanentID = inv_treat_new2 %>%
+           group_by(PermanentID) %>%
+           count() %>%
+           arrange(desc(n)) %>%
+           select(PermanentID) %>%
+           head(n = 1) %>% 
+           pull(), # select most sampled lake
+         GSYear = "2018", 
+         Log10PrevAreaCovered_ha = mean(Log10PrevAreaCovered_ha)) %>%
+  mutate(pred1 = predict(inv_chg_mod1, newdata = .))
+
+# figure
+inv_chg_pred %>%
+  ggplot(aes(x = LogitPropTreated, y = pred1)) +
+  geom_point(data = inv_treat_new2, alpha = 0.3, aes(y = LogRatioCovered)) +
+  geom_line(color = "#009193", size = 1.5) +
+  # geom_text(data = inv_treat_change, y = 6.5, aes(label = ChangeProp4), 
+  #           parse = T, check_overlap = T, hjust = 1, vjust = 1, size = 4) +
+  facet_wrap(~ CommonName, scales = "free_x") +
+  xlab("Proportion of waterbody treated (log-odds)") +
+  ylab("Change in area covered by species (log-ratio)") +
+  def_theme_facet +
+  theme(axis.text.x = element_text(size = 10, color="black"))
 
 
 #### subset data ####

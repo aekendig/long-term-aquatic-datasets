@@ -84,11 +84,12 @@ abundance_dataset <- function(dat, taxa){
                 expand_grid(GSYear = min(abu_out$GSYear):max(abu_out$GSYear))) %>%
     group_by(PermanentID, TaxonName) %>%
     arrange(GSYear) %>% 
-    mutate(PrevPropCovered = lag(PropCovered), # previous year's PropCovered
+    mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
            PrevPropCoveredAdj = lag(PropCoveredAdj),
-           PrevAreaCoveredRaw = lag(EstAreaCoveredRaw_ha)) %>%
+           PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
+           PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0)) %>%
     ungroup() %>%
-    mutate(RatioCovered = EstAreaCoveredRaw_ha/PrevAreaCoveredRaw,
+    mutate(RatioCovered = EstAreaCoveredRaw_ha/PrevAreaCoveredRaw_ha,
            LogRatioCovered = log(RatioCovered))
   
   return(abu_out2)

@@ -26,7 +26,7 @@ herbicide_abundance_dataset <- function(ctrl_dat, abu_dat, taxa){
                                  mutate(GSYear = .x,
                                         Lag = .y))) %>%
     pivot_wider(names_from = Lag,
-                values_from = c(PropTreated, Treated, AreaTreated_ha),
+                values_from = c(PropTreated, Treated, AreaTreated_ha, TreatmentDays),
                 names_glue = "Lag{Lag}{.value}") # make treatments wide by lag
   
   # combine treatment and invasion datasets
