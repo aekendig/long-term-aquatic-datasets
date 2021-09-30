@@ -37,6 +37,7 @@ qual <- read_csv("intermediate-data/LW_quality_formatted.csv",
 
 # source functions
 source("code/figure_settings.R")
+source("code/mode_function.R")
 source("code/proportion_transformations.R")
 source("code/abundance_duplicates.R")
 source("code/cumulative_herbicides.R")
@@ -61,6 +62,48 @@ source("code/growth_quality_model.R")
 
 # prevent scientific notation
 options(scipen = 999)
+
+
+#### survey timing ####
+
+# extract info
+survey_time <- plant_fwc %>%
+  select(AreaOfInterestID, SurveyDate) %>%
+  unique() %>%
+  mutate(SurveyMonth = month(SurveyDate)) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(MostMonth = mean(Modes(SurveyMonth)),
+         Surveys = n()) %>% # average multiple modes
+  ungroup() %>%
+  mutate(MonthDiff = as.numeric(SurveyMonth) - as.numeric(MostMonth),
+         MonthDiff = case_when(MonthDiff < 0 ~ ceiling(MonthDiff), # reduce differences for multiple modes
+                               MonthDiff > 0 ~ floor(MonthDiff), # same as above
+                               TRUE ~ MonthDiff),
+         MonthDiff = case_when(MonthDiff > 6 ~ MonthDiff - 12, # correct for late/early surveys
+                               MonthDiff < -6 ~ MonthDiff + 12,
+                               TRUE ~ MonthDiff)) %>%
+  filter(Surveys >= 3)
+
+# most month
+survey_time %>%
+  select(AreaOfInterestID, MostMonth) %>%
+  unique() %>%
+  ggplot(aes(x = MostMonth)) +
+  geom_histogram(binwidth = 1)
+
+# figure
+pdf("output/survey_timing.pdf", width = 3.5, height = 3.5)
+ggplot(survey_time, aes(x = MonthDiff)) +
+  geom_histogram(binwidth = 1) +
+  theme_bw() +
+  labs(x = "Difference from most frequent month", y = "Surveys")
+dev.off()
+
+# non-zero months
+survey_time %>%
+  mutate(OnTime = if_else(MonthDiff == 0, 1, 0)) %>%
+  group_by(OnTime) %>%
+  count()
 
 
 #### invasive plant data formatting ####
