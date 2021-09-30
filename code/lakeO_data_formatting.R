@@ -114,13 +114,16 @@ fitDat <- totDat %>%
   unique() %>%
   mutate(AreaCovered_s = predict(lake0_mod, newdata = ., re.form = NA))
 
-pdf("output/lakeO_intraannual_veg_change_mod.pdf")
+
+#### start here: format legend ####
+
+pdf("output/lakeO_intraannual_veg_change_mod.pdf", width = 3.5, height = 3.5)
 ggplot(totDat, aes(MonthDay, AreaCovered_s)) +
   geom_line(aes(color = Yearf)) +
   geom_line(data = fitDat, color = "black", size = 2) +
   labs(x = "Month", y = "Standardized area covered", color = "Year") +
   scale_x_date(labels = date_format("%b")) +
-  def_theme
+  def_theme_paper
 
 ggplot(totDat, aes(MonthDay, AreaCovered_acres)) +
   geom_line(aes(color = Yearf)) +

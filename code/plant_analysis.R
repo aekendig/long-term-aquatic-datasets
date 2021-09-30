@@ -95,8 +95,8 @@ survey_time %>%
 pdf("output/survey_timing.pdf", width = 3.5, height = 3.5)
 ggplot(survey_time, aes(x = MonthDiff)) +
   geom_histogram(binwidth = 1) +
-  theme_bw() +
-  labs(x = "Difference from most frequent month", y = "Surveys")
+  labs(x = "Difference from most frequent month", y = "Surveys") +
+  def_theme_paper
 dev.off()
 
 # non-zero months
