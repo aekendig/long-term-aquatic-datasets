@@ -87,7 +87,8 @@ abundance_dataset <- function(dat, taxa){
     mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
            PrevPropCoveredAdj = lag(PropCoveredAdj),
            PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
-           PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0)) %>%
+           PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0),
+           SurveyDays = as.numeric(SurveyDate - lag(SurveyDate))) %>%
     ungroup() %>%
     mutate(RatioCovered = EstAreaCoveredRaw_ha/PrevAreaCoveredRaw_ha,
            LogRatioCovered = log(RatioCovered))

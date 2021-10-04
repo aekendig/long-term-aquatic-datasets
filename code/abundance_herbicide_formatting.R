@@ -28,13 +28,15 @@ herbicide_abundance_dataset <- function(orig_ctrl, unknown_ctrl, herb_dat, abu_d
               AreaHerbTreated_ha = sum(AreaTreated_ha),
               HerbTreatmentDays = case_when(PropHerbTreated > 0 ~ as.numeric(n_distinct(TreatmentDate)),
                                             TRUE ~ 0),
-              HerbTreated = as.numeric(PropHerbTreated > 0)) %>% 
+              HerbTreated = as.numeric(PropHerbTreated > 0),
+              TreatmentDate = if_else(HerbTreated == 1, max(TreatmentDate), NA_real_)) %>% 
     ungroup() %>%
     anti_join(unknown_ctrl) # remove year/lake combos in older dataset, where control type is unknown
   
   # combine treatment and invasion datasets
   abu_herb <- abu_dat %>%
-    left_join(herb_abu3) # only include data for lakes and years when surveys occurred
+    left_join(herb_abu3) %>% # only include data for lakes and years when surveys occurred
+    mutate(SurveyTreatDays = if_else(HerbTreated == 1, as.numeric(SurveyDate - TreatmentDate), SurveyDays))
   
   return(abu_herb)
   

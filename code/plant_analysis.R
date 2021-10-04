@@ -27,6 +27,7 @@ library(GGally)
 plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 ctrl_old <- read_csv("intermediate-data/FWC_control_old_formatted.csv")
 ctrl_new <- read_csv("intermediate-data/FWC_control_new_formatted.csv")
+herb_type <- read_csv("intermediate-data/herbicide_types.csv")
 qual <- read_csv("intermediate-data/LW_quality_formatted.csv",
                  col_types = list(PermanentID = col_character(),
                                   JoinNotes = col_character()))
@@ -66,44 +67,44 @@ options(scipen = 999)
 
 #### survey timing ####
 
-# extract info
-survey_time <- plant_fwc %>%
-  select(AreaOfInterestID, SurveyDate) %>%
-  unique() %>%
-  mutate(SurveyMonth = month(SurveyDate)) %>%
-  group_by(AreaOfInterestID) %>%
-  mutate(MostMonth = mean(Modes(SurveyMonth)),
-         Surveys = n()) %>% # average multiple modes
-  ungroup() %>%
-  mutate(MonthDiff = as.numeric(SurveyMonth) - as.numeric(MostMonth),
-         MonthDiff = case_when(MonthDiff < 0 ~ ceiling(MonthDiff), # reduce differences for multiple modes
-                               MonthDiff > 0 ~ floor(MonthDiff), # same as above
-                               TRUE ~ MonthDiff),
-         MonthDiff = case_when(MonthDiff > 6 ~ MonthDiff - 12, # correct for late/early surveys
-                               MonthDiff < -6 ~ MonthDiff + 12,
-                               TRUE ~ MonthDiff)) %>%
-  filter(Surveys >= 3)
-
-# most month
-survey_time %>%
-  select(AreaOfInterestID, MostMonth) %>%
-  unique() %>%
-  ggplot(aes(x = MostMonth)) +
-  geom_histogram(binwidth = 1)
-
-# figure
-pdf("output/survey_timing.pdf", width = 3.5, height = 3.5)
-ggplot(survey_time, aes(x = MonthDiff)) +
-  geom_histogram(binwidth = 1) +
-  labs(x = "Difference from most frequent month", y = "Surveys") +
-  def_theme_paper
-dev.off()
-
-# non-zero months
-survey_time %>%
-  mutate(OnTime = if_else(MonthDiff == 0, 1, 0)) %>%
-  group_by(OnTime) %>%
-  count()
+# # extract info
+# survey_time <- plant_fwc %>%
+#   select(AreaOfInterestID, SurveyDate) %>%
+#   unique() %>%
+#   mutate(SurveyMonth = month(SurveyDate)) %>%
+#   group_by(AreaOfInterestID) %>%
+#   mutate(MostMonth = mean(Modes(SurveyMonth)),
+#          Surveys = n()) %>% # average multiple modes
+#   ungroup() %>%
+#   mutate(MonthDiff = as.numeric(SurveyMonth) - as.numeric(MostMonth),
+#          MonthDiff = case_when(MonthDiff < 0 ~ ceiling(MonthDiff), # reduce differences for multiple modes
+#                                MonthDiff > 0 ~ floor(MonthDiff), # same as above
+#                                TRUE ~ MonthDiff),
+#          MonthDiff = case_when(MonthDiff > 6 ~ MonthDiff - 12, # correct for late/early surveys
+#                                MonthDiff < -6 ~ MonthDiff + 12,
+#                                TRUE ~ MonthDiff)) %>%
+#   filter(Surveys >= 3)
+# 
+# # most month
+# survey_time %>%
+#   select(AreaOfInterestID, MostMonth) %>%
+#   unique() %>%
+#   ggplot(aes(x = MostMonth)) +
+#   geom_histogram(binwidth = 1)
+# 
+# # figure
+# pdf("output/survey_timing.pdf", width = 3.5, height = 3.5)
+# ggplot(survey_time, aes(x = MonthDiff)) +
+#   geom_histogram(binwidth = 1) +
+#   labs(x = "Difference from most frequent month", y = "Surveys") +
+#   def_theme_paper
+# dev.off()
+# 
+# # non-zero months
+# survey_time %>%
+#   mutate(OnTime = if_else(MonthDiff == 0, 1, 0)) %>%
+#   group_by(OnTime) %>%
+#   count()
 
 
 #### invasive plant data formatting ####
@@ -425,6 +426,11 @@ inv_treat_new3 %>%
   ggplot(aes(x = PerHaCoverChange)) +
   geom_histogram(binwidth = 1)
 
+ggplot(inv_treat_new3, aes(x = LogitPropHerbTreated, y = SurveyTreatDays)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x)
+# negatively correlated because untreated lakes necessary have long time windows (time between surveys, ~ 1 year)
+
 # regression relationships
 ggplot(inv_treat_new3, aes(x = LogitPrevPropCovered, y = LogRatioCovered, color = as.factor(HerbTreated))) +
   # geom_point(alpha = 0.7) +
@@ -478,24 +484,35 @@ ggplot(inv_treat_new3, aes(x = LogitPropNonHerbTreated, y = LogRatioCovered)) +
 # divide data by species
 # without intercept in FE model, not sure how to interpret species coefficients
 hyd_treat_new <- inv_treat_new3 %>%
-  filter(CommonName == "Hydrilla")
+  filter(CommonName == "Hydrilla") %>%
+  mutate(SurveyTreatDaysCS = (SurveyTreatDays - mean(SurveyTreatDays)) / sd(SurveyTreatDays))
 why_treat_new <- inv_treat_new3 %>%
-  filter(CommonName == "Water hyacinth")
+  filter(CommonName == "Water hyacinth") %>%
+  mutate(SurveyTreatDaysCS = (SurveyTreatDays - mean(SurveyTreatDays)) / sd(SurveyTreatDays))
 wle_treat_new <- inv_treat_new3 %>%
-  filter(CommonName == "Water lettuce")
+  filter(CommonName == "Water lettuce") %>%
+  mutate(SurveyTreatDaysCS = (SurveyTreatDays - mean(SurveyTreatDays)) / sd(SurveyTreatDays))
+
+# treatment days and herbicide used -- correlated?
+cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = hyd_treat_new)
+cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = why_treat_new)
+cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = wle_treat_new)
 
 # fixed effect models
 inv_chg_mod1 <- feols(LogRatioCovered ~ (LogitPropHerbTreated + LogitPrevPropCovered) * CommonName | PermanentID + GSYear, data = inv_treat_new3)
 summary(inv_chg_mod1)
-  
-hyd_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + LogitPropNonHerbTreated | PermanentID + GSYear, data = hyd_treat_new)
+
+hyd_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = hyd_treat_new)
 summary(hyd_chg_mod1)
+
+hyd_chg_mod1b <- feols(LogRatioCovered ~ LogitPrevPropCovered * (LogitPropHerbTreated + LogitPropNonHerbTreated) | PermanentID + GSYear, data = hyd_treat_new)
+summary(hyd_chg_mod1b)
 # estimate for herbicide effect doesn't change much when non-herbicide treatments are accounted for
 
-why_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered | PermanentID + GSYear, data = why_treat_new)
+why_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = why_treat_new)
 summary(why_chg_mod1)
 
-wle_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered | PermanentID + GSYear, data = wle_treat_new)
+wle_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = wle_treat_new)
 summary(wle_chg_mod1)
 
 # mixed effect models
@@ -544,6 +561,65 @@ inv_chg_pred %>%
   def_theme_facet +
   theme(axis.text.x = element_text(size = 10, color="black"))
 dev.off()
+
+# add time between treatment and survey
+# only use treated lakes
+
+# subset data
+hyd_treat_new2 <- hyd_treat_new %>% filter(HerbTreated == 1) %>%
+  mutate(SurveyTreatDaysCS = (SurveyTreatDays - mean(SurveyTreatDays)) / sd(SurveyTreatDays))
+why_treat_new2 <- why_treat_new %>% filter(HerbTreated == 1) %>%
+  mutate(SurveyTreatDaysCS = (SurveyTreatDays - mean(SurveyTreatDays)) / sd(SurveyTreatDays))
+wle_treat_new2 <- wle_treat_new %>% filter(HerbTreated == 1) %>%
+  mutate(SurveyTreatDaysCS = (SurveyTreatDays - mean(SurveyTreatDays)) / sd(SurveyTreatDays))
+
+# figures
+ggplot(hyd_treat_new2, aes(x = SurveyTreatDaysCS, y = LogitPropHerbTreated)) +
+  geom_point() + geom_smooth(method = "lm")
+cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = hyd_treat_new2)
+ggplot(why_treat_new2, aes(x = SurveyTreatDaysCS, y = LogitPropHerbTreated)) +
+  geom_point() + geom_smooth(method = "lm")
+cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = why_treat_new2)
+ggplot(wle_treat_new2, aes(x = SurveyTreatDaysCS, y = LogitPropHerbTreated)) +
+  geom_point() + geom_smooth(method = "lm")
+cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = wle_treat_new2)
+# all are negatively correlated, but correlation magnitudes are small (< -0.3)
+
+ggplot(hyd_treat_new2, aes(x = SurveyTreatDaysCS, y = LogRatioCovered)) +
+  geom_point() + geom_smooth(method = "lm")
+ggplot(why_treat_new2, aes(x = SurveyTreatDaysCS, y = LogRatioCovered)) +
+  geom_point() + geom_smooth(method = "lm")
+ggplot(wle_treat_new2, aes(x = SurveyTreatDaysCS, y = LogRatioCovered)) +
+  geom_point() + geom_smooth(method = "lm")
+
+# dictionary for coefficient plot
+dict <- c("LogitPropHerbTreated" = "Herbicide",
+          "LogitPrevPropCovered" = "Initial invasion",
+          "SurveyTreatDaysCS" = "Days post treatment",
+          "SurveyorExperienceBmedium" = "Med. surveyor experience",
+          "SurveyorExperienceBlow" = "Low surveyor experience",
+          "LogitPropHerbTreated:LogitPrevPropCovered" = "Herbicide:Initial invasion",
+          "LogitPropHerbTreated:SurveyTreatDaysCS" = "Herbicide:Days post treatment",
+          "LogitPropHerbTreated:SurveyorExperienceBmedium" = "Herbicide: Med. experience",
+          "LogitPropHerbTreated:SurveyorExperienceBlow" = "Herbicide: Low experience")
+setFixest_coefplot(dict = dict)
+
+# fixed effect models
+hyd_chg_mod3 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = hyd_treat_new2)
+summary(hyd_chg_mod3)
+
+why_chg_mod3 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = why_treat_new2)
+summary(why_chg_mod3)
+
+wle_chg_mod3 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = wle_treat_new2)
+summary(wle_chg_mod3)
+
+pdf("output/fixed_effect_coefficient_plots.pdf")
+coefplot(hyd_chg_mod3, horiz = T, main = "Hydrilla annual growth")
+coefplot(why_chg_mod3, horiz = T, main = "Water hyacinth annual growth")
+coefplot(wle_chg_mod3, horiz = T, main = "Water lettuce annual growth")
+dev.off()
+
 
 
 #### subset data ####
