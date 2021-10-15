@@ -15,12 +15,11 @@ library(effects)
 library(car) # for logit
 library(fixest) # FE models
 library(GGally)
+library(vegan)
+library(ggvegan)
 # library(lfe) # FE models
 # library(alpaca) # FE models
 # library(lme4) # use glmmTMB unless it's too slow
-
-# library(GGally)
-# library(lme4)
 # library(ggeffects)
 
 # import data
@@ -50,14 +49,15 @@ source("code/surveyor_experience.R")
 source("code/plant_abundance_formatting.R")
 # source("code/herbicide_formatting.R")
 source("code/control_old_formatting.R")
-source("code/control_new_formatting.R")
+# source("code/control_new_formatting.R")
 source("code/herbicide_new_formatting.R")
 source("code/non_herbicide_new_formatting.R")
 source("code/abundance_old_control_formatting.R")
 source("code/abundance_herbicide_formatting.R")
 source("code/abundance_non_herbicide_formatting.R")
 source("code/growth_model.R")
-source("code/cumulative_quality.R")
+# source("code/cumulative_quality.R")
+source("code/quality_formatting.R")
 source("code/abundance_quality_formatting.R")
 source("code/growth_quality_model.R")
 
@@ -167,13 +167,50 @@ inv_ctrl_new <- non_herb_abundance_dataset(ctrl_new, inv_ctrl_old, non_herb_new,
 
 #### combine invasive plant and quality data ####
 
-# inv_qual <- quality_abundance_dataset(qual, inv_fwc3)
+# format quality data
+qual2 <- quality_dataset(qual, 9)
+
+# select variables for PCA 
+qual_vals <- qual2 %>%
+  select(TP_ug_L, TN_ug_L, CHL_ug_L, Secchi) %>%
+  drop_na %>%
+  mutate(across(.fns = log))
+
+# visualize variables
+ggpairs(qual_vals)
+
+# PCA
+qual_rda <- rda(qual_vals)
+summary(qual_rda)
+summary(qual_rda)$species
+
+# format PCA scores
+qual_scores <- data.frame(summary(qual_rda)$sites)
+
+# output dataset
+qual3 <- qual2 %>%
+  select(PermanentID, GSYear, TP_ug_L, TN_ug_L, CHL_ug_L, Secchi) %>%
+  drop_na %>%
+  bind_cols(qual_vals %>%
+              rename_with(~ paste0("log_", .x)) %>%
+              bind_cols(select(qual_scores, PC1)))
+
+
+# combine data
+inv_ctrl_new_qual <- quality_abundance_dataset(qual3, inv_ctrl_new)
+
+# sample size with quality info
+inv_ctrl_new_qual %>%
+  filter(!is.na(TN_ug_L) & !is.na(AreaCovered_ha) & !is.na(PropHerbTreated)) %>%
+  summarise(waterbodies = n_distinct(PermanentID),
+            years = n_distinct(GSYear),
+            obs = n())
 
 
 #### how does invasion affect herbicide treatment? ####
 
 # subset for lakes with invasions and available herbicide data
-inv_treat_new <- inv_ctrl_new %>%
+inv_treat_new <- inv_ctrl_new_qual %>%
   filter(!is.na(PropHerbTreated) & PrevSpeciesPresent == 1) %>%
   mutate(Treated = fct_recode(as.character(HerbTreated), "Untreated" = "0", "Treated" = "1"),
          AreaHerbTreatedAdj_ha = case_when(AreaHerbTreated_ha > Area_ha ~ Area_ha, # if area treated in a year exceeds lake size, use lake size
@@ -498,6 +535,20 @@ cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = hyd_treat_new)
 cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = why_treat_new)
 cor.test(~ SurveyTreatDaysCS + LogitPropHerbTreated, data = wle_treat_new)
 
+# dictionary for coefficient plot
+dict <- c("LogitPropHerbTreated" = "Herbicide",
+          "LogitPrevPropCovered" = "Initial invasion",
+          "SurveyTreatDaysCS" = "Days post treatment",
+          "SurveyorExperienceBmedium" = "Med. surveyor experience",
+          "SurveyorExperienceBlow" = "Low surveyor experience",
+          "LogitPropHerbTreated:LogitPrevPropCovered" = "Herbicide:Initial invasion",
+          "LogitPropHerbTreated:SurveyTreatDaysCS" = "Herbicide:Days post treatment",
+          "LogitPropHerbTreated:SurveyorExperienceBmedium" = "Herbicide:Med. experience",
+          "LogitPropHerbTreated:SurveyorExperienceBlow" = "Herbicide:Low experience",
+          "PC1" = "Water quality",
+          "LogitPropHerbTreated:PC1" = "Herbicide:Water quality")
+setFixest_coefplot(dict = dict)
+
 # fixed effect models
 inv_chg_mod1 <- feols(LogRatioCovered ~ (LogitPropHerbTreated + LogitPrevPropCovered) * CommonName | PermanentID + GSYear, data = inv_treat_new3)
 summary(inv_chg_mod1)
@@ -515,15 +566,37 @@ summary(why_chg_mod1)
 wle_chg_mod1 <- feols(LogRatioCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = wle_treat_new)
 summary(wle_chg_mod1)
 
-# mixed effect models
-hyd_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = hyd_treat_new)
+pdf("output/fixed_effect_change_models_simple_coefficient_plots.pdf")
+coefplot(hyd_chg_mod1, horiz = T, main = "Hydrilla annual growth")
+coefplot(why_chg_mod1, horiz = T, main = "Water hyacinth annual growth")
+coefplot(wle_chg_mod1, horiz = T, main = "Water lettuce annual growth")
+dev.off()
+
+hyd_chg_mod2 <- feols(LogitPropCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = hyd_treat_new)
 summary(hyd_chg_mod2)
 
-why_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = why_treat_new)
+why_chg_mod2 <- feols(LogitPropCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = why_treat_new)
 summary(why_chg_mod2)
 
-wle_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = wle_treat_new)
+wle_chg_mod2 <- feols(LogitPropCovered ~ LogitPropHerbTreated * LogitPrevPropCovered | PermanentID + GSYear, data = wle_treat_new)
 summary(wle_chg_mod2)
+
+pdf("output/fixed_effect_cover_models_simple_coefficient_plots.pdf")
+coefplot(hyd_chg_mod2, horiz = T, main = "Hydrilla annual growth")
+coefplot(why_chg_mod2, horiz = T, main = "Water hyacinth annual growth")
+coefplot(wle_chg_mod2, horiz = T, main = "Water lettuce annual growth")
+dev.off()
+
+
+# mixed effect models
+# hyd_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = hyd_treat_new)
+# summary(hyd_chg_mod2)
+# 
+# why_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = why_treat_new)
+# summary(why_chg_mod2)
+# 
+# wle_chg_mod2 <- glmmTMB(LogRatioCovered ~ LogitPropHerbTreated + LogitPrevPropCovered + (1|PermanentID) + (1|GSYear), data = wle_treat_new)
+# summary(wle_chg_mod2)
 
 # predicted data
 inv_chg_pred <- inv_treat_new2 %>%
@@ -592,18 +665,6 @@ ggplot(why_treat_new2, aes(x = SurveyTreatDaysCS, y = LogRatioCovered)) +
 ggplot(wle_treat_new2, aes(x = SurveyTreatDaysCS, y = LogRatioCovered)) +
   geom_point() + geom_smooth(method = "lm")
 
-# dictionary for coefficient plot
-dict <- c("LogitPropHerbTreated" = "Herbicide",
-          "LogitPrevPropCovered" = "Initial invasion",
-          "SurveyTreatDaysCS" = "Days post treatment",
-          "SurveyorExperienceBmedium" = "Med. surveyor experience",
-          "SurveyorExperienceBlow" = "Low surveyor experience",
-          "LogitPropHerbTreated:LogitPrevPropCovered" = "Herbicide:Initial invasion",
-          "LogitPropHerbTreated:SurveyTreatDaysCS" = "Herbicide:Days post treatment",
-          "LogitPropHerbTreated:SurveyorExperienceBmedium" = "Herbicide: Med. experience",
-          "LogitPropHerbTreated:SurveyorExperienceBlow" = "Herbicide: Low experience")
-setFixest_coefplot(dict = dict)
-
 # fixed effect models
 hyd_chg_mod3 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = hyd_treat_new2)
 summary(hyd_chg_mod3)
@@ -614,12 +675,83 @@ summary(why_chg_mod3)
 wle_chg_mod3 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = wle_treat_new2)
 summary(wle_chg_mod3)
 
-pdf("output/fixed_effect_coefficient_plots.pdf")
+pdf("output/fixed_effect_change_models_coefficient_plots.pdf")
 coefplot(hyd_chg_mod3, horiz = T, main = "Hydrilla annual growth")
 coefplot(why_chg_mod3, horiz = T, main = "Water hyacinth annual growth")
 coefplot(wle_chg_mod3, horiz = T, main = "Water lettuce annual growth")
 dev.off()
 
+# fixed effect models with prop covered as response
+hyd_cov_mod <- feols(LogitPropCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = hyd_treat_new2)
+summary(hyd_cov_mod)
+
+why_cov_mod <- feols(LogitPropCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = why_treat_new2)
+summary(why_cov_mod)
+
+wle_cov_mod <- feols(LogitPropCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB) | PermanentID + GSYear, data = wle_treat_new2)
+summary(wle_cov_mod)
+
+pdf("output/fixed_effect_cover_models_coefficient_plots.pdf")
+coefplot(hyd_cov_mod, horiz = T, main = "Hydrilla abundance")
+coefplot(why_cov_mod, horiz = T, main = "Water hyacinth abundance")
+coefplot(wle_cov_mod, horiz = T, main = "Water lettuce abundance")
+dev.off()
+
+
+#### how does water quality mediate the effects of herbicides? ####
+
+# subset data
+hyd_treat_new3 <- hyd_treat_new2 %>% 
+  filter(!is.na(PC1))
+why_treat_new3 <- why_treat_new2 %>% 
+  filter(!is.na(PC1))
+wle_treat_new3 <- wle_treat_new2 %>% 
+  filter(!is.na(PC1))
+
+# correlations
+hyd_treat_new3 %>%
+  select(TN_ug_L, TP_ug_L, CHL_ug_L, Secchi) %>%
+  ggpairs()
+why_treat_new3 %>%
+  select(TN_ug_L, TP_ug_L, CHL_ug_L, Secchi) %>%
+  ggpairs()
+wle_treat_new3 %>%
+  select(TN_ug_L, TP_ug_L, CHL_ug_L, Secchi) %>%
+  ggpairs()
+# many are highly correlated, use PC1
+
+# fixed effect models
+hyd_chg_mod4 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB + PC1) | PermanentID + GSYear, data = hyd_treat_new3)
+summary(hyd_chg_mod4)
+
+why_chg_mod4 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB + PC1) | PermanentID + GSYear, data = why_treat_new3)
+summary(why_chg_mod4)
+
+wle_chg_mod4 <- feols(LogRatioCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB + PC1) | PermanentID + GSYear, data = wle_treat_new3)
+summary(wle_chg_mod4)
+
+pdf("output/fixed_effect_change_quality_models_coefficient_plots.pdf")
+coefplot(hyd_chg_mod4, horiz = T, main = "Hydrilla annual growth")
+coefplot(why_chg_mod4, horiz = T, main = "Water hyacinth annual growth")
+coefplot(wle_chg_mod4, horiz = T, main = "Water lettuce annual growth")
+dev.off()
+
+
+# fixed effect models with prop covered as response
+hyd_cov_mod2 <- feols(LogitPropCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB + PC1) | PermanentID + GSYear, data = hyd_treat_new3)
+summary(hyd_cov_mod2)
+
+why_cov_mod2 <- feols(LogitPropCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB + PC1) | PermanentID + GSYear, data = why_treat_new3)
+summary(why_cov_mod2)
+
+wle_cov_mod2 <- feols(LogitPropCovered ~ LogitPropHerbTreated * (LogitPrevPropCovered + SurveyTreatDaysCS + SurveyorExperienceB + PC1) | PermanentID + GSYear, data = wle_treat_new3)
+summary(wle_cov_mod2)
+
+pdf("output/fixed_effect_cover_quality_models_coefficient_plots.pdf")
+coefplot(hyd_cov_mod2, horiz = T, main = "Hydrilla abundance")
+coefplot(why_cov_mod2, horiz = T, main = "Water hyacinth abundance")
+coefplot(wle_cov_mod2, horiz = T, main = "Water lettuce abundance")
+dev.off()
 
 
 #### subset data ####
