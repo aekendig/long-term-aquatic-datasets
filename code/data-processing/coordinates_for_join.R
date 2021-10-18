@@ -1,8 +1,3 @@
-#### info ####
-
-# goal: visualize management activity
-
-
 #### set-up ####
 
 # clear environment
@@ -126,7 +121,7 @@ lw_plant_missing <- lw_plant %>%
 # 20 lakes - some spelling differences, some missing
 
 
-#### new FWC coordinates ####
+#### FWC coordinates ####
 
 # import coordinates
 fwc_coord <- read_csv("original-data/FWC_coordinates_full.csv")
@@ -147,7 +142,18 @@ fwc_replaced_gis %>%
 # these are in the dataset with coordinates, just mispellings
 
 
-#### check coordinates (gis mismatches) ####
+#### outputs ####
+
+write_csv(fwc_gis, "gis/data/FWC_Herbicide_Coordinates.csv")
+write_csv(fwc_missing_gis, "intermediate-data/FWC_Missing_Coordinates.csv")
+write_csv(fwc_replaced_gis %>% filter(!is.na(Longitude)), "gis/data/FWC_Replaced_Coordinates.csv")
+
+write_csv(lw_gis, "gis/data/Lakewatch_Coordinates.csv")
+write_csv(lw_missing_gis, "intermediate-data/Lakewatch_Missing_Coordinates.csv")
+write_csv(lw_plant_missing, "intermediate-data/Lakewatch_Plant_Missing_Coordinates.csv")
+
+
+#### check coordinates (GIS mismatches) ####
 
 # Little Sawyer Lake
 lw_base %>%
@@ -450,13 +456,3 @@ lw_base %>%
   summarise(latitude = mean(Latitude),
             longitude = mean(Longitude)) %>%
   data.frame()
-
-
-#### output ####
-write_csv(fwc_gis, "gis/data/FWC_Herbicide_Coordinates.csv")
-write_csv(fwc_missing_gis, "intermediate-data/FWC_Missing_Coordinates.csv")
-write_csv(fwc_replaced_gis %>% filter(!is.na(Longitude)), "gis/data/FWC_Replaced_Coordinates.csv")
-
-write_csv(lw_gis, "gis/data/Lakewatch_Coordinates.csv")
-write_csv(lw_missing_gis, "intermediate-data/Lakewatch_Missing_Coordinates.csv")
-write_csv(lw_plant_missing, "intermediate-data/Lakewatch_Plant_Missing_Coordinates.csv")
