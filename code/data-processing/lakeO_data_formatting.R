@@ -16,11 +16,21 @@ library(scales)
 
 # import data
 lakeo <- read_csv("original-data/Lake_O_Helicopter_Data_1989_2020_by_Section.csv")
+gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
+                col_types = list(wkt_geom = col_character(),
+                                 AOI = col_character(),
+                                 Lake = col_character()))
 
 # figure settings
-source("code/figure_settings.R")
+source("code/settings/figure_settings.R")
 
 #### edit data ####
+
+# lake area
+lake_area <- gis %>%
+  filter(str_detect(AreaOfInterest, "Okeechobee") == T) %>%
+  mutate(Area_ha = ShapeArea * 100) %>% # convert lake area from km-squared to hectares
+  pull(Area_ha)
 
 # make long
 lakeo2 <- lakeo %>%
@@ -36,7 +46,8 @@ lakeo2 <- lakeo %>%
                names_to = "Section",
                values_to = "AreaCovered_acres") %>%
   mutate(AreaCovered_ha = AreaCovered_acres * 0.405,
-         log_AreaCovered_ha = log(AreaCovered_ha + 0.001))
+         log_AreaCovered_ha = log(AreaCovered_ha + 0.001),
+         PropCovered = AreaCovered_ha / lake_area)
 
 # leap year?
 lakeo2 %>%
@@ -85,6 +96,12 @@ totDat %>%
   theme(legend.position = "none")
 
 totDat %>%
+  ggplot(aes(MonthDay, PropCovered)) +
+  geom_line(aes(color = Yearf)) +
+  geom_smooth(color = "black") +
+  theme(legend.position = "none")
+
+totDat %>%
   ggplot(aes(Days)) +
   geom_histogram(binwidth = 0.1)
 
@@ -104,32 +121,41 @@ range(totDat$MonthDay) # 4/1 to 3/30
 
 #### model fit ####
 
-# model
-lake0_mod <- lmer(AreaCovered_s ~ Days + I(Days^2) + (1 | Yearf), data = totDat)
-summary(lake0_mod)
+# models
+lake0_area_mod <- lmer(AreaCovered_s ~ Days + I(Days^2) + (1 | Yearf), data = totDat)
+summary(lake0_area_mod)
+
+lake0_prop_mod <- lmer(PropCovered ~ Days + I(Days^2) + (1 | Yearf), data = totDat)
+summary(lake0_prop_mod)
 
 # model fit
 fitDat <- totDat %>%
   select(Days, MonthDay) %>%
   unique() %>%
-  mutate(AreaCovered_s = predict(lake0_mod, newdata = ., re.form = NA))
+  mutate(AreaCovered_s = predict(lake0_area_mod, newdata = ., re.form = NA),
+         PropCovered = predict(lake0_prop_mod, newdata = ., re.form = NA))
 
 
-#### start here: format legend ####
+#### figure ####
 
-pdf("output/lakeO_intraannual_veg_change_mod.pdf", width = 3.5, height = 3.5)
+pdf("output/lakeO_intraannual_veg_area_change_mod.pdf", width = 3.5, height = 3.5)
 ggplot(totDat, aes(MonthDay, AreaCovered_s)) +
   geom_line(aes(color = Yearf)) +
   geom_line(data = fitDat, color = "black", size = 2) +
-  labs(x = "Month", y = "Standardized area covered", color = "Year") +
+  labs(x = "Month", y = "Standardized area covered") +
   scale_x_date(labels = date_format("%b")) +
-  def_theme_paper
+  def_theme_paper +
+  theme(legend.position = "none")
+dev.off()
 
-ggplot(totDat, aes(MonthDay, AreaCovered_acres)) +
+pdf("output/lakeO_intraannual_veg_prop_change_mod.pdf", width = 3.5, height = 3.5)
+ggplot(totDat, aes(MonthDay, PropCovered)) +
   geom_line(aes(color = Yearf)) +
-  xlab("Month and day (ignore year)") +
-  ylab("Standardized area covered") +
-  theme_bw()
+  geom_line(data = fitDat, color = "black", size = 2) +
+  labs(x = "Month", y = "Proportion of lake covered") +
+  scale_x_date(labels = date_format("%b")) +
+  def_theme_paper +
+  theme(legend.position = "none")
 dev.off()
 
 
@@ -151,6 +177,7 @@ totDat %>%
 #### output ####
 
 # model
-save(lake0_mod, file = "output/lakeO_intraannual_veg_change_mod.rda")
+save(lake0_area_mod, file = "output/lakeO_intraannual_veg_area_change_mod.rda")
+save(lake0_prop_mod, file = "output/lakeO_intraannual_veg_prop_change_mod.rda")
 write_csv(totDat, "intermediate-data/lakeO_intraannual_veg_change_data.csv")
 write_csv(dayDat, "intermediate-data/LakeO_day_data_for_model.csv")
