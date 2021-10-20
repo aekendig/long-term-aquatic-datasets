@@ -41,8 +41,8 @@ plant_freq_format <- function(dat, taxa){
            SurveyDays = difftime(SurveyDate, DateMin, units = "days"),
            SurveyDay = day(SurveyDate),
            SurveyMonth = month(SurveyDate),
-           GSYear = case_when(SurveyMonth >= 4 ~ SurveyYear,
-                              SurveyMonth < 4 ~ SurveyYear - 1), # assume growing season starts in April
+           GSYear = case_when(SurveyMonth >= 4 ~ year(SurveyDate),
+                              SurveyMonth < 4 ~ year(SurveyDate) - 1), # assume growing season starts in April
            MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
                                 SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>% # this is for joining dayDat
     left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
@@ -57,10 +57,10 @@ plant_freq_format <- function(dat, taxa){
 
   freq_out2 <- freq_out %>%
     full_join(freq_out %>% # add row for every year for each site/species combo (NA's for missing surveys)
-                select(PermanentID, Code) %>%
+                select(PermanentID, Code, CommonName) %>%
                 unique() %>%
                 expand_grid(GSYear = min(freq_out$GSYear):max(freq_out$GSYear))) %>%
-    group_by(PermanentID, Code) %>%
+    group_by(PermanentID, Code, CommonName) %>%
     arrange(GSYear) %>%
     mutate(PrevPropCovered1 = lag(PropCovered1), # previous year's abundance
            PrevPropCovered2 = lag(PropCovered2),

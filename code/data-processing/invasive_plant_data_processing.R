@@ -57,5 +57,8 @@ inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "
 # modify data
 inv_fwc <- plant_abun_format(plant_fwc, inv_taxa)
 inv_fwri <- plant_freq_format(plant_fwri, inv_taxa)
-  
-#### start here: checks on two above? ####
+
+
+#### outputs ####
+write_csv(inv_fwc, "intermediate-data/FWC_invasive_plant_formatted.csv")
+write_csv(inv_fwri, "intermediate-data/FWRI_invasive_plant_formatted.csv")

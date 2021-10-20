@@ -72,10 +72,10 @@ plant_abun_format <- function(dat, taxa){
                                            SurveyorExperience > surveyor_bins$medium_Max ~ "high"),
            SurveyorExperienceB =  fct_relevel(SurveyorExperienceB, "high", "medium", "low")) %>%
     full_join(abun_out %>% # add row for every year for each site/species combo (NA's for missing surveys)
-                select(PermanentID, TaxonName) %>%
+                select(PermanentID, CommonName, TaxonName) %>%
                 unique() %>%
                 expand_grid(GSYear = min(abun_out$GSYear):max(abun_out$GSYear))) %>%
-    group_by(PermanentID, TaxonName) %>%
+    group_by(PermanentID, CommonName, TaxonName) %>%
     arrange(GSYear) %>% 
     mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
            PrevPropCoveredAdj = lag(PropCoveredAdj),
