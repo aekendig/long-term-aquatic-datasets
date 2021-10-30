@@ -58,7 +58,30 @@ inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "
 inv_fwc <- plant_abun_format(plant_fwc, inv_taxa)
 inv_fwri <- plant_freq_format(plant_fwri, inv_taxa)
 
+# hydrilla look-alikes
+# Elodea canadensis is also one, but not in datasets
+hyd_looks_fwc <- plant_abun_format(plant_fwc,
+                                   tibble(TaxonName = c("Egeria densa", "Najas guadalupensis"),
+                                          CommonName = c("Edensa", "Nguad"))) %>%
+  select(PermanentID, GSYear, CommonName, SpeciesPresent) %>%
+  pivot_wider(names_from = CommonName,
+              values_from = SpeciesPresent,
+              names_glue = "{CommonName}_Present")
+
+hyd_looks_fwri <- plant_freq_format(plant_fwri,
+                                   tibble(Code = "SONA",
+                                          CommonName = "Nguad")) %>%
+  select(PermanentID, GSYear, SpeciesPresent) %>%
+  rename("Nguad_Present" = "SpeciesPresent")
+
+# add hydrilla look-alikes
+inv_fwc2 <- inv_fwc %>%
+  left_join(hyd_looks_fwc)
+
+inv_fwri2 <- inv_fwri %>%
+  left_join(hyd_looks_fwri)
+
 
 #### outputs ####
-write_csv(inv_fwc, "intermediate-data/FWC_invasive_plant_formatted.csv")
-write_csv(inv_fwri, "intermediate-data/FWRI_invasive_plant_formatted.csv")
+write_csv(inv_fwc2, "intermediate-data/FWC_invasive_plant_formatted.csv")
+write_csv(inv_fwri2, "intermediate-data/FWRI_invasive_plant_formatted.csv")
