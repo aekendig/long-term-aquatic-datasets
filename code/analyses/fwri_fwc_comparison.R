@@ -327,6 +327,21 @@ summary(wale_qual_mod3)
 plot(simulateResiduals(wale_qual_mod3))
 
 
+#### values for text ####
+
+# survyeor experience
+mean(hydr2_qual$FWC_SurveyorExperience)
+sd(hydr2_qual$FWC_SurveyorExperience)
+sd(hydr2_qual$FWC_Area_ha)
+sd(wahy2_qual$FWC_Area_ha)
+sd(hydr2_qual$Secchi_hist)
+
+# model summaries
+summary(hydr_qual_mod2)
+summary(wahy_qual_mod2)
+summary(wale_qual_mod2)
+
+
 #### regression coefficient plot ####
 
 # terms
