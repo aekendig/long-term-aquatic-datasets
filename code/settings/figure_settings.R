@@ -22,6 +22,7 @@ def_theme_paper <- theme_bw() +
         legend.key.height = unit(0.5, "cm"),
         legend.key.width = unit(0.5, "cm"),
         legend.box.margin = margin(-10, -10, -10, -10),
+        legend.background = element_blank(),
         strip.text = element_text(size = 9, color="black"),
         strip.background = element_blank())
 
