@@ -41,7 +41,8 @@ plant_abun_format <- function(dat, taxa){
     left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
     mutate(AreaChangeSD = lakeO_area_beta1 * (lakeO_area_days-Days) + lakeO_area_beta2 * (lakeO_area_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
     group_by(AreaOfInterestID, TaxonName) %>% # take standard deviation by survey area and species
-    mutate(EstAreaCoveredRaw_ha = AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha)) %>% # calculate est. max abundance, NA if only one value is available
+    mutate(EstAreaCoveredRaw_ha = case_when(SpeciesAcres > 0.01 ~ AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha),
+                                            TRUE ~ AreaCovered_ha)) %>% # calculate est. max abundance, NA if only one value is available
     ungroup() %>%
     left_join(surveyor) # surveyor experience
   
@@ -58,13 +59,11 @@ plant_abun_format <- function(dat, taxa){
               SurveyorExperience = mean(SurveyorExperience, na.rm = T),
               SpeciesAcres = sum(SpeciesAcres),
               AreaCovered_ha = sum(AreaCovered_ha),
-              EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
+              EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha, na.rm = T)) %>%
     ungroup() %>%
     mutate(EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
                                          TRUE ~ EstAreaCoveredRaw_ha),
            PropCovered = EstAreaCovered_ha / Area_ha,
-           PropCoveredAdj = case_when(PropCovered < 1e-3 ~ 1e-3, # avoid super small values that skew ratios
-                                      TRUE ~ PropCovered),
            SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
                                       SpeciesAcres == 0 ~ 0),
            SurveyorExperienceB = case_when(SurveyorExperience <= surveyor_bins$low_Max ~ "low",
@@ -78,12 +77,15 @@ plant_abun_format <- function(dat, taxa){
     group_by(PermanentID, CommonName, TaxonName) %>%
     arrange(GSYear) %>% 
     mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
-           PrevPropCoveredAdj = lag(PropCoveredAdj),
+           PrevAreaCovered_ha = lag(EstAreaCovered_ha),
            PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
            PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0),
            SurveyDays = as.numeric(SurveyDate - lag(SurveyDate))) %>%
     ungroup() %>%
-    mutate(RatioCovered = EstAreaCoveredRaw_ha/PrevAreaCoveredRaw_ha,
+    mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
+                                    EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / (0.01 * 0.405), # lower limit of SpeciesAcres
+                                    EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ (0.01 * 0.405) / PrevAreaCovered_ha,
+                                    TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
            LogRatioCovered = log(RatioCovered),
            LogitPropCovered = logit(PropCovered, adjust = prop_adjust),
            LogitPrevPropCovered = logit(PrevPropCovered, adjust = prop_adjust))
