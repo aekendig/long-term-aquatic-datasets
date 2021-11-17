@@ -8,6 +8,8 @@ library(tidyverse)
 library(GGally)
 library(fixest) # FE models
 library(modelsummary)
+library(cowplot)
+library(janitor)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -114,10 +116,10 @@ hydr_dat %>%
   geom_bar()
 
 
-#### fit models ####
+#### model-fitting functions ####
 
-# function to compare models
-mod_lag_comp <- function(dat_in){
+# functions to fit models
+mod_fit <- function(dat_in){
   
   # subset data
   dat_mod <- dat_in %>%
@@ -133,9 +135,40 @@ mod_lag_comp <- function(dat_in){
   mod4 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag4Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
   mod5 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag5Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
   
+  # output
+  return(list(mod0, mod1, mod2, mod3, mod4, mod5))
+
+}
+
+mod_qual_fit <- function(dat_in){
+  
+  # subset data
+  dat_mod <- dat_in %>%
+    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
+    mutate(SurveyorExperience_s = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
+           PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered),
+           Turbidity_s = (Secchi - mean(Secchi)) / sd(Secchi))
+  
+  # fit models
+  mod0 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag0Treated + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = dat_mod)
+  mod1 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag1Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
+  mod2 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag2Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
+  mod3 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag3Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
+  mod4 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag4Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
+  mod5 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag5Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
+  
+  # output
+  return(list(mod0, mod1, mod2, mod3, mod4, mod5))
+  
+}
+
+# function to compare models
+mod_lag_comp <- function(mod_list){
+  
   # compare models
   aic_mod <- tibble(Lag = c(0, 1, 2, 3, 4, 5),
-                    AIC = AIC(mod0, mod1, mod2, mod3, mod4, mod5)) %>%
+                    AIC = AIC(mod_list[[1]], mod_list[[2]], mod_list[[3]],
+                              mod_list[[4]], mod_list[[5]], mod_list[[6]])) %>%
     mutate(deltaAIC = AIC - min(AIC))
   
   # output
@@ -143,92 +176,224 @@ mod_lag_comp <- function(dat_in){
   
 }
 
-# compare models
-mod_lag_comp(hydr_dat) # 0, 4, 5 similar
-mod_lag_comp(wahy_dat) # 0, 4, 5 similar
-mod_lag_comp(wale_dat) # 5 best
-# use lag 5
 
-# output AIC values
-aic_out <- tibble(Lag = mod_lag_comp(hydr_dat)$Lag,
-                  Hydrilla = mod_lag_comp(hydr_dat)$deltaAIC,
-                  Waterhyacinth = mod_lag_comp(wahy_dat)$deltaAIC,
-                  Waterlettuce = mod_lag_comp(wale_dat)$deltaAIC)
-write_csv(aic_out, "output/fwc_invasive_plant_delta_aic.csv")
+#### treatment, surveyor models ####
 
-# function to fit models
-mod_lag_fit <- function(dat_in, dat_qual_in){
+# fit models
+hydr_mods <- mod_fit(hydr_dat)
+wahy_mods <- mod_fit(wahy_dat)
+wale_mods <- mod_fit(wale_dat)
+
+# name models
+names(hydr_mods) <- c("1", "2", "3", "4", "5", "6")
+names(wahy_mods) <- c("1", "2", "3", "4", "5", "6")
+names(wale_mods) <- c("1", "2", "3", "4", "5", "6")
+
+# rename coefficients
+coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
+                "PrevPercCovered_c:Lag0Treated" = "Treatment x abundance",
+                "PrevPercCovered_c:Lag1Treated" = "Treatment x abundance",
+                "PrevPercCovered_c:Lag2Treated" = "Treatment x abundance",
+                "PrevPercCovered_c:Lag3Treated" = "Treatment x abundance",
+                "PrevPercCovered_c:Lag4Treated" = "Treatment x abundance",
+                "PrevPercCovered_c:Lag5Treated" = "Treatment x abundance",
+                "PrevPercCovered_c" = "Initial abundance (%)",
+                "Lag0Treated" = "Treatment frequency",
+                "Lag1Treated" = "Treatment frequency",
+                "Lag2Treated" = "Treatment frequency",
+                "Lag3Treated" = "Treatment frequency",
+                "Lag4Treated" = "Treatment frequency",
+                "Lag5Treated" = "Treatment frequency")
+
+# panels
+hydr_fig <- modelplot(hydr_mods,
+          coef_map = coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(A) hydrilla") +
+  def_theme_paper +
+  theme(legend.position = c(0.3, 0.25)) +
+  guides(color = guide_legend(reverse = TRUE))
+
+wahy_fig <- modelplot(wahy_mods,
+          coef_map = coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(B) water hyacinth") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank()) +
+  guides(color = guide_legend(reverse = TRUE))
+
+wale_fig <- modelplot(wale_mods,
+          coef_map = coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(C) water lettuce") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank()) +
+  guides(color = guide_legend(reverse = TRUE))
+
+# combine figures
+pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 6.5, height = 4)
+plot_grid(hydr_fig, wahy_fig, wale_fig,
+          nrow = 1,
+          rel_widths = c(1, 0.6, 0.6))
+dev.off()
+
+
+#### treatment, surveyor, turbidity models ####
+
+# fit models
+hydr_qual_mods <- mod_qual_fit(hydr_qual_dat)
+wahy_qual_mods <- mod_qual_fit(wahy_qual_dat)
+wale_qual_mods <- mod_qual_fit(wale_qual_dat)
+
+# name models
+names(hydr_qual_mods) <- c("1", "2", "3", "4", "5", "6")
+names(wahy_qual_mods) <- c("1", "2", "3", "4", "5", "6")
+names(wale_qual_mods) <- c("1", "2", "3", "4", "5", "6")
+
+# rename coefficients
+coef_qual_names <- c("Turbidity_s" = "Turbidity", 
+                     "SurveyorExperience_s" = "Surveyor experience",
+                     "PrevPercCovered_c:Lag0Treated" = "Treatment x abundance",
+                     "PrevPercCovered_c:Lag1Treated" = "Treatment x abundance",
+                     "PrevPercCovered_c:Lag2Treated" = "Treatment x abundance",
+                     "PrevPercCovered_c:Lag3Treated" = "Treatment x abundance",
+                     "PrevPercCovered_c:Lag4Treated" = "Treatment x abundance",
+                     "PrevPercCovered_c:Lag5Treated" = "Treatment x abundance",
+                     "PrevPercCovered_c" = "Initial abundance (%)",
+                     "Lag0Treated" = "Treatment frequency",
+                     "Lag1Treated" = "Treatment frequency",
+                     "Lag2Treated" = "Treatment frequency",
+                     "Lag3Treated" = "Treatment frequency",
+                     "Lag4Treated" = "Treatment frequency",
+                     "Lag5Treated" = "Treatment frequency")
+
+# panels
+hydr_qual_fig <- modelplot(hydr_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(A) hydrilla") +
+  def_theme_paper +
+  theme(legend.position = c(0.3, 0.25)) +
+  guides(color = guide_legend(reverse = TRUE))
+
+wahy_qual_fig <- modelplot(wahy_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(B) water hyacinth") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank()) +
+  guides(color = guide_legend(reverse = TRUE))
+
+wale_qual_fig <- modelplot(wale_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(C) water lettuce") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank()) +
+  guides(color = guide_legend(reverse = TRUE))
+
+# combine figures
+pdf("output/fwc_invasive_plant_treatment_turbidity_model.pdf", width = 6.5, height = 4)
+plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig,
+          nrow = 1,
+          rel_widths = c(1, 0.6, 0.6))
+dev.off()
+
+
+#### model prediction figure ####
+
+# function to format data
+pred_fig <- function(dat_in, mod_list){
   
   # subset data
-  dat_mod <- dat_in %>%
-    filter(!is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
-    mutate(SurveyorExperience_s = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
-           PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered))
+  raw_dat <- dat_in %>%
+    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
+    mutate(PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered))
   
-  dat_qual_mod <- dat_qual_in %>%
-    filter(!is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
-    mutate(SurveyorExperience_s = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
-           PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered),
-           Turbidity_s = (Secchi - mean(Secchi)) / sd(Secchi))
+  # prediction dataset
+  pred_dat <- tibble(PrevPercCovered = c(0, 15, 30)) %>%
+    mutate(PrevPercCovered_c = PrevPercCovered - mean(raw_dat$PrevPercCovered)) %>%
+    expand_grid(tibble(Lag5Treated = c(0, 1/6, 2/6, 1/2, 4/6, 5/6, 1))) %>%
+    expand_grid(raw_dat %>%
+                  select(PermanentID, GSYear) %>%
+                  unique()) %>%
+    mutate(SurveyorExperience_s = 0,
+           PrevPercCovered_f = as.factor(PrevPercCovered) %>%
+             fct_rev()) %>%
+    mutate(Pred = predict(mod_list[[6]], newdata = .))
   
-  # fit models
-  mod <- feols(LogRatioCovered ~ Lag5Treated * PrevPercCovered_c + SurveyorExperience_s  | PermanentID + GSYear, data = dat_mod)
-  mod_qual <- feols(LogRatioCovered  ~ Lag5Treated * PrevPercCovered_c + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = dat_qual_mod)
-  mod_simp <- feols(LogRatioCovered ~ Lag5Treated * PrevPercCovered_c  | PermanentID + GSYear, data = dat_mod)
+  fig_out <- ggplot(pred_dat, aes(x = Lag5Treated, y = Pred)) +
+    geom_point(data = filter(raw_dat, PrevPercCovered <= 1), 
+               alpha = 0.2, position = position_jitter(width = 0.01),
+               shape = 21, color = "transparent",
+               aes(y = LogRatioCovered, fill = PrevPercCovered)) +
+    geom_point(data = filter(raw_dat, PrevPercCovered > 1), 
+               alpha = 0.5, position = position_jitter(width = 0.01),
+               shape = 21, color = "transparent",
+               aes(y = LogRatioCovered, fill = PrevPercCovered)) +
+    stat_summary(geom = "line", size = 1.3, fun = "median", aes(color = PrevPercCovered_f)) +
+    scale_color_viridis_d(name = "Modeled\ninitial\nabundance (%)", begin = 0.7) +
+    scale_fill_viridis_c(name = "Observed\ninitial\nabundance (%)", direction = -1) +
+    labs(x = "Treatment frequency", y = "Change in abundance") +
+    def_theme_paper
   
-  # output
-  return(list(mod, mod_qual, mod_simp))
+  return(fig_out)
   
 }
 
-# fit models
-hydr_mod <- mod_lag_fit(hydr_dat, hydr_qual_dat)[[1]]
-hydr_qual_mod <- mod_lag_fit(hydr_dat, hydr_qual_dat)[[2]]
-wahy_mod <- mod_lag_fit(wahy_dat, wahy_qual_dat)[[1]]
-wahy_qual_mod <- mod_lag_fit(wahy_dat, wahy_qual_dat)[[2]]
-wale_mod <- mod_lag_fit(wale_dat, wale_qual_dat)[[1]]
-wale_qual_mod <- mod_lag_fit(wale_dat, wale_qual_dat)[[2]]
+# figures
+hydr_pred_fig <- pred_fig(hydr_dat, hydr_mods) +
+  labs(title = "(A) hydrilla") +
+  theme(legend.position = "none")
+wahy_pred_fig <- pred_fig(wahy_dat, wahy_mods) +
+  labs(title = "(B) water hyacinth") +
+  theme(legend.position = "none",
+        axis.title.y = element_blank())
+wale_pred_fig <- pred_fig(wale_dat, wale_mods) +
+  labs(title = "(C) water lettuce") +
+  theme(axis.title.y = element_blank())
 
-# model summaries
-summary(hydr_mod)
-summary(wahy_mod)
-summary(wale_mod)
-# surveyor experience not significant for any
-
-summary(hydr_qual_mod)
-summary(wahy_qual_mod)
-summary(wale_qual_mod)
-# turbidity increases hydrilla growth (?)
-
-# simplify models (remove surveyor experience)
-hydr_simp_mod <- mod_lag_fit(hydr_dat, hydr_qual_dat)[[3]]
-wahy_simp_mod <- mod_lag_fit(wahy_dat, wahy_qual_dat)[[3]]
-wale_simp_mod <- mod_lag_fit(wale_dat, wale_qual_dat)[[3]]
-
-summary(hydr_simp_mod)
-summary(wahy_simp_mod)
-summary(wale_simp_mod)
-
-
-#### figures ####
-
-# compile models
-fig_mods <- list()
-fig_mods[['water lettuce']] <- wale_simp_mod
-fig_mods[['water hyacinth']] <- wahy_simp_mod
-fig_mods[['hydrilla']] <- hydr_simp_mod
-
-pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 5, height = 5)
-modelplot(fig_mods,
-          coef_map = c("Lag5Treated:PrevPercCovered_c" = "Treatment x abundance",
-                       "PrevPercCovered_c" = "Initial abundance",
-                       "Lag5Treated" = "6-year treatment\nfrequency"),
-          background = list(geom_vline(xintercept = 0, color = "black",
-                                       size = 0.5, linetype = "dashed"))) +
-  scale_color_brewer(type = "qual", palette = "Dark2", direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = ""))) +
-  def_theme_paper +
-  theme(legend.title = element_blank(),
-        legend.position = c(0.15, 0.1)) +
-  guides(color = guide_legend(reverse = TRUE))
+# combine figures
+pdf("output/fwc_invasive_plant_treatment_predictions.pdf", width = 6.5, height = 3)
+plot_grid(hydr_pred_fig, wahy_pred_fig, wale_pred_fig,
+          nrow = 1,
+          rel_widths = c(1, 0.9, 1.25))
 dev.off()
+
+
+
+### model comparison ####
+
+# compare models (use delta 4 as cut-off)
+mod_lag_comp(hydr_mods) # 0, 4, 5 similar
+mod_lag_comp(wahy_mods) # 0, 4, 5 similar
+mod_lag_comp(wale_mods) # 5 best
+
+# output AIC values
+aic_out <- tibble(Lag = mod_lag_comp(hydr_mods)$Lag,
+                  Hydrilla = mod_lag_comp(hydr_mods)$deltaAIC,
+                  Waterhyacinth = mod_lag_comp(wahy_mods)$deltaAIC,
+                  Waterlettuce = mod_lag_comp(wale_mods)$deltaAIC)
+write_csv(aic_out, "output/fwc_invasive_plant_delta_aic.csv")
