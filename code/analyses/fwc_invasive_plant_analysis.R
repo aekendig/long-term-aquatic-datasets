@@ -9,7 +9,6 @@ library(GGally)
 library(fixest) # FE models
 library(modelsummary)
 library(cowplot)
-library(janitor)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -210,8 +209,8 @@ hydr_fig <- modelplot(hydr_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years of data", direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+  scale_color_viridis_d(name = "Treatment years", direction = -1) +
+  labs(x = "",
        title = "(A) hydrilla") +
   def_theme_paper +
   theme(legend.position = c(0.3, 0.25)) +
@@ -221,25 +220,23 @@ wahy_fig <- modelplot(wahy_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  scale_color_viridis_d(direction = -1) +
   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
        title = "(B) water hyacinth") +
   def_theme_paper +
   theme(legend.position = "none",
-        axis.text.y = element_blank()) +
-  guides(color = guide_legend(reverse = TRUE))
+        axis.text.y = element_blank())
 
 wale_fig <- modelplot(wale_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years of data", direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
        title = "(C) water lettuce") +
   def_theme_paper +
   theme(legend.position = "none",
-        axis.text.y = element_blank()) +
-  guides(color = guide_legend(reverse = TRUE))
+        axis.text.y = element_blank())
 
 # combine figures
 pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 6.5, height = 4)
@@ -356,7 +353,7 @@ pred_fig <- function(dat_in, mod_list){
     stat_summary(geom = "line", size = 1.3, fun = "median", aes(color = PrevPercCovered_f)) +
     scale_color_viridis_d(name = "Modeled\ninitial\nabundance (%)", begin = 0.7) +
     scale_fill_viridis_c(name = "Observed\ninitial\nabundance (%)", direction = -1) +
-    labs(x = "Treatment frequency", y = "Change in abundance") +
+    labs(x = "", y = "Change in abundance") +
     def_theme_paper
   
   return(fig_out)
@@ -368,7 +365,7 @@ hydr_pred_fig <- pred_fig(hydr_dat, hydr_mods) +
   labs(title = "(A) hydrilla") +
   theme(legend.position = "none")
 wahy_pred_fig <- pred_fig(wahy_dat, wahy_mods) +
-  labs(title = "(B) water hyacinth") +
+  labs(title = "(B) water hyacinth", x = "Treatment frequency") +
   theme(legend.position = "none",
         axis.title.y = element_blank())
 wale_pred_fig <- pred_fig(wale_dat, wale_mods) +
