@@ -65,23 +65,26 @@ plant_fwc %>%
   filter(SurveyYear %in% c(2000, 20001) & IsDetected == "Yes")
 
 # species samples continuously 
+# remove focal invasive species
+# remove confused origin species
 plant_cont <- plant_detect %>%
   filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & 
-           (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)))
+           (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)) &
+           !(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
+                              "Ludwigia grandiflora/hexapetala")))
+# 97 species
 
-# select native species
-nat_fwc <- plant_fwc %>%
-  filter(TaxonName %in% plant_cont$TaxonName & Origin == "Native" &
-           TaxonName != "Ludwigia grandiflora/hexapetala") %>%
-  select(TaxonName, Habitat) %>%
-  unique() %>% # full native species list
+# select all species except invasive
+plant_fwc2 <- plant_fwc %>%
+  filter(TaxonName %in% plant_cont$TaxonName) %>%
+  select(TaxonName, Habitat, Origin) %>%
+  unique() %>% # full species list
   expand_grid(plant_fwc %>%
                 select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate) %>%
                 unique()) %>% # full survey list (row for every species in every survey)
   full_join(plant_fwc %>%
-              filter(TaxonName %in% plant_cont$TaxonName & Origin == "Native" &
-                       TaxonName != "Ludwigia grandiflora/hexapetala") %>%
-              select(TaxonName, Habitat,
+              filter(TaxonName %in% plant_cont$TaxonName) %>%
+              select(TaxonName, Habitat, Origin,
                      AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, 
                      IsDetected)) %>% # add detection data (only "Yes")
   mutate(IsDetected = replace_na(IsDetected, "No"),
@@ -93,48 +96,25 @@ nat_fwc <- plant_fwc %>%
          SurveyYear = year(SurveyDate),
          GSYear = case_when(SurveyMonth >= 4 ~ SurveyYear,
                             SurveyMonth < 4 ~ SurveyYear - 1),
+         PreCtrl = if_else(GSYear < 1998, "pre ctrl data", "post ctrl data"),
          Area_ha = ShapeArea * 100) %>% # convert lake area from km-squared to hectares
   filter(!is.na(IsDetected)) # remove 2000-2001 surveys
 
 # duplicate surveys in a year
-nat_fwc %>%
+plant_fwc2 %>%
   group_by(AreaOfInterestID, GSYear) %>%
   summarise(surveys = length(unique(SurveyDate))) %>%
   ungroup() %>%
   filter(surveys > 1) 
 # 40 AOIs have multiple surveys in a year
 
-# summarize by permanentID
-nat_fwc2 <- nat_fwc %>%
-  group_by(PermanentID, Area_ha, GSYear, TaxonName, Habitat) %>%
+# summarize by permanentID to remove duplicates
+plant_fwc3 <- plant_fwc2 %>%
+  group_by(PermanentID, Area_ha, GSYear, PreCtrl, TaxonName, Habitat, Origin) %>%
   summarize(AreaName = paste(AreaOfInterest, collapse = "/"),
             SurveyDate = max(SurveyDate),
             Detected = if_else(sum(Detected) > 0, 1, 0)) %>%
   ungroup()
 
-# richness data
-# remove first year because first two years were used to establish continuous data collection
-# a species could have been added to the list in the second year, so missing in the first
-# year may not be truly missing
-rich_fwc <- nat_fwc2 %>%
-  filter(Detected == 1 & GSYear > min(GSYear)) %>%
-  group_by(PermanentID, Area_ha, GSYear) %>%
-  summarize(Taxa = n_distinct(TaxonName)) %>%
-  ungroup()
-
-ggplot(rich_fwc, aes(x = GSYear, y = Taxa, color = PermanentID)) +
-  geom_line() +
-  theme(legend.position = "none")
-
-# cumulative richness before control data
-pre_2005_fwc <- nat_fwc2 %>%
-  filter(Detected == 1 & GSYear < 2005) %>%
-  group_by(PermanentID, Area_ha) %>%
-  summarize(SamplingYears = n_distinct(GSYear),
-            Taxa = n_distinct(TaxonName)) %>%
-  ungroup() %>%
-  mutate(Years = "pre-2000",
-         Years_n = 0)
-
-ggplot(pre_2005_fwc, aes(x = SamplingYears, y = Taxa)) +
-  geom_point()
+# save
+write_csv(plant_fwc3, "intermediate-data/FWC_plant_community_formatted.csv")

@@ -367,7 +367,8 @@ mod_qual_tid <- hydr_qual_tid2 %>%
   filter(effect == "fixed") %>%
   mutate(term = fct_relevel(variable, "intercept", "area",
                             "month", "surveyor",
-                            "turbidity", "so. naiad"))
+                            "turbidity", "so. naiad"),
+         ci = std.error * 1.96)
 
 # figure
 pdf("output/fwri_fwc_comparison_coefficients.pdf", width = 4, height = 5)
