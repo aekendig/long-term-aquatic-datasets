@@ -19,7 +19,7 @@ plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv",
 plant_detect <- read_csv("intermediate-data/FWC_plant_survey_first_detection_manual.csv")
 
 
-#### edit native plant data ####
+#### edit plant community data ####
 
 # one origin per species?
 plant_fwc %>%
@@ -64,9 +64,9 @@ plant_fwc %>%
   filter(Origin == "Native") %>% 
   filter(SurveyYear %in% c(2000, 20001) & IsDetected == "Yes")
 
-# species samples continuously 
+# species sampled continuously 
 # remove focal invasive species
-# remove confused origin species
+# remove confused origin species (not sampled continuously anyway)
 plant_cont <- plant_detect %>%
   filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & 
            (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)) &
@@ -118,3 +118,95 @@ plant_fwc3 <- plant_fwc2 %>%
 
 # save
 write_csv(plant_fwc3, "intermediate-data/FWC_plant_community_formatted.csv")
+
+
+#### most common taxa ####
+
+# total waterbody-year combos
+TotWatYear <- plant_fwc3 %>%
+  select(PreCtrl, PermanentID, GSYear) %>%
+  unique() %>%
+  group_by(PreCtrl) %>%
+  summarize(TotWatYear = n(),
+            TotWaterbody = n_distinct(PermanentID)) %>%
+  ungroup()
+
+# total habitat types
+TotHabitat <- plant_fwc3 %>%
+  group_by(Habitat) %>%
+  summarize(TotTaxa = n_distinct(TaxonName)) %>%
+  ungroup() %>%
+  mutate(Taxa40 = round(TotTaxa * 0.4))
+
+# summarize waterbody-year occurrences
+common_fwc <- plant_fwc3 %>%
+  filter(Detected == 1) %>%
+  group_by(TaxonName, Habitat, Origin, PreCtrl) %>%
+  summarize(OccWatYear = n(),
+            OccWaterbody = n_distinct(PermanentID)) %>%
+  ungroup() %>%
+  group_by(PreCtrl) %>%
+  mutate(RankWatYear = rank(-OccWatYear),
+         RankWaterbody = rank(-OccWaterbody)) %>%
+  ungroup() %>%
+  group_by(PreCtrl, Habitat) %>%
+  mutate(RankWatYearHab = rank(-OccWatYear),
+         RankWaterbodyHab = rank(-OccWaterbody)) %>%
+  ungroup() %>%
+  left_join(TotWatYear) %>%
+  mutate(RatioWatYear = OccWatYear / TotWatYear,
+         RatioWaterbody = OccWaterbody / TotWaterbody,
+         Over50Waterbody = if_else(RatioWaterbody > 0.5, 1, 0), # thresholds based on post ctrl data distributions (below)
+         Over25WatYear = if_else(RatioWatYear > 0.25, 1, 0)) # these are already split by PreCtrl
+
+# distribution of occurrences
+ggplot(common_fwc, aes(x = RankWatYear, y = RatioWatYear)) +
+  geom_line() +
+  geom_point(aes(color = Over50Waterbody)) +
+  facet_wrap(~ PreCtrl)
+
+ggplot(common_fwc, aes(x = RankWaterbody, y = RatioWaterbody)) +
+  geom_line() +
+  geom_point(aes(color = Over25WatYear)) +
+  facet_wrap(~ PreCtrl)
+
+ggplot(common_fwc, aes(x = RankWatYearHab, y = RatioWatYear)) +
+  geom_line() +
+  geom_point(aes(color = Over50Waterbody)) +
+  facet_grid(Habitat ~ PreCtrl)
+
+ggplot(common_fwc, aes(x = RankWaterbodyHab, y = RatioWaterbody)) +
+  geom_line() +
+  geom_point(aes(color = Over25WatYear)) +
+  facet_grid(Habitat ~ PreCtrl)
+
+# common species in post control data
+# selected top 40% of each group, but the submersed were much rarer than the others
+# taxa must be present in over 25% of water-year occurrences 
+# and over 50% of lakes (this requirement is met with above)
+common_fwc2 <- common_fwc %>%
+  left_join(TotHabitat) %>%
+  # filter(PreCtrl == "post ctrl data" & RankWatYearHab <= Taxa40) %>%
+  filter(PreCtrl == "post ctrl data" & Over25WatYear == 1 & Over50Waterbody) %>%
+  select(TaxonName) %>%
+  inner_join(common_fwc)
+
+common_fwc2 %>%
+  group_by(Habitat) %>%
+  summarize(Taxa = n_distinct(TaxonName),
+            MinWatYear = min(OccWatYear),
+            MinWaterbody = min(OccWaterbody)) %>%
+  left_join(TotHabitat) %>%
+  mutate(RatioTaxa = Taxa / TotTaxa)
+
+ggplot(common_fwc2, aes(x = RankWatYearHab, y = RatioWatYear)) +
+  geom_line() +
+  geom_point(aes(color = Over50Waterbody)) +
+  facet_grid(Habitat ~ PreCtrl)
+
+# select taxa
+plant_fwc4 <- plant_fwc %>%
+  filter(TaxonName %in% common_fwc2$TaxonName)
+
+# save
+write_csv(plant_fwc4, "intermediate-data/FWC_common_plant_community_formatted.csv")
