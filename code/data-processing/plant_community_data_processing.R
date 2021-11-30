@@ -205,7 +205,7 @@ ggplot(common_fwc2, aes(x = RankWatYearHab, y = RatioWatYear)) +
   facet_grid(Habitat ~ PreCtrl)
 
 # select taxa
-plant_fwc4 <- plant_fwc %>%
+plant_fwc4 <- plant_fwc3 %>%
   filter(TaxonName %in% common_fwc2$TaxonName)
 
 # save
