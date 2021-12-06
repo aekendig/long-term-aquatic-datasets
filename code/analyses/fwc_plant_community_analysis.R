@@ -7,6 +7,8 @@ rm(list = ls())
 library(tidyverse)
 library(lubridate)
 library(GGally)
+library(broom)
+library(janitor)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -66,7 +68,10 @@ plant_com2 <- plant_com %>%
             YearsSurveyed = n()) %>%
   ungroup() %>%
   mutate(YearsUndetected = YearsSurveyed - YearsDetected,
-         PropDetected = YearsDetected / YearsSurveyed)
+         PropDetected = YearsDetected / YearsSurveyed,
+         Origin = fct_recode(Origin, "non-native" = "Exotic",
+                             "native" = "Native") %>%
+           fct_relevel("native"))
 
 inv_plant2 <- inv_plant %>%
   filter(!is.na(SpeciesAcres) & GSYear >= min(inv_ctrl$GSYear)) %>%
@@ -110,23 +115,23 @@ plant_com3 <- plant_com2 %>%
 
 #### initial visualizations ####
 
-ggplot(plant_com3, aes(Hydrilla, PropDetected)) +
+ggplot(plant_com3, aes(Hydrilla, PropDetected, color = Origin)) +
   geom_point(size = 0.75, alpha = 0.5) +
   facet_wrap(~ TaxonName)
 
-ggplot(plant_com3, aes(WaterHyacinth, PropDetected)) +
+ggplot(plant_com3, aes(WaterHyacinth, PropDetected, color = Origin)) +
   geom_point(size = 0.75, alpha = 0.5) +
   facet_wrap(~ TaxonName)
 
-ggplot(plant_com3, aes(WaterLettuce, PropDetected)) +
+ggplot(plant_com3, aes(WaterLettuce, PropDetected, color = Origin)) +
   geom_point(size = 0.75, alpha = 0.5) +
   facet_wrap(~ TaxonName)
 
-ggplot(plant_com3, aes(Floating, PropDetected)) +
+ggplot(plant_com3, aes(Floating, PropDetected, color = Origin)) +
   geom_point(size = 0.75, alpha = 0.5) +
   facet_wrap(~ TaxonName)
 
-ggplot(plant_com3, aes(FloatingTrt, PropDetected)) +
+ggplot(plant_com3, aes(FloatingTrt, PropDetected, color = Origin)) +
   geom_point(size = 0.75, alpha = 0.5) +
   facet_wrap(~ TaxonName)
 
@@ -141,8 +146,9 @@ plant_com3 %>%
 # all are less than 0.4 except water lettuce and water hyacinth (0.7) - use floating
 
 # update data, remove high floating point
+# prevented models from converging (see below)
 plant_com3b <- plant_com3 %>%
-  filter(Floating < 40)
+  filter(Floating < 4)
 
 plant_com3b %>%
   select(Hydrilla, HydrillaTrt, WaterHyacinth, WaterLettuce, Floating, FloatingTrt) %>%
@@ -159,7 +165,7 @@ plant_com3 %>%
   summarize(YearsDetected = sum(YearsDetected),
             YearsSurveyed = sum(YearsSurveyed)) %>%
   ungroup() %>%
-  filter(YearsDetected >= (YearsSurveyed - 20) | YearsDetected == 0)
+  filter(YearsDetected >= (YearsSurveyed - 20) | YearsDetected <= 20)
 # nothing obvious
 
 # apply model to each taxon
@@ -170,7 +176,7 @@ plant_mods <- plant_com3 %>%
                 FloatingTrt)) %>%
   mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + Floating + FloatingTrt, 
                               data = ., family = binomial)))
-# 2-3 models with errors
+# multiple models with errors
 
 # model summaries
 plant_mods %>%
@@ -255,14 +261,14 @@ plant_coef <- plant_mods2 %>%
   left_join(plant_com3 %>%
               select(TaxonName, Origin, Habitat) %>%
               unique()) %>%
-  mutate(Habitat = fct_recode(Habitat,
-                              "(B) emersed taxa" = "Emersed",
-                              "(C) floating taxa" = "Floating",
-                              "(D) submersed taxa" = "Submersed"))
+  mutate(HabitatLabel = fct_recode(Habitat,
+                                   "(B) emersed taxa" = "Emersed",
+                                   "(C) floating taxa" = "Floating",
+                                   "(D) submersed taxa" = "Submersed"))
 
 # divide coefficients by group
 plant_coef2 <- plant_coef %>%
-  mutate(Habitat = "(A) all taxa") %>%
+  mutate(HabitatLabel = "(A) all taxa") %>%
   full_join(plant_coef)
 
 
@@ -271,14 +277,41 @@ cairo_pdf("output/fwc_plant_community_coefficients.pdf", width = 6.5, height = 6
 ggplot(plant_coef2, aes(x = term, y = estimate)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_boxplot(fill = NA, outlier.shape = 4, size = 0.25) +
-  geom_point(aes(color = sig), position = position_jitter(width = 0.1), size = 1) +
-  scale_color_viridis_d(name = expression(paste(italic(P), " value", sep = ""))) +
+  geom_point(aes(fill = sig, shape = Origin), 
+             position = position_jitter(width = 0.1), size = 1, stroke = 0.3) +
+  scale_fill_viridis_d(name = expression(paste(italic(P), " value", sep = ""))) +
+  scale_shape_manual(values = c(21, 24)) +
   labs(y = "Estimate (log-odds)") +
-  facet_wrap(~ Habitat, scales = "free_y") +
+  facet_wrap(~ HabitatLabel, scales = "free_y") +
   def_theme_paper +
   theme(strip.text = element_text(size = 11, color="black", hjust = 0),
         axis.title.x = element_blank(),
-        legend.position = c(0.06, 0.93),
+        legend.position = c(0.12, 0.93),
+        legend.box = "horizontal",
+        legend.spacing.x = unit(-0.1, "cm"),
         legend.box.background = element_rect(fill = NA, color = NA),
-        legend.key.height = unit(2, "mm"))
+        legend.key.height = unit(2, "mm")) +
+  guides(fill = guide_legend(override.aes = list(shape = 21)))
 dev.off()
+
+
+#### table ####
+
+plant_table <- plant_coef %>%
+  relocate(TaxonName, Habitat, Origin) %>%
+  mutate(term = str_replace(term, "\n", " ") %>%
+           fct_relevel("intercept", "hydrilla", "water hyacinth",
+                       "water lettuce", "hydrilla treat.", "floating treat."),
+         Habitat = tolower(Habitat),
+         across(where(is.double) & !p.value, ~ round_half_up(., digits = 3))) %>%
+  rename("Taxon" = "TaxonName",
+         "Parameter" = "term",
+         "Estimate" = "estimate",
+         "Std.error" = "std.error",
+         "Z" = "statistic",
+         "P" = "p.value",
+         "Significance" = "sig") %>%
+  select(-c(HabitatLabel)) %>%
+  arrange(Parameter, Taxon)
+
+write_csv(plant_table, "output/fwc_plant_community_coefficients.csv")

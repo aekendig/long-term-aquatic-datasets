@@ -1,0 +1,253 @@
+Taxon,Habitat,Origin,Parameter,Estimate,Std.error,Z,P,Significance
+Alternanthera philoxeroides,emersed,non-native,intercept,0.684,0.06,11.426,3.0932271831461754e-30,< 0.001
+Bacopa caroliniana,emersed,native,intercept,-1.066,0.057,-18.723,3.196911497969995e-78,< 0.001
+Bidens spp.,emersed,native,intercept,-0.638,0.051,-12.541,4.4254864001778694e-36,< 0.001
+Cephalanthus occidentalis,emersed,native,intercept,0.83,0.052,15.85,1.4160662960002357e-56,< 0.001
+Ceratophyllum demersum,submersed,native,intercept,-1.505,0.056,-26.708,3.821703640392549e-157,< 0.001
+Cladium jamaicense,emersed,native,intercept,-0.137,0.048,-2.851,0.004355771973293961,< 0.01
+Colocasia esculenta,emersed,non-native,intercept,-0.402,0.051,-7.876,3.371959656152601e-15,< 0.001
+Cyperus blepharoleptos,emersed,non-native,intercept,-0.26,0.049,-5.319,1.0408121413271226e-7,< 0.001
+Cyperus spp. (other natives),emersed,native,intercept,0.453,0.05,8.998,2.3082695418190776e-19,< 0.001
+Echinochloa spp.,emersed,native,intercept,-1.882,0.063,-29.815,2.4745638051732236e-195,< 0.001
+"Eleocharis spp., emersed",emersed,native,intercept,-0.514,0.049,-10.395,2.616456728221845e-25,< 0.001
+"Eleocharis spp., sub/floating",submersed,native,intercept,0.64,0.05,12.827,1.1571848218222092e-37,< 0.001
+Filamentous algae,floating,native,intercept,0.422,0.05,8.359,6.331238356497282e-17,< 0.001
+Fuirena spp.,emersed,native,intercept,0.233,0.052,4.505,6.645243881254081e-6,< 0.001
+Hydrocotyle spp.,emersed,native,intercept,1.669,0.076,21.892,3.124268737867136e-106,< 0.001
+Juncus effusus,emersed,native,intercept,-1.193,0.055,-21.806,2.0303970072629815e-105,< 0.001
+Leersia hexandra,emersed,native,intercept,-0.908,0.057,-15.913,5.145043999633819e-57,< 0.001
+Lemna/Spirodela spp.,floating,native,intercept,-0.83,0.052,-16.086,3.202206247883558e-58,< 0.001
+Luziola fluitans,submersed,native,intercept,-1.221,0.058,-20.917,3.737759559218476e-97,< 0.001
+Najas guadalupensis,submersed,native,intercept,-1.198,0.054,-22.096,3.443033529837607e-108,< 0.001
+Nelumbo lutea,emersed,native,intercept,-2.222,0.068,-32.462,3.642743877043681e-231,< 0.001
+Nuphar advena,emersed,native,intercept,1.088,0.061,17.976,3.0291847372978156e-72,< 0.001
+Nymphaea odorata,emersed,native,intercept,0.436,0.05,8.672,4.241001833445985e-18,< 0.001
+Nymphoides aquatica,emersed,native,intercept,-1.01,0.059,-17.264,8.842369091523409e-67,< 0.001
+Panicum hemitomon,emersed,native,intercept,1.731,0.067,25.681,1.9143646700910112e-145,< 0.001
+Panicum repens,emersed,non-native,intercept,1.45,0.073,19.855,9.993828589074089e-88,< 0.001
+Paspalidium geminatum,emersed,native,intercept,-1.442,0.056,-25.768,2.040001662819037e-146,< 0.001
+Pontederia cordata,emersed,native,intercept,1.463,0.068,21.657,5.2463949278799814e-104,< 0.001
+Potamogeton illinoensis,submersed,native,intercept,-2.131,0.069,-30.863,3.789483896538336e-209,< 0.001
+Rhynchospora spp.,emersed,native,intercept,-1.354,0.061,-22.282,5.518565816412673e-110,< 0.001
+Sacciolepis striata,emersed,native,intercept,-0.362,0.05,-7.295,2.9769709583003625e-13,< 0.001
+Sagittaria lancifolia,emersed,native,intercept,0.165,0.055,3.014,0.0025780596450793707,< 0.01
+Sagittaria latifolia,emersed,native,intercept,-2.184,0.068,-32.135,1.4493212185662306e-226,< 0.001
+Salix spp.,emersed,native,intercept,1.332,0.071,18.836,3.8216265549999394e-79,< 0.001
+Salvinia minima,floating,non-native,intercept,-0.228,0.05,-4.544,5.510399978587618e-6,< 0.001
+Spartina bakeri,emersed,native,intercept,-0.846,0.052,-16.36,3.682550192747793e-60,< 0.001
+Thalia geniculata,emersed,native,intercept,-2.138,0.067,-31.718,8.902269470278154e-221,< 0.001
+Typha spp.,emersed,native,intercept,1.307,0.08,16.359,3.7647858121552463e-60,< 0.001
+Urochloa mutica,emersed,non-native,intercept,-0.699,0.05,-13.948,3.248205249110188e-44,< 0.001
+Utricularia foliosa,submersed,native,intercept,-1.292,0.055,-23.322,2.6276471073395168e-120,< 0.001
+Utricularia gibba,submersed,native,intercept,-1.051,0.054,-19.444,3.2644649508530335e-84,< 0.001
+Vallisneria americana,submersed,native,intercept,-1.371,0.059,-23.148,1.5338660474528528e-118,< 0.001
+Alternanthera philoxeroides,emersed,non-native,hydrilla,0.061,0.01,6.395,1.6107322052305483e-10,< 0.001
+Bacopa caroliniana,emersed,native,hydrilla,0.037,0.003,11.421,3.300065671090564e-30,< 0.001
+Bidens spp.,emersed,native,hydrilla,0.035,0.003,10.345,4.3921614947312045e-25,< 0.001
+Cephalanthus occidentalis,emersed,native,hydrilla,0.01,0.003,2.818,0.004830205668810561,< 0.01
+Ceratophyllum demersum,submersed,native,hydrilla,0.038,0.004,8.717,2.851153742635538e-18,< 0.001
+Cladium jamaicense,emersed,native,hydrilla,0.005,0.003,1.647,0.09949101063342772,< 0.1
+Colocasia esculenta,emersed,non-native,hydrilla,-0.01,0.003,-2.837,0.004556495754101949,< 0.01
+Cyperus blepharoleptos,emersed,non-native,hydrilla,0.008,0.003,2.463,0.013761300784550566,< 0.05
+Cyperus spp. (other natives),emersed,native,hydrilla,0.004,0.003,1.092,0.2748304921691205,≥ 0.1
+Echinochloa spp.,emersed,native,hydrilla,0.008,0.003,2.624,0.008697410599227746,< 0.01
+"Eleocharis spp., emersed",emersed,native,hydrilla,0.005,0.003,1.648,0.09926026962246483,< 0.1
+"Eleocharis spp., sub/floating",submersed,native,hydrilla,0.016,0.003,5.108,3.2580586886063833e-7,< 0.001
+Filamentous algae,floating,native,hydrilla,0.059,0.006,9.683,3.5721874967294218e-22,< 0.001
+Fuirena spp.,emersed,native,hydrilla,0.004,0.004,1.205,0.2282889997381416,≥ 0.1
+Hydrocotyle spp.,emersed,native,hydrilla,0.02,0.009,2.316,0.020553153827198335,< 0.05
+Juncus effusus,emersed,native,hydrilla,0.028,0.003,8.715,2.9103324840899614e-18,< 0.001
+Leersia hexandra,emersed,native,hydrilla,0.022,0.003,6.408,1.4726735314457245e-10,< 0.001
+Lemna/Spirodela spp.,floating,native,hydrilla,0.009,0.004,2.525,0.011572616815257659,< 0.05
+Luziola fluitans,submersed,native,hydrilla,0.035,0.003,10.675,1.3303000825240796e-26,< 0.001
+Najas guadalupensis,submersed,native,hydrilla,0.004,0.003,1.245,0.21320393209740138,≥ 0.1
+Nelumbo lutea,emersed,native,hydrilla,0.046,0.004,11.623,3.1603912809479967e-31,< 0.001
+Nuphar advena,emersed,native,hydrilla,0.005,0.005,1.078,0.28123544343235685,≥ 0.1
+Nymphaea odorata,emersed,native,hydrilla,0.028,0.004,7.105,1.2068711760526808e-12,< 0.001
+Nymphoides aquatica,emersed,native,hydrilla,0.033,0.003,9.931,3.0431443959426986e-23,< 0.001
+Panicum hemitomon,emersed,native,hydrilla,0.012,0.005,2.427,0.015227419640898014,< 0.05
+Panicum repens,emersed,non-native,hydrilla,-0.008,0.007,-1.202,0.22938225550758867,≥ 0.1
+Paspalidium geminatum,emersed,native,hydrilla,-0.018,0.003,-5.709,1.1385675911655393e-8,< 0.001
+Pontederia cordata,emersed,native,hydrilla,0.028,0.007,3.81,1.389872299104479e-4,< 0.001
+Potamogeton illinoensis,submersed,native,hydrilla,0.025,0.003,7.478,7.52559372768896e-14,< 0.001
+Rhynchospora spp.,emersed,native,hydrilla,0.03,0.003,9.219,3.003954562389092e-20,< 0.001
+Sacciolepis striata,emersed,native,hydrilla,0.014,0.003,4.406,1.052517139373011e-5,< 0.001
+Sagittaria lancifolia,emersed,native,hydrilla,-0.011,0.004,-2.678,0.007413441932528327,< 0.01
+Sagittaria latifolia,emersed,native,hydrilla,0.05,0.004,12.342,5.383464605536425e-35,< 0.001
+Salix spp.,emersed,native,hydrilla,0.023,0.009,2.617,0.00887179997733723,< 0.01
+Salvinia minima,floating,non-native,hydrilla,0.018,0.004,4.381,1.1821948920339416e-5,< 0.001
+Spartina bakeri,emersed,native,hydrilla,0.016,0.003,5.205,1.9370530130485053e-7,< 0.001
+Thalia geniculata,emersed,native,hydrilla,0.014,0.003,4.585,4.534995661376604e-6,< 0.001
+Typha spp.,emersed,native,hydrilla,0.017,0.013,1.35,0.17697223818784485,≥ 0.1
+Urochloa mutica,emersed,non-native,hydrilla,0.001,0.003,0.235,0.8143158522209116,≥ 0.1
+Utricularia foliosa,submersed,native,hydrilla,0.022,0.003,7.034,2.0038640122739396e-12,< 0.001
+Utricularia gibba,submersed,native,hydrilla,0.024,0.003,7.744,9.667164815449595e-15,< 0.001
+Vallisneria americana,submersed,native,hydrilla,-0.005,0.004,-1.321,0.1863486316462491,≥ 0.1
+Alternanthera philoxeroides,emersed,non-native,water hyacinth,0.143,0.09,1.589,0.11203397132380269,≥ 0.1
+Bacopa caroliniana,emersed,native,water hyacinth,-0.328,0.079,-4.174,2.9865180793419463e-5,< 0.001
+Bidens spp.,emersed,native,water hyacinth,-0.11,0.061,-1.826,0.06789993962511535,< 0.1
+Cephalanthus occidentalis,emersed,native,water hyacinth,-0.093,0.062,-1.501,0.13336966892572538,≥ 0.1
+Ceratophyllum demersum,submersed,native,water hyacinth,0.159,0.063,2.519,0.011759292311869396,< 0.05
+Cladium jamaicense,emersed,native,water hyacinth,-0.31,0.061,-5.116,3.116979138633381e-7,< 0.001
+Colocasia esculenta,emersed,non-native,water hyacinth,0.094,0.061,1.538,0.12411223049582014,≥ 0.1
+Cyperus blepharoleptos,emersed,non-native,water hyacinth,-0.124,0.058,-2.12,0.034033558286122235,< 0.05
+Cyperus spp. (other natives),emersed,native,water hyacinth,-0.24,0.059,-4.097,4.187862427798688e-5,< 0.001
+Echinochloa spp.,emersed,native,water hyacinth,0.124,0.066,1.887,0.059103115824319596,< 0.1
+"Eleocharis spp., emersed",emersed,native,water hyacinth,-0.364,0.064,-5.711,1.1227593821889352e-8,< 0.001
+"Eleocharis spp., sub/floating",submersed,native,water hyacinth,-0.509,0.061,-8.395,4.6703956944191035e-17,< 0.001
+Filamentous algae,floating,native,water hyacinth,-0.282,0.062,-4.546,5.469794816122793e-6,< 0.001
+Fuirena spp.,emersed,native,water hyacinth,-1.691,0.131,-12.862,7.336580745470378e-38,< 0.001
+Hydrocotyle spp.,emersed,native,water hyacinth,-0.429,0.079,-5.453,4.95294588956331e-8,< 0.001
+Juncus effusus,emersed,native,water hyacinth,-0.186,0.066,-2.801,0.005098476023709177,< 0.01
+Leersia hexandra,emersed,native,water hyacinth,-0.101,0.07,-1.431,0.15250440161656237,≥ 0.1
+Lemna/Spirodela spp.,floating,native,water hyacinth,0.187,0.062,3.002,0.002680850613241756,< 0.01
+Luziola fluitans,submersed,native,water hyacinth,-0.312,0.077,-4.036,5.4462426232341524e-5,< 0.001
+Najas guadalupensis,submersed,native,water hyacinth,-0.409,0.073,-5.567,2.5881189843303633e-8,< 0.001
+Nelumbo lutea,emersed,native,water hyacinth,-0.032,0.071,-0.451,0.6522345858467111,≥ 0.1
+Nuphar advena,emersed,native,water hyacinth,-0.449,0.065,-6.935,4.065962806178756e-12,< 0.001
+Nymphaea odorata,emersed,native,water hyacinth,-0.643,0.063,-10.254,1.1379385054825781e-24,< 0.001
+Nymphoides aquatica,emersed,native,water hyacinth,-0.858,0.109,-7.839,4.535155639945357e-15,< 0.001
+Panicum hemitomon,emersed,native,water hyacinth,-0.601,0.064,-9.401,5.413581892517518e-21,< 0.001
+Panicum repens,emersed,non-native,water hyacinth,-0.717,0.07,-10.304,6.744491279381443e-25,< 0.001
+Paspalidium geminatum,emersed,native,water hyacinth,-0.73,0.085,-8.583,9.248691999673738e-18,< 0.001
+Pontederia cordata,emersed,native,water hyacinth,-0.895,0.067,-13.373,8.668526151989111e-41,< 0.001
+Potamogeton illinoensis,submersed,native,water hyacinth,-0.749,0.109,-6.847,7.5288907515879e-12,< 0.001
+Rhynchospora spp.,emersed,native,water hyacinth,-0.429,0.086,-4.983,6.272582898338403e-7,< 0.001
+Sacciolepis striata,emersed,native,water hyacinth,-0.366,0.064,-5.701,1.1897879057797701e-8,< 0.001
+Sagittaria lancifolia,emersed,native,water hyacinth,-0.511,0.064,-7.978,1.4926894002146371e-15,< 0.001
+Sagittaria latifolia,emersed,native,water hyacinth,-0.099,0.072,-1.359,0.17400797248946784,≥ 0.1
+Salix spp.,emersed,native,water hyacinth,-0.309,0.079,-3.884,1.02955029335298e-4,< 0.001
+Salvinia minima,floating,non-native,water hyacinth,0.151,0.063,2.387,0.017002463349800483,< 0.05
+Spartina bakeri,emersed,native,water hyacinth,-0.641,0.078,-8.223,1.9771353793910872e-16,< 0.001
+Thalia geniculata,emersed,native,water hyacinth,0.268,0.067,3.975,7.026138242867168e-5,< 0.001
+Typha spp.,emersed,native,water hyacinth,-0.138,0.1,-1.383,0.16677296178302556,≥ 0.1
+Urochloa mutica,emersed,non-native,water hyacinth,-0.102,0.06,-1.705,0.08814368458258422,< 0.1
+Utricularia foliosa,submersed,native,water hyacinth,-0.262,0.07,-3.749,1.7721440711371294e-4,< 0.001
+Utricularia gibba,submersed,native,water hyacinth,-0.36,0.072,-4.971,6.665918860299472e-7,< 0.001
+Vallisneria americana,submersed,native,water hyacinth,-0.125,0.071,-1.757,0.07887440176327862,< 0.1
+Alternanthera philoxeroides,emersed,non-native,water lettuce,1.588,0.292,5.446,5.159624148184988e-8,< 0.001
+Bacopa caroliniana,emersed,native,water lettuce,-0.931,0.137,-6.806,1.0016427973992174e-11,< 0.001
+Bidens spp.,emersed,native,water lettuce,0.412,0.078,5.292,1.2119340879843072e-7,< 0.001
+Cephalanthus occidentalis,emersed,native,water lettuce,0.073,0.088,0.83,0.40631988989120477,≥ 0.1
+Ceratophyllum demersum,submersed,native,water lettuce,0.652,0.091,7.156,8.330208843187779e-13,< 0.001
+Cladium jamaicense,emersed,native,water lettuce,0.281,0.076,3.722,1.9782423826621742e-4,< 0.001
+Colocasia esculenta,emersed,non-native,water lettuce,-0.008,0.086,-0.091,0.9271475426474726,≥ 0.1
+Cyperus blepharoleptos,emersed,non-native,water lettuce,-0.276,0.076,-3.614,3.016252205814933e-4,< 0.001
+Cyperus spp. (other natives),emersed,native,water lettuce,0.033,0.082,0.404,0.6859530146667845,≥ 0.1
+Echinochloa spp.,emersed,native,water lettuce,0.25,0.079,3.18,0.001472462533765263,< 0.01
+"Eleocharis spp., emersed",emersed,native,water lettuce,-0.581,0.084,-6.952,3.5958449297895746e-12,< 0.001
+"Eleocharis spp., sub/floating",submersed,native,water lettuce,-0.457,0.077,-5.917,3.273543139932634e-9,< 0.001
+Filamentous algae,floating,native,water lettuce,0.518,0.099,5.255,1.4764589747925158e-7,< 0.001
+Fuirena spp.,emersed,native,water lettuce,-3.376,0.297,-11.352,7.266116273587672e-30,< 0.001
+Hydrocotyle spp.,emersed,native,water lettuce,-0.169,0.135,-1.252,0.2107437974898206,≥ 0.1
+Juncus effusus,emersed,native,water lettuce,-0.447,0.085,-5.287,1.2410129865296351e-7,< 0.001
+Leersia hexandra,emersed,native,water lettuce,0.118,0.09,1.312,0.18956554407367637,≥ 0.1
+Lemna/Spirodela spp.,floating,native,water lettuce,1.185,0.128,9.241,2.441672368822787e-20,< 0.001
+Luziola fluitans,submersed,native,water lettuce,-0.853,0.116,-7.384,1.531524473551905e-13,< 0.001
+Najas guadalupensis,submersed,native,water lettuce,0.163,0.084,1.93,0.05366305970279223,< 0.1
+Nelumbo lutea,emersed,native,water lettuce,-0.405,0.086,-4.702,2.579929994334887e-6,< 0.001
+Nuphar advena,emersed,native,water lettuce,-0.417,0.097,-4.293,1.7643629659531394e-5,< 0.001
+Nymphaea odorata,emersed,native,water lettuce,-0.572,0.079,-7.226,4.972561269433035e-13,< 0.001
+Nymphoides aquatica,emersed,native,water lettuce,-1.137,0.165,-6.895,5.395747457994634e-12,< 0.001
+Panicum hemitomon,emersed,native,water lettuce,-0.672,0.085,-7.859,3.877150712594005e-15,< 0.001
+Panicum repens,emersed,non-native,water lettuce,-0.72,0.108,-6.646,3.015123967615131e-11,< 0.001
+Paspalidium geminatum,emersed,native,water lettuce,0.443,0.096,4.622,3.806256109538586e-6,< 0.001
+Pontederia cordata,emersed,native,water lettuce,-0.867,0.097,-8.954,3.4199875048463174e-19,< 0.001
+Potamogeton illinoensis,submersed,native,water lettuce,-0.465,0.114,-4.089,4.3269997973842855e-5,< 0.001
+Rhynchospora spp.,emersed,native,water lettuce,0.286,0.085,3.358,7.863116318555918e-4,< 0.001
+Sacciolepis striata,emersed,native,water lettuce,0.112,0.079,1.411,0.15836244849958722,≥ 0.1
+Sagittaria lancifolia,emersed,native,water lettuce,-0.265,0.096,-2.749,0.005973267599003821,< 0.01
+Sagittaria latifolia,emersed,native,water lettuce,0.133,0.083,1.604,0.10870737890522103,≥ 0.1
+Salix spp.,emersed,native,water lettuce,-0.107,0.141,-0.757,0.4489624186966846,≥ 0.1
+Salvinia minima,floating,non-native,water lettuce,-0.06,0.09,-0.666,0.5056990351627593,≥ 0.1
+Spartina bakeri,emersed,native,water lettuce,0.585,0.082,7.098,1.2647970377512928e-12,< 0.001
+Thalia geniculata,emersed,native,water lettuce,0.806,0.089,9.059,1.3135944992529086e-19,< 0.001
+Typha spp.,emersed,native,water lettuce,-0.264,0.168,-1.57,0.11629935935009855,≥ 0.1
+Urochloa mutica,emersed,non-native,water lettuce,0.022,0.081,0.267,0.7896791756821493,≥ 0.1
+Utricularia foliosa,submersed,native,water lettuce,0.151,0.079,1.899,0.057538262849824766,< 0.1
+Utricularia gibba,submersed,native,water lettuce,-0.132,0.083,-1.592,0.11130358232463189,≥ 0.1
+Vallisneria americana,submersed,native,water lettuce,0.044,0.095,0.464,0.6428380851832849,≥ 0.1
+Alternanthera philoxeroides,emersed,non-native,hydrilla treat.,-0.199,0.131,-1.514,0.1301239118065801,≥ 0.1
+Bacopa caroliniana,emersed,native,hydrilla treat.,-0.781,0.117,-6.696,2.148759392673832e-11,< 0.001
+Bidens spp.,emersed,native,hydrilla treat.,-1.324,0.106,-12.443,1.5306320952817535e-35,< 0.001
+Cephalanthus occidentalis,emersed,native,hydrilla treat.,-0.959,0.103,-9.352,8.603086895846184e-21,< 0.001
+Ceratophyllum demersum,submersed,native,hydrilla treat.,1.345,0.102,13.229,6.003332247298414e-40,< 0.001
+Cladium jamaicense,emersed,native,hydrilla treat.,0.324,0.094,3.438,5.861282272370264e-4,< 0.001
+Colocasia esculenta,emersed,non-native,hydrilla treat.,2.26,0.116,19.521,7.226478549361125e-85,< 0.001
+Cyperus blepharoleptos,emersed,non-native,hydrilla treat.,-0.052,0.097,-0.535,0.5926706108338586,≥ 0.1
+Cyperus spp. (other natives),emersed,native,hydrilla treat.,0.502,0.103,4.863,1.1573209801953544e-6,< 0.001
+Echinochloa spp.,emersed,native,hydrilla treat.,0.404,0.11,3.663,2.4936910660563214e-4,< 0.001
+"Eleocharis spp., emersed",emersed,native,hydrilla treat.,1.158,0.097,11.888,1.3685590435343296e-32,< 0.001
+"Eleocharis spp., sub/floating",submersed,native,hydrilla treat.,-0.963,0.097,-9.903,4.046203545104531e-23,< 0.001
+Filamentous algae,floating,native,hydrilla treat.,0.009,0.102,0.089,0.9290393192586515,≥ 0.1
+Fuirena spp.,emersed,native,hydrilla treat.,0.028,0.101,0.273,0.7845106560009526,≥ 0.1
+Hydrocotyle spp.,emersed,native,hydrilla treat.,1.297,0.201,6.461,1.037445409116739e-10,< 0.001
+Juncus effusus,emersed,native,hydrilla treat.,-0.405,0.103,-3.921,8.804806585076728e-5,< 0.001
+Leersia hexandra,emersed,native,hydrilla treat.,-1.576,0.133,-11.84,2.435983883747986e-32,< 0.001
+Lemna/Spirodela spp.,floating,native,hydrilla treat.,0.328,0.099,3.305,9.494652548191266e-4,< 0.001
+Luziola fluitans,submersed,native,hydrilla treat.,-1.566,0.122,-12.875,6.18860707717468e-38,< 0.001
+Najas guadalupensis,submersed,native,hydrilla treat.,2.262,0.104,21.657,5.235519443344519e-104,< 0.001
+Nelumbo lutea,emersed,native,hydrilla treat.,0.199,0.113,1.761,0.07826921413475535,< 0.1
+Nuphar advena,emersed,native,hydrilla treat.,0.569,0.14,4.056,4.998336714507944e-5,< 0.001
+Nymphaea odorata,emersed,native,hydrilla treat.,0.921,0.103,8.915,4.873995048594358e-19,< 0.001
+Nymphoides aquatica,emersed,native,hydrilla treat.,-1.445,0.126,-11.434,2.83887701075922e-30,< 0.001
+Panicum hemitomon,emersed,native,hydrilla treat.,0.137,0.142,0.963,0.3357893320287355,≥ 0.1
+Panicum repens,emersed,non-native,hydrilla treat.,3.616,0.255,14.201,9.049141740619962e-46,< 0.001
+Paspalidium geminatum,emersed,native,hydrilla treat.,1.997,0.106,18.916,8.495449667875336e-80,< 0.001
+Pontederia cordata,emersed,native,hydrilla treat.,0.954,0.171,5.589,2.2898536089367948e-8,< 0.001
+Potamogeton illinoensis,submersed,native,hydrilla treat.,3.387,0.126,26.9,2.1951431588469646e-159,< 0.001
+Rhynchospora spp.,emersed,native,hydrilla treat.,-0.664,0.126,-5.277,1.3129429789892799e-7,< 0.001
+Sacciolepis striata,emersed,native,hydrilla treat.,-1.722,0.104,-16.518,2.7270536310925207e-61,< 0.001
+Sagittaria lancifolia,emersed,native,hydrilla treat.,3.047,0.156,19.486,1.4563911779586558e-84,< 0.001
+Sagittaria latifolia,emersed,native,hydrilla treat.,0.11,0.115,0.956,0.3391399664172182,≥ 0.1
+Salix spp.,emersed,native,hydrilla treat.,1.243,0.188,6.608,3.891386710308724e-11,< 0.001
+Salvinia minima,floating,non-native,hydrilla treat.,-0.243,0.103,-2.36,0.018271760936961166,< 0.05
+Spartina bakeri,emersed,native,hydrilla treat.,-0.046,0.1,-0.46,0.6453419957663901,≥ 0.1
+Thalia geniculata,emersed,native,hydrilla treat.,1.978,0.119,16.669,2.2023638993182836e-62,< 0.001
+Typha spp.,emersed,native,hydrilla treat.,3.065,0.299,10.257,1.1039921826364309e-24,< 0.001
+Urochloa mutica,emersed,non-native,hydrilla treat.,0.986,0.099,9.973,1.9974268011924618e-23,< 0.001
+Utricularia foliosa,submersed,native,hydrilla treat.,0.444,0.102,4.338,1.4378638695438721e-5,< 0.001
+Utricularia gibba,submersed,native,hydrilla treat.,-0.161,0.104,-1.551,0.12083682031593682,≥ 0.1
+Vallisneria americana,submersed,native,hydrilla treat.,5.221,0.153,34.065,2.423217595740469e-254,< 0.001
+Alternanthera philoxeroides,emersed,non-native,floating treat.,1.588,0.121,13.113,2.7817804502140775e-39,< 0.001
+Bacopa caroliniana,emersed,native,floating treat.,0.356,0.093,3.818,1.3434566362556283e-4,< 0.001
+Bidens spp.,emersed,native,floating treat.,0.762,0.083,9.185,4.132572533854209e-20,< 0.001
+Cephalanthus occidentalis,emersed,native,floating treat.,0.852,0.09,9.457,3.1744024994556868e-21,< 0.001
+Ceratophyllum demersum,submersed,native,floating treat.,0.603,0.085,7.105,1.2016342153542091e-12,< 0.001
+Cladium jamaicense,emersed,native,floating treat.,-0.324,0.079,-4.089,4.3367350941383206e-5,< 0.001
+Colocasia esculenta,emersed,non-native,floating treat.,0.499,0.084,5.907,3.493670862249551e-9,< 0.001
+Cyperus blepharoleptos,emersed,non-native,floating treat.,1.345,0.083,16.161,9.56654066496448e-59,< 0.001
+Cyperus spp. (other natives),emersed,native,floating treat.,0.338,0.084,4.009,6.089052335010019e-5,< 0.001
+Echinochloa spp.,emersed,native,floating treat.,0.836,0.094,8.872,7.201785182122907e-19,< 0.001
+"Eleocharis spp., emersed",emersed,native,floating treat.,0.261,0.081,3.23,0.0012389852348764253,< 0.01
+"Eleocharis spp., sub/floating",submersed,native,floating treat.,0.59,0.083,7.112,1.1438487879735477e-12,< 0.001
+Filamentous algae,floating,native,floating treat.,-0.019,0.084,-0.229,0.8192096605505728,≥ 0.1
+Fuirena spp.,emersed,native,floating treat.,0.092,0.087,1.052,0.2927169007365739,≥ 0.1
+Hydrocotyle spp.,emersed,native,floating treat.,0.915,0.146,6.252,4.047730310110126e-10,< 0.001
+Juncus effusus,emersed,native,floating treat.,1.173,0.086,13.701,9.949002927448649e-43,< 0.001
+Leersia hexandra,emersed,native,floating treat.,-0.032,0.096,-0.331,0.7405095206280166,≥ 0.1
+Lemna/Spirodela spp.,floating,native,floating treat.,1.333,0.084,15.888,7.730691962202156e-57,< 0.001
+Luziola fluitans,submersed,native,floating treat.,1.403,0.093,15.097,1.688586240813744e-51,< 0.001
+Najas guadalupensis,submersed,native,floating treat.,-0.531,0.089,-5.935,2.9457608170720345e-9,< 0.001
+Nelumbo lutea,emersed,native,floating treat.,1.626,0.097,16.693,1.463563489812779e-62,< 0.001
+Nuphar advena,emersed,native,floating treat.,1.352,0.117,11.554,7.071602271775735e-31,< 0.001
+Nymphaea odorata,emersed,native,floating treat.,-0.366,0.083,-4.418,9.955810854152115e-6,< 0.001
+Nymphoides aquatica,emersed,native,floating treat.,0.786,0.096,8.195,2.50319248336796e-16,< 0.001
+Panicum hemitomon,emersed,native,floating treat.,0.637,0.118,5.414,6.16129090395277e-8,< 0.001
+Panicum repens,emersed,non-native,floating treat.,0.535,0.137,3.904,9.458243575111295e-5,< 0.001
+Paspalidium geminatum,emersed,native,floating treat.,1.528,0.087,17.534,7.85971158491812e-69,< 0.001
+Pontederia cordata,emersed,native,floating treat.,1.292,0.134,9.629,6.050745345893807e-22,< 0.001
+Potamogeton illinoensis,submersed,native,floating treat.,-0.907,0.112,-8.107,5.20265114728369e-16,< 0.001
+Rhynchospora spp.,emersed,native,floating treat.,0.121,0.099,1.221,0.22216975295993283,≥ 0.1
+Sacciolepis striata,emersed,native,floating treat.,1.958,0.088,22.33,1.903959535861385e-110,< 0.001
+Sagittaria lancifolia,emersed,native,floating treat.,0.84,0.099,8.453,2.8346690979191686e-17,< 0.001
+Sagittaria latifolia,emersed,native,floating treat.,1.394,0.098,14.279,2.9594114299135146e-46,< 0.001
+Salix spp.,emersed,native,floating treat.,1.311,0.143,9.155,5.435694084832793e-20,< 0.001
+Salvinia minima,floating,non-native,floating treat.,1.793,0.09,19.962,1.1798731830231574e-88,< 0.001
+Spartina bakeri,emersed,native,floating treat.,0.45,0.083,5.402,6.597819644262009e-8,< 0.001
+Thalia geniculata,emersed,native,floating treat.,-0.689,0.107,-6.439,1.1991531492343133e-10,< 0.001
+Typha spp.,emersed,native,floating treat.,1.661,0.18,9.228,2.768035900833789e-20,< 0.001
+Urochloa mutica,emersed,non-native,floating treat.,1.1,0.082,13.48,2.0646128648304947e-41,< 0.001
+Utricularia foliosa,submersed,native,floating treat.,0.381,0.087,4.375,1.2140262366137753e-5,< 0.001
+Utricularia gibba,submersed,native,floating treat.,0.46,0.086,5.331,9.750801073518861e-8,< 0.001
+Vallisneria americana,submersed,native,floating treat.,-0.403,0.095,-4.233,2.3041633820171215e-5,< 0.001

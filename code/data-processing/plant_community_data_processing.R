@@ -156,28 +156,30 @@ common_fwc <- plant_fwc3 %>%
   left_join(TotWatYear) %>%
   mutate(RatioWatYear = OccWatYear / TotWatYear,
          RatioWaterbody = OccWaterbody / TotWaterbody,
-         Over50Waterbody = if_else(RatioWaterbody > 0.5, 1, 0), # thresholds based on post ctrl data distributions (below)
-         Over25WatYear = if_else(RatioWatYear > 0.25, 1, 0)) # these are already split by PreCtrl
+         Over35Waterbody = if_else(RatioWaterbody > 0.35, 1, 0), # thresholds based on post ctrl data distributions (below)
+         Over20WatYear = if_else(RatioWatYear > 0.2, 1, 0)) # these are already split by PreCtrl
 
 # distribution of occurrences
 ggplot(common_fwc, aes(x = RankWatYear, y = RatioWatYear)) +
+  geom_hline(yintercept = 0.2, linetype = "dashed") +
   geom_line() +
-  geom_point(aes(color = Over50Waterbody)) +
+  geom_point(aes(color = Over35Waterbody)) +
   facet_wrap(~ PreCtrl)
 
 ggplot(common_fwc, aes(x = RankWaterbody, y = RatioWaterbody)) +
+  geom_hline(yintercept = 0.35, linetype = "dashed") +
   geom_line() +
-  geom_point(aes(color = Over25WatYear)) +
+  geom_point(aes(color = Over20WatYear)) +
   facet_wrap(~ PreCtrl)
 
 ggplot(common_fwc, aes(x = RankWatYearHab, y = RatioWatYear)) +
   geom_line() +
-  geom_point(aes(color = Over50Waterbody)) +
+  geom_point(aes(color = Over35Waterbody)) +
   facet_grid(Habitat ~ PreCtrl)
 
 ggplot(common_fwc, aes(x = RankWaterbodyHab, y = RatioWaterbody)) +
   geom_line() +
-  geom_point(aes(color = Over25WatYear)) +
+  geom_point(aes(color = Over20WatYear)) +
   facet_grid(Habitat ~ PreCtrl)
 
 # common species in post control data
@@ -187,7 +189,8 @@ ggplot(common_fwc, aes(x = RankWaterbodyHab, y = RatioWaterbody)) +
 common_fwc2 <- common_fwc %>%
   left_join(TotHabitat) %>%
   # filter(PreCtrl == "post ctrl data" & RankWatYearHab <= Taxa40) %>%
-  filter(PreCtrl == "post ctrl data" & Over25WatYear == 1 & Over50Waterbody) %>%
+  filter(PreCtrl == "post ctrl data" & Over20WatYear == 1 & Over35Waterbody &
+           TaxonName != "Ludwigia octovalvis/peruviana") %>% # combines native/invasive
   select(TaxonName) %>%
   inner_join(common_fwc)
 
@@ -201,7 +204,7 @@ common_fwc2 %>%
 
 ggplot(common_fwc2, aes(x = RankWatYearHab, y = RatioWatYear)) +
   geom_line() +
-  geom_point(aes(color = Over50Waterbody)) +
+  geom_point(aes(color = Over35Waterbody)) +
   facet_grid(Habitat ~ PreCtrl)
 
 # select taxa
