@@ -12,10 +12,10 @@ library(lubridate)
 plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv",
                       col_types = list(JoinNotes = col_character(),
                                        PermanentID = col_character()))
-# plant_fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
-#                        col_types = list(Depth_ft = col_double(),
-#                                         PermanentID = col_character(),
-#                                         YearF = col_character())) # add in later, need full list over time
+plant_fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
+                       col_types = list(Depth_ft = col_double(),
+                                        PermanentID = col_character(),
+                                        YearF = col_character()))
 plant_detect <- read_csv("intermediate-data/FWC_plant_survey_first_detection_manual.csv")
 
 
@@ -71,10 +71,13 @@ plant_cont <- plant_detect %>%
   filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & 
            (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)) &
            !(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
-                              "Ludwigia grandiflora/hexapetala")))
-# 97 species
+                              "Ludwigia grandiflora/hexapetala", "Ludwigia octovalvis/peruviana",
+                              "Filamentous algae")))
+# Ludwigia octovalvis/peruviana removed because it combines native and non-native and Ludwigia are difficult to ID
+# filamentous algae removed -- use chlorophyll to analyze algae
+# 95 species
 
-# select all species except invasive
+# format data
 plant_fwc2 <- plant_fwc %>%
   filter(TaxonName %in% plant_cont$TaxonName) %>%
   select(TaxonName, Habitat, Origin) %>%
@@ -120,10 +123,14 @@ plant_fwc3 <- plant_fwc2 %>%
 write_csv(plant_fwc3, "intermediate-data/FWC_plant_community_formatted.csv")
 
 
-#### most common taxa ####
+#### most common native taxa ####
+
+# remove non-native taxa
+nat_fwc <- plant_fwc3 %>%
+  filter(Origin == "Native")
 
 # total waterbody-year combos
-TotWatYear <- plant_fwc3 %>%
+TotWatYear <- nat_fwc %>%
   select(PreCtrl, PermanentID, GSYear) %>%
   unique() %>%
   group_by(PreCtrl) %>%
@@ -132,14 +139,15 @@ TotWatYear <- plant_fwc3 %>%
   ungroup()
 
 # total habitat types
-TotHabitat <- plant_fwc3 %>%
+TotHabitat <- nat_fwc %>%
   group_by(Habitat) %>%
   summarize(TotTaxa = n_distinct(TaxonName)) %>%
   ungroup() %>%
   mutate(Taxa40 = round(TotTaxa * 0.4))
+# only 4 floating taxa
 
 # summarize waterbody-year occurrences
-common_fwc <- plant_fwc3 %>%
+common_fwc <- nat_fwc %>%
   filter(Detected == 1) %>%
   group_by(TaxonName, Habitat, Origin, PreCtrl) %>%
   summarize(OccWatYear = n(),
@@ -156,30 +164,32 @@ common_fwc <- plant_fwc3 %>%
   left_join(TotWatYear) %>%
   mutate(RatioWatYear = OccWatYear / TotWatYear,
          RatioWaterbody = OccWaterbody / TotWaterbody,
-         Over35Waterbody = if_else(RatioWaterbody > 0.35, 1, 0), # thresholds based on post ctrl data distributions (below)
-         Over20WatYear = if_else(RatioWatYear > 0.2, 1, 0)) # these are already split by PreCtrl
+         Over20Waterbody = if_else(RatioWaterbody > 0.2, 1, 0), # thresholds based on post ctrl data distributions (below)
+         Over7WatYear = if_else(RatioWatYear > 0.07, 1, 0)) # these are already split by PreCtrl
 
 # distribution of occurrences
 ggplot(common_fwc, aes(x = RankWatYear, y = RatioWatYear)) +
-  geom_hline(yintercept = 0.2, linetype = "dashed") +
+  geom_hline(yintercept = 0.07, linetype = "dashed") +
   geom_line() +
-  geom_point(aes(color = Over35Waterbody)) +
+  geom_point(aes(color = Over20Waterbody)) +
   facet_wrap(~ PreCtrl)
 
 ggplot(common_fwc, aes(x = RankWaterbody, y = RatioWaterbody)) +
-  geom_hline(yintercept = 0.35, linetype = "dashed") +
+  geom_hline(yintercept = 0.2, linetype = "dashed") +
   geom_line() +
-  geom_point(aes(color = Over20WatYear)) +
+  geom_point(aes(color = Over7WatYear)) +
   facet_wrap(~ PreCtrl)
 
 ggplot(common_fwc, aes(x = RankWatYearHab, y = RatioWatYear)) +
+  geom_hline(yintercept = 0.07, linetype = "dashed") +
   geom_line() +
-  geom_point(aes(color = Over35Waterbody)) +
+  geom_point(aes(color = Over20Waterbody)) +
   facet_grid(Habitat ~ PreCtrl)
 
 ggplot(common_fwc, aes(x = RankWaterbodyHab, y = RatioWaterbody)) +
+  geom_hline(yintercept = 0.2, linetype = "dashed") +
   geom_line() +
-  geom_point(aes(color = Over20WatYear)) +
+  geom_point(aes(color = Over7WatYear)) +
   facet_grid(Habitat ~ PreCtrl)
 
 # common species in post control data
@@ -187,29 +197,85 @@ ggplot(common_fwc, aes(x = RankWaterbodyHab, y = RatioWaterbody)) +
 # taxa must be present in over 25% of water-year occurrences 
 # and over 50% of lakes (this requirement is met with above)
 common_fwc2 <- common_fwc %>%
-  left_join(TotHabitat) %>%
+  # left_join(TotHabitat) %>%
   # filter(PreCtrl == "post ctrl data" & RankWatYearHab <= Taxa40) %>%
-  filter(PreCtrl == "post ctrl data" & Over20WatYear == 1 & Over35Waterbody &
-           TaxonName != "Ludwigia octovalvis/peruviana") %>% # combines native/invasive
+  filter(PreCtrl == "post ctrl data" & Over7WatYear == 1 & Over20Waterbody == 1) %>%
   select(TaxonName) %>%
   inner_join(common_fwc)
 
 common_fwc2 %>%
-  group_by(Habitat) %>%
+  group_by(PreCtrl, Habitat) %>%
   summarize(Taxa = n_distinct(TaxonName),
             MinWatYear = min(OccWatYear),
             MinWaterbody = min(OccWaterbody)) %>%
   left_join(TotHabitat) %>%
   mutate(RatioTaxa = Taxa / TotTaxa)
 
+n_distinct(common_fwc2$TaxonName) # 62 taxa total
+
 ggplot(common_fwc2, aes(x = RankWatYearHab, y = RatioWatYear)) +
   geom_line() +
-  geom_point(aes(color = Over35Waterbody)) +
+  geom_point(aes(color = Over20Waterbody)) +
   facet_grid(Habitat ~ PreCtrl)
 
 # select taxa
-plant_fwc4 <- plant_fwc3 %>%
+nat_fwc2 <- nat_fwc %>%
   filter(TaxonName %in% common_fwc2$TaxonName)
 
 # save
-write_csv(plant_fwc4, "intermediate-data/FWC_common_plant_community_formatted.csv")
+write_csv(nat_fwc2, "intermediate-data/FWC_common_native_plants_formatted.csv")
+
+
+#### FWRI data ####
+
+# species names
+common_taxa <- common_fwc2 %>%
+  select(TaxonName) %>%
+  unique() %>%
+  rename(ScientificName = TaxonName) %>%
+  mutate(ScientificName = str_replace_all(ScientificName, "spp.", "sp."))
+  
+# subset for species
+nat_fwri <- plant_fwri %>%
+  inner_join(common_taxa)
+
+# species matched
+n_distinct(nat_fwri$ScientificName)
+
+# unmatched species
+unmatch_fwc <- common_taxa %>%
+  anti_join(nat_fwri) %>%
+  arrange(ScientificName)
+
+unmatch_fwri <- plant_fwri %>%
+  select(ScientificName) %>%
+  unique() %>%
+  anti_join(nat_fwri) %>%
+  arrange(ScientificName)
+
+# revise names to match
+common_taxa2 <- common_taxa %>%
+  mutate(ScientificName = fct_recode(ScientificName,
+                                     "Cladium mariscus jamaicense" = "Cladium jamaicense",
+                                     "Lemna sp." = "Lemna/Spirodela sp.",
+                                     "Luziola fluitans (syn. Hydrochloa caroliniensis)" = "Luziola fluitans",
+                                     "Nuphar luteum" = "Nuphar advena",
+                                     "Paspalum fluitans" = "Paspalum repens",
+                                     "Utricularia inflata or Utricularia floridana" = "Utricularia floridana"))
+# Nuphar leteum is the old name of Nuphar advena
+# Paspalum fluitans is a synonym of Paspalum repens
+# both Utricularia are on the FWC list
+
+# update species list
+nat_fwri2 <- plant_fwri %>%
+  inner_join(common_taxa2)
+
+# species left out
+common_taxa2 %>%
+  anti_join(nat_fwri2) %>%
+  arrange(ScientificName)
+
+n_distinct(nat_fwri2$ScientificName) # 50 taxa
+
+# save
+write_csv(nat_fwri2, "intermediate-data/FWRI_common_native_plants_formatted.csv")

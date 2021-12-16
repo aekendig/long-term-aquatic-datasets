@@ -43,8 +43,8 @@ outer_boundary_gis <- gis_ed %>%
   ungroup()
 
 # lakes in each dataset
-filter(outer_boundary_gis, AreaOfInterestID > 0) # 3 FWC lakes
-filter(outer_boundary_gis, AreaOfInterestID == 0) # 18 LW lakes
+filter(outer_boundary_gis, AreaOfInterestID > 0) # 4 FWC lakes
+filter(outer_boundary_gis, AreaOfInterestID == 0) # 19 LW lakes
 
 # match with FWC lakes
 outer_boundary_gis %>%
@@ -68,8 +68,8 @@ lw_outer_boundary <- outer_boundary_gis %>%
 lw_outer_boundary
 # LW area tends to be between center area and full area
 
-cor.test(~ LWArea + ShapeArea, data = lw_outer_boundary) # 0.97
-cor.test(~ LWArea + CenterArea, data = lw_outer_boundary) # 0.95
+cor.test(~ LWArea + ShapeArea, data = lw_outer_boundary) # 0.63
+cor.test(~ LWArea + CenterArea, data = lw_outer_boundary) # 0.54
 
 # remove lakes without shapes
 # add manually matched lakes back in
