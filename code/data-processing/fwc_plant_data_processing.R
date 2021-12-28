@@ -226,20 +226,20 @@ species_list <- taxa_list %>%
   filter(words > 0) # synonyms function failed with genera
 
 # synonyms from ITIS
-taxa_syn <- synonyms(species_list$Taxon, db = "itis")
+# taxa_syn <- synonyms(species_list$Taxon, db = "itis")
 # manually accepted duplicate names
 # chose accepted ones and checked on website
 # date run: 8/12/21
 
 # make into dataframe
-taxa_syn2 <- rbindlist(lapply(taxa_syn, as.data.table), use.names = T, fill = T, idcol = "Taxon") %>%
-  select(-V1) %>%
-  as_tibble()
+# taxa_syn2 <- rbindlist(lapply(taxa_syn, as.data.table), use.names = T, fill = T, idcol = "Taxon") %>%
+#   select(-V1) %>%
+#   as_tibble()
 
 # manually check missing species
-taxa_syn2 %>%
-  filter(is.na(sub_tsn)) %>%
-  select(Taxon)
+# taxa_syn2 %>%
+#   filter(is.na(sub_tsn)) %>%
+#   select(Taxon)
 # one is general algae
 # Pomacea insularum is the snail -- remove
 # type-os: 
@@ -260,15 +260,15 @@ species_list %>%
   filter(Taxon %in% species_list2$Alt_taxon)
 
 # synonyms from ITIS
-taxa_syn3 <- synonyms(species_list2$Alt_taxon, db = "itis")
+# taxa_syn3 <- synonyms(species_list2$Alt_taxon, db = "itis")
 # manually accepted duplicate names
 # chose accepted ones and checked on website
 # date run: 8/12/21
 
 # make into dataframe
-taxa_syn4 <- rbindlist(lapply(taxa_syn3, as.data.table), use.names = T, fill = T, idcol = "Taxon") %>%
-  as_tibble() %>%
-  full_join(taxa_syn2)
+# taxa_syn4 <- rbindlist(lapply(taxa_syn3, as.data.table), use.names = T, fill = T, idcol = "Taxon") %>%
+#   as_tibble() %>%
+#   full_join(taxa_syn2)
 
 # no synonyms (manually double checked)
 # Potamogeton amplifolius
@@ -281,10 +281,10 @@ taxa_syn4 <- rbindlist(lapply(taxa_syn3, as.data.table), use.names = T, fill = T
 # Luziola subintegra
 
 # save
-write_csv(taxa_syn4, "intermediate-data/FWC_plant_survey_species_synonyms.csv")
+# write_csv(taxa_syn4, "intermediate-data/FWC_plant_survey_species_synonyms.csv")
 
 # import
-# taxa_syn4 <- read_csv("intermediate-data/FWC_plant_survey_species_synonyms.csv")
+taxa_syn4 <- read_csv("intermediate-data/FWC_plant_survey_species_synonyms.csv")
 
 # check for matches between synonyms and taxa
 taxa_syn4 %>%

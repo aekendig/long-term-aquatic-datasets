@@ -14,7 +14,7 @@ lake <- read_csv("original-data/water_atlas_Lake_121321.csv")
 manatee <- read_csv("original-data/water_atlas_Manatee_121321.csv")
 orange1 <- read_csv("original-data/water_atlas_Orange1_121321.csv")
 orange2 <- read_csv("original-data/water_atlas_Orange2_121321.csv")
-pinellas <- read_csv("original-data/water_atlas_Pinellas_121321.csv")
+pinellas <- read_csv("original-data/water_atlas_Pinellas_121321.csv") # manually cleaned to remove running rows, check in R
 polk <- read_csv("original-data/water_atlas_Polk_121321.csv")
 sarasota <- read_csv("original-data/water_atlas_Sarasota_121321.csv")
 seminole <- read_csv("original-data/water_atlas_Seminole_121321.csv")
@@ -30,7 +30,7 @@ gis2 <- gis %>%
   select(WBodyID, PermanentID)
 
 # CHNEP: check characters that should be numbers
-CHNEP %>%
+chnep %>%
   mutate(WBodyID2 = as.numeric(WBodyID)) %>%
   filter(is.na(WBodyID2)) %>%
   select(WBodyID, WBodyID2) %>%
@@ -38,7 +38,7 @@ CHNEP %>%
 # WBodyID column was overwritten with notes
 # the data seems generally messed up -- don't include
 
-CHNEP %>%
+chnep %>%
   mutate(Original_Result_Value2 = as.numeric(Original_Result_Value)) %>%
   filter(is.na(Original_Result_Value2)) %>%
   select(Original_Result_Value) %>%
@@ -46,13 +46,13 @@ CHNEP %>%
 # these are NA values anyway
 
 # CHNEP: turn characters to numeric
-CHNEP2 <- CHNEP %>%
+chnep2 <- chnep %>%
   mutate(WBodyID = as.numeric(WBodyID),
          Original_Result_Value = as.numeric(Original_Result_Value)) %>%
   filter(!is.na(WBodyID))
 
 # Manatee: check characters that should be numbers
-Manatee %>%
+manatee %>%
   mutate(Original_Result_Value2 = as.numeric(Original_Result_Value)) %>%
   filter(is.na(Original_Result_Value2)) %>%
   select(Original_Result_Value) %>%
@@ -60,7 +60,7 @@ Manatee %>%
 # these are NA values anyway
 
 # Manatee: turn characters to numeric
-Manatee2 <- Manatee %>%
+manatee2 <- manatee %>%
   mutate(Original_Result_Value = as.numeric(Original_Result_Value))
 
 # combine data

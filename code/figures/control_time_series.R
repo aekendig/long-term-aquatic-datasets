@@ -13,10 +13,18 @@ source("code/settings/figure_settings.R")
 ctrl <- read_csv("intermediate-data/FWC_control_new_formatted.csv")
 
 
+#### edit data ####
+
+# change management type labels
+ctrl2 <- ctrl %>%
+  mutate(MethodHerbicide = fct_recode(MethodHerbicide,
+                                      "mechanical/biocontrol/other" = "not herbicide"))
+
+
 #### visualize ####
 
 pdf("output/control_time_series.pdf", width = 2.5, height = 2.5)
-ctrl %>%
+ctrl2 %>%
   group_by(GSYear, MethodHerbicide) %>%
   summarize(Treatments = n()) %>%
   filter(MethodHerbicide != "unknown" & GSYear > 2010 & GSYear < 2020) %>%
@@ -25,7 +33,7 @@ ctrl %>%
   ungroup() %>%
   ggplot(aes(x = GSYear, y = Treatments, fill = MethodHerbicide)) +
   geom_area() +
-  geom_text(x  = 2015, aes(label = MethodHerbicide, y = MeanTreat-100), 
+  geom_text(x  = 2015, aes(label = MethodHerbicide, y = MeanTreat-150), 
             check_overlap = T,
             size = paper_text_size,
             color = "white") +

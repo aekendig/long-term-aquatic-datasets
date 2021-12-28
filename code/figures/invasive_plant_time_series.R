@@ -113,9 +113,10 @@ lakes_fig <- inv_fwc2 %>%
   geom_text(x = 2012, aes(label = CommonName, y = TextLakes), check_overlap = T,
             size = paper_text_size) +
   scale_color_viridis_d(end = 0.7, guide = "none") +
-  labs(x = "Year", y = "Waterbodies occupied") +
+  labs(x = "Year", y = "Waterbodies occupied (of 213)") +
   def_theme_paper +
-  theme(axis.text.x = element_text(size = 8, color="black", hjust = 0.75))
+  theme(axis.text.x = element_text(size = 8, color="black", hjust = 0.75),
+        axis.title.y = element_text(size = 10, color="black", hjust = -0.4))
 
 # area per lake
 prop_fig <- inv_fwc2 %>%
@@ -125,11 +126,11 @@ prop_fig <- inv_fwc2 %>%
   group_by(CommonName) %>%
   mutate(MeanProp = mean(PropPerLake)) %>%
   ungroup() %>%
-  ggplot(aes(x = GSYear, y = PropPerLake, color = CommonName)) +
-  geom_hline(aes(yintercept = MeanProp, color = CommonName), linetype = "dashed") +
+  ggplot(aes(x = GSYear, y = PropPerLake * 100, color = CommonName)) +
+  geom_hline(aes(yintercept = MeanProp * 100, color = CommonName), linetype = "dashed") +
   geom_line() +
   scale_color_viridis_d(end = 0.7, guide = "none") +
-  labs(x = "Year", y = "Avg. proportion occupied") +
+  labs(x = "Year", y = "Avg. percent area covered") +
   def_theme_paper +
   theme(legend.position = c(0.8, 0.8),
         legend.title = element_blank(),
