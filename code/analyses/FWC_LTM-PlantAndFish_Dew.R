@@ -39,7 +39,8 @@ pointfiles<-point_fi[[3]]  #this is the latest year
 
 ##############
 # we just start by putting all of one year's point intercept csv's in a single folder:
-pointfol<-"C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/Projects/BioBase/ShinyAppData/2020"
+# pointfol<-"C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/Projects/BioBase/ShinyAppData/2020"
+pointfol <- "original-data/fwri-point-intercept-data/2020"
 
 ## i used pattern= here to make sure I was getting just the point intercept csvs and not any other ones
 pointfiles<-list.files(pointfol, full.names=T, pattern="PlantData")
@@ -49,6 +50,8 @@ pointfiles<-list.files(pointfol, full.names=T, pattern="PlantData")
 ## this ldply function runs everything inside and then mashes all of the results into a single data.frame
   ## it is useful because it will bind data that has the same column name, but if there is a new one, it will 
     # create a new column (unlike rbind() )
+
+# AK: below doesn't work with the folders of data I have, can manually check for differences from my data processing
 
 point<-ldply(pointfiles ,function(x){
   
@@ -211,7 +214,8 @@ library(fst)
 library(data.table)
 library(plotly)
 
-fish<-read.fst("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/transectdata1_db.fst") #the "fish" data
+# fish<-read.fst("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/transectdata1_db.fst") #the "fish" data
+fish <- read.fst("original-data/dew-fish-analysis/transectdata1_db.fst")
 head(fish)
 
 fishh<-fish[fish$Species == "LMB",] # only keep rows that are Largemouth bass
@@ -234,7 +238,8 @@ fishh<-fishh[which(fishh$EffortSeconds>0),]
 
 #############
 ## merge in the "event" (transect) data to the electrofishing dataset
-event<-read.fst("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/transectdata2_db.fst")
+# event<-read.fst("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/transectdata2_db.fst")
+event <- read.fst("original-data/dew-fish-analysis/transectdata2_db.fst")
 head(event)
 
 ## take avg submersed plant cover by lake and year 
@@ -387,8 +392,8 @@ plot_ly() %>%
 #################################################################################################
 #################################################################################################
 #################################################################################################
-lw<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/PvsBass/LakewatchData.csv")
-
+# lw<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/PvsBass/LakewatchData.csv")
+lw <- read.csv("original-data/dew-fish-analysis/LakewatchData.csv")
 head(lw)
 
 
@@ -398,7 +403,8 @@ lwsummary<-data.table(lw)[, list(tenyearavg = mean(AnnualMeanTP[Year %in% 2010:2
 
 ## Let's merge the GNIS id and coordinates onto this dataset using the FWC_id as a common key
 ## this is a key from the data you gave me a while back.  You may have a more up to date list now
-gkey<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/PvsBass/GNIS_key.csv") 
+# gkey<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/PvsBass/GNIS_key.csv") 
+gkey <- read.csv("original-data/dew-fish-analysis/GNIS_key.csv")
 
 head(gkey)
 gkey$GnisID<-as.numeric(gkey$GnisID)
@@ -446,7 +452,8 @@ plot_ly() %>%
 ##################################################################################################
 
 
-pl<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/plant_type.csv")
+# pl<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/plant_type.csv")
+pl <- read.csv("original-data/dew-fish-analysis/plant_type.csv")
 head(pl)
 
 ## merge the dominant sav to the transect biomass sum and compare hydrilla to other
@@ -534,7 +541,8 @@ plot_ly() %>%
 ## we can summarize the same thing from the 'fish' and 'event' datasets, so if any important parameters are missing, we can do
 ## that instead
 
-cat<-read.csv("C:/users/alex.dew/downloads/lmb_sizecategories.csv")
+# cat<-read.csv("C:/users/alex.dew/downloads/lmb_sizecategories.csv")
+cat <- read.csv("original-data/dew-fish-analysis/lmb_sizecategories.csv")
 head(cat)
 unique(cat$EffortMinutes)  #  HERE THEY SUMMARIZED EFFORT IN MINUTES, NOT SECONDS - should be 15 for standard bass sampling
 cat$EffortMinutes<-as.numeric(cat$EffortMinutes)
@@ -727,7 +735,8 @@ plot_ly() %>%
 ## here is the dataset of all the data where 'ALL' fish were targeted (community sampling)
 
 
-allf<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/PvsBass/allfish.csv")
+#allf<-read.csv("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/PvsBass/allfish.csv")
+allf <- read.csv("original-data/dew-fish-analysis/allfish.csv")
 
 head(allf)
 

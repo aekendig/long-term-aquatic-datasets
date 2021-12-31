@@ -6,6 +6,15 @@
 # suffix _FWC or _LW to indicate column source
 # units after underscores
 
+#### to update ####
+
+# based on FWC_LTM-PlantAndFis_Dew.R
+
+#replace missing values with zeros.  These NAs actually represent 0's, so we will replace them as such.  If a site truly was missed, there 
+#are the No_Access columns in the data to say that the site was "Not Accessible" that year. Some of them say why they were not accessible like NA_ISLAND
+
+# check L56 (point<-ldply(pointfiles ,function(x))) for differences from my code (couldn't run with my data)
+
 
 #### set-up ####
 
