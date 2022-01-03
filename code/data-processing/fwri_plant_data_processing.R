@@ -561,6 +561,8 @@ rem_sp <- mis_codes %>%
 
 #### add missing info to dataset ####
 
+#### start here: fix codes in FWC_LTM-PlantAndFish_Dew ####
+
 surveys4 <- surveys3  %>%
   mutate(Code = case_when(str_detect(Code, "CATA") == T ~ "CATA", # duplicates in surveys, added numbers to name, includes an NA_
                           str_detect(Code, "DUPO") == T ~ "DUPO",  # duplicates in surveys, added numbers to name
