@@ -1,14 +1,12 @@
 #### set-up ####
 
-#### start here ####
-# QA codes for chnep. Not sure how to resolve these: different sources, multiple pasted together
-
 # clear environment
 rm(list = ls())
 
 # load packages
 library(tidyverse)
 library(lubridate)
+library(janitor)
 
 # import data
 gis <- read_csv("gis/intermediate-data/FAOL_Lakewatch_FWC.csv")
@@ -56,20 +54,30 @@ chnep %>%
 # these are NA values anyway
 
 # turn characters to numeric
+# remove duplicates
 chnep2 <- chnep %>%
   mutate(WBodyID = as.numeric(WBodyID),
          Original_Result_Value = as.numeric(Original_Result_Value)) %>%
-  filter(!is.na(WBodyID))
+  filter(!is.na(WBodyID)) %>%
+  unique()
 
 
 #### edit hillsborough ####
 
 hillsborough
 
+# remove duplicates
+hillsborough2 <- hillsborough %>%
+  unique()
+
 
 #### edit lake ####
 
 lake
+
+# remove duplicates
+lake2 <- lake %>%
+  unique()
 
 
 #### edit manatee ####
@@ -83,8 +91,10 @@ manatee %>%
 # these are NA values anyway
 
 # turn characters to numeric
+# remove duplicates
 manatee2 <- manatee %>%
-  mutate(Original_Result_Value = as.numeric(Original_Result_Value))
+  mutate(Original_Result_Value = as.numeric(Original_Result_Value)) %>%
+  unique()
 
 
 #### edit orange ####
@@ -92,20 +102,36 @@ manatee2 <- manatee %>%
 orange1
 orange2
 
+# combine and remove duplicates
+orange <- orange1 %>%
+  full_join(orange2) %>%
+  unique()
+
 
 #### edit pinellas ####
 
 pinellas
 
+# remove duplicates
+pinellas2 <- pinellas %>%
+  unique()
 
 #### edit polk ####
 
 polk
 
+# remove duplicates
+polk2 <- polk %>%
+  unique()
+
 
 #### edit sarasota ####
 
 sarasota
+
+# remove duplicates
+sarasota2 <- sarasota %>%
+  unique()
 
 
 #### edit seminole ####
@@ -121,26 +147,32 @@ seminole %>%
 # these are NA values anyway
 
 # turn characters to numeric
+# remove duplicates
 seminole2 <- seminole %>%
-  mutate(Original_Result_Value = as.numeric(Original_Result_Value))
+  mutate(Original_Result_Value = as.numeric(Original_Result_Value)) %>%
+  unique()
 
 
 #### edit tampa ####
 
 tampa
 
+# remove duplicates
+tampa2 <- tampa %>%
+  unique()
+
 
 #### combine ####
 
 # Tampa, Pinellas, Manatee, and Sarasota should be included in Hillsborough and CHNEP
 # https://wateratlas.usf.edu/about/
-counties <- tampa %>%
-  full_join(pinellas) %>%
+counties <- tampa2 %>%
+  full_join(pinellas2) %>%
   full_join(manatee2) %>%
-  full_join(sarasota)
+  full_join(sarasota2)
 
 regions <- chnep2 %>%
-  full_join(hillsborough)
+  full_join(hillsborough2)
 
 counties %>%
   anti_join(regions)
@@ -148,24 +180,23 @@ counties %>%
 
 # combine data
 atlas <- chnep2 %>%
-  full_join(hillsborough) %>%
-  full_join(lake) %>%
+  full_join(hillsborough2) %>%
+  full_join(lake2) %>%
   full_join(manatee2) %>%
-  full_join(orange1) %>%
-  full_join(orange2) %>%
-  full_join(pinellas) %>%
-  full_join(polk) %>%
-  full_join(sarasota) %>%
+  full_join(orange) %>%
+  full_join(pinellas2) %>%
+  full_join(polk2) %>%
+  full_join(sarasota2) %>%
   full_join(seminole2) %>%
-  full_join(tampa) %>%
-  inner_join(gis2)
+  full_join(tampa2) %>%
+  inner_join(gis2) # selects for lakes with Permanent IDs
 
 # lakes included
 length(unique(atlas$PermanentID))
 # 849
 
 
-#### edit combined data ####
+#### edit dates ####
 
 # edit date
 # remove missing data
@@ -176,19 +207,23 @@ atlas2 <- atlas %>%
                         year(DateTime)),
          Date = as_date(paste(Year, month(DateTime), day(DateTime), sep = "-"), format = "%Y-%m-%d")) %>%
   select(-DateTime) %>%
-  filter(!is.na(Result_Value))
+  filter(!is.na(Result_Value)) # only 4 rows
 
 # check years
 ggplot(atlas2, aes(x = Year)) +
   geom_histogram(binwidth = 1)
 
+
+#### edit QA codes ####
+
 # qa codes with/out datasource
 qa_ds <- qa %>%
-  filter(!is.na(DataSource))
+  filter(!is.na(DataSource)) %>%
+  select(-Notes)
 
 qa_nods <- qa %>%
   filter(is.na(DataSource)) %>%
-  select(-DataSource)
+  select(-c(DataSource, Notes))
 
 # QA codes
 atlas_qa <- atlas2 %>%
@@ -213,7 +248,8 @@ atlas_qa <- atlas2 %>%
          QACode2 = if_else(QACode2 == "J" & QACode3 %in% c("J1", "J2", "J3", "J4", "J5"),
                            "", QACode2),
          QACode3 = if_else(QACode3 == "J" & QACode4 %in% c("J1", "J2", "J3", "J4", "J5"),
-                           "", QACode3)) %>%
+                           "", QACode3),
+         QACode1 = if_else(QACode1 %in% c("j", "x", "u", "l"), toupper(QACode1), QACode1)) %>%
   left_join(qa_ds %>%
               rename(QACode1 = QACode,
                      DS1 = QAMeaning)) %>%
@@ -248,24 +284,157 @@ atlas_qa <- atlas2 %>%
   mutate(QAM = str_replace_all(QAM, "NA", ""),
          QAMeaning = if_else(!is.na(DSFull), DSFull, QAM))
 
-#### start here: resolve below, if possible ####
 # check missing values
 atlas_qa %>%
-  filter((is.na(QAM1) & QACode1 != "")) %>%
-  select(DataSource, QACode, QACode1, QAM1) %>%
+  filter((is.na(QAM4) & QACode4 != "")) %>%
+  select(DataSource, QACode, QACode4, QAM4) %>%
   data.frame()
-
-atlas_qa %>%
-  filter((is.na(QAM2) & QACode2 != "")) %>%
-  select(DataSource, QACode, QACode2, QAM2) %>%
-  data.frame()
+# none
 
 atlas_qa %>%
   filter((is.na(QAM3) & QACode3 != "")) %>%
   select(DataSource, QACode, QACode3, QAM3) %>%
   data.frame()
+# space
 
 atlas_qa %>%
-  filter((is.na(QAM4) & QACode4 != "")) %>%
-  select(DataSource, QACode, QACode4, QAM4) %>%
+  filter((is.na(QAM2) & QACode2 != "")) %>%
+  select(DataSource, QACode, QACode2, QAM2) %>%
   data.frame()
+# commas and spaces
+# 0.5 is assigned "unknown code" because of the 5
+
+atlas_qa %>%
+  filter((is.na(QAM1) & QACode1 != "")) %>%
+  select(DataSource, QACode, QACode1, QAM1) %>%
+  data.frame()
+
+# simplify
+atlas_qa2 <- atlas_qa %>%
+  select(DataSource, QACode, QAMeaning) %>%
+  arrange(QAMeaning, QACode, DataSource)
+
+# save to manuall edit in Excel
+write_csv(atlas_qa2, "intermediate-data/water_atlas_qa_codes_combined.csv")
+# remove all error codes except:
+# actual value is known to be greater/less than
+# analysis from unpreservered/improperly preserved sample
+# composite sample from multiple stations/mean of 2 or more determinations
+# deviation from historical range
+# detected value/good record/good quality
+# diluted
+# field measurement
+# analyzed, but not detected
+# held beyond accepted time
+# secchi disk hits bottom
+# significant rain in past 48 hours
+# note that some combinations of these or these in combination with another warning were removed
+
+# import with remove column
+atlas_qa3 <- read_csv("intermediate-data/water_atlas_qa_codes_combined_manual.csv")
+
+# add QA codes
+atlas3 <- atlas2 %>%
+  left_join(atlas_qa3) %>%
+  mutate(Remove = replace_na(Remove, 0)) %>%
+  filter(Remove == 0) %>%
+  select(-Remove)
+
+
+#### summarize across stations ####
+
+# check for consistency in units
+atlas3 %>%
+  select(Parameter, Result_Unit) %>%
+  unique() %>%
+  arrange(Parameter)
+# capitalization issues
+# some are missing, but the units are in the name
+
+# standardize parameters
+atlas4 <- atlas3 %>%
+  mutate(Parameter = tolower(Parameter))
+
+# look at activity depth
+atlas4 %>%
+  select(Parameter, DepthUnits) %>%
+  unique() %>%
+  arrange(Parameter)
+# all are in meters
+
+atlas4 %>%
+  ggplot(aes(x = ActivityDepth)) +
+  geom_histogram() +
+  facet_wrap(~ Parameter, scales = "free")
+# no unusual values
+
+# data sources per lake
+atlas4 %>%
+  group_by(WBodyID) %>%
+  summarize(sources = n_distinct(DataSource)) %>%
+  filter(sources > 1)
+# several
+
+# check for duplicates
+atlas_dup <- get_dupes(atlas4, PermanentID, WBodyID, WaterBodyName, 
+                       StationID, StationName, Actual_StationID,
+                       Date, DataSource, Parameter, Result_Value)
+# vary in activity depth, sample fraction, result_comment, but all have same value
+
+# check for multiple result values for one sample
+atlas_dup2 <- get_dupes(atlas4, PermanentID, WBodyID, WaterBodyName, 
+                        StationID, StationName, Actual_StationID, 
+                        Date, DataSource, Parameter) %>%
+  group_by(PermanentID, WBodyID, WaterBodyName, 
+           StationID, StationName, Actual_StationID, 
+           Date, DataSource, Parameter) %>%
+  mutate(Result_vals = n_distinct(Result_Value), # multiple result values?
+         KeepCodes = case_when(sum(is.na(QACode)) > 0 ~ 1, # Positive codes
+                               sum(QACode %in% c("D", "H", "A", "S", "E", "2", "x")) > 0 ~ 1,
+                               TRUE ~ 0),
+         QACodes = n_distinct(QACode) - as.numeric(sum(is.na(QACode)) > 0)) %>% # number of non-NA QA codes
+  ungroup() %>%
+  filter(Result_vals > 1) %>%
+  mutate(KeepCode = case_when(is.na(QACode) ~ 1, # Positive codes
+                              QACode %in% c("D", "H", "A", "S", "E", "2", "x") ~ 1,
+                              TRUE ~ 0))
+
+# QA codes - used to create list of acceptable codes
+# atlas_dup_qa <- atlas_dup2 %>%
+#   select(QACode, QAMeaning) %>%
+#   unique() %>% data.frame()
+
+# multiple QA codes?
+filter(atlas_dup2, QACodes > 1) %>% data.frame()
+# resolve manually
+
+#### start here ####
+# resolving multiple result values
+
+atlas_dup3 <- atlas_dup2 %>%
+  filter(QACodes > 1) %>%
+  mutate(Remove = case_when(QACode == "U" ~ 1,
+                            QACode == "<" ~ 1,
+                            TRUE ~ 0)) %>%
+  full_join(atlas_dup2 %>%
+              filter(QACodes <= 1) %>%
+              mutate(Remove = case_when(QACodes == 1 & KeepCodes > 0 & KeepCode == 0 ~ 1)))
+
+# check result comments
+unique(atlas4$Result_Comment)
+# most are uninterpretable
+# others should have been accounted for with QA
+
+# select relevant columns
+# remove duplicates
+atlas5 <- atlas4 %>%
+  select(PermanentID, WBodyID, WaterBodyName, StationID, StationName, Actual_StationID, Year, Date, DataSource, Parameter, Result_Value) %>%
+  unique() 
+
+# multiple result values
+
+
+# make wide
+%>%
+  pivot_wider(names_from = Parameter, 
+              values_from = Result_Value)
