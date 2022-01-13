@@ -6,15 +6,6 @@
 # suffix _FWC or _LW to indicate column source
 # units after underscores
 
-#### to update ####
-
-# based on FWC_LTM-PlantAndFis_Dew.R
-
-#replace missing values with zeros.  These NAs actually represent 0's, so we will replace them as such.  If a site truly was missed, there 
-#are the No_Access columns in the data to say that the site was "Not Accessible" that year. Some of them say why they were not accessible like NA_ISLAND
-
-# check L56 (point<-ldply(pointfiles ,function(x))) for differences from my code (couldn't run with my data)
-
 
 #### set-up ####
 
@@ -135,6 +126,7 @@ for(i in 1:fYears){
 #### collapse lists ####
 
 # function to rename survey columns and make long
+# identify sites with no data
 survey_revise_fun <- function(df){
   
   # put lat/long values in X/Y
@@ -166,7 +158,7 @@ survey_revise_fun <- function(df){
     select(AOI, Year, Lake, Date, OtherDate, Crew, Site, Y, X, Depth_ft, NoAccess, Samples, Sites, everything()) %>%
     mutate(Plants = select(., 14:ncol(.)) %>%
              rowSums(na.rm = T),
-           NoData = as.numeric(Plants == 0)) %>%
+           NoData = as.numeric(Plants == 0)) %>% # create a plant code for when there are no plants to keep site in dataset
     select(-Plants) %>%
     pivot_longer(cols = -c(AOI, Year, Lake, Date, OtherDate, Crew, Site, Y, X, Depth_ft, NoAccess, Samples, Sites),
                  names_to = "Code",
@@ -285,7 +277,7 @@ code_chg_fun <- function(dat) {
                             Code == "GIBR" ~ "GIBU",
                             Code == "GSAL" ~ "GISA",
                             Code == "HBLA" ~ "HUBL",
-                            Code == "N/A" ~ "NOAC",
+                            Code == "N/A" ~ "NOAC", # common name = "No access", only in plant_list
                             Code == "REFU" ~ "RUFU",
                             Code == "SSAG" ~ "SAGI",
                             Code == "UMSE" ~ "UMGR",
@@ -561,15 +553,13 @@ rem_sp <- mis_codes %>%
 
 #### add missing info to dataset ####
 
-#### start here: fix codes in FWC_LTM-PlantAndFish_Dew ####
-
 surveys4 <- surveys3  %>%
   mutate(Code = case_when(str_detect(Code, "CATA") == T ~ "CATA", # duplicates in surveys, added numbers to name, includes an NA_
                           str_detect(Code, "DUPO") == T ~ "DUPO",  # duplicates in surveys, added numbers to name
                           str_detect(Code, "UMGR") == T ~ "UMGR",  # duplicates in surveys, added numbers to name
                           str_detect(Code, "WAPR") == T ~ "WAPR",  # duplicates in surveys, added numbers to name
                           str_detect(Code, "TUSS") == T ~ "TUSS", # tussock
-                          Code == "Green Net" ~ "NOAC", # non-plant
+                          Code == "Green Net" ~ "GRNE", # non-plant, plants recorded at these sites
                           Code == "Caesars Weed" ~ "CAWE", # added other info through mis_com
                           Code == "Triadica sebifera" ~ "CHTA",
                           Code == "CHAE_Chaetamorpha" ~ "CHAE",
@@ -612,6 +602,7 @@ surveys4 <- surveys3  %>%
                                 Code == "EACO" ~ "eastern cottonwood",
                                 Code == "ENTE" ~ "Enteromorpha",
                                 Code == "FERN" ~ "fern",
+                                Code == "GRNE" ~ "green net",
                                 Code == "HAFL" ~ "haspan flatsedge",
                                 Code == "HOPO" ~ "horned pondweed",
                                 Code == "HYPE" ~ "St. John's wort",
@@ -686,7 +677,7 @@ surveys4 %>%
   filter(dup_code == T | dup_sci == T)
 
 
-#### fix duplicate codes ####
+#### fix duplicates ####
 
 # duplicates within surveys
 site_date_dups <- surveys4 %>%
@@ -1011,6 +1002,68 @@ surveys11 %>%
 # doesn't seem like there are distinct surveys within the same year except Kings Bay
 
 
+#### no access and no plant sites ####
+
+# make sure no plants are in the no access sites
+surveys11 %>%
+  filter(NoAccess == 1) %>%
+  select(Code, CommonName) %>%
+  unique() %>%
+  data.frame()
+# 24 total, 22 plants
+
+# certain lakes and years?
+surveys11 %>%
+  filter(NoAccess == 1 & Code != "NoData") %>% 
+  select(AOI, Year) %>% 
+  unique() %>% 
+  data.frame()
+# 13 different
+
+# do codes have no access indicated?
+surveys11 %>%
+  filter(Code == "NOAC") %>%
+  select(NoAccess) %>%
+  unique()
+# no
+
+# do codes have other codes?
+surveys11 %>%
+  filter(Code == "NOAC") %>%
+  select(AOI, Year, Lake, Date, Site) %>%
+  left_join(surveys11) %>%
+  select(Code) %>%
+  unique()
+# yes, 13 taxa
+
+# indicate no access for NOAC code
+surveys_noac <- surveys11 %>%
+  filter(NoAccess == 1 | Code == "NOAC") %>%
+  select(AOI, Lake, Year, Date, Site) %>%
+  unique() %>%
+  mutate(NoAccess = 1)
+
+# remove sites with no access
+surveys12 <- surveys11 %>%
+  select(-NoAccess) %>%
+  left_join(surveys_noac) %>%
+  mutate(NoAccess = replace_na(NoAccess, 0)) %>%
+  filter(NoAccess == 0)
+
+# make sure no plant sites have no other plants
+surveys12 %>%
+  filter(Code == "NoData") %>%
+  select(AOI, Lake, Year, Date, Site) %>%
+  left_join(surveys12) %>%
+  select(Code) %>%
+  unique()
+# yes
+
+
+#### output ####
+write_csv(surveys12, "intermediate-data/FWRI_plant_formatted.csv")
+
+
 #### site IDs ####
 
 # the goal of this was to format data so that I could look at changes in plant abundance over time at the same site within lakes
@@ -1115,8 +1168,3 @@ surveys11 %>%
 #   ungroup() %>%
 #   filter(Sites < SiteNews) %>%
 #   data.frame()
-
-
-#### output ####
-write_csv(surveys11, "intermediate-data/FWRI_plant_formatted.csv")
-

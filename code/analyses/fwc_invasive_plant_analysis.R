@@ -25,7 +25,8 @@ inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
                                        LogitPrevPropCovered = col_double(),
                                        LogRatioCovered = col_double()))
 inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
-qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
+lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
+wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
 
 #### edit data ####
@@ -36,10 +37,26 @@ inv_dat <- inv_plant %>%
   filter(!is.na(PrevPropCovered)) %>% # need initial pop size
   mutate(PrevPercCovered = PrevPropCovered * 100)
 
+# water quality
+qual <- lw_qual %>%
+  filter(!is.na(Secchi)) %>%
+  select(PermanentID, GSYear, Secchi) %>%
+  full_join(wa_qual %>%
+              filter(QualityMetric == "Secchi_ft") %>%
+              select(PermanentID, GSYear, QualityValue) %>%
+              rename("Secchi" = "QualityValue"))
+
 # add quality data
+inv_lw_qual_dat <- inv_dat %>%
+  inner_join(lw_qual %>%
+               filter(!is.na(Secchi)) %>%
+               select(PermanentID, GSYear, Secchi))
+
 inv_qual_dat <- inv_dat %>%
-  inner_join(qual) %>%
-  filter(!is.na(Secchi))
+  inner_join(qual)
+
+nrow(inv_qual_dat) - nrow(inv_lw_qual_dat)
+# 5946 year/lake combos added with water atlas
 
 filter(inv_dat, is.na(SurveyorExperience))
 # only three entries are missing surveyor experience

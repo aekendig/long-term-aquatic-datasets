@@ -14,6 +14,8 @@ library(DHARMa)
 library(lubridate)
 library(broom.mixed) 
 library(dotwhisker)
+library(fixest)
+library(modelsummary)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -22,7 +24,6 @@ source("code/settings/figure_settings.R")
 fwri <- read_csv("intermediate-data/FWRI_invasive_plant_formatted.csv")
 fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
                 col_types = list(PrevPropCovered = col_double(),
-                                 PrevPropCoveredAdj = col_double(),
                                  PrevAreaCoveredRaw_ha = col_double(),
                                  SurveyDays = col_double(),
                                  RatioCovered = col_double(),
@@ -31,16 +32,16 @@ fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
                                  LogRatioCovered = col_double(),
                                  LogitPrevPropCovered = col_double(),
                                  LogRatioCovered = col_double()))
-qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
+lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
+wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
 
 #### combine data ####
 
-# summarize qual (historical data)
-qual_sum <- qual %>%
-  group_by(PermanentID) %>%
-  summarize(Secchi_hist = mean(Secchi, na.rm = T)) %>%
-  ungroup()
+# water quality
+qual <- lw_qual %>%
+  full_join(wa_qual) %>%
+  filter(QualityMetric == "Secchi_ft")
 
 # combine fwc and fwri
 comb <- fwc %>%
@@ -56,8 +57,7 @@ comb <- fwc %>%
                                      PropCovered1, PropCovered2, PropCovered3), 
                            ~ paste0("FWRI_", .x))) %>%
   left_join(qual %>%
-              select(PermanentID, GSYear, Secchi, n_qual)) %>% # current year turbidity
-  left_join(qual_sum) %>% # historical turbidity
+              select(PermanentID, GSYear, QualityValue, MonthsSampled)) %>% # current year turbidity
   mutate(DateDiff = as.numeric(difftime(FWC_SurveyDate,
                                         FWRI_SurveyDate, 
                                         units = "days"))) %>%
@@ -89,25 +89,17 @@ comb %>%
 
 # quality samples
 comb %>%
-  select(PermanentID, GSYear, n_qual) %>%
+  select(PermanentID, GSYear, MonthsSampled) %>%
   unique() %>%
-  mutate(n_qual = replace_na(n_qual, 0)) %>%
-  ggplot(aes(x = n_qual)) +
+  mutate(MonthsSampled = replace_na(MonthsSampled, 0)) %>%
+  ggplot(aes(x = MonthsSampled)) +
   geom_histogram(binwidth = 1)
-# most do not have water quality data
-# fewer may have Secchi data
 
 # missing current Secchi data
 comb %>%
-  filter(is.na(Secchi)) %>%
+  filter(is.na(QualityValue)) %>%
   select(PermanentID, FWC_AreaName, FWRI_AreaName) %>%
-  unique() # 69 lakes
-
-# missing historical Secchi data
-comb %>%
-  filter(is.na(Secchi_hist)) %>%
-  select(PermanentID, FWC_AreaName, FWRI_AreaName) %>%
-  unique() # 7 lakes
+  unique() # 18 lakes
 
 
 #### correlations ####
@@ -151,7 +143,7 @@ ggplot(comb, aes(x = CoverDiff)) +
 dev.off()
 
 
-#### cover difference regressions ####
+#### process data for regressions ####
 
 # function to process data
 mod_dat_filt <- function(Species, PropType){
@@ -165,11 +157,8 @@ mod_dat_filt <- function(Species, PropType){
            SurveyorExperienceB = fct_relevel(FWC_SurveyorExperienceB, "medium", "low"))
   
   dat_out_qual <- dat_out %>%
-    # filter(!is.na(Secchi)) %>% # limits dataset to use yearly Secchi
-    filter(!is.na(Secchi_hist)) %>%
-    # mutate(Turbidity_s = (max(Secchi) - Secchi) / sd(Secchi))
-    mutate(Turbidity_s = (max(Secchi_hist) - Secchi_hist) / sd(Secchi_hist))
-  
+    filter(!is.na(QualityValue)) %>% # limits dataset to use yearly Secchi
+    mutate(Turbidity_s = (max(QualityValue) - QualityValue) / sd(QualityValue))
   
   return(list(dat_out, dat_out_qual))
   
@@ -241,114 +230,103 @@ cor.test(~ FWC_SurveyMonth + SurveyorExperience_s, data = hydr1_qual) # -0.2
 cor.test(~ FWC_SurveyMonth + DateDiff_s, data = hydr1_qual) # -0.7
 cor.test(~ LakeArea_s + Turbidity_s, data = hydr1_qual) # 0.3
 cor.test(~ Turbidity_s + SurveyorExperience_s, data = hydr1_qual) # not sig
-cor.test(~ Turbidity_s + DateDiff_s, data = hydr1_qual) # not sig
+cor.test(~ Turbidity_s + DateDiff_s, data = hydr1_qual) # -0.1
+
+
+#### cover difference glmmTMB regressions ####
 
 # models
-# opted for glmmTMB because we can't include time-invariant variables like LakeArea_s and Turbidity_s
+# opted for glmmTMB because we can't include time-invariant variables like LakeArea_s
 # with a fixed effect model (collinear with lake fixed effect)
 # glmmTMB also has flexible families if needed
 
 # hyrilla models full dataset
-hydr_mod1 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr1)
-summary(hydr_mod1)
+hydr_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr1)
+summary(hydr_mod1) # surveyor
 plot(simulateResiduals(hydr_mod1))
 
-hydr_mod2 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2)
-summary(hydr_mod2)
+hydr_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2)
+summary(hydr_mod2) # surveyor
 plot(simulateResiduals(hydr_mod2))
 
-hydr_mod3 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr3)
-summary(hydr_mod3)
+hydr_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr3)
+summary(hydr_mod3) # surveyor
 plot(simulateResiduals(hydr_mod3))
 
 # hydrilla models water Turbidity dataset
-hydr_qual_mod1 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr1_qual)
-summary(hydr_qual_mod1)
+hydr_qual_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr1_qual)
+summary(hydr_qual_mod1) # surveyor
 plot(simulateResiduals(hydr_qual_mod1))
 
-hydr_qual_mod2 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr2_qual)
-summary(hydr_qual_mod2)
+hydr_qual_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr2_qual)
+summary(hydr_qual_mod2) # surveyor
 plot(simulateResiduals(hydr_qual_mod2))
 
-hydr_qual_mod3 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr3_qual)
-summary(hydr_qual_mod3)
+hydr_qual_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr3_qual)
+summary(hydr_qual_mod3) # surveyor
 plot(simulateResiduals(hydr_qual_mod3))
+# turbidity never sig
 
 # water hyacinth models full dataset
-wahy_mod1 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy1)
-summary(wahy_mod1)
+wahy_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy1)
+summary(wahy_mod1) # surveyor
 plot(simulateResiduals(wahy_mod1))
 
-wahy_mod2 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy2)
+wahy_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy2)
 summary(wahy_mod2)
 plot(simulateResiduals(wahy_mod2))
 
-wahy_mod3 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy3)
-summary(wahy_mod3)
+wahy_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy3)
+summary(wahy_mod3) # date diff
 plot(simulateResiduals(wahy_mod3))
 
 # water hyacinth models water Turbidity dataset
-wahy_qual_mod1 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy1_qual)
-summary(wahy_qual_mod1)
+wahy_qual_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy1_qual)
+summary(wahy_qual_mod1) # surveyor
 plot(simulateResiduals(wahy_qual_mod1))
 
-wahy_qual_mod2 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy2_qual)
+wahy_qual_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy2_qual)
 summary(wahy_qual_mod2)
 plot(simulateResiduals(wahy_qual_mod2))
 
-wahy_qual_mod3 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy3_qual)
-summary(wahy_qual_mod3)
+wahy_qual_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy3_qual)
+summary(wahy_qual_mod3) # date diff
 plot(simulateResiduals(wahy_qual_mod3))
 
 # water lettuce models full dataset
-wale_mod1 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale1)
-summary(wale_mod1)
+wale_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale1)
+summary(wale_mod1) # date diff
 plot(simulateResiduals(wale_mod1))
 
-wale_mod2 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale2)
+wale_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale2)
 summary(wale_mod2)
 plot(simulateResiduals(wale_mod2))
 
-wale_mod3 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale3)
+wale_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale3)
 summary(wale_mod3)
 plot(simulateResiduals(wale_mod3))
 
 # water lettuce models water Turbidity dataset
-wale_qual_mod1 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale1_qual)
-summary(wale_qual_mod1)
+wale_qual_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale1_qual)
+summary(wale_qual_mod1) # date diff
 plot(simulateResiduals(wale_qual_mod1))
 
-wale_qual_mod2 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale2_qual)
+wale_qual_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale2_qual)
 summary(wale_qual_mod2)
 plot(simulateResiduals(wale_qual_mod2))
 
-wale_qual_mod3 <- glmmTMB(CoverDiff ~ FWC_SurveyMonth + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale3_qual)
+wale_qual_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale3_qual)
 summary(wale_qual_mod3)
 plot(simulateResiduals(wale_qual_mod3))
 
 
-#### values for text ####
-
-# survyeor experience
-mean(hydr2_qual$FWC_SurveyorExperience)
-sd(hydr2_qual$FWC_SurveyorExperience)
-sd(hydr2_qual$FWC_Area_ha)
-sd(wahy2_qual$FWC_Area_ha)
-sd(hydr2_qual$Secchi_hist)
-
-# model summaries
-summary(hydr_qual_mod2)
-summary(wahy_qual_mod2)
-summary(wale_qual_mod2)
-
-
-#### regression coefficient plot ####
+#### glmmTMB regression coefficient plot ####
 
 # terms
-mod_terms <- tibble(term = c("(Intercept)", "FWC_SurveyMonth", "LakeArea_s",
+mod_terms <- tibble(term = c("(Intercept)", "DateDiff_s", "LakeArea_s",
                              "SurveyorExperience_s", "FWRI_Nguad_Present",
                              "Turbidity_s"),
-                    variable = c("intercept", "month", "area", "surveyor",
+                    variable = c("intercept", "days after", "area", "surveyor",
                                  "so. naiad", "turbidity"))
 # extract model summary
 hydr_qual_tid2 <- tidy(hydr_qual_mod2) %>%
@@ -366,9 +344,9 @@ mod_qual_tid <- hydr_qual_tid2 %>%
   left_join(mod_terms)%>%
   filter(effect == "fixed") %>%
   mutate(term = fct_relevel(variable, "intercept", "area",
-                            "month", "surveyor",
+                            "days after", "surveyor",
                             "turbidity", "so. naiad"),
-         ci = std.error * 1.96)
+         conf.int = std.error * 1.96)
 
 # figure
 pdf("output/fwri_fwc_comparison_coefficients.pdf", width = 4, height = 5)
@@ -378,12 +356,148 @@ dwplot(mod_qual_tid,
          colour = "grey60",
          linetype = 2)) +
   scale_color_brewer(type = "qual", palette = "Dark2") +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        legend.title = element_blank(),
-        legend.position = c(0.77, 0.8))
+  def_theme_paper +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.77, 0.8)) +
+  xlab(expression(paste("Est. (Annual - FWRI) "%+-%" 95% CI", sep = "")))
 dev.off()
+
+
+#### cover difference feols regressions ####
+
+# PermanentID is a dummy variable for: lake size, bathymetry, terrestrial plant encroachment, biologist
+# GSYear is a dummy variable for: funding cycle, management priorities, weather
+# decided not to go with this method: we want to explain some of these variables and have the information
+
+# hyrilla models full dataset
+hydr_fe_mod1 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + FWRI_Nguad_Present | PermanentID + GSYear, data = hydr1)
+summary(hydr_fe_mod1)
+
+hydr_fe_mod2 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + FWRI_Nguad_Present | PermanentID + GSYear, data = hydr2)
+summary(hydr_fe_mod2)
+
+hydr_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + FWRI_Nguad_Present | PermanentID + GSYear, data = hydr3)
+summary(hydr_fe_mod3)
+
+# hydrilla models water Turbidity dataset
+hydr_qual_fe_mod1 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s | PermanentID + GSYear, data = hydr1_qual)
+summary(hydr_qual_fe_mod1)
+
+hydr_qual_fe_mod2 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s | PermanentID + GSYear, data = hydr2_qual)
+summary(hydr_qual_fe_mod2)
+
+hydr_qual_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s | PermanentID + GSYear, data = hydr3_qual)
+summary(hydr_qual_fe_mod3)
+
+# water hyacinth models full dataset
+wahy_fe_mod1 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s | PermanentID + GSYear , data = wahy1)
+summary(wahy_fe_mod1)
+
+wahy_fe_mod2 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s | PermanentID + GSYear , data = wahy2)
+summary(wahy_fe_mod2)
+
+wahy_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s | PermanentID + GSYear , data = wahy3)
+summary(wahy_fe_mod3)
+
+# water hyacinth models water Turbidity dataset
+wahy_qual_fe_mod1 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = wahy1_qual)
+summary(wahy_qual_fe_mod1)
+
+wahy_qual_fe_mod2 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = wahy2_qual)
+summary(wahy_qual_fe_mod2)
+
+wahy_qual_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = wahy3_qual)
+summary(wahy_qual_fe_mod3)
+# date diff sig (negative)
+
+# water lettuce models full dataset
+wale_fe_mod1 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s | PermanentID + GSYear , data = wale1)
+summary(wale_fe_mod1)
+# date diff sig (positive)
+
+wale_fe_mod2 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s | PermanentID + GSYear , data = wale2)
+summary(wale_fe_mod2)
+
+wale_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s | PermanentID + GSYear , data = wale3)
+summary(wale_fe_mod3)
+
+# water lettuce models water Turbidity dataset
+wale_qual_fe_mod1 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = wale1_qual)
+summary(wale_qual_fe_mod1)
+# date diff sig (positive)
+
+wale_qual_fe_mod2 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = wale2_qual)
+summary(wale_qual_fe_mod2)
+
+wale_qual_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = wale3_qual)
+summary(wale_qual_fe_mod3)
+
+
+#### feols regression coefficient plot ####
+
+# rename coefficients
+coef_qual_names <- c("(Intercept)" = "Intercept",
+                     "Turbidity_s" = "Turbidity", 
+                     "SurveyorExperience_s" = "Surveyor experience",
+                     "DateDiff_s" = "Days after")
+
+# panels
+hydr_qual_fig <- modelplot(hydr_qual_fe_mod2,
+                           coef_map = coef_qual_names,
+                           background = list(geom_vline(xintercept = 0, color = "black",
+                                                        size = 0.5, linetype = "dashed"))) +
+  labs(x = "",
+       title = "(A) hydrilla") +
+  def_theme_paper +
+  theme(legend.position = c(0.3, 0.25))
+
+wahy_qual_fig <- modelplot(wahy_qual_fe_mod2,
+                           coef_map = coef_qual_names,
+                           background = list(geom_vline(xintercept = 0, color = "black",
+                                                        size = 0.5, linetype = "dashed"))) +
+  labs(x = expression(paste("Est. (FWC - FWRI) "%+-%" 95% CI", sep = "")),
+       title = "(B) water hyacinth") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+wale_qual_fig <- modelplot(wale_qual_fe_mod2,
+                           coef_map = coef_qual_names,
+                           background = list(geom_vline(xintercept = 0, color = "black",
+                                                        size = 0.5, linetype = "dashed"))) +
+  labs(x = "",
+       title = "(C) water lettuce") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig,
+          nrow = 1,
+          rel_widths = c(1, 0.6, 0.6))
+
+
+
+#### feols regression fixed effects plot ####
+
+fe_hydr_qual_mod <- fixef(hydr_qual_fe_mod2)
+summary(fe_hydr_qual_mod)
+plot(fe_hydr_qual_mod)
+
+
+#### values for text ####
+
+# survyeor experience
+sd(hydr2_qual$DateDiff)
+mean(hydr2_qual$FWC_SurveyorExperience)
+sd(hydr2_qual$FWC_SurveyorExperience)
+sd(hydr2_qual$FWC_Area_ha)
+sd(wahy2_qual$FWC_Area_ha)
+sd(hydr2_qual$QualityValue)
+
+# model summaries
+summary(hydr_qual_mod2)
+summary(wahy_qual_mod2)
+summary(wale_qual_mod2)
 
 
 #### correlation with lake area figure ####
@@ -457,3 +571,41 @@ dev.off()
 filter(comb, CommonName == "Water hyacinth" &
          (FWRI_PropCovered1 > 0.15 | FWC_PropCovered > 0.15))
 
+
+#### surveyor experience figures ###
+
+pdf("output/fwri_fwc_comparison_surveyor_experience.pdf", width = 4.4, height = 4)
+ggplot(hydr2_qual, 
+       aes(x = FWC_SurveyorExperience, y = CoverDiff, 
+           color = PermanentID, shape = as.factor(GSYear))) +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  scale_color_manual(values = rainbow(n_distinct(hydr2_qual$PermanentID)), guide = "none") +
+  scale_shape(name = "Growing\nseason") +
+  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
+  def_theme_paper +
+  theme(legend.box.margin = margin(-10, -5, -10, -10))
+dev.off()
+
+hydr2_qual %>%
+  filter(CoverDiff > 0.3) %>%
+  select(FWC_AreaName, FWRI_AreaName, PermanentID, 
+         GSYear, FWRI_PropCovered, FWC_PropCovered, FWC_SurveyorExperience)
+# two lakes all years
+# the lake shapes are very consistent between GIS (used to get FWC area) and FWRI sampling maps
+
+filter(fwri, str_detect(AreaName, "Toho")) %>% 
+  select(AreaName, PermanentID) %>% unique()
+# two Toho's are separate, which is what we want
+
+ggplot(hydr1_qual, 
+       aes(x = FWC_SurveyorExperience, y = CoverDiff, 
+           color = PermanentID, shape = as.factor(GSYear))) +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  scale_color_manual(values = rainbow(n_distinct(hydr2_qual$PermanentID)), guide = "none") +
+  scale_shape(name = "Growing\nseason") +
+  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
+  def_theme_paper +
+  theme(legend.position = c(0.1, 0.85))
+# similar pattern when lower hydrilla threshold is used

@@ -205,13 +205,19 @@ atlas2 <- atlas %>%
          Year = if_else(DateTime > as_date("2021-12-13"), # revise future dates
                         year(DateTime) - 100,
                         year(DateTime)),
-         Date = as_date(paste(Year, month(DateTime), day(DateTime), sep = "-"), format = "%Y-%m-%d")) %>%
+         Date = as_date(paste(Year, month(DateTime), day(DateTime), sep = "-"), format = "%Y-%m-%d"),
+         Month = month(Date)) %>%
   select(-DateTime) %>%
   filter(!is.na(Result_Value)) # only 4 rows
 
 # check years
 ggplot(atlas2, aes(x = Year)) +
   geom_histogram(binwidth = 1)
+
+# check months
+ggplot(atlas2, aes(x = Month)) +
+  geom_histogram(binwidth = 1)
+# slightly more in spring/summer
 
 
 #### edit QA codes ####
@@ -226,12 +232,13 @@ qa_nods <- qa %>%
   select(-c(DataSource, Notes))
 
 # QA codes
+# J# codes are multiple charactes long, others are one
 atlas_qa <- atlas2 %>%
   filter(!is.na(QACode) & QACode != "NULL") %>%
   select(DataSource, QACode) %>%
   unique() %>%
   left_join(qa_ds) %>% # match codes with defined data sources
-  rename(DSFull = QAMeaning) %>%
+  rename(DSFull = QAMeaning) %>% # full QA code text
   mutate(Chars = nchar(QACode), # count characters
          QACode1 = str_sub(QACode, 1, 1),
          QACode2 = str_sub(QACode, 2, 2),
@@ -250,7 +257,7 @@ atlas_qa <- atlas2 %>%
          QACode3 = if_else(QACode3 == "J" & QACode4 %in% c("J1", "J2", "J3", "J4", "J5"),
                            "", QACode3),
          QACode1 = if_else(QACode1 %in% c("j", "x", "u", "l"), toupper(QACode1), QACode1)) %>%
-  left_join(qa_ds %>%
+  left_join(qa_ds %>% # match concatenated codes
               rename(QACode1 = QACode,
                      DS1 = QAMeaning)) %>%
   left_join(qa_ds %>%
@@ -274,15 +281,18 @@ atlas_qa <- atlas2 %>%
   left_join(qa_nods %>%
               rename(QACode4 = QACode,
                      NoDS4 = QAMeaning)) %>%
-  mutate(QAM1 = if_else(!is.na(DS1), DS1, NoDS1),
+  mutate(QAM1 = if_else(!is.na(DS1), DS1, NoDS1), # use no data source code if data source code is missing
          QAM2 = if_else(!is.na(DS2), DS2, NoDS2),
          QAM3 = if_else(!is.na(DS3), DS3, NoDS3),
          QAM4 = if_else(!is.na(DS4), DS4, NoDS4)) %>%
   rowwise() %>%
-  mutate(QAM = paste(QAM1, QAM2, QAM3, QAM4)) %>%
+  mutate(QAM = paste(QAM1, QAM2, QAM3, QAM4)) %>% # paste meanings
   ungroup() %>%
   mutate(QAM = str_replace_all(QAM, "NA", ""),
-         QAMeaning = if_else(!is.na(DSFull), DSFull, QAM))
+         QAMeaning = if_else(!is.na(DSFull), DSFull, QAM)) # use full or concatenated meaning
+
+# max characters
+max(atlas_qa$Chars) # used to write code above
 
 # check missing values
 atlas_qa %>%
@@ -316,7 +326,7 @@ atlas_qa2 <- atlas_qa %>%
 
 # save to manuall edit in Excel
 write_csv(atlas_qa2, "intermediate-data/water_atlas_qa_codes_combined.csv")
-# remove all error codes except:
+# remove all error codes except (review with an expert):
 # actual value is known to be greater/less than
 # analysis from unpreservered/improperly preserved sample
 # composite sample from multiple stations/mean of 2 or more determinations
@@ -340,8 +350,12 @@ atlas3 <- atlas2 %>%
   filter(Remove == 0) %>%
   select(-Remove)
 
+# before replacing NA above, check that all codes are accounted for
+# filter(atlas3, !is.na(QACode) & QACode != "NULL" & is.na(Remove))
+# should return 0
 
-#### summarize across stations ####
+
+#### evaluate duplicates ####
 
 # check for consistency in units
 atlas3 %>%
@@ -374,14 +388,15 @@ atlas4 %>%
   summarize(sources = n_distinct(DataSource)) %>%
   filter(sources > 1)
 # several
-
-# check for duplicates
+  
+# check for duplicates with same result value
 atlas_dup <- get_dupes(atlas4, PermanentID, WBodyID, WaterBodyName, 
                        StationID, StationName, Actual_StationID,
                        Date, DataSource, Parameter, Result_Value)
 # vary in activity depth, sample fraction, result_comment, but all have same value
 
 # check for multiple result values for one sample
+# included code for resolving multiples with different QA values, but decided to average them
 atlas_dup2 <- get_dupes(atlas4, PermanentID, WBodyID, WaterBodyName, 
                         StationID, StationName, Actual_StationID, 
                         Date, DataSource, Parameter) %>%
@@ -389,17 +404,17 @@ atlas_dup2 <- get_dupes(atlas4, PermanentID, WBodyID, WaterBodyName,
            StationID, StationName, Actual_StationID, 
            Date, DataSource, Parameter) %>%
   mutate(Result_vals = n_distinct(Result_Value), # multiple result values?
-         KeepCodes = case_when(sum(is.na(QACode)) > 0 ~ 1, # Positive codes
-                               sum(QACode %in% c("D", "H", "A", "S", "E", "2", "x")) > 0 ~ 1,
-                               TRUE ~ 0),
+         # KeepCodes = case_when(sum(is.na(QACode)) > 0 ~ 1, # Positive codes
+         #                       sum(QACode %in% c("D", "H", "A", "S", "E", "2", "x")) > 0 ~ 1,
+         #                       TRUE ~ 0),
          QACodes = n_distinct(QACode) - as.numeric(sum(is.na(QACode)) > 0)) %>% # number of non-NA QA codes
   ungroup() %>%
-  filter(Result_vals > 1) %>%
-  mutate(KeepCode = case_when(is.na(QACode) ~ 1, # Positive codes
-                              QACode %in% c("D", "H", "A", "S", "E", "2", "x") ~ 1,
-                              TRUE ~ 0))
+  filter(Result_vals > 1) # %>%
+  # mutate(KeepCode = case_when(is.na(QACode) ~ 1, # Positive codes
+  #                             QACode %in% c("D", "H", "A", "S", "E", "2", "x") ~ 1,
+  #                             TRUE ~ 0))
 
-# QA codes - used to create list of acceptable codes
+# QA codes - used to create list of acceptable codes above
 # atlas_dup_qa <- atlas_dup2 %>%
 #   select(QACode, QAMeaning) %>%
 #   unique() %>% data.frame()
@@ -408,33 +423,113 @@ atlas_dup2 <- get_dupes(atlas4, PermanentID, WBodyID, WaterBodyName,
 filter(atlas_dup2, QACodes > 1) %>% data.frame()
 # resolve manually
 
-#### start here ####
-# resolving multiple result values
+# resolve multiple result values
+# included code for resolving multiples with different QA values, but decided to average them
+# atlas_dup3 <- atlas_dup2 %>%
+#   filter(QACodes > 1) %>%
+#   mutate(Remove = case_when(QACode == "U" ~ 1,
+#                             QACode == "<" ~ 1,
+#                             TRUE ~ 0)) %>%
+#   full_join(atlas_dup2 %>%
+#               filter(QACodes <= 1) %>%
+#               mutate(Remove = case_when(QACodes == 1 & KeepCodes > 0 & KeepCode == 0 ~ 1)))
 
-atlas_dup3 <- atlas_dup2 %>%
-  filter(QACodes > 1) %>%
-  mutate(Remove = case_when(QACode == "U" ~ 1,
-                            QACode == "<" ~ 1,
-                            TRUE ~ 0)) %>%
-  full_join(atlas_dup2 %>%
-              filter(QACodes <= 1) %>%
-              mutate(Remove = case_when(QACodes == 1 & KeepCodes > 0 & KeepCode == 0 ~ 1)))
+# how often are different data sources reporting the same value?
+# how often are different data sources reporting different values?
+atlas_source <- atlas4 %>%
+  group_by(PermanentID, WBodyID, WaterBodyName, 
+           StationID, StationName, Actual_StationID, 
+           Date, Parameter) %>%
+  summarize(TotSources = n_distinct(DataSource),
+            TotResValues = n_distinct(Result_Value)) %>%
+  ungroup() %>%
+  filter(TotSources > 1) %>%
+  left_join(atlas4 %>%
+              group_by(PermanentID, WBodyID, WaterBodyName, 
+                       StationID, StationName, Actual_StationID, 
+                       Date, Parameter, Result_Value) %>%
+              summarize(SameSources = n_distinct(DataSource)) %>%
+              ungroup() %>%
+              select(-Result_Value) %>%
+              unique()) %>%
+  mutate(SameValue = case_when(SameSources == 1 ~ 0,
+                               TotSources == SameSources ~ 1))
+
+# used to figure out SameValue
+# atlas_source %>%
+#   select(TotSources, TotResValues, SameSources) %>%
+#   unique()
+
+atlas_source %>%
+  group_by(SameValue) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(tot = sum(n),
+         perc = n/tot)
+# 31% of duplicate sources have different values
+# 69% of duplicate sources have same values
+
+
+#### summarize by permanent ID and year ####
 
 # check result comments
 unique(atlas4$Result_Comment)
 # most are uninterpretable
 # others should have been accounted for with QA
 
+# check for NA's
+sum(is.na(atlas4$Result_Value))
+
 # select relevant columns
-# remove duplicates
+# remove duplicate values (within and across data sources)
+# summarize by permanent ID and growing season year
 atlas5 <- atlas4 %>%
-  select(PermanentID, WBodyID, WaterBodyName, StationID, StationName, Actual_StationID, Year, Date, DataSource, Parameter, Result_Value) %>%
-  unique() 
+  mutate(GSYear = case_when(Month >= 4 ~ Year,
+                            Month < 4 ~ Year - 1)) %>%
+  group_by(PermanentID, WBodyID, WaterBodyName, 
+         StationID, StationName, Actual_StationID, 
+         GSYear, Month, Date, Parameter, Result_Value) %>%  # remove duplicate result values (same value)
+  summarize(QACode = paste(unique(QACode), collapse = "; "),
+            QAMeaning = paste(unique(QAMeaning), collapse = "; ")) %>%
+  ungroup() %>%
+  group_by(PermanentID, WBodyID, WaterBodyName, 
+           StationID, StationName, Actual_StationID, 
+           GSYear, Month, Date, Parameter) %>%
+  summarize(Result_Value = mean(Result_Value), # average multiple result values
+            QACode = paste(unique(QACode), collapse = "; "),
+            QAMeaning = paste(unique(QAMeaning), collapse = "; ")) %>%
+  ungroup() %>%
+  group_by(PermanentID, GSYear, Month, Date, Parameter) %>%
+  summarize(Result_Value = mean(Result_Value), # average across stations
+            QACode = paste(unique(QACode), collapse = "; "),
+            QAMeaning = paste(unique(QAMeaning), collapse = "; "),
+            WaterBodyName = paste(unique(WaterBodyName, collapse = "/")),
+            StationsPerDate = n()) %>%
+  ungroup() %>%
+  group_by(PermanentID, WaterBodyName, GSYear, Month, Parameter) %>%
+  summarize(Result_Value = mean(Result_Value), # average across dates within a month
+            QACode = paste(unique(QACode), collapse = "; "),
+            QAMeaning = paste(unique(QAMeaning), collapse = "; "),
+            AvgStationsPerDate = mean(StationsPerDate),
+            DatesSampled = n()) %>%
+  ungroup() %>%
+  group_by(PermanentID, WaterBodyName, GSYear, Parameter) %>%
+  summarize(Result_Value = mean(Result_Value), # average across months within a GS year
+            QACode = paste(unique(QACode), collapse = "; "),
+            QAMeaning = paste(unique(QAMeaning), collapse = "; "),
+            AvgStationsPerDate = mean(AvgStationsPerDate),
+            AvgDatesPerMonth = mean(DatesSampled),
+            MonthsSampled = n_distinct(Month)) %>%
+  ungroup() %>%
+  mutate(Parameter = fct_recode(Parameter,
+                                "TN_ug_L" = "tn_ugl",
+                                "Secchi_ft" = "secchi_ft",
+                                "CHL_ug_L" = "chla_ugl",
+                                "TP_ug_L" = "tp_ugl"),
+         QACode = if_else(QACode == "NA", NA_character_, QACode),
+         QAMeaning = if_else(QAMeaning == "NA", NA_character_, QAMeaning)) %>%
+  rename("QualityMetric" = "Parameter",
+         "QualityValue" = "Result_Value")
 
-# multiple result values
-
-
-# make wide
-%>%
-  pivot_wider(names_from = Parameter, 
-              values_from = Result_Value)
+# save data
+write_csv(atlas5, "intermediate-data/water_atlas_quality_formatted.csv")
