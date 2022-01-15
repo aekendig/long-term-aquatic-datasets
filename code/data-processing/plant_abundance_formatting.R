@@ -21,14 +21,15 @@ plant_abun_format <- function(dat, taxa){
 
   # plant abundance dataset
   abun_out <- dat %>% # start with all surveys
-    select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor) %>%
+    select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, WaterbodyAcres) %>%
     unique() %>% # one row per survey
     expand_grid(tibble(TaxonName = taxa$TaxonName)) %>% # one row per species per survey
     full_join(dat %>% # add plant information
                 filter(TaxonName %in% taxa$TaxonName) %>%
-                select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, TaxonName, SpeciesAcres)) %>%
+                select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, WaterbodyAcres, TaxonName, SpeciesAcres)) %>%
     mutate(SpeciesAcres = replace_na(SpeciesAcres, 0), # cover 0 when it wasn't in a survey
            Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
+           Waterbody_ha = WaterbodyAcres * 0.405, # convert FWC waterbody size to hectares
            AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
            SurveyMonth = month(SurveyDate),
            SurveyDay = day(SurveyDate),
@@ -56,7 +57,10 @@ plant_abun_format <- function(dat, taxa){
     group_by(PermanentID, Area_ha, GSYear, TaxonName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
     summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
               SurveyDate = max(SurveyDate),
+              Surveyor = paste(unique(Surveyor), collapse = ", "),
               SurveyorExperience = mean(SurveyorExperience, na.rm = T),
+              WaterbodyList_ha = paste(Waterbody_ha, collapse = ", "),
+              WaterbodySum_ha = sum(Waterbody_ha),
               SpeciesAcres = sum(SpeciesAcres),
               AreaCovered_ha = sum(AreaCovered_ha),
               EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha, na.rm = T)) %>%

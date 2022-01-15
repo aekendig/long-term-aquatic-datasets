@@ -776,7 +776,7 @@ surveys8 <- surveys7 %>%
 AOI_ID <- unique(surveys8$AOI)
 
 # figure to check coordinates
-pdf("output/FWRI_coordinate_check.pdf")
+pdf("output/fwri_coordinate_check.pdf")
 
 for(i in 1:length(AOI_ID)){
   
