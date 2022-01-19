@@ -39,27 +39,19 @@ inv_dat <- inv_plant %>%
 
 # water quality
 qual <- lw_qual %>%
-  filter(!is.na(Secchi)) %>%
-  select(PermanentID, GSYear, Secchi) %>%
-  full_join(wa_qual %>%
-              filter(QualityMetric == "Secchi_ft") %>%
-              select(PermanentID, GSYear, QualityValue) %>%
-              rename("Secchi" = "QualityValue"))
+  full_join(wa_qual) %>%
+  filter(QualityMetric == "Secchi_ft") %>%
+  group_by(PermanentID, GSYear) %>%
+  summarize(QualityValue = mean(QualityValue),
+            MonthsSampled = mean(MonthsSampled))
 
 # add quality data
-inv_lw_qual_dat <- inv_dat %>%
-  inner_join(lw_qual %>%
-               filter(!is.na(Secchi)) %>%
-               select(PermanentID, GSYear, Secchi))
-
 inv_qual_dat <- inv_dat %>%
-  inner_join(qual)
-
-nrow(inv_qual_dat) - nrow(inv_lw_qual_dat)
-# 5946 year/lake combos added with water atlas
+  inner_join(qual %>%
+               select(PermanentID, GSYear, QualityValue, MonthsSampled))
 
 filter(inv_dat, is.na(SurveyorExperience))
-# only three entries are missing surveyor experience
+# no missing surveyor experience
 
 # split by species
 hydr_dat <- filter(inv_dat, CommonName == "Hydrilla")
@@ -163,15 +155,15 @@ mod_qual_fit <- function(dat_in){
     filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
     mutate(SurveyorExperience_s = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
            PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered),
-           Turbidity_s = (Secchi - mean(Secchi)) / sd(Secchi))
+           Clarity_s = (QualityValue - mean(QualityValue)) / sd(QualityValue))
   
   # fit models
-  mod0 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag0Treated + SurveyorExperience_s + Turbidity_s | PermanentID + GSYear, data = dat_mod)
-  mod1 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag1Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
-  mod2 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag2Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
-  mod3 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag3Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
-  mod4 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag4Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
-  mod5 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag5Treated + SurveyorExperience_s + Turbidity_s| PermanentID + GSYear, data = dat_mod)
+  mod0 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag0Treated + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = dat_mod)
+  mod1 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag1Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
+  mod2 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag2Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
+  mod3 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag3Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
+  mod4 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag4Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
+  mod5 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag5Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
   
   # output
   return(list(mod0, mod1, mod2, mod3, mod4, mod5))
@@ -226,11 +218,11 @@ hydr_fig <- modelplot(hydr_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Treatment years", direction = -1) +
+  scale_color_viridis_d(direction = -1) +
   labs(x = "",
        title = "(A) hydrilla") +
   def_theme_paper +
-  theme(legend.position = c(0.3, 0.25)) +
+  theme(legend.position = "none") +
   guides(color = guide_legend(reverse = TRUE))
 
 wahy_fig <- modelplot(wahy_mods,
@@ -248,22 +240,22 @@ wale_fig <- modelplot(wale_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
+  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
   labs(x = "",
        title = "(C) water lettuce") +
   def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
+  theme(axis.text.y = element_blank(),
+        legend.box.margin = margin(-10, 0, -10, -10))
 
 # combine figures
 pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 6.5, height = 4)
 plot_grid(hydr_fig, wahy_fig, wale_fig,
           nrow = 1,
-          rel_widths = c(1, 0.6, 0.6))
+          rel_widths = c(1, 0.57, 0.75))
 dev.off()
 
 
-#### treatment, surveyor, turbidity models ####
+#### treatment, surveyor, clarity models ####
 
 # fit models
 hydr_qual_mods <- mod_qual_fit(hydr_qual_dat)
@@ -276,7 +268,7 @@ names(wahy_qual_mods) <- c("1", "2", "3", "4", "5", "6")
 names(wale_qual_mods) <- c("1", "2", "3", "4", "5", "6")
 
 # rename coefficients
-coef_qual_names <- c("Turbidity_s" = "Turbidity", 
+coef_qual_names <- c("Clarity_s" = "Water clarity", 
                      "SurveyorExperience_s" = "Surveyor experience",
                      "PrevPercCovered_c:Lag0Treated" = "Treatment x abundance",
                      "PrevPercCovered_c:Lag1Treated" = "Treatment x abundance",
@@ -297,18 +289,18 @@ hydr_qual_fig <- modelplot(hydr_qual_mods,
                       coef_map = coef_qual_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  scale_color_viridis_d(direction = -1) +
   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
        title = "(A) hydrilla") +
   def_theme_paper +
-  theme(legend.position = c(0.3, 0.25)) +
+  theme(legend.position = "none") +
   guides(color = guide_legend(reverse = TRUE))
 
 wahy_qual_fig <- modelplot(wahy_qual_mods,
                       coef_map = coef_qual_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  scale_color_viridis_d(direction = -1) +
   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
        title = "(B) water hyacinth") +
   def_theme_paper +
@@ -320,19 +312,19 @@ wale_qual_fig <- modelplot(wale_qual_mods,
                       coef_map = coef_qual_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years of data", direction = -1) +
+  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
        title = "(C) water lettuce") +
   def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank()) +
+  theme(axis.text.y = element_blank(),
+        legend.box.margin = margin(-10, 0, -10, -10)) +
   guides(color = guide_legend(reverse = TRUE))
 
 # combine figures
-pdf("output/fwc_invasive_plant_treatment_turbidity_model.pdf", width = 6.5, height = 4)
+pdf("output/fwc_invasive_plant_treatment_clarity_model.pdf", width = 6.5, height = 4)
 plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig,
           nrow = 1,
-          rel_widths = c(1, 0.6, 0.6))
+          rel_widths = c(1, 0.57, 0.75))
 dev.off()
 
 
@@ -348,7 +340,8 @@ pred_fig <- function(dat_in, mod_list){
   
   # prediction dataset
   pred_dat <- tibble(PrevPercCovered = c(0, 15, 30)) %>%
-    mutate(PrevPercCovered_c = PrevPercCovered - mean(raw_dat$PrevPercCovered)) %>%
+    mutate(PrevPercCovered_c = PrevPercCovered - mean(raw_dat$PrevPercCovered),
+           Clarity_s = 0) %>%
     expand_grid(tibble(Lag5Treated = c(0, 1/6, 2/6, 1/2, 4/6, 5/6, 1))) %>%
     expand_grid(raw_dat %>%
                   select(PermanentID, GSYear) %>%
@@ -389,9 +382,26 @@ wale_pred_fig <- pred_fig(wale_dat, wale_mods) +
   labs(title = "(C) water lettuce") +
   theme(axis.title.y = element_blank())
 
+hydr_qual_pred_fig <- pred_fig(hydr_qual_dat, hydr_qual_mods) +
+  labs(title = "(A) hydrilla") +
+  theme(legend.position = "none")
+wahy_qual_pred_fig <- pred_fig(wahy_qual_dat, wahy_qual_mods) +
+  labs(title = "(B) water hyacinth", x = "Treatment frequency") +
+  theme(legend.position = "none",
+        axis.title.y = element_blank())
+wale_qual_pred_fig <- pred_fig(wale_qual_dat, wale_qual_mods) +
+  labs(title = "(C) water lettuce") +
+  theme(axis.title.y = element_blank())
+
 # combine figures
 pdf("output/fwc_invasive_plant_treatment_predictions.pdf", width = 6.5, height = 3)
 plot_grid(hydr_pred_fig, wahy_pred_fig, wale_pred_fig,
+          nrow = 1,
+          rel_widths = c(1, 0.9, 1.25))
+dev.off()
+
+pdf("output/fwc_invasive_plant_treatment_clarity_predictions.pdf", width = 6.5, height = 3)
+plot_grid(hydr_qual_pred_fig, wahy_qual_pred_fig, wale_qual_pred_fig,
           nrow = 1,
           rel_widths = c(1, 0.9, 1.25))
 dev.off()
@@ -401,9 +411,13 @@ dev.off()
 ### model comparison ####
 
 # compare models (use delta 4 as cut-off)
-mod_lag_comp(hydr_mods) # 0, 4, 5 similar
-mod_lag_comp(wahy_mods) # 0, 4, 5 similar
+mod_lag_comp(hydr_mods) # 4, 5 similar
+mod_lag_comp(wahy_mods) # all except 1 similar
 mod_lag_comp(wale_mods) # 5 best
+
+mod_lag_comp(hydr_qual_mods) # all except 1 similar
+mod_lag_comp(wahy_qual_mods) # 3, 4, 5 similar
+mod_lag_comp(wale_qual_mods) # 4, 5 similar
 
 # output AIC values
 aic_out <- tibble(Lag = mod_lag_comp(hydr_mods)$Lag,
@@ -411,3 +425,9 @@ aic_out <- tibble(Lag = mod_lag_comp(hydr_mods)$Lag,
                   Waterhyacinth = mod_lag_comp(wahy_mods)$deltaAIC,
                   Waterlettuce = mod_lag_comp(wale_mods)$deltaAIC)
 write_csv(aic_out, "output/fwc_invasive_plant_delta_aic.csv")
+
+aic_qual_out <- tibble(Lag = mod_lag_comp(hydr_qual_mods)$Lag,
+                       Hydrilla = mod_lag_comp(hydr_qual_mods)$deltaAIC,
+                       Waterhyacinth = mod_lag_comp(wahy_qual_mods)$deltaAIC,
+                       Waterlettuce = mod_lag_comp(wale_qual_mods)$deltaAIC)
+write_csv(aic_qual_out, "output/fwc_invasive_plant_clarity_delta_aic.csv")
