@@ -151,7 +151,7 @@ nat_plant3b %>%
   select(Hydrilla, HydrillaTrt, WaterHyacinth, WaterLettuce, Floating, FloatingTrt) %>%
   unique() %>%
   ggpairs()
-# water hyacinth and lettuce are no longer correlated
+# water hyacinth and lettuce less correlated
 
 
 #### models ####
@@ -218,10 +218,11 @@ plant_mods2 <- nat_plant3b %>%
 
 # taxa list
 taxa <- sort(unique(nat_plant3b$TaxonName))
-taxa2 <- taxa[taxa != "Mayaca fluviatilis"]
+taxa2 <- taxa[taxa != "Mayaca fluviatilis"] 
+# use to run loop after identifying M. fluviatilis as the first warning
 
 # convert warnings to errors to break loop
-options(warn = 1)
+options(warn = 2)
 
 # find issue model
 for(i in 1:length(taxa)){
@@ -243,10 +244,13 @@ summary(ma_fl_mod)
 
 my_la_dat <- nat_plant3b %>%
   filter(TaxonName == "Myriophyllum laxum/pinnatum")
-my_la_mod <- glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + loatingTrt, 
+my_la_mod <- glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + FloatingTrt, 
                  data = my_la_dat, family = binomial)
 summary(my_la_mod)
 # water lettuce triggers warning
+
+# reset warning
+options(warn = 1)
 
 # model summaries
 plant_aic <- plant_mods2 %>%
