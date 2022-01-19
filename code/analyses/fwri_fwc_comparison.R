@@ -367,6 +367,174 @@ dwplot(mod_qual_tid,
 dev.off()
 
 
+#### values for text ####
+
+# survyeor experience
+sd(hydr2_qual$DateDiff)
+mean(hydr2_qual$FWC_SurveyorExperience)
+sd(hydr2_qual$FWC_SurveyorExperience)
+sd(hydr2_qual$FWC_Area_ha)
+sd(wahy2_qual$FWC_Area_ha)
+sd(hydr2_qual$QualityValue)
+
+# model summaries
+summary(hydr_qual_mod2)
+summary(wahy_qual_mod2)
+summary(wale_qual_mod2)
+
+
+#### surveyor experience ####
+
+pdf("output/fwri_fwc_comparison_surveyor_experience.pdf", width = 4.4, height = 4)
+ggplot(hydr2_qual, 
+       aes(x = FWC_SurveyorExperience, y = CoverDiff, 
+           color = PermanentID, shape = as.factor(GSYear))) +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  scale_color_manual(values = rainbow(n_distinct(hydr2_qual$PermanentID)), guide = "none") +
+  scale_shape(name = "Growing\nseason") +
+  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
+  def_theme_paper +
+  theme(legend.box.margin = margin(-10, -5, -10, -10))
+dev.off()
+
+hydr2_qual %>%
+  filter(CoverDiff > 0.3) %>%
+  select(FWC_AreaName, FWRI_AreaName, PermanentID, GSYear, 
+         FWRI_PropCovered, FWC_PropCovered, FWC_Surveyor, FWC_SurveyorExperience)
+# two lakes all years
+# the lake shapes are very consistent between GIS (used to get FWC area) and FWRI sampling maps
+
+filter(fwri, str_detect(AreaName, "Toho")) %>% 
+  select(AreaName, PermanentID) %>% unique()
+# two Toho's are separate, which is what we want
+
+ggplot(hydr2, 
+       aes(x = FWC_SurveyorExperience, y = CoverDiff, 
+           color = PermanentID, shape = as.factor(GSYear))) +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  scale_color_manual(values = rainbow(n_distinct(hydr1$PermanentID)), guide = "none") +
+  scale_shape(name = "Growing\nseason") +
+  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
+  def_theme_paper
+# similar pattern when all data are included
+
+hydr2 %>%
+  filter(PermanentID %in% c("112039563", "112040787")) %>%
+  select(FWC_AreaName, GSYear, FWC_PropCovered, FWRI_PropCovered, FWC_Area_ha, FWC_WaterbodyList_ha, FWC_WaterbodySum_ha)
+
+# area estimates off?
+hydr2_cor <- hydr2 %>%
+  mutate(FWC_PropCovered_cor = (FWC_PropCovered * FWC_Area_ha) / FWC_WaterbodySum_ha,
+         FWC_PropCovered = if_else(!is.na(FWC_PropCovered_cor), FWC_PropCovered_cor, FWC_PropCovered),
+         CoverDiff = FWC_PropCovered - FWRI_PropCovered)
+
+# correct lake sizes
+hydr2_cor %>%
+  ggplot(aes(x = FWC_SurveyorExperience, y = CoverDiff, 
+             color = PermanentID, shape = as.factor(GSYear))) +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  scale_color_manual(values = rainbow(n_distinct(hydr1$PermanentID)), guide = "none") +
+  scale_shape(name = "Growing\nseason") +
+  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
+  def_theme_paper +
+  theme(legend.position = c(0.1, 0.85))
+# same pattern
+
+# model without these high lakes
+hydr2b <- hydr2 %>%
+  filter(!(PermanentID %in% c("112039563", "112040787")))
+
+hydr_mod2b <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2b)
+summary(hydr_mod2b)
+# surveyor experience is marginal
+
+# surveyors
+# change to hydr1, hydr3 to see differences
+hydr2 %>%
+  group_by(FWC_Surveyor) %>%
+  mutate(SampleSize = n(),
+         FWC_SurveyorExperience = max(FWC_SurveyorExperience)) %>%
+  ggplot(aes(x = FWC_Surveyor, y = CoverDiff, color = FWC_SurveyorExperience)) +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = mean(hydr2$CoverDiff), linetype = "dashed") +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean", size = 2) +
+  scale_color_viridis_c() +
+  def_theme_paper +
+  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
+# most surveyors seem to be capturing hydr2
+# the overestimators may be tring to capture hydr1, but they're still off
+
+hydr2 %>%
+  group_by(FWC_Surveyor) %>%
+  summarize(SampleSize = n(),
+            FWC_SurveyorExperience = max(FWC_SurveyorExperience)) %>%
+  arrange(FWC_SurveyorExperience)
+
+fwc %>%
+  group_by(Surveyor) %>%
+  summarize(SurveyorExperience = max(SurveyorExperience)) %>%
+  arrange(SurveyorExperience) %>%
+  data.frame()
+
+# see if units might be wrong
+# they should be in acres
+# what if they are in hectares?
+hydr2 %>%
+  mutate(FWC_PropCovered = ((FWC_PropCovered * FWC_Area_ha)/0.405)/FWC_Area_ha, # convert back to original value
+         CoverDiff = FWC_PropCovered - FWRI_PropCovered) %>%
+  group_by(FWC_Surveyor) %>%
+  mutate(SampleSize = n()) %>%
+  ggplot(aes(x = FWC_Surveyor, y = CoverDiff, color = SampleSize)) +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = mean(hydr2$CoverDiff), linetype = "dashed") +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean", size = 2) +
+  scale_color_viridis_c() +
+  def_theme_paper +
+  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
+# no, makes it worse
+
+# what if they are in square m?
+hydr2 %>%
+  mutate(FWC_PropCovered = (((FWC_PropCovered * FWC_Area_ha)/0.405) * 1e-4)/FWC_Area_ha, # convert back to original value, then conver to ha
+         CoverDiff = FWC_PropCovered - FWRI_PropCovered) %>%
+  group_by(FWC_Surveyor) %>%
+  mutate(SampleSize = n()) %>%
+  ggplot(aes(x = FWC_Surveyor, y = CoverDiff, color = SampleSize)) +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = mean(hydr2$CoverDiff), linetype = "dashed") +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean", size = 2) +
+  scale_color_viridis_c() +
+  def_theme_paper +
+  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
+# underestimate
+
+# surveyors across all FWC dataset
+fwc %>%
+  filter(CommonName == "Hydrilla") %>%
+  ggplot(aes(x = Surveyor)) +
+  geom_bar() +
+  def_theme_paper +
+  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
+
+fwc %>%
+  filter(CommonName == "Hydrilla" & str_detect(Surveyor, "Daniela Alviz") == T)
+# only four lakes and all in 2019
+
+# model without surveyor
+hydr2c <- hydr2 %>%
+  filter(!(FWC_Surveyor == "Ed Harris"))
+
+hydr_mod2c <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2c)
+summary(hydr_mod2c)
+# no effect
+
+
 #### cover difference feols regressions ####
 
 # PermanentID is a dummy variable for: lake size, bathymetry, terrestrial plant encroachment, biologist
@@ -437,6 +605,8 @@ wale_qual_fe_mod3 <- feols(CoverDiff ~ DateDiff_s + SurveyorExperience_s + Turbi
 summary(wale_qual_fe_mod3)
 
 
+#### older code, not currently using ####
+
 #### feols regression coefficient plot ####
 
 # rename coefficients
@@ -488,25 +658,8 @@ summary(fe_hydr_qual_mod)
 plot(fe_hydr_qual_mod)
 
 
-#### values for text ####
-
-# survyeor experience
-sd(hydr2_qual$DateDiff)
-mean(hydr2_qual$FWC_SurveyorExperience)
-sd(hydr2_qual$FWC_SurveyorExperience)
-sd(hydr2_qual$FWC_Area_ha)
-sd(wahy2_qual$FWC_Area_ha)
-sd(hydr2_qual$QualityValue)
-
-# model summaries
-summary(hydr_qual_mod2)
-summary(wahy_qual_mod2)
-summary(wale_qual_mod2)
-
 
 #### correlation with lake area figure ####
-
-# older code, not currently using figure
 
 # # FWRI present
 # area_fig1 <- ggplot(filter(comb, FWRI_PropType == "present"), 
@@ -572,142 +725,3 @@ summary(wale_qual_mod2)
 # dev.off()
 
 
-#### surveyor experience ####
-
-pdf("output/fwri_fwc_comparison_surveyor_experience.pdf", width = 4.4, height = 4)
-ggplot(hydr2_qual, 
-       aes(x = FWC_SurveyorExperience, y = CoverDiff, 
-           color = PermanentID, shape = as.factor(GSYear))) +
-  geom_hline(yintercept = 0) +
-  geom_point() +
-  scale_color_manual(values = rainbow(n_distinct(hydr2_qual$PermanentID)), guide = "none") +
-  scale_shape(name = "Growing\nseason") +
-  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
-  def_theme_paper +
-  theme(legend.box.margin = margin(-10, -5, -10, -10))
-dev.off()
-
-hydr2_qual %>%
-  filter(CoverDiff > 0.3) %>%
-  select(FWC_AreaName, FWRI_AreaName, PermanentID, GSYear, 
-         FWRI_PropCovered, FWC_PropCovered, FWC_Surveyor, FWC_SurveyorExperience)
-# two lakes all years
-# the lake shapes are very consistent between GIS (used to get FWC area) and FWRI sampling maps
-
-filter(fwri, str_detect(AreaName, "Toho")) %>% 
-  select(AreaName, PermanentID) %>% unique()
-# two Toho's are separate, which is what we want
-
-ggplot(hydr2, 
-       aes(x = FWC_SurveyorExperience, y = CoverDiff, 
-           color = PermanentID, shape = as.factor(GSYear))) +
-  geom_hline(yintercept = 0) +
-  geom_point() +
-  scale_color_manual(values = rainbow(n_distinct(hydr1$PermanentID)), guide = "none") +
-  scale_shape(name = "Growing\nseason") +
-  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
-  def_theme_paper
-# similar pattern when all data are included
-
-hydr2 %>%
-  filter(PermanentID %in% c("112039563", "112040787")) %>%
-  select(FWC_AreaName, GSYear, FWC_PropCovered, FWRI_PropCovered, FWC_Area_ha, FWC_WaterbodyList_ha, FWC_WaterbodySum_ha)
-
-# area estimates off?
-hydr2_cor <- hydr2 %>%
-  mutate(FWC_PropCovered_cor = (FWC_PropCovered * FWC_Area_ha) / FWC_WaterbodySum_ha,
-         FWC_PropCovered = if_else(!is.na(FWC_PropCovered_cor), FWC_PropCovered_cor, FWC_PropCovered),
-         CoverDiff = FWC_PropCovered - FWRI_PropCovered)
-
-# correct lake sizes
-hydr2_cor %>%
-  ggplot(aes(x = FWC_SurveyorExperience, y = CoverDiff, 
-           color = PermanentID, shape = as.factor(GSYear))) +
-  geom_hline(yintercept = 0) +
-  geom_point() +
-  scale_color_manual(values = rainbow(n_distinct(hydr1$PermanentID)), guide = "none") +
-  scale_shape(name = "Growing\nseason") +
-  labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
-  def_theme_paper +
-  theme(legend.position = c(0.1, 0.85))
-# same pattern
-
-# model without these high lakes
-hydr2b <- hydr2 %>%
-  filter(!(PermanentID %in% c("112039563", "112040787")))
-
-hydr_mod2b <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2b)
-summary(hydr_mod2b)
-# surveyor experience is marginal
-
-# surveyors
-# change to hydr1, hydr3 to see differences
-hydr2 %>%
-  group_by(FWC_Surveyor) %>%
-  mutate(SampleSize = n(),
-         FWC_SurveyorExperience = mean(FWC_SurveyorExperience)) %>%
-  ggplot(aes(x = FWC_Surveyor, y = CoverDiff, color = FWC_SurveyorExperience)) +
-  geom_hline(yintercept = 0) +
-  geom_hline(yintercept = mean(hydr2$CoverDiff), linetype = "dashed") +
-  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  scale_color_viridis_c() +
-  def_theme_paper +
-  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
-# most surveyors seem to be capturing hydr2
-# the overestimators may be tring to capture hydr1, but they're still off
-
-
-# see if units might be wrong
-# they should be in acres
-# what if they are in hectares?
-hydr2 %>%
-  mutate(FWC_PropCovered = ((FWC_PropCovered * FWC_Area_ha)/0.405)/FWC_Area_ha, # convert back to original value
-         CoverDiff = FWC_PropCovered - FWRI_PropCovered) %>%
-  group_by(FWC_Surveyor) %>%
-  mutate(SampleSize = n()) %>%
-  ggplot(aes(x = FWC_Surveyor, y = CoverDiff, color = SampleSize)) +
-  geom_hline(yintercept = 0) +
-  geom_hline(yintercept = mean(hydr2$CoverDiff), linetype = "dashed") +
-  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  scale_color_viridis_c() +
-  def_theme_paper +
-  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
-# no, makes it worse
-
-# what if they are in square m?
-hydr2 %>%
-  mutate(FWC_PropCovered = (((FWC_PropCovered * FWC_Area_ha)/0.405) * 1e-4)/FWC_Area_ha, # convert back to original value, then conver to ha
-         CoverDiff = FWC_PropCovered - FWRI_PropCovered) %>%
-  group_by(FWC_Surveyor) %>%
-  mutate(SampleSize = n()) %>%
-  ggplot(aes(x = FWC_Surveyor, y = CoverDiff, color = SampleSize)) +
-  geom_hline(yintercept = 0) +
-  geom_hline(yintercept = mean(hydr2$CoverDiff), linetype = "dashed") +
-  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  scale_color_viridis_c() +
-  def_theme_paper +
-  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
-# underestimate
-
-# surveyors across all FWC dataset
-fwc %>%
-  filter(CommonName == "Hydrilla") %>%
-  ggplot(aes(x = Surveyor)) +
-  geom_bar() +
-  def_theme_paper +
-  theme(axis.text.x = element_text(size = 8, color="black", angle = 45, hjust = 1))
-
-fwc %>%
-  filter(CommonName == "Hydrilla" & str_detect(Surveyor, "Daniela Alviz") == T)
-# only four lakes and all in 2019
-
-# model without surveyor
-hydr2c <- hydr2 %>%
-  filter(!(FWC_Surveyor == "Ed Harris"))
-
-hydr_mod2c <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2c)
-summary(hydr_mod2c)
-# no effect

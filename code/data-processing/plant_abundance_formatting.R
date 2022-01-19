@@ -58,7 +58,7 @@ plant_abun_format <- function(dat, taxa){
     summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
               SurveyDate = max(SurveyDate),
               Surveyor = paste(unique(Surveyor), collapse = ", "),
-              SurveyorExperience = mean(SurveyorExperience, na.rm = T),
+              SurveyorExperience = max(SurveyorExperience, na.rm = T), # assign the more experienced surveyor's exp.
               WaterbodyList_ha = paste(Waterbody_ha, collapse = ", "),
               WaterbodySum_ha = sum(Waterbody_ha),
               SpeciesAcres = sum(SpeciesAcres),
