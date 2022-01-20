@@ -295,3 +295,45 @@ summary(rich_float_mod)
 rich_float_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Floating_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
 summary(rich_float_modb)
 # estimates are all very similar to full model
+
+
+#### model coefficient figure ####
+
+# combine models
+rich_mods <- list(rich_modb, rich_qual_modb)
+
+# name models
+names(rich_mods) <- c("no", "yes")
+
+# rename coefficients
+coef_names <- c("Clarity_s" = "Water clarity",
+                "SurveyorExperience_s" = "Surveyor experience",
+                "Floating_PrevPercCovered" = "Initial floating plant abundance",
+                "Hydrilla_PrevPercCovered" = "Initial hydrilla abundance",
+                "Floating_Lag0Treated" = "Floating plant treatment",
+                "Hydrilla_Lag0Treated" = "Hydrilla treatment",
+                "PrevRich_s" = "Initial richness")
+
+# figure
+modelplot(rich_mods,
+          coef_map = coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(option = "plasma", end = 0.7, direction = -1,
+                        name = "Model\nincludes\nclarity") +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = ""))) +
+  def_theme_paper +
+  theme(legend.box.margin = margin(-10, 0, -10, -10))
+# models estimates are extremely similar
+
+pdf("output/fwc_native_richness_treatment_clarity_model.pdf", width = 4, height = 4)
+modelplot(rich_qual_modb,
+          coef_map = coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed")),
+          size = 0.3, fatten = 2, color = "blue") +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "Native plant taxonomic richness") +
+  def_theme_paper +
+  theme(plot.title = element_text(size = 11, hjust = 0.5))
+dev.off()
