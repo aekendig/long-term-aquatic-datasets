@@ -79,7 +79,7 @@ plant_cont <- plant_detect %>%
 
 # format data
 plant_fwc2 <- plant_fwc %>%
-  filter(TaxonName %in% plant_cont$TaxonName) %>%
+  filter(TaxonName %in% plant_cont$TaxonName) %>% # select taxa monitored continuously
   select(TaxonName, Habitat, Origin) %>%
   unique() %>% # full species list
   expand_grid(plant_fwc %>%
@@ -91,7 +91,7 @@ plant_fwc2 <- plant_fwc %>%
                      AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, 
                      IsDetected)) %>% # add detection data (only "Yes")
   mutate(IsDetected = replace_na(IsDetected, "No"),
-         IsDetected = case_when(year(SurveyDate) %in% c(2000, 2001) ~ NA_character_, # no native species these years
+         IsDetected = case_when(year(SurveyDate) %in% c(2000, 2001) ~ NA_character_, # no native species surveyed these years
                                 TRUE ~ IsDetected),
          Detected = case_when(IsDetected == "Yes" ~ 1,
                               IsDetected == "No" ~ 0),
@@ -100,8 +100,7 @@ plant_fwc2 <- plant_fwc %>%
          GSYear = case_when(SurveyMonth >= 4 ~ SurveyYear,
                             SurveyMonth < 4 ~ SurveyYear - 1),
          PreCtrl = if_else(GSYear < 1998, "pre ctrl data", "post ctrl data"),
-         Area_ha = ShapeArea * 100) %>% # convert lake area from km-squared to hectares
-  filter(!is.na(IsDetected)) # remove 2000-2001 surveys
+         Area_ha = ShapeArea * 100) # convert lake area from km-squared to hectares
 
 # duplicate surveys in a year
 plant_fwc2 %>%
@@ -114,19 +113,43 @@ plant_fwc2 %>%
 # summarize by permanentID to remove duplicates
 plant_fwc3 <- plant_fwc2 %>%
   group_by(PermanentID, Area_ha, GSYear, PreCtrl, TaxonName, Habitat, Origin) %>%
-  summarize(AreaName = paste(AreaOfInterest, collapse = "/"),
+  summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
             SurveyDate = max(SurveyDate),
             Detected = if_else(sum(Detected) > 0, 1, 0)) %>%
-  ungroup()
+  ungroup() %>%
+  full_join(plant_fwc2 %>% # add row for every year for each site/species combo (NA's for missing surveys)
+              select(PermanentID, TaxonName) %>%
+              unique() %>%
+              expand_grid(GSYear = min(plant_fwc2$GSYear):max(plant_fwc2$GSYear))) %>%
+  group_by(PermanentID, TaxonName) %>%
+  arrange(GSYear) %>% 
+  mutate(PrevDetected = lag(Detected)) %>% # previous year's detection
+  ungroup() 
+
+# make sure missing Detected/PrevDetected applies to all taxa
+plant_fwc3 %>%
+  group_by(PermanentID, GSYear) %>%
+  summarize(NADetected = sum(is.na(Detected)),
+            TotDetected = length(Detected),
+            NAPrevDetected = sum(is.na(PrevDetected)),
+            TotPrevDetected = length(PrevDetected)) %>%
+  ungroup() %>%
+  filter((NADetected > 0 & NADetected != TotDetected) | 
+           (NAPrevDetected > 0 & NAPrevDetected != TotPrevDetected))
+# yes
+
+# remove rows for no surveys
+plant_fwc4 <- plant_fwc3 %>%
+  filter(!is.na(Detected))
 
 # save
-write_csv(plant_fwc3, "intermediate-data/FWC_plant_community_formatted.csv")
+write_csv(plant_fwc4, "intermediate-data/FWC_plant_community_formatted.csv")
 
 
 #### most common native taxa ####
 
 # remove non-native taxa
-nat_fwc <- plant_fwc3 %>%
+nat_fwc <- plant_fwc4 %>%
   filter(Origin == "Native")
 
 # total waterbody-year combos
@@ -194,8 +217,8 @@ ggplot(common_fwc, aes(x = RankWaterbodyHab, y = RatioWaterbody)) +
 
 # common species in post control data
 # selected top 40% of each group, but the submersed were much rarer than the others
-# taxa must be present in over 25% of water-year occurrences 
-# and over 50% of lakes (this requirement is met with above)
+# taxa must be present in over 7% of water-year occurrences 
+# and over 20% of lakes (this requirement is met with above)
 common_fwc2 <- common_fwc %>%
   # left_join(TotHabitat) %>%
   # filter(PreCtrl == "post ctrl data" & RankWatYearHab <= Taxa40) %>%

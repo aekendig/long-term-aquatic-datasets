@@ -33,9 +33,13 @@ wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
 # combine datasets
 inv_dat <- inv_plant %>%
+  filter(!is.na(MinSurveyorExperience)) %>%
   inner_join(inv_ctrl) %>%
   filter(!is.na(PrevPropCovered)) %>% # need initial pop size
   mutate(PrevPercCovered = PrevPropCovered * 100)
+
+# checked before removing NA's
+filter(inv_dat, is.na(MinSurveyorExperience)) # 18 rows
 
 # water quality
 qual <- lw_qual %>%
@@ -49,9 +53,6 @@ qual <- lw_qual %>%
 inv_qual_dat <- inv_dat %>%
   inner_join(qual %>%
                select(PermanentID, GSYear, QualityValue, MonthsSampled))
-
-filter(inv_dat, is.na(SurveyorExperience))
-# no missing surveyor experience
 
 # split by species
 hydr_dat <- filter(inv_dat, CommonName == "Hydrilla")
@@ -75,15 +76,15 @@ cor.test(~ Lag5Treated + Lag5AllTreated, data = wahy_dat)
 
 # covariate correlations
 hydr_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, SurveyorExperience) %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience) %>%
   ggpairs()
 
 wahy_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, SurveyorExperience) %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience) %>%
   ggpairs()
 
 wale_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, SurveyorExperience) %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience) %>%
   ggpairs()
 
 # log ratio prop covered
@@ -131,8 +132,8 @@ mod_fit <- function(dat_in){
   
   # subset data
   dat_mod <- dat_in %>%
-    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
-    mutate(SurveyorExperience_s = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
+    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated)) %>%
+    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
            PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered))
   
   # fit models
@@ -152,8 +153,8 @@ mod_qual_fit <- function(dat_in){
   
   # subset data
   dat_mod <- dat_in %>%
-    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(SurveyorExperience)) %>%
-    mutate(SurveyorExperience_s = (SurveyorExperience - mean(SurveyorExperience)) / sd(SurveyorExperience),
+    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated)) %>%
+    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
            PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered),
            Clarity_s = (QualityValue - mean(QualityValue)) / sd(QualityValue))
   
@@ -185,7 +186,7 @@ mod_lag_comp <- function(mod_list){
 }
 
 
-#### treatment, surveyor models ####
+#### treatment, surveyor model figure ####
 
 # fit models
 hydr_mods <- mod_fit(hydr_dat)
@@ -255,7 +256,7 @@ plot_grid(hydr_fig, wahy_fig, wale_fig,
 dev.off()
 
 
-#### treatment, surveyor, clarity models ####
+#### treatment, surveyor, clarity model figure ####
 
 # fit models
 hydr_qual_mods <- mod_qual_fit(hydr_qual_dat)

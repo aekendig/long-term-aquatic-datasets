@@ -55,7 +55,7 @@ inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "
                    Code = c("HYDR", "WALE", "WAHY"))
 
 # modify data
-inv_fwc <- plant_abun_format(plant_fwc, inv_taxa)
+inv_fwc <- plant_abun_format(plant_fwc, inv_taxa) # warnings from min/max functions, replaced with NA
 inv_fwri <- plant_freq_format(plant_fwri, inv_taxa)
 
 # hydrilla look-alikes

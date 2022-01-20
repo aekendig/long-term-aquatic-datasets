@@ -70,6 +70,9 @@ plant_abun_format <- function(dat, taxa){
            PropCovered = EstAreaCovered_ha / Area_ha,
            SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
                                       SpeciesAcres == 0 ~ 0),
+           SurveyorExperience = ifelse(SurveyorExperience == -Inf, # max returns -Inf if no value is available and na.rm = T
+                                       NA_real_,
+                                       SurveyorExperience),
            SurveyorExperienceB = case_when(SurveyorExperience <= surveyor_bins$low_Max ~ "low",
                                            SurveyorExperience > surveyor_bins$low_Max & SurveyorExperience <= surveyor_bins$medium_Max ~ "medium",
                                            SurveyorExperience > surveyor_bins$medium_Max ~ "high"),
@@ -84,7 +87,11 @@ plant_abun_format <- function(dat, taxa){
            PrevAreaCovered_ha = lag(EstAreaCovered_ha),
            PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
            PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0),
-           SurveyDays = as.numeric(SurveyDate - lag(SurveyDate))) %>%
+           SurveyDays = as.numeric(SurveyDate - lag(SurveyDate)),
+           PrevSurveyorExperience = lag(SurveyorExperience)) %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
     ungroup() %>%
     mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
                                     EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / (0.01 * 0.405), # lower limit of SpeciesAcres
@@ -92,7 +99,10 @@ plant_abun_format <- function(dat, taxa){
                                     TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
            LogRatioCovered = log(RatioCovered),
            LogitPropCovered = logit(PropCovered, adjust = prop_adjust),
-           LogitPrevPropCovered = logit(PrevPropCovered, adjust = prop_adjust))
+           LogitPrevPropCovered = logit(PrevPropCovered, adjust = prop_adjust),
+           MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
+                                          NA_real_, 
+                                          MinSurveyorExperience))
   
   return(abun_out2)
   
