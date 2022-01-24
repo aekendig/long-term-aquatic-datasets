@@ -15,6 +15,7 @@ plant_fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
                        col_types = list(Depth_ft = col_double(),
                                         PermanentID = col_character(),
                                         YearF = col_character()))
+taxa_acres <- read_csv("intermediate-data/fwc_taxa_with_acres_summary.csv")
 
 # load scripts
 source("code/generic-functions/proportion_transformations.R")
@@ -49,10 +50,22 @@ plant_fwri %>%
   ungroup() %>%
   filter(Waterbodies > 1)
 
+# choose taxa with > 1000 records 
+taxa_acres %>%
+  filter(Origin == "Exotic" & Surveys > 1000)
+# Colocasia esculenta (Wild taro, Code: ELEA) is invasive, but commonly confused with native elephant ear (grouped together in FWRI)
+# Cyperus blepharoleptos has synonyms: Oxycaryum cubense (syn. Scirpus cubensis) in FWRI
+# FWRI doesn't distinguish between Salvinia except for Salvinia molesta (WAFE is Salvinia sp.)
+# From FWC list, did not include:
+# Canna spp. (too vague)
+# Schinus terebinthifolius (Brazilian peppertree, terrestrial)
+# Sapium sebiferum (Chinese tallow tree, terrestrial)
+# Melaleuca quinquenervia (Melaleuca, terrestrial/aquatic, not in FWRI)
+
 # specify taxa of interest
-inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"),
-                   CommonName = c("Hydrilla", "Water lettuce", "Water hyacinth"),
-                   Code = c("HYDR", "WALE", "WAHY"))
+inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes", "Panicum repens", "Colocasia esculenta", "Urochloa mutica", "Alternanthera philoxeroides", "Cyperus blepharoleptos", "Salvinia minima"),
+                   CommonName = c("Hydrilla", "Water lettuce", "Water hyacinth", "Torpedograss", "Wild taro", "Para grass", "Alligator weed", "Cuban bulrush", "Water fern"),
+                   Code = c("HYDR", "WALE", "WAHY", "TORP", "ELEA", "PAGR", "ALWE", "BUSE", "WAFE"))
 
 # modify data
 inv_fwc <- plant_abun_format(plant_fwc, inv_taxa) # warnings from min/max functions, replaced with NA

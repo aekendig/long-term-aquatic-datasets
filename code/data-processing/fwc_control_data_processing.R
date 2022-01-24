@@ -170,8 +170,14 @@ write_csv(ctrl3, "intermediate-data/FWC_control_new_formatted.csv")
 #### edit old data for FWC plants ####
 
 # species
-inv_taxa <- tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2)), # double each row that has floating plants
-                        TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))
+inv_taxa <- tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2), # double each row that has floating plants
+                               "Panicum repens", "Colocasia esculenta", "Urochloa mutica", 
+                               "Alternanthera philoxeroides", "Oxycaryum cubense", "Cyperus blepharoleptos", "Salvinia minima"),
+                        TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
+                                      "Panicum repens", "Colocasia esculenta", "Urochloa mutica",
+                                      "Alternanthera philoxeroides", rep("Cyperus blepharoleptos", 2), "Salvinia minima"))
+# old data: "Oxycaryum cubense"
+# new data: "Cyperus blepharoleptos"
 
 # all treatments
 # don't know treatment data, don't adjust GSYear
@@ -200,7 +206,8 @@ foc_ctrl_old <- ctrl_old3 %>%
               expand_grid(Species = unique(inv_taxa$Species))) %>%
   mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0),
          PropTreated = AreaTreated_ha / Area_ha,
-         CtrlSet = "old")
+         CtrlSet = "old") %>%
+  filter(Species != "Cyperus blepharoleptos") # new name of Cuban bulrush added with expand_grid
 
 
 #### edit new data for FWC plants ####
@@ -246,7 +253,8 @@ foc_ctrl <- ctrl3 %>%
             TreatmentDate = if_else(AreaTreated_ha > 0, max(TreatmentDate), NA_real_)) %>%
   ungroup() %>%
   mutate(PropTreated = AreaTreated_ha / Area_ha,
-         CtrlSet = "new")
+         CtrlSet = "new") %>%
+  filter(Species != "Oxycaryum cubense") # old name of Cuban bulrush added with expand_grid
 
 
 #### combine data ####
@@ -264,6 +272,8 @@ all_ctrl_2010 <- all_ctrl_old %>%
 
 foc_ctrl_2010 <- foc_ctrl_old %>%
   filter(GSYear == 2010) %>%
+  mutate(Species = if_else(Species == "Oxycaryum cubense", # update old name to avoid duplicate records
+                           "Cyperus blepharoleptos", Species)) %>%
   full_join(foc_ctrl %>%
               filter(GSYear == 2010)) %>%
   group_by(PermanentID, GSYear, Area_ha, Species) %>%
@@ -285,9 +295,15 @@ inv_ctrl <- all_ctrl_old %>%
               full_join(foc_ctrl)) %>%
   filter(GSYear != 2010) %>%
   full_join(ctrl_2010) %>%
-  left_join(inv_taxa) # duplicate each floating plant row for the two species
+  left_join(inv_taxa) # duplicate each floating plant row for the two species, add taxon names
 
 # check for redundancy
+inv_ctrl %>%
+  select(PermanentID, GSYear, Species) %>%
+  get_dupes() %>%
+  select(Species, dupe_count) %>%
+  unique()
+
 inv_ctrl %>%
   select(PermanentID, GSYear, TaxonName) %>%
   get_dupes()

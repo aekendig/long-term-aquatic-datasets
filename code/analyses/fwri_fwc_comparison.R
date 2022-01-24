@@ -105,6 +105,16 @@ comb %>%
   select(PermanentID, FWC_AreaName, FWRI_AreaName) %>%
   unique() # 18 lakes
 
+# initial visualizations
+comb %>%
+  ggplot(aes(x = GSYear, y = FWC_PropCovered, color = PermanentID))+
+  geom_line() +
+  geom_line(aes(y = FWRI_PropCovered), linetype = "dashed") +
+  facet_wrap(~ CommonName, scales = "free") +
+  theme_bw() +
+  theme(legend.position = "none")
+# some have low cover, but none are missing data
+
 
 #### correlations ####
 
@@ -116,12 +126,26 @@ comb_cor <- comb %>%
   mutate(Cor_text = as.character(round_half_up(Cor, digits = 2)),
          Star = if_else(P_value < 0.05, "*", ""),
          Cor_P = paste0(Cor_text, Star))
+# 6 warnings
+
+comb_cor %>%
+  filter(is.na(Cor))
+# all water fern
+
+comb %>%
+  filter(CommonName == "water fern") %>%
+  ggplot(aes(x = FWC_PropCovered, y = FWRI_PropCovered)) +
+  geom_point() +
+  facet_wrap(~ FWRI_PropType, scales = "free")
+# cover is always zero for water fern in FWRI dataset
 
 
 #### correlation figure ####
 
-pdf("output/fwri_fwc_correlations.pdf", width = 4, height = 4)
-ggplot(comb_cor, aes(x = CommonName, y = Cor, 
+pdf("output/fwri_fwc_correlations.pdf", width = 6.5, height = 4)
+comb_cor %>%
+  filter(CommonName != "water fern") %>%
+  ggplot(aes(x = CommonName, y = Cor, 
                      fill = as.factor(FWRI_PropType))) +
   geom_bar(stat = "identity", position = "dodge") +
   geom_text(aes(label = Cor_P), 
@@ -135,16 +159,43 @@ ggplot(comb_cor, aes(x = CommonName, y = Cor,
 dev.off()
 
 
+#### update comb ####
+
+# remove water fern
+comb2 <- comb %>%
+  filter(CommonName != "water fern")
+
+# get common names
+comb_common <- comb %>%
+  pull(CommonName) %>%
+  unique() %>%
+  sort()
+
+
 #### cover difference figure ####
 
-pdf("output/fwri_fwc_proportion_difference_histogram.pdf", width = 6.5, height = 6.5)
-ggplot(comb, aes(x = CoverDiff)) +
+pdf("output/fwri_fwc_proportion_difference_histogram1.pdf", width = 6.5, height = 4)
+comb2 %>%
+  filter(CommonName %in% comb_common[1:4]) %>%
+  ggplot(aes(x = CoverDiff)) +
   geom_histogram(binwidth = 0.01) +
-  facet_grid(CommonName ~ FWRI_PropType, scales = "free") +
+  facet_grid(FWRI_PropType ~ CommonName, scales = "free") +
   labs(x = "Annual survey - FWRI survey",
        y = "Lake-year combinations") +
   def_theme_paper
 dev.off()
+
+pdf("output/fwri_fwc_proportion_difference_histogram2.pdf", width = 6.5, height = 4)
+comb2 %>%
+  filter(CommonName %in% comb_common[5:8]) %>%
+  ggplot(aes(x = CoverDiff)) +
+  geom_histogram(binwidth = 0.01) +
+  facet_grid(FWRI_PropType ~ CommonName, scales = "free") +
+  labs(x = "Annual survey - FWRI survey",
+       y = "Lake-year combinations") +
+  def_theme_paper
+dev.off()
+
 
 
 #### process data for regressions ####
@@ -152,7 +203,7 @@ dev.off()
 # function to process data
 mod_dat_filt <- function(Species, PropType){
   
-  dat_out <- comb %>%
+  dat_out <- comb2 %>%
     filter(CommonName == Species & 
              FWRI_PropType == PropType) %>%
     mutate(LakeArea_s = (FWRI_Area_ha - min(FWRI_Area_ha)) / sd(FWRI_Area_ha),
@@ -168,27 +219,32 @@ mod_dat_filt <- function(Species, PropType){
   
 }
 
+# function to fit models
+mod_fit <- function(dat_in, qual = F){
+  
+  # fit model depending on species and water quality data
+  if(unique(dat_in$CommonName) == "hydrilla" & qual == F){
+    mod <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = dat_in)
+  } else if(unique(dat_in$CommonName) == "hydrilla" & qual == T){
+    mod <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = dat_in)
+  } else if(qual == F){
+    mod <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID), data = dat_in)
+  } else{
+    mod <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = dat_in)
+  }
+  
+  return(mod)
+  
+}
+
 # filter for hydrilla and each pop type
 hydr1 <- mod_dat_filt("hydrilla", "present")[[1]]
 hydr2 <- mod_dat_filt("hydrilla", "moderate-to-dense")[[1]]
 hydr3 <- mod_dat_filt("hydrilla", "dense")[[1]]
-wahy1 <- mod_dat_filt("water hyacinth", "present")[[1]]
-wahy2 <- mod_dat_filt("water hyacinth", "moderate-to-dense")[[1]]
-wahy3 <- mod_dat_filt("water hyacinth", "dense")[[1]]
-wale1 <- mod_dat_filt("water lettuce", "present")[[1]]
-wale2 <- mod_dat_filt("water lettuce", "moderate-to-dense")[[1]]
-wale3 <- mod_dat_filt("water lettuce", "dense")[[1]]
 
-# filter for water quality data
 hydr1_qual <- mod_dat_filt("hydrilla", "present")[[2]]
 hydr2_qual <- mod_dat_filt("hydrilla", "moderate-to-dense")[[2]]
 hydr3_qual <- mod_dat_filt("hydrilla", "dense")[[2]]
-wahy1_qual <- mod_dat_filt("water hyacinth", "present")[[2]]
-wahy2_qual <- mod_dat_filt("water hyacinth", "moderate-to-dense")[[2]]
-wahy3_qual <- mod_dat_filt("water hyacinth", "dense")[[2]]
-wale1_qual <- mod_dat_filt("water lettuce", "present")[[2]]
-wale2_qual <- mod_dat_filt("water lettuce", "moderate-to-dense")[[2]]
-wale3_qual <- mod_dat_filt("water lettuce", "dense")[[2]]
 
 # visualize scaled variables
 ggplot(hydr1, aes(x = LakeArea_s)) +
@@ -236,6 +292,64 @@ cor.test(~ LakeArea_s + Turbidity_s, data = hydr1_qual) # 0.3
 cor.test(~ Turbidity_s + SurveyorExperience_s, data = hydr1_qual) # not sig
 cor.test(~ Turbidity_s + DateDiff_s, data = hydr1_qual) # -0.1
 
+# filter other species
+wahy1 <- mod_dat_filt("water hyacinth", "present")[[1]]
+wahy2 <- mod_dat_filt("water hyacinth", "moderate-to-dense")[[1]]
+wahy3 <- mod_dat_filt("water hyacinth", "dense")[[1]]
+
+wale1 <- mod_dat_filt("water lettuce", "present")[[1]]
+wale2 <- mod_dat_filt("water lettuce", "moderate-to-dense")[[1]]
+wale3 <- mod_dat_filt("water lettuce", "dense")[[1]]
+
+torp1 <- mod_dat_filt("torpedograss", "present")[[1]]
+torp2 <- mod_dat_filt("torpedograss", "moderate-to-dense")[[1]]
+torp3 <- mod_dat_filt("torpedograss", "dense")[[1]]
+
+alwe1 <- mod_dat_filt("alligator weed", "present")[[1]]
+alwe2 <- mod_dat_filt("alligator weed", "moderate-to-dense")[[1]]
+alwe3 <- mod_dat_filt("alligator weed", "dense")[[1]]
+
+wita1 <- mod_dat_filt("wild taro", "present")[[1]]
+wita2 <- mod_dat_filt("wild taro", "moderate-to-dense")[[1]]
+wita3 <- mod_dat_filt("wild taro", "dense")[[1]]
+
+cubu1 <- mod_dat_filt("cuban bulrush", "present")[[1]]
+cubu2 <- mod_dat_filt("cuban bulrush", "moderate-to-dense")[[1]]
+cubu3 <- mod_dat_filt("cuban bulrush", "dense")[[1]]
+
+pagr1 <- mod_dat_filt("para grass", "present")[[1]]
+pagr2 <- mod_dat_filt("para grass", "moderate-to-dense")[[1]]
+pagr3 <- mod_dat_filt("para grass", "dense")[[1]]
+
+# filter for water quality data
+wahy1_qual <- mod_dat_filt("water hyacinth", "present")[[2]]
+wahy2_qual <- mod_dat_filt("water hyacinth", "moderate-to-dense")[[2]]
+wahy3_qual <- mod_dat_filt("water hyacinth", "dense")[[2]]
+
+wale1_qual <- mod_dat_filt("water lettuce", "present")[[2]]
+wale2_qual <- mod_dat_filt("water lettuce", "moderate-to-dense")[[2]]
+wale3_qual <- mod_dat_filt("water lettuce", "dense")[[2]]
+
+torp1_qual <- mod_dat_filt("torpedograss", "present")[[2]]
+torp2_qual <- mod_dat_filt("torpedograss", "moderate-to-dense")[[2]]
+torp3_qual <- mod_dat_filt("torpedograss", "dense")[[2]]
+
+alwe1_qual <- mod_dat_filt("alligator weed", "present")[[2]]
+alwe2_qual <- mod_dat_filt("alligator weed", "moderate-to-dense")[[2]]
+alwe3_qual <- mod_dat_filt("alligator weed", "dense")[[2]]
+
+wita1_qual <- mod_dat_filt("wild taro", "present")[[2]]
+wita2_qual <- mod_dat_filt("wild taro", "moderate-to-dense")[[2]]
+wita3_qual <- mod_dat_filt("wild taro", "dense")[[2]]
+
+cubu1_qual <- mod_dat_filt("cuban bulrush", "present")[[2]]
+cubu2_qual <- mod_dat_filt("cuban bulrush", "moderate-to-dense")[[2]]
+cubu3_qual <- mod_dat_filt("cuban bulrush", "dense")[[2]]
+
+pagr1_qual <- mod_dat_filt("para grass", "present")[[2]]
+pagr2_qual <- mod_dat_filt("para grass", "moderate-to-dense")[[2]]
+pagr3_qual <- mod_dat_filt("para grass", "dense")[[2]]
+
 
 #### cover difference glmmTMB regressions ####
 
@@ -244,84 +358,203 @@ cor.test(~ Turbidity_s + DateDiff_s, data = hydr1_qual) # -0.1
 # with a fixed effect model (collinear with lake fixed effect)
 # glmmTMB also has flexible families if needed
 
-# hyrilla models full dataset
-hydr_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr1)
+# fit models
+hydr_mod1 <- mod_fit(hydr1)
+hydr_mod2 <- mod_fit(hydr2)
+hydr_mod3 <- mod_fit(hydr3)
+
+wahy_mod1 <- mod_fit(wahy1)
+wahy_mod2 <- mod_fit(wahy2)
+wahy_mod3 <- mod_fit(wahy3)
+
+wale_mod1 <- mod_fit(wale1)
+wale_mod2 <- mod_fit(wale2)
+wale_mod3 <- mod_fit(wale3)
+
+torp_mod1 <- mod_fit(torp1)
+torp_mod2 <- mod_fit(torp2)
+torp_mod3 <- mod_fit(torp3)
+
+alwe_mod1 <- mod_fit(alwe1)
+alwe_mod2 <- mod_fit(alwe2) # convergence error
+alwe_mod3 <- mod_fit(alwe3)
+
+wita_mod1 <- mod_fit(wita1)
+wita_mod2 <- mod_fit(wita2)
+wita_mod3 <- mod_fit(wita3)
+
+cubu_mod1 <- mod_fit(cubu1)
+cubu_mod2 <- mod_fit(cubu2)
+cubu_mod3 <- mod_fit(cubu3)
+
+pagr_mod1 <- mod_fit(pagr1)
+pagr_mod2 <- mod_fit(pagr2)
+pagr_mod3 <- mod_fit(pagr3)
+
+# fit quality models
+hydr_mod1_qual <- mod_fit(hydr1_qual, qual = T)
+hydr_mod2_qual <- mod_fit(hydr2_qual, qual = T)
+hydr_mod3_qual <- mod_fit(hydr3_qual, qual = T)
+
+wahy_mod1_qual <- mod_fit(wahy1_qual, qual = T)
+wahy_mod2_qual <- mod_fit(wahy2_qual, qual = T)
+wahy_mod3_qual <- mod_fit(wahy3_qual, qual = T)
+
+wale_mod1_qual <- mod_fit(wale1_qual, qual = T)
+wale_mod2_qual <- mod_fit(wale2_qual, qual = T)
+wale_mod3_qual <- mod_fit(wale3_qual, qual = T)
+
+torp_mod1_qual <- mod_fit(torp1_qual, qual = T)
+torp_mod2_qual <- mod_fit(torp2_qual, qual = T)
+torp_mod3_qual <- mod_fit(torp3_qual, qual = T)
+
+alwe_mod1_qual <- mod_fit(alwe1_qual, qual = T)
+alwe_mod2_qual <- mod_fit(alwe2_qual, qual = T)
+alwe_mod3_qual <- mod_fit(alwe3_qual, qual = T)
+
+wita_mod1_qual <- mod_fit(wita1_qual, qual = T)
+wita_mod2_qual <- mod_fit(wita2_qual, qual = T)
+wita_mod3_qual <- mod_fit(wita3_qual, qual = T)
+
+cubu_mod1_qual <- mod_fit(cubu1_qual, qual = T)
+cubu_mod2_qual <- mod_fit(cubu2_qual, qual = T)
+cubu_mod3_qual <- mod_fit(cubu3_qual, qual = T)
+
+pagr_mod1_qual <- mod_fit(pagr1_qual, qual = T)
+pagr_mod2_qual <- mod_fit(pagr2_qual, qual = T)
+pagr_mod3_qual <- mod_fit(pagr3_qual, qual = T)
+
+# review models
 summary(hydr_mod1) # surveyor
-plot(simulateResiduals(hydr_mod1))
-
-hydr_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr2)
 summary(hydr_mod2) # surveyor
-plot(simulateResiduals(hydr_mod2))
-
-hydr_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + (1|GSYear) + (1|PermanentID), data = hydr3)
 summary(hydr_mod3) # surveyor
+
+summary(wahy_mod1)
+summary(wahy_mod2)
+summary(wahy_mod3) # date
+
+summary(wale_mod1) # date
+summary(wale_mod2)
+summary(wale_mod3)
+
+summary(torp_mod1)
+summary(torp_mod2) # surveyor
+summary(torp_mod3) # surveyor
+
+summary(alwe_mod1)
+summary(alwe_mod2) # convergence error
+summary(alwe_mod3)
+
+summary(wita_mod1)
+summary(wita_mod2) # date
+summary(wita_mod3) # date
+
+summary(cubu_mod1)
+summary(cubu_mod2)
+summary(cubu_mod3)
+
+summary(pagr_mod1) # surveyor
+summary(pagr_mod2) # surveyor
+summary(pagr_mod3)
+
+summary(hydr_mod1_qual) # surveyor
+summary(hydr_mod2_qual) # surveyor
+summary(hydr_mod3_qual) # surveyor
+
+summary(wahy_mod1_qual)
+summary(wahy_mod2_qual)
+summary(wahy_mod3_qual) # date
+
+summary(wale_mod1_qual) # date
+summary(wale_mod2_qual)
+summary(wale_mod3_qual)
+
+summary(torp_mod1_qual) # surveyor
+summary(torp_mod2_qual) # surveyor, turbidity
+summary(torp_mod3_qual) # surveyor, turbidity
+
+summary(alwe_mod1_qual) # date
+summary(alwe_mod2_qual)
+summary(alwe_mod3_qual)
+
+summary(wita_mod1_qual)
+summary(wita_mod2_qual)
+summary(wita_mod3_qual) # date
+
+summary(cubu_mod1_qual)
+summary(cubu_mod2_qual)
+summary(cubu_mod3_qual)
+
+summary(pagr_mod1_qual) # surveyor, turbidity
+summary(pagr_mod2_qual) # surveyor, turbidity
+summary(pagr_mod3_qual) # surveyor, turbidity
+
+# check model fits
+# all have issues
+
+plot(simulateResiduals(hydr_mod1))
+plot(simulateResiduals(hydr_mod2))
 plot(simulateResiduals(hydr_mod3))
 
-# hydrilla models water Turbidity dataset
-hydr_qual_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr1_qual)
-summary(hydr_qual_mod1) # surveyor
-plot(simulateResiduals(hydr_qual_mod1))
-
-hydr_qual_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr2_qual)
-summary(hydr_qual_mod2) # surveyor
-plot(simulateResiduals(hydr_qual_mod2))
-
-hydr_qual_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + FWRI_Nguad_Present + Turbidity_s + (1|GSYear) + (1|PermanentID), data = hydr3_qual)
-summary(hydr_qual_mod3) # surveyor
-plot(simulateResiduals(hydr_qual_mod3))
-# turbidity never sig
-
-# water hyacinth models full dataset
-wahy_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy1)
-summary(wahy_mod1)
 plot(simulateResiduals(wahy_mod1))
-
-wahy_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy2)
-summary(wahy_mod2)
 plot(simulateResiduals(wahy_mod2))
-
-wahy_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wahy3)
-summary(wahy_mod3) # date diff
 plot(simulateResiduals(wahy_mod3))
 
-# water hyacinth models water Turbidity dataset
-wahy_qual_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy1_qual)
-summary(wahy_qual_mod1)
-plot(simulateResiduals(wahy_qual_mod1))
-
-wahy_qual_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy2_qual)
-summary(wahy_qual_mod2)
-plot(simulateResiduals(wahy_qual_mod2))
-
-wahy_qual_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wahy3_qual)
-summary(wahy_qual_mod3) # date diff
-plot(simulateResiduals(wahy_qual_mod3))
-
-# water lettuce models full dataset
-wale_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale1)
-summary(wale_mod1) # date diff
 plot(simulateResiduals(wale_mod1))
-
-wale_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale2)
-summary(wale_mod2)
 plot(simulateResiduals(wale_mod2))
-
-wale_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + (1|GSYear) + (1|PermanentID) , data = wale3)
-summary(wale_mod3)
 plot(simulateResiduals(wale_mod3))
 
-# water lettuce models water Turbidity dataset
-wale_qual_mod1 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|GSYear) + (1|PermanentID), data = wale1_qual)
-summary(wale_qual_mod1) # date diff
-plot(simulateResiduals(wale_qual_mod1))
+plot(simulateResiduals(torp_mod1))
+plot(simulateResiduals(torp_mod2))
+plot(simulateResiduals(torp_mod3))
 
-wale_qual_mod2 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|PermanentID), data = wale2_qual) # model didn't converge with GSYear, which had very small estimates in other models
-summary(wale_qual_mod2)
-plot(simulateResiduals(wale_qual_mod2))
+plot(simulateResiduals(alwe_mod1))
+plot(simulateResiduals(alwe_mod2))
+plot(simulateResiduals(alwe_mod3))
 
-wale_qual_mod3 <- glmmTMB(CoverDiff ~ DateDiff_s + LakeArea_s + SurveyorExperience_s + Turbidity_s + (1|PermanentID), data = wale3_qual) # model didn't converge with GSYear, which had very small estimates in other models
-summary(wale_qual_mod3)
-plot(simulateResiduals(wale_qual_mod3))
+plot(simulateResiduals(wita_mod1))
+plot(simulateResiduals(wita_mod2))
+plot(simulateResiduals(wita_mod3))
+
+plot(simulateResiduals(cubu_mod1))
+plot(simulateResiduals(cubu_mod2))
+plot(simulateResiduals(cubu_mod3))
+
+plot(simulateResiduals(pagr_mod1))
+plot(simulateResiduals(pagr_mod2))
+plot(simulateResiduals(pagr_mod3))
+
+plot(simulateResiduals(hydr_mod1_qual))
+plot(simulateResiduals(hydr_mod2_qual))
+plot(simulateResiduals(hydr_mod3_qual))
+
+plot(simulateResiduals(wahy_mod1_qual))
+plot(simulateResiduals(wahy_mod2_qual))
+plot(simulateResiduals(wahy_mod3_qual))
+
+plot(simulateResiduals(wale_mod1_qual))
+plot(simulateResiduals(wale_mod2_qual))
+plot(simulateResiduals(wale_mod3_qual))
+
+plot(simulateResiduals(torp_mod1_qual))
+plot(simulateResiduals(torp_mod2_qual))
+plot(simulateResiduals(torp_mod3_qual))
+
+plot(simulateResiduals(alwe_mod1_qual))
+plot(simulateResiduals(alwe_mod2_qual))
+plot(simulateResiduals(alwe_mod3_qual))
+
+plot(simulateResiduals(wita_mod1_qual))
+plot(simulateResiduals(wita_mod2_qual))
+plot(simulateResiduals(wita_mod3_qual))
+
+plot(simulateResiduals(cubu_mod1_qual))
+plot(simulateResiduals(cubu_mod2_qual))
+plot(simulateResiduals(cubu_mod3_qual))
+
+plot(simulateResiduals(pagr_mod1_qual))
+plot(simulateResiduals(pagr_mod2_qual))
+plot(simulateResiduals(pagr_mod3_qual))
 
 
 #### glmmTMB regression coefficient plot ####
@@ -333,18 +566,38 @@ mod_terms <- tibble(term = c("(Intercept)", "DateDiff_s", "LakeArea_s",
                     variable = c("intercept", "days after", "area", "surveyor",
                                  "so. naiad", "turbidity"))
 # extract model summary
-hydr_qual_tid2 <- tidy(hydr_qual_mod2) %>%
+hydr_qual_tid2 <- tidy(hydr_mod2_qual) %>%
   mutate(model = "hydrilla")
 
-wahy_qual_tid2 <- tidy(wahy_qual_mod2) %>%
+wahy_qual_tid2 <- tidy(wahy_mod2_qual) %>%
   mutate(model = "water hyacinth")
 
-wale_qual_tid2 <- tidy(wale_qual_mod2) %>%
+wale_qual_tid2 <- tidy(wale_mod2_qual) %>%
   mutate(model = "water lettuce")
+
+torp_qual_tid2 <- tidy(torp_mod2_qual) %>%
+  mutate(model = "torpedograss")
+
+alwe_qual_tid2 <- tidy(alwe_mod2_qual) %>%
+  mutate(model = "alligator weed")
+
+wita_qual_tid2 <- tidy(wita_mod2_qual) %>%
+  mutate(model = "wild taro")
+
+cubu_qual_tid2 <- tidy(cubu_mod2_qual) %>%
+  mutate(model = "Cuban bulrush")
+
+pagr_qual_tid2 <- tidy(pagr_mod2_qual) %>%
+  mutate(model = "para grass")
 
 mod_qual_tid <- hydr_qual_tid2 %>%
   full_join(wahy_qual_tid2) %>%
   full_join(wale_qual_tid2) %>%
+  full_join(torp_qual_tid2) %>%
+  full_join(alwe_qual_tid2) %>%
+  full_join(wita_qual_tid2) %>%
+  full_join(cubu_qual_tid2) %>%
+  full_join(pagr_qual_tid2) %>%
   left_join(mod_terms)%>%
   filter(effect == "fixed") %>%
   mutate(term = fct_relevel(variable, "intercept", "area",
@@ -353,7 +606,7 @@ mod_qual_tid <- hydr_qual_tid2 %>%
          conf.int = std.error * 1.96)
 
 # figure
-pdf("output/fwri_fwc_comparison_coefficients.pdf", width = 4, height = 5)
+pdf("output/fwri_fwc_comparison_coefficients.pdf", width = 4, height = 7)
 dwplot(mod_qual_tid,
        vline = geom_vline(
          xintercept = 0,
@@ -362,7 +615,7 @@ dwplot(mod_qual_tid,
   scale_color_brewer(type = "qual", palette = "Dark2") +
   def_theme_paper +
   theme(legend.title = element_blank(),
-        legend.position = c(0.77, 0.8)) +
+        legend.position = c(0.77, 0.7)) +
   xlab(expression(paste("Est. (Annual - FWRI) "%+-%" 95% CI", sep = "")))
 dev.off()
 

@@ -39,7 +39,7 @@ inv_dat <- inv_plant %>%
   mutate(PrevPercCovered = PrevPropCovered * 100)
 
 # checked before removing NA's
-filter(inv_dat, is.na(MinSurveyorExperience)) # 18 rows
+filter(inv_dat, is.na(MinSurveyorExperience)) # 54 rows (9 surveys)
 
 # water quality
 qual <- lw_qual %>%
@@ -58,9 +58,22 @@ inv_qual_dat <- inv_dat %>%
 hydr_dat <- filter(inv_dat, CommonName == "Hydrilla")
 wale_dat <- filter(inv_dat, CommonName == "Water lettuce")
 wahy_dat <- filter(inv_dat, CommonName == "Water hyacinth")
+torp_dat <- filter(inv_dat, CommonName == "Torpedograss")
+alwe_dat <- filter(inv_dat, CommonName == "Alligator weed")
+wita_dat <- filter(inv_dat, CommonName == "Wild taro")
+cubu_dat <- filter(inv_dat, CommonName == "Cuban bulrush")
+pagr_dat <- filter(inv_dat, CommonName == "Para grass")
+wafe_dat <- filter(inv_dat, CommonName == "Water fern")
+
 hydr_qual_dat <- filter(inv_qual_dat, CommonName == "Hydrilla")
 wale_qual_dat <- filter(inv_qual_dat, CommonName == "Water lettuce")
 wahy_qual_dat <- filter(inv_qual_dat, CommonName == "Water hyacinth")
+torp_qual_dat <- filter(inv_qual_dat, CommonName == "Torpedograss")
+alwe_qual_dat <- filter(inv_qual_dat, CommonName == "Alligator weed")
+wita_qual_dat <- filter(inv_qual_dat, CommonName == "Wild taro")
+cubu_qual_dat <- filter(inv_qual_dat, CommonName == "Cuban bulrush")
+pagr_qual_dat <- filter(inv_qual_dat, CommonName == "Para grass")
+wafe_qual_dat <- filter(inv_qual_dat, CommonName == "Water fern")
 
 
 #### initial visualizations ####
@@ -75,17 +88,41 @@ cor.test(~ Lag5Treated + Lag5AllTreated, data = wahy_dat)
 # yes
 
 # covariate correlations
-hydr_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience) %>%
+hydr_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
   ggpairs()
 
-wahy_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience) %>%
+wahy_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+  ggpairs() # one high cover value
+
+wahy_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
   ggpairs()
 
-wale_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience) %>%
+torp_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
   ggpairs()
+
+alwe_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+  ggpairs()
+
+wita_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+  ggpairs()
+
+cubu_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+  ggpairs()
+
+pagr_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+  ggpairs()
+
+wafe_qual_dat %>%
+  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+  ggpairs() # lots of zeros
 
 # log ratio prop covered
 ggplot(hydr_dat, aes(x = PrevPercCovered, y = LogRatioCovered, 
@@ -192,11 +229,15 @@ mod_lag_comp <- function(mod_list){
 hydr_mods <- mod_fit(hydr_dat)
 wahy_mods <- mod_fit(wahy_dat)
 wale_mods <- mod_fit(wale_dat)
+torp_mods <- mod_fit(torp_dat)
+alwe_mods <- mod_fit(alwe_dat) # 'PrevPercCovered_c:Lag0Treated' removed because of collinearity
+wita_mods <- mod_fit(wita_dat)
+cubu_mods <- mod_fit(cubu_dat)
+pagr_mods <- mod_fit(pagr_dat)
+wafe_mods <- mod_fit(wafe_dat) # all 'PrevPercCovered_c:LagXTreated' removed because of collinearity
 
 # name models
-names(hydr_mods) <- c("1", "2", "3", "4", "5", "6")
-names(wahy_mods) <- c("1", "2", "3", "4", "5", "6")
-names(wale_mods) <- c("1", "2", "3", "4", "5", "6")
+names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(wita_mods) <- names(cubu_mods) <- names(pagr_mods) <- c("1", "2", "3", "4", "5", "6")
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
@@ -223,15 +264,14 @@ hydr_fig <- modelplot(hydr_mods,
   labs(x = "",
        title = "(A) hydrilla") +
   def_theme_paper +
-  theme(legend.position = "none") +
-  guides(color = guide_legend(reverse = TRUE))
+  theme(legend.position = "none")
 
 wahy_fig <- modelplot(wahy_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+  labs(x = "",
        title = "(B) water hyacinth") +
   def_theme_paper +
   theme(legend.position = "none",
@@ -241,18 +281,63 @@ wale_fig <- modelplot(wale_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
+  scale_color_viridis_d(direction = -1) +
   labs(x = "",
        title = "(C) water lettuce") +
   def_theme_paper +
   theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10))
+        legend.position = "none")
+
+cubu_fig <- modelplot(cubu_mods,
+                      coef_map = coef_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(D) Cuban bulrush") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+pagr_fig <- modelplot(pagr_mods,
+                      coef_map = coef_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
+       title = "(E) para grass") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+torp_fig <- modelplot(torp_mods,
+                      coef_map = coef_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
+       title = "(F) torpedograss") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+wita_fig <- modelplot(wita_mods,
+                      coef_map = coef_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
+  labs(x = "",
+       title = "(G) wild taro") +
+  def_theme_paper +
+  theme(axis.text.y = element_blank(),
+        legend.box.margin = margin(-10, 0, -10, -10)) +
+  guides(color = guide_legend(reverse = TRUE))
 
 # combine figures
-pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 6.5, height = 4)
-plot_grid(hydr_fig, wahy_fig, wale_fig,
+pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 13, height = 5)
+plot_grid(hydr_fig, wahy_fig, wale_fig, cubu_fig, pagr_fig, torp_fig, wita_fig, 
           nrow = 1,
-          rel_widths = c(1, 0.57, 0.75))
+          rel_widths = c(1, rep(0.57, 5), 0.75))
 dev.off()
 
 
@@ -262,11 +347,15 @@ dev.off()
 hydr_qual_mods <- mod_qual_fit(hydr_qual_dat)
 wahy_qual_mods <- mod_qual_fit(wahy_qual_dat)
 wale_qual_mods <- mod_qual_fit(wale_qual_dat)
+torp_qual_mods <- mod_qual_fit(torp_qual_dat)
+alwe_qual_mods <- mod_qual_fit(alwe_qual_dat) # 'PrevPercCovered_c:Lag0Treated' removed because of collinearity
+wita_qual_mods <- mod_qual_fit(wita_qual_dat)
+cubu_qual_mods <- mod_qual_fit(cubu_qual_dat)
+pagr_qual_mods <- mod_qual_fit(pagr_qual_dat)
+wafe_qual_mods <- mod_qual_fit(wafe_qual_dat) # all 'PrevPercCovered_c:LagXTreated' removed because of collinearity
 
 # name models
-names(hydr_qual_mods) <- c("1", "2", "3", "4", "5", "6")
-names(wahy_qual_mods) <- c("1", "2", "3", "4", "5", "6")
-names(wale_qual_mods) <- c("1", "2", "3", "4", "5", "6")
+names(hydr_qual_mods) <- names(wahy_qual_mods) <- names(wale_qual_mods) <- names(torp_qual_mods) <- names(wita_qual_mods) <- names(cubu_qual_mods) <- names(pagr_qual_mods) <- c("1", "2", "3", "4", "5", "6")
 
 # rename coefficients
 coef_qual_names <- c("Clarity_s" = "Water clarity", 
@@ -291,41 +380,83 @@ hydr_qual_fig <- modelplot(hydr_qual_mods,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+  labs(x = "",
        title = "(A) hydrilla") +
   def_theme_paper +
-  theme(legend.position = "none") +
-  guides(color = guide_legend(reverse = TRUE))
+  theme(legend.position = "none")
 
 wahy_qual_fig <- modelplot(wahy_qual_mods,
                       coef_map = coef_qual_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+  labs(x = "",
        title = "(B) water hyacinth") +
   def_theme_paper +
   theme(legend.position = "none",
-        axis.text.y = element_blank()) +
-  guides(color = guide_legend(reverse = TRUE))
+        axis.text.y = element_blank())
 
 wale_qual_fig <- modelplot(wale_qual_mods,
                       coef_map = coef_qual_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
        title = "(C) water lettuce") +
+  def_theme_paper +
+  theme(axis.text.y = element_blank(),
+        legend.position = "none")
+
+cubu_qual_fig <- modelplot(cubu_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(D) Cuban bulrush") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+pagr_qual_fig <- modelplot(pagr_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
+       title = "(E) para grass") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+torp_qual_fig <- modelplot(torp_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
+       title = "(F) torpedograss") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
+
+wita_qual_fig <- modelplot(wita_qual_mods,
+                      coef_map = coef_qual_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
+  labs(x = "",
+       title = "(G) wild taro") +
   def_theme_paper +
   theme(axis.text.y = element_blank(),
         legend.box.margin = margin(-10, 0, -10, -10)) +
   guides(color = guide_legend(reverse = TRUE))
 
 # combine figures
-pdf("output/fwc_invasive_plant_treatment_clarity_model.pdf", width = 6.5, height = 4)
-plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig,
+pdf("output/fwc_invasive_plant_treatment_clarity_model.pdf", width = 13, height = 5)
+plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig, cubu_qual_fig, pagr_qual_fig, torp_qual_fig, wita_qual_fig, 
           nrow = 1,
-          rel_widths = c(1, 0.57, 0.75))
+          rel_widths = c(1, rep(0.57, 5), 0.75))
 dev.off()
 
 
@@ -415,20 +546,38 @@ dev.off()
 mod_lag_comp(hydr_mods) # 4, 5 similar
 mod_lag_comp(wahy_mods) # all except 1 similar
 mod_lag_comp(wale_mods) # 5 best
+mod_lag_comp(cubu_mods) # 2 best
+mod_lag_comp(pagr_mods) # all similar
+mod_lag_comp(torp_mods) # 0 and 2 best
+mod_lag_comp(wita_mods) # 1-5 similar
 
 mod_lag_comp(hydr_qual_mods) # all except 1 similar
 mod_lag_comp(wahy_qual_mods) # 3, 4, 5 similar
 mod_lag_comp(wale_qual_mods) # 4, 5 similar
+mod_lag_comp(cubu_qual_mods) # 0, 1 best
+mod_lag_comp(pagr_qual_mods) # all similar
+mod_lag_comp(torp_qual_mods) # all similar
+mod_lag_comp(wita_qual_mods) # all similar
 
 # output AIC values
 aic_out <- tibble(Lag = mod_lag_comp(hydr_mods)$Lag,
                   Hydrilla = mod_lag_comp(hydr_mods)$deltaAIC,
                   Waterhyacinth = mod_lag_comp(wahy_mods)$deltaAIC,
-                  Waterlettuce = mod_lag_comp(wale_mods)$deltaAIC)
+                  Waterlettuce = mod_lag_comp(wale_mods)$deltaAIC,
+                  Cubanbulrush = mod_lag_comp(cubu_mods)$deltaAIC,
+                  Paragrass = mod_lag_comp(pagr_mods)$deltaAIC,
+                  Torpedograss = mod_lag_comp(torp_mods)$deltaAIC,
+                  Wildtaro = mod_lag_comp(wita_mods)$deltaAIC)
+
 write_csv(aic_out, "output/fwc_invasive_plant_delta_aic.csv")
 
 aic_qual_out <- tibble(Lag = mod_lag_comp(hydr_qual_mods)$Lag,
                        Hydrilla = mod_lag_comp(hydr_qual_mods)$deltaAIC,
                        Waterhyacinth = mod_lag_comp(wahy_qual_mods)$deltaAIC,
-                       Waterlettuce = mod_lag_comp(wale_qual_mods)$deltaAIC)
+                       Waterlettuce = mod_lag_comp(wale_qual_mods)$deltaAIC,
+                       Cubanbulrush = mod_lag_comp(cubu_qual_mods)$deltaAIC,
+                       Paragrass = mod_lag_comp(pagr_qual_mods)$deltaAIC,
+                       Torpedograss = mod_lag_comp(torp_qual_mods)$deltaAIC,
+                       Wildtaro = mod_lag_comp(wita_qual_mods)$deltaAIC)
+
 write_csv(aic_qual_out, "output/fwc_invasive_plant_clarity_delta_aic.csv")

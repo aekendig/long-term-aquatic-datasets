@@ -8,6 +8,7 @@ library(tidyverse)
 library(GGally)
 library(fixest) # FE models
 library(modelsummary)
+library(inspectdf) # for inspect_cor
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -104,15 +105,18 @@ inv_plant2 <- inv_plant %>%
   filter(!is.na(PrevPropCovered)) %>% # remove lakes/years without surveys
   mutate(CommonName = fct_recode(CommonName,
                                  "WaterHyacinth" = "Water hyacinth",
-                                 "WaterLettuce" = "Water lettuce")) %>%
+                                 "WaterLettuce" = "Water lettuce",
+                                 "AlligatorWeed" = "Alligator weed",
+                                 "WildTaro" = "Wild taro",
+                                 "CubanBulrush" = "Cuban bulrush",
+                                 "WaterFern" = "Water fern",
+                                 "ParaGrass" = "Para grass")) %>%
   select(PermanentID, GSYear, CommonName, LogRatioCovered, PrevPropCovered, MinSurveyorExperience) %>%
   pivot_wider(names_from = CommonName,
               values_from = c(PrevPropCovered, LogRatioCovered),
               names_glue = "{CommonName}_{.value}") %>%
-  mutate(Hydrilla_PrevPercCovered = Hydrilla_PrevPropCovered * 100,
-         WaterHyacinth_PrevPercCovered = WaterHyacinth_PrevPropCovered * 100,
-         WaterLettuce_PrevPercCovered = WaterLettuce_PrevPropCovered * 100,
-         Floating_PrevPercCovered = WaterHyacinth_PrevPercCovered + WaterLettuce_PrevPercCovered)
+  mutate(across(.cols = ends_with("PrevPropCovered"), ~ .x * 100),
+         Floating_PrevPropCovered = WaterHyacinth_PrevPropCovered + WaterLettuce_PrevPropCovered)
 
 # make wide by control target
 inv_ctrl2 <- inv_ctrl %>%
@@ -121,7 +125,14 @@ inv_ctrl2 <- inv_ctrl %>%
   unique() %>%
   mutate(Species = fct_recode(Species,
                               "Floating" = "Floating Plants (Eichhornia and Pistia)",
-                              "Hydrilla" = "Hydrilla verticillata")) %>%
+                              "Hydrilla" = "Hydrilla verticillata",
+                              "AlligatorWeed" = "Alternanthera philoxeroides",
+                              "WildTaro" = "Colocasia esculenta",
+                              "CubanBulrush" = "Oxycaryum cubense",
+                              "CubanBulrush" = "Cyperus blepharoleptos",
+                              "Torpedograss" = "Panicum repens",
+                              "WaterFern" = "Salvinia minima",
+                              "ParaGrass" = "Urochloa mutica")) %>%
   pivot_wider(names_from = Species,
               values_from = starts_with("Lag"),
               names_glue = "{Species}_{.value}") %>%
@@ -130,7 +141,7 @@ inv_ctrl2 <- inv_ctrl %>%
               unique())
 
 # check for missing data
-filter(inv_ctrl2, is.na(Floating_Lag0Treated) | is.na(Hydrilla_Lag0Treated))
+filter(inv_ctrl2, across(ends_with("Lag0Treated"), ~ is.na(.x)))
 # none
 
 # water quality
@@ -153,10 +164,7 @@ nat_dat <- nat_plant2 %>%
   filter(!is.na(MinSurveyorExperience) & !(LogRatioRich %in% c(-Inf, Inf))) %>%
   mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
          PrevRich_s = (PrevRich - mean(PrevRich)) / sd(PrevRich),
-         Hydrilla_PrevPercCovered_c = Hydrilla_PrevPercCovered - mean(Hydrilla_PrevPercCovered),
-         WaterHyacinth_PrevPercCovered_c = WaterHyacinth_PrevPercCovered - mean(WaterHyacinth_PrevPercCovered),
-         WaterLettuce_PrevPercCovered_c = WaterLettuce_PrevPercCovered - mean(WaterLettuce_PrevPercCovered),
-         Floating_PrevPercCovered_c = Floating_PrevPercCovered - mean(Floating_PrevPercCovered))
+         across(ends_with("PrevPropCovered"), ~ .x - mean(.x))) # center percent changes
 
 # missing surveyor data (checked before removing)
 sum(is.na(nat_dat$MinSurveyorExperience)) # 5 rows
@@ -171,10 +179,7 @@ nat_qual_dat <- nat_dat %>%
                select(PermanentID, GSYear, QualityValue, MonthsSampled)) %>%
   mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
          PrevRich_s = (PrevRich - mean(PrevRich)) / sd(PrevRich),
-         Hydrilla_PrevPercCovered_c = Hydrilla_PrevPercCovered - mean(Hydrilla_PrevPercCovered),
-         WaterHyacinth_PrevPercCovered_c = WaterHyacinth_PrevPercCovered - mean(WaterHyacinth_PrevPercCovered),
-         WaterLettuce_PrevPercCovered_c = WaterLettuce_PrevPercCovered - mean(WaterLettuce_PrevPercCovered),
-         Floating_PrevPercCovered_c = Floating_PrevPercCovered - mean(Floating_PrevPercCovered),
+         across(ends_with("PrevPropCovered"), ~ .x - mean(.x)),
          Clarity_s = (QualityValue - mean(QualityValue)) / sd(QualityValue))
 
 
@@ -182,38 +187,43 @@ nat_qual_dat <- nat_dat %>%
 
 # covariate correlations
 nat_dat %>%
-  select(Floating_Lag0Treated, Hydrilla_Lag0Treated, Lag0AllTreated) %>%
-  ggpairs()
+  select(ends_with("Lag0Treated"), "Lag0AllTreated") %>%
+  inspect_cor() %>% 
+  filter(p_value < 0.05 & corr >= 0.4)
 # all and floating: 0.6
 # all and hydrilla: 0.4
 
 nat_dat %>%
-  select(Floating_Lag0Treated, Hydrilla_Lag0Treated, 
-         Hydrilla_LogRatioCovered, WaterHyacinth_LogRatioCovered, WaterLettuce_LogRatioCovered,
+  select(ends_with("Lag0Treated"), 
+         ends_with("LogRatioCovered"),
          PrevRich, SurveyorExperience_s) %>%
-  ggpairs()
-# strongest correlation is water hyacinth and lettuce (0.2)
+  inspect_cor() %>% 
+  filter(p_value < 0.05 & corr >= 0.4)
+# water fern and alligator weed cover (0.8)
 
 nat_dat %>%
-  select(Floating_Lag0Treated, Hydrilla_Lag0Treated, 
-         Hydrilla_PrevPercCovered, WaterHyacinth_PrevPercCovered, WaterLettuce_PrevPercCovered,
-         Floating_PrevPercCovered, PrevRich, SurveyorExperience_s) %>%
-  ggpairs()
-# strong correlations among water hyacinth, lettuce, and floating (> 0.5)
+  select(ends_with("Lag0Treated"),
+         ends_with("PrevPercCovered"),
+         PrevRich, SurveyorExperience_s) %>%
+  inspect_cor() %>% 
+  filter(p_value < 0.05 & corr >= 0.4)
+# none
 
 nat_qual_dat %>%
-  select(Floating_Lag0Treated, Hydrilla_Lag0Treated, 
-         Hydrilla_LogRatioCovered, WaterHyacinth_LogRatioCovered, WaterLettuce_LogRatioCovered,
+  select(ends_with("Lag0Treated"), 
+         ends_with("LogRatioCovered"),
          PrevRich, SurveyorExperience_s, Clarity_s) %>%
-  ggpairs()
-# strongest correlation is clarity and floating treatment (-0.3)
+  inspect_cor() %>% 
+  filter(p_value < 0.05 & corr >= 0.4)
+# water fern and alligator weed cover (0.8)
 
 nat_qual_dat %>%
-  select(Floating_Lag0Treated, Hydrilla_Lag0Treated, 
-         Hydrilla_PrevPercCovered, WaterHyacinth_PrevPercCovered, WaterLettuce_PrevPercCovered,
-         Floating_PrevPercCovered, PrevRich, SurveyorExperience_s,  Clarity_s) %>%
-  ggpairs()
-# floating plant correlations stronger, clarity correlation same as above
+  select(ends_with("Lag0Treated"),
+         ends_with("PrevPercCovered"),
+         PrevRich, SurveyorExperience_s, Clarity_s) %>%
+  inspect_cor() %>% 
+  filter(p_value < 0.05 & corr >= 0.4)
+# none
 
 # prev and change in richness
 ggplot(nat_dat, aes(x = PrevRich, y = LogRatioRich)) +
@@ -225,7 +235,7 @@ ggplot(nat_dat, aes(x = Hydrilla_LogRatioCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm")
 
-ggplot(nat_dat, aes(x = Hydrilla_PrevPercCovered, y = LogRatioRich)) +
+ggplot(nat_dat, aes(x = Hydrilla_PrevPropCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm")
 
@@ -234,7 +244,7 @@ ggplot(nat_dat, aes(x = WaterHyacinth_LogRatioCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm")
 
-ggplot(nat_dat, aes(x = WaterHyacinth_PrevPercCovered, y = LogRatioRich)) +
+ggplot(nat_dat, aes(x = WaterHyacinth_PrevPropCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm")
 
@@ -245,12 +255,12 @@ ggplot(nat_dat, aes(x = WaterLettuce_LogRatioCovered, y = LogRatioRich)) +
 # all 3 log ratio are positive
 # conditions promoting invasive plant growth promote native richness
 
-ggplot(nat_dat, aes(x = WaterLettuce_PrevPercCovered, y = LogRatioRich)) +
+ggplot(nat_dat, aes(x = WaterLettuce_PrevPropCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm")
 
 # floating and change in richness
-ggplot(nat_dat, aes(x = Floating_PrevPercCovered, y = LogRatioRich)) +
+ggplot(nat_dat, aes(x = Floating_PrevPropCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm")
 
@@ -265,42 +275,49 @@ ggplot(nat_dat, aes(x = Floating_PrevPercCovered, y = LogRatioRich)) +
 # an increase in invasive cover may exclude plants/make them rarer and a decrease in cover may allow them to recover
 # initial invasive cover may lead to losses when higher
 
-# full dataset
-rich_mod <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_LogRatioCovered + WaterHyacinth_LogRatioCovered + WaterLettuce_LogRatioCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
-summary(rich_mod)
+# models with just hydrilla, water hyacinth, and water lettuce
 
-rich_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_PrevPercCovered + Floating_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
-summary(rich_modb)
+# rich_mod <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_LogRatioCovered + WaterHyacinth_LogRatioCovered + WaterLettuce_LogRatioCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+# summary(rich_mod)
+# 
+# rich_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_PrevPercCovered + Floating_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+# summary(rich_modb)
+# 
+# rich_qual_mod <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_LogRatioCovered + WaterHyacinth_LogRatioCovered + WaterLettuce_LogRatioCovered + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = nat_qual_dat)
+# summary(rich_qual_mod)
+# 
+# rich_qual_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_PrevPercCovered + Floating_PrevPercCovered + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = nat_qual_dat)
+# summary(rich_qual_modb)
+# 
+# # hydrilla by itself
+# rich_hydr_mod <- feols(LogRatioRich ~ PrevRich_s + Hydrilla_Lag0Treated + Hydrilla_LogRatioCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+# summary(rich_hydr_mod)
+# 
+# rich_hydr_modb <- feols(LogRatioRich ~ PrevRich_s + Hydrilla_Lag0Treated + Hydrilla_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+# summary(rich_hydr_modb)
+# # estimates are all very similar to full model
+# 
+# # floating by itself
+# rich_float_mod <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + WaterHyacinth_LogRatioCovered + WaterLettuce_LogRatioCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+# summary(rich_float_mod)
+# 
+# rich_float_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Floating_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+# summary(rich_float_modb)
+# # estimates are all very similar to full model
+
+# full dataset
+rich_all_mod <- feols(LogRatioRich ~ PrevRich_s + AlligatorWeed_PrevPropCovered + CubanBulrush_PrevPropCovered + Floating_PrevPropCovered + Hydrilla_PrevPropCovered + ParaGrass_PrevPropCovered + Torpedograss_PrevPropCovered + WaterFern_PrevPropCovered + WildTaro_PrevPropCovered + AlligatorWeed_Lag0Treated + CubanBulrush_Lag0Treated + Floating_Lag0Treated + Hydrilla_Lag0Treated + ParaGrass_Lag0Treated + Torpedograss_Lag0Treated + WaterFern_Lag0Treated + WildTaro_Lag0Treated + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
+summary(rich_all_mod)
 
 # water quality
-rich_qual_mod <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_LogRatioCovered + WaterHyacinth_LogRatioCovered + WaterLettuce_LogRatioCovered + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = nat_qual_dat)
-summary(rich_qual_mod)
-
-rich_qual_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Hydrilla_Lag0Treated + Hydrilla_PrevPercCovered + Floating_PrevPercCovered + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = nat_qual_dat)
-summary(rich_qual_modb)
-# adding clarity reduces importance of floating
-
-# hydrilla by itself
-rich_hydr_mod <- feols(LogRatioRich ~ PrevRich_s + Hydrilla_Lag0Treated + Hydrilla_LogRatioCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
-summary(rich_hydr_mod)
-
-rich_hydr_modb <- feols(LogRatioRich ~ PrevRich_s + Hydrilla_Lag0Treated + Hydrilla_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
-summary(rich_hydr_modb)
-# estimates are all very similar to full model
-
-# floating by itself
-rich_float_mod <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + WaterHyacinth_LogRatioCovered + WaterLettuce_LogRatioCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
-summary(rich_float_mod)
-
-rich_float_modb <- feols(LogRatioRich ~ PrevRich_s + Floating_Lag0Treated + Floating_PrevPercCovered + SurveyorExperience_s | PermanentID + GSYear, data = nat_dat)
-summary(rich_float_modb)
-# estimates are all very similar to full model
+rich_all_qual_mod <- feols(LogRatioRich ~ PrevRich_s + AlligatorWeed_PrevPropCovered + CubanBulrush_PrevPropCovered + Floating_PrevPropCovered + Hydrilla_PrevPropCovered + ParaGrass_PrevPropCovered + Torpedograss_PrevPropCovered + WaterFern_PrevPropCovered + WildTaro_PrevPropCovered + AlligatorWeed_Lag0Treated + CubanBulrush_Lag0Treated + Floating_Lag0Treated + Hydrilla_Lag0Treated + ParaGrass_Lag0Treated + Torpedograss_Lag0Treated + WaterFern_Lag0Treated + WildTaro_Lag0Treated + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = nat_qual_dat)
+summary(rich_all_qual_mod)
 
 
 #### model coefficient figure ####
 
 # combine models
-rich_mods <- list(rich_modb, rich_qual_modb)
+rich_mods <- list(rich_all_mod, rich_all_qual_mod)
 
 # name models
 names(rich_mods) <- c("no", "yes")
@@ -308,8 +325,20 @@ names(rich_mods) <- c("no", "yes")
 # rename coefficients
 coef_names <- c("Clarity_s" = "Water clarity",
                 "SurveyorExperience_s" = "Surveyor experience",
-                "Floating_PrevPercCovered" = "Initial floating plant abundance",
-                "Hydrilla_PrevPercCovered" = "Initial hydrilla abundance",
+                "WildTaro_PrevPropCovered" = "Wild taro abundance",
+                "WaterFern_PrevPropCovered" = "Water fern abundance",
+                "Torpedograss_PrevPropCovered" = "Torpedograss abundance",
+                "ParaGrass_PrevPropCovered" = "Para grass abundance",
+                "CubanBulrush_PrevPropCovered" = "Cuban bulrush abundance",
+                "AlligatorWeed_PrevPropCovered" = "Alligator weed abundance",
+                "Floating_PrevPropCovered" = "Floating plant abundance",
+                "Hydrilla_PrevPropCovered" = "Hydrilla abundance",
+                "WildTaro_Lag0Treated" = "Wild taro treatment",
+                "WaterFern_Lag0Treated" = "Water fern treatment",
+                "Torpedograss_Lag0Treated" = "Torpedograss treatment",
+                "ParaGrass_Lag0Treated" = "Para grass treatment",
+                "CubanBulrush_Lag0Treated" = "Cuban bulrush treatment",
+                "AlligatorWeed_Lag0Treated" = "Alligator weed treatment",
                 "Floating_Lag0Treated" = "Floating plant treatment",
                 "Hydrilla_Lag0Treated" = "Hydrilla treatment",
                 "PrevRich_s" = "Initial richness")
@@ -324,10 +353,10 @@ modelplot(rich_mods,
   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = ""))) +
   def_theme_paper +
   theme(legend.box.margin = margin(-10, 0, -10, -10))
-# models estimates are extremely similar
+# models estimates are similar
 
-pdf("output/fwc_native_richness_treatment_clarity_model.pdf", width = 4, height = 4)
-modelplot(rich_qual_modb,
+pdf("output/fwc_native_richness_treatment_clarity_all_inv_model.pdf", width = 4, height = 6)
+modelplot(rich_all_qual_mod,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed")),
