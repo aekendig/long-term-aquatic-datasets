@@ -4,6 +4,7 @@
 rm(list = ls())
 
 # load packages
+library(plotly)
 library(tidyverse)
 library(GGally)
 library(fixest) # FE models
@@ -58,14 +59,30 @@ nat_rich %>%
 # summarize richness by waterbody and year
 nat_plant2 <- nat_plant %>%
   filter(!is.na(PrevDetected)) %>%
+  mutate(Loss = ifelse(Detected == 0 & PrevDetected == 1, 1, 0),
+         Gain = ifelse(Detected == 1 & PrevDetected == 0, 1, 0)) %>%
   group_by(PermanentID, GSYear, Area_ha) %>%
   summarize(Richness = sum(Detected),
-            PrevRich = sum(PrevDetected)) %>%
+            PrevRich = sum(PrevDetected),
+            Losses = sum(Loss),
+            Gains = sum(Gain)) %>%
   ungroup() %>%
   mutate(RatioRich = Richness/PrevRich,
          LogRatioRich = log(RatioRich),
          LogArea = log(Area_ha),
          LogRich = log(Richness))
+
+# initial visualizations
+plot_ly(nat_plant2, x = ~GSYear, y = ~Richness, color = ~PermanentID) %>%
+  add_lines() %>% 
+  layout(showlegend = FALSE)
+
+# several cases of zero richness
+nat_plant2 %>%
+  filter(GSYear %in% c(1985, 1987, 1989, 1991, 1993) & Richness == 0) %>%
+  group_by(PermanentID) %>%
+  count() %>%
+  ungroup()
   
 # richness-area with year variation
 ggplot(nat_plant2, aes(x = Area_ha, y = Richness)) +

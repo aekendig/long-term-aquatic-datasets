@@ -59,19 +59,13 @@ sort(unique(first_detect$FirstYear))[1:2]
 # write_csv(first_detect, "intermediate-data/FWC_plant_survey_first_detection.csv")
 # manual version imported above
 
-# native species data missing 2000-20001
-plant_fwc %>%
-  filter(Origin == "Native") %>% 
-  filter(SurveyYear %in% c(2000, 20001) & IsDetected == "Yes")
-
-# species sampled continuously 
+# species sampled somewhat continuously 
 # remove focal invasive species
 # remove confused origin species (not sampled continuously anyway)
 plant_cont <- plant_detect %>%
   filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & 
            (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)) &
-           !(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
-                              "Ludwigia grandiflora/hexapetala", "Ludwigia octovalvis/peruviana",
+           !(TaxonName %in% c("Ludwigia grandiflora/hexapetala", "Ludwigia octovalvis/peruviana",
                               "Filamentous algae")))
 # Ludwigia octovalvis/peruviana removed because it combines native and non-native and Ludwigia are difficult to ID
 # filamentous algae removed -- use chlorophyll to analyze algae
@@ -91,8 +85,6 @@ plant_fwc2 <- plant_fwc %>%
                      AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, 
                      IsDetected)) %>% # add detection data (only "Yes")
   mutate(IsDetected = replace_na(IsDetected, "No"),
-         IsDetected = case_when(year(SurveyDate) %in% c(2000, 2001) ~ NA_character_, # no native species surveyed these years
-                                TRUE ~ IsDetected),
          Detected = case_when(IsDetected == "Yes" ~ 1,
                               IsDetected == "No" ~ 0),
          SurveyMonth = month(SurveyDate),
@@ -108,7 +100,7 @@ plant_fwc2 %>%
   summarise(surveys = length(unique(SurveyDate))) %>%
   ungroup() %>%
   filter(surveys > 1) 
-# 40 AOIs have multiple surveys in a year
+# 41 AOIs have multiple surveys in a year
 
 # summarize by permanentID to remove duplicates
 plant_fwc3 <- plant_fwc2 %>%
@@ -123,8 +115,13 @@ plant_fwc3 <- plant_fwc2 %>%
               expand_grid(GSYear = min(plant_fwc2$GSYear):max(plant_fwc2$GSYear))) %>%
   group_by(PermanentID, TaxonName) %>%
   arrange(GSYear) %>% 
-  mutate(PrevDetected = lag(Detected)) %>% # previous year's detection
-  ungroup() 
+  mutate(PrevDetected = lag(Detected), # previous year's detection
+         NextDetected = lead(Detected)) %>%
+  ungroup() %>%
+  mutate(Surveyed = case_when(Detected == 1 ~ 1,
+                              is.na(Detected) ~ 0,
+                              Detected == 0 & GSYear %in% c(1985, 1987, 1989, 1991, 1993, 2000, 2001) ~ 0, # clear dips in species richness, will correct if others in origin group were detected (see below)
+                              TRUE ~ 1)) # errs on the side of counting as surveyed
 
 # make sure missing Detected/PrevDetected applies to all taxa
 plant_fwc3 %>%
@@ -138,9 +135,141 @@ plant_fwc3 %>%
            (NAPrevDetected > 0 & NAPrevDetected != TotPrevDetected))
 # yes
 
+# zero detected
+plant_fwc3 %>%
+  group_by(PermanentID, AreaName, GSYear, SurveyDate) %>%
+  summarize(TotDetected = sum(Detected)) %>%
+  ungroup() %>%
+  filter(TotDetected == 0) %>%
+  rename(AreaOfInterest = AreaName) %>%
+  inner_join(plant_fwc) %>%
+  select(AreaOfInterest, SurveyDate, TaxonName, IsDetected)
+# only have one taxon and they're not in continuously monitored group
+
+# assign NA's when a survey probably wasn't conducted
+plant_origin_count <- plant_fwc3 %>%
+  filter(!is.na(Origin)) %>%
+  group_by(PermanentID, GSYear, Origin) %>%
+  summarize(Taxa = sum(Detected),
+            Surveyed = sum(Surveyed)) %>%
+  ungroup() %>%
+  full_join(plant_fwc3 %>% # add every combo of area and survey
+              select(PermanentID, GSYear) %>%
+              unique() %>%
+              expand_grid(tibble(Origin = c("Native", "Exotic")))) %>%
+  mutate(Taxa = replace_na(Taxa, 0),
+         Surveyed = replace_na(Surveyed, 0)) %>%
+  pivot_wider(names_from = Origin, 
+              values_from = c(Taxa, Surveyed),
+              names_glue = "{Origin}_{.value}") 
+
+plant_origin_count %>%
+  filter(Native_Taxa == 0 & Exotic_Taxa != 0) %>% # select surveys with no native species recorded
+  group_by(Exotic_Taxa) %>%
+  summarize(Surveys = n(),
+            MaxYear = max(GSYear)) %>% # number of surveys per exotic species count
+  ungroup() %>%
+  mutate(TotSurveys = sum(Surveys))
+# 0 exotic -- all should be NA (no survey)
+# 1 - 7 exotic species, 1714 surveys
+# max year = 2005
+
+plant_origin_count %>%
+  filter(Exotic_Taxa == 0 & Native_Taxa != 0) %>% # select surveys with no exotic species recorded
+  group_by(Native_Taxa) %>%
+  summarize(Surveys = n(),
+            MaxYear = max(GSYear)) %>% # number of surveys per native species count
+  ungroup() %>%
+  mutate(TotSurveys = sum(Surveys)) %>%
+  data.frame()
+# 1 - 28 native species, 279 surveys
+# max year = 2019
+
+ggplot(plant_origin_count, aes(x = GSYear, y = Native_Taxa, color = PermanentID)) +
+  geom_line() +
+  theme(legend.position = "none")
+# obvious years where native species weren't sampled
+# remove if value is zero and value in previous and next years are not zero
+# remove if value is zero and year is 2000, 2001
+# used to make Surveyed column in plant_fwc3
+
+ggplot(plant_origin_count, aes(x = GSYear, y = Exotic_Taxa, color = PermanentID)) +
+  geom_line() +
+  theme(legend.position = "none")
+# sampled some invasive species in those times
+
+ggplot(plant_origin_count, aes(x = Native_Surveyed, y = Native_Taxa)) +
+  geom_point(alpha = 0.1)
+
+ggplot(plant_origin_count, aes(x = Exotic_Surveyed, y = Exotic_Taxa)) +
+  geom_point(alpha = 0.1)
+
+(max_native <- max(plant_origin_count$Native_Surveyed)) # 81
+(max_exotic <- max(plant_origin_count$Exotic_Surveyed)) # 17
+
+plant_origin_count %>%
+  filter(Native_Surveyed == max_native & Native_Taxa == 0) %>%
+  group_by(GSYear) %>%
+  count()
+# 8 are in the first survey year
+
+plant_origin_count %>%
+  filter(GSYear == 1982 & Native_Surveyed == max_native & Native_Taxa == 0) %>%
+  select(PermanentID) %>%
+  inner_join(plant_origin_count %>%
+               filter(GSYear == 1983))
+# all have at least 4 taxa the following year
+
+plant_origin_count %>%
+  filter(Exotic_Surveyed == max_exotic & Exotic_Taxa == 0) %>%
+  group_by(GSYear) %>%
+  count()
+
+plant_origin_count %>%
+  filter(GSYear == 1982 & Exotic_Surveyed == max_exotic & Exotic_Taxa == 0) %>%
+  select(PermanentID) %>%
+  inner_join(plant_origin_count %>%
+               filter(GSYear == 1983)) %>%
+  group_by(Exotic_Taxa) %>%
+  count()
+
+# check NA's
+plant_fwc3 %>%
+  filter(is.na(Origin)) %>%
+  select(Detected) %>%
+  unique()
+# should all be NA's
+
 # remove rows for no surveys
 plant_fwc4 <- plant_fwc3 %>%
-  filter(!is.na(Detected))
+  left_join(plant_origin_count) %>%
+  mutate(Surveyed = case_when(Native_Taxa > 0 & Origin == "Native" ~ 1, # if any taxa of that origin were detected, assume survey occurred
+                              Exotic_Taxa > 0 & Origin == "Exotic" ~ 1,
+                              GSYear == 1982 & Native_Surveyed == max_native & Native_Taxa == 0 & Origin == "Native" ~ 0, # remove first year surveys with no detects
+                              GSYear == 1982 & Exotic_Surveyed == max_exotic & Exotic_Taxa == 0 & Origin == "Exotic" ~ 0,
+                              TRUE ~ Surveyed),
+         Detected = if_else(Surveyed == 0, NA_real_, Detected)) %>% # make detections NA if no survey
+  group_by(PermanentID, TaxonName) %>%
+  arrange(GSYear) %>% 
+  mutate(PrevDetected = lag(Detected), # redo
+         NextDetected = lead(Detected)) %>%
+  ungroup() %>%
+  filter(Surveyed == 1) %>%
+  select(-c(Surveyed, Native_Taxa, Native_Surveyed, Exotic_Taxa, Exotic_Surveyed))
+
+# check surveyed/detected
+# run before final filter above
+# plant_origin_check <- plant_fwc4 %>%
+#   filter(!is.na(Origin)) %>%
+#   group_by(PermanentID, GSYear, Origin) %>%
+#   summarize(Surveyed = sum(Surveyed),
+#             Detected = sum(Detected, na.rm = T)) %>%
+#   ungroup()
+# 
+# ggplot(plant_origin_check, aes(x = Surveyed, y = Detected)) +
+#   geom_point() +
+#   facet_wrap(~ Origin, scales = "free")
+#   # x-axis should be all 0 or max
 
 # save
 write_csv(plant_fwc4, "intermediate-data/FWC_plant_community_formatted.csv")
@@ -197,7 +326,7 @@ ggplot(common_fwc, aes(x = RankWatYear, y = RatioWatYear)) +
   geom_point(aes(color = Over20Waterbody)) +
   facet_wrap(~ PreCtrl)
 
-ggplot(common_fwc, aes(x = RankWaterbody, y = RatioWaterbody)) +
+ ggplot(common_fwc, aes(x = RankWaterbody, y = RatioWaterbody)) +
   geom_hline(yintercept = 0.2, linetype = "dashed") +
   geom_line() +
   geom_point(aes(color = Over7WatYear)) +

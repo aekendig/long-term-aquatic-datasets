@@ -689,7 +689,7 @@ hydr2_cor %>%
              color = PermanentID, shape = as.factor(GSYear))) +
   geom_hline(yintercept = 0) +
   geom_point() +
-  scale_color_manual(values = rainbow(n_distinct(hydr1$PermanentID)), guide = "none") +
+  scale_color_manual(values = rainbow(n_distinct(hydr2_cor$PermanentID)), guide = "none") +
   scale_shape(name = "Growing\nseason") +
   labs(x = "Surveyor experience (surveys)", y = "Annual survey - FWRI survey") +
   def_theme_paper +
