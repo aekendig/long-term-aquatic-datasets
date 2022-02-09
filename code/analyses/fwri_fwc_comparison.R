@@ -22,18 +22,17 @@ source("code/settings/figure_settings.R")
 
 # import data
 fwri <- read_csv("intermediate-data/FWRI_invasive_plant_formatted.csv")
-fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
-                col_types = list(PrevPropCovered = col_double(),
-                                 PrevAreaCoveredRaw_ha = col_double(),
-                                 SurveyDays = col_double(),
-                                 RatioCovered = col_double(),
-                                 LogRatioCovered = col_double(),
-                                 LogitPrevPropCovered = col_double(),
-                                 LogRatioCovered = col_double(),
-                                 LogitPrevPropCovered = col_double(),
-                                 LogRatioCovered = col_double()))
+fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
 lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
 wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
+
+# reimport fwc with correct column types
+fwc_cnames <- attr(fwc, "spec") # col_names
+fwc_ctype <- rep("?", ncol(fwc)) # create the col_parser abbr -- all guesses
+fwc_lcols <- grepl("Lag", names(fwc_cnames$col))
+fwc_ctype[fwc_lcols] <- "d" # do not guess on lag columns
+fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv", 
+                col_types = paste(fwc_ctype, collapse = ""))
 
 
 #### combine data ####
@@ -195,7 +194,6 @@ comb2 %>%
        y = "Lake-year combinations") +
   def_theme_paper
 dev.off()
-
 
 
 #### process data for regressions ####

@@ -319,7 +319,7 @@ ctrl_lag_fun <- function(GSYear, Lag){
   
   # filter dataset
   subdat <- inv_ctrl %>%
-      filter(GSYear <= year1 & GSYear >= (year1 - Lag))
+      filter(GSYear <= year1 & GSYear > (year1 - Lag))
   
   # summarize
   outdat <- subdat %>%
@@ -343,15 +343,15 @@ ctrl_lag_fun <- function(GSYear, Lag){
 inv_ctrl2 <- inv_ctrl %>%
   select(GSYear) %>%
   unique() %>%
-  expand_grid(tibble(Lag = 0:5)) %>% # remove repeat row for each species
+  expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
   pmap(ctrl_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
   bind_rows() %>%
-  filter(NYears == Lag + 1) %>% # all years for a lag must be available
+  filter(NYears == Lag) %>% # all years for a lag must be available
   select(-NYears) %>%
   pivot_wider(names_from = Lag,
               values_from = c(AllPropTreated, PropTreated, AllTreated, Treated),
               names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
-  filter(!is.na(Lag0AllPropTreated)) %>% # must have measurement in final year 
+  filter(!is.na(Lag1AllPropTreated)) %>% # must have measurement in final year 
   full_join(inv_ctrl)
 
 

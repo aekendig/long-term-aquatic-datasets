@@ -17,12 +17,7 @@ source("code/settings/figure_settings.R")
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
                       col_types = list(PrevPropCovered = col_double(),
                                        PrevAreaCoveredRaw_ha = col_double(),
-                                       SurveyDays = col_double(),
                                        RatioCovered = col_double(),
-                                       LogRatioCovered = col_double(),
-                                       LogitPrevPropCovered = col_double(),
-                                       LogRatioCovered = col_double(),
-                                       LogitPrevPropCovered = col_double(),
                                        LogRatioCovered = col_double()))
 inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")

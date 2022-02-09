@@ -77,13 +77,14 @@ plot_ly(nat_plant2, x = ~GSYear, y = ~Richness, color = ~PermanentID) %>%
   add_lines() %>% 
   layout(showlegend = FALSE)
 
-# several cases of zero richness
-nat_plant2 %>%
-  filter(GSYear %in% c(1985, 1987, 1989, 1991, 1993) & Richness == 0) %>%
-  group_by(PermanentID) %>%
-  count() %>%
-  ungroup()
-  
+plot_ly(nat_plant2, x = ~GSYear, y = ~Gains, color = ~PermanentID) %>%
+  add_lines() %>% 
+  layout(showlegend = FALSE)
+
+plot_ly(nat_plant2, x = ~GSYear, y = ~Losses, color = ~PermanentID) %>%
+  add_lines() %>% 
+  layout(showlegend = FALSE)
+
 # richness-area with year variation
 ggplot(nat_plant2, aes(x = Area_ha, y = Richness)) +
   geom_point()
@@ -198,6 +199,10 @@ nat_qual_dat <- nat_dat %>%
          PrevRich_s = (PrevRich - mean(PrevRich)) / sd(PrevRich),
          across(ends_with("PrevPropCovered"), ~ .x - mean(.x)),
          Clarity_s = (QualityValue - mean(QualityValue)) / sd(QualityValue))
+
+# years in each dataset
+sort(unique(nat_dat$GSYear))
+sort(unique(nat_qual_dat$GSYear))
 
 
 #### initial visualizations ####

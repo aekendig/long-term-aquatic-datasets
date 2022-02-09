@@ -76,6 +76,7 @@ inv_fwri <- plant_freq_format(plant_fwri, inv_taxa)
 hyd_looks_fwc <- plant_abun_format(plant_fwc,
                                    tibble(TaxonName = c("Egeria densa", "Najas guadalupensis"),
                                           CommonName = c("Edensa", "Nguad"))) %>%
+  mutate(SpeciesPresent = ifelse(SpeciesAcres > 0, 1, 0)) %>%
   select(PermanentID, GSYear, CommonName, SpeciesPresent) %>%
   pivot_wider(names_from = CommonName,
               values_from = SpeciesPresent,
@@ -87,8 +88,10 @@ hyd_looks_fwri <- plant_freq_format(plant_fwri,
   select(PermanentID, GSYear, SpeciesPresent) %>%
   rename("Nguad_Present" = "SpeciesPresent")
 
+# remove missing years
 # add hydrilla look-alikes
 inv_fwc2 <- inv_fwc %>%
+  filter(!is.na(PropCovered)) %>%
   left_join(hyd_looks_fwc)
 
 inv_fwri2 <- inv_fwri %>%

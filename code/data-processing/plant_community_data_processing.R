@@ -254,22 +254,31 @@ plant_fwc4 <- plant_fwc3 %>%
   mutate(PrevDetected = lag(Detected), # redo
          NextDetected = lead(Detected)) %>%
   ungroup() %>%
-  filter(Surveyed == 1) %>%
-  select(-c(Surveyed, Native_Taxa, Native_Surveyed, Exotic_Taxa, Exotic_Surveyed))
+  select(-c(Native_Taxa, Native_Surveyed, Exotic_Taxa, Exotic_Surveyed))
 
 # check surveyed/detected
-# run before final filter above
-# plant_origin_check <- plant_fwc4 %>%
-#   filter(!is.na(Origin)) %>%
-#   group_by(PermanentID, GSYear, Origin) %>%
-#   summarize(Surveyed = sum(Surveyed),
-#             Detected = sum(Detected, na.rm = T)) %>%
-#   ungroup()
-# 
-# ggplot(plant_origin_check, aes(x = Surveyed, y = Detected)) +
-#   geom_point() +
-#   facet_wrap(~ Origin, scales = "free")
-#   # x-axis should be all 0 or max
+plant_origin_check <- plant_fwc4 %>%
+  filter(!is.na(Origin)) %>%
+  group_by(PermanentID, GSYear, Origin) %>%
+  summarize(Surveyed = sum(Surveyed),
+            Detected = sum(Detected, na.rm = T)) %>%
+  ungroup()
+
+ggplot(plant_origin_check, aes(x = Surveyed, y = Detected)) +
+  geom_point() +
+  facet_wrap(~ Origin, scales = "free")
+# x-axis should be all 0 or max
+
+# remake richness figures
+plant_fwc4 %>%
+  filter(!is.na(Origin)) %>%
+  group_by(Origin, PermanentID, GSYear) %>%
+  summarize(Taxa = sum(Detected)) %>%
+  ungroup() %>%
+  ggplot(aes(x = GSYear, y = Taxa, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ Origin, scales = "free") +
+  theme(legend.position = "none")
 
 # save
 write_csv(plant_fwc4, "intermediate-data/FWC_plant_community_formatted.csv")
@@ -279,7 +288,7 @@ write_csv(plant_fwc4, "intermediate-data/FWC_plant_community_formatted.csv")
 
 # remove non-native taxa
 nat_fwc <- plant_fwc4 %>%
-  filter(Origin == "Native")
+  filter(Origin == "Native" & Surveyed == 1)
 
 # total waterbody-year combos
 TotWatYear <- nat_fwc %>%

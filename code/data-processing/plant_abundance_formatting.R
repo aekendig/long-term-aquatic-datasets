@@ -68,8 +68,6 @@ plant_abun_format <- function(dat, taxa){
     mutate(EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
                                          TRUE ~ EstAreaCoveredRaw_ha),
            PropCovered = EstAreaCovered_ha / Area_ha,
-           SpeciesPresent = case_when(SpeciesAcres > 0 ~ 1,
-                                      SpeciesAcres == 0 ~ 0),
            SurveyorExperience = ifelse(SurveyorExperience == -Inf, # max returns -Inf if no value is available and na.rm = T
                                        NA_real_,
                                        SurveyorExperience),
@@ -80,30 +78,84 @@ plant_abun_format <- function(dat, taxa){
     full_join(abun_out %>% # add row for every year for each site/species combo (NA's for missing surveys)
                 select(PermanentID, CommonName, TaxonName) %>%
                 unique() %>%
-                expand_grid(GSYear = min(abun_out$GSYear):max(abun_out$GSYear))) %>%
-    group_by(PermanentID, CommonName, TaxonName) %>%
-    arrange(GSYear) %>% 
-    mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
-           PrevAreaCovered_ha = lag(EstAreaCovered_ha),
-           PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
-           PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0),
-           SurveyDays = as.numeric(SurveyDate - lag(SurveyDate)),
-           PrevSurveyorExperience = lag(SurveyorExperience)) %>%
-    ungroup() %>%
-    rowwise() %>%
-    mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
-    ungroup() %>%
-    mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
-                                    EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / (0.01 * 0.405), # lower limit of SpeciesAcres
-                                    EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ (0.01 * 0.405) / PrevAreaCovered_ha,
-                                    TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
-           LogRatioCovered = log(RatioCovered),
-           LogitPropCovered = logit(PropCovered, adjust = prop_adjust),
-           LogitPrevPropCovered = logit(PrevPropCovered, adjust = prop_adjust),
-           MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
-                                          NA_real_, 
-                                          MinSurveyorExperience))
+                expand_grid(GSYear = min(abun_out$GSYear):max(abun_out$GSYear))) # %>%
+    # group_by(PermanentID, CommonName, TaxonName) %>%
+    # arrange(GSYear) %>% 
+    # mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
+    #        PrevAreaCovered_ha = lag(EstAreaCovered_ha),
+    #        PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
+    #        PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0),
+    #        SurveyDays = as.numeric(SurveyDate - lag(SurveyDate)),
+    #        PrevSurveyorExperience = lag(SurveyorExperience)) %>%
+    # ungroup() %>%
+    # rowwise() %>%
+    # mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
+    # ungroup() %>%
+    # mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
+    #                                 EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / (0.01 * 0.405), # lower limit of SpeciesAcres
+    #                                 EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ (0.01 * 0.405) / PrevAreaCovered_ha,
+    #                                 TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
+    #        LogRatioCovered = log(RatioCovered),
+    #        MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
+    #                                       NA_real_, 
+    #                                       MinSurveyorExperience))
   
-  return(abun_out2)
+  
+  #### lag intervals ####
+  
+  # function for cumulative treatment
+  inv_lag_fun <- function(GSYear, Lag){
+    
+    # change name
+    year1 <- GSYear
+    
+    # filter dataset
+    subdat <- abun_out2 %>%
+      filter(GSYear <= year1 & GSYear >= (year1 - Lag))
+    
+    # summarize
+    outdat <- subdat %>%
+      group_by(PermanentID, TaxonName) %>%
+      arrange(GSYear) %>%
+      mutate(InitPercCovered = lag(PropCovered, n = Lag) * 100, # previous year's abundance
+             PrevAreaCovered_ha = lag(EstAreaCovered_ha, n = Lag),
+             PrevSurveyorExperience = lag(SurveyorExperience, n = Lag),
+             NYears = n_distinct(GSYear),
+             AvgPropCovered = mean(PropCovered)) %>%
+      ungroup() %>%
+      filter(GSYear == year1) %>%
+      rowwise() %>%
+      mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
+      ungroup() %>%
+      mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
+                                      EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / (0.01 * 0.405), # lower limit of SpeciesAcres
+                                      EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ (0.01 * 0.405) / PrevAreaCovered_ha,
+                                      TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
+             LogRatioCovered = log(RatioCovered)/Lag,
+             MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
+                                            NA_real_, 
+                                            MinSurveyorExperience),
+             Lag = Lag) %>%
+      select(PermanentID, TaxonName, GSYear, Lag, NYears, InitPercCovered, MinSurveyorExperience, LogRatioCovered)
+    
+    # return
+    return(outdat)
+  }
+  
+  # apply lag
+  abun_out3 <- abun_out2 %>%
+    select(GSYear) %>%
+    unique() %>%
+    expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
+    pmap(inv_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
+    bind_rows() %>%
+    filter(NYears == Lag) %>% # all years for a lag must be available
+    select(-NYears) %>%
+    pivot_wider(names_from = Lag,
+                values_from = c(InitPercCovered, MinSurveyorExperience, LogRatioCovered),
+                names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
+    full_join(abun_out2)
+  
+  return(abun_out3)
   
 }
