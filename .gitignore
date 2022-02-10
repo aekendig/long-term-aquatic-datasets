@@ -42,6 +42,7 @@ vignettes/*.pdf
 /presentations/
 /sav-point-intercept/
 /papers-to-read/
+/reports/
 
 # Data
 /original-data/

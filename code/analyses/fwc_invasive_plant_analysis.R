@@ -14,11 +14,7 @@ library(cowplot)
 source("code/settings/figure_settings.R")
 
 # import data
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
-                      col_types = list(PrevPropCovered = col_double(),
-                                       PrevAreaCoveredRaw_ha = col_double(),
-                                       RatioCovered = col_double(),
-                                       LogRatioCovered = col_double()))
+inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
 inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
 wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
@@ -28,26 +24,11 @@ wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
 # combine datasets
 inv_dat <- inv_plant %>%
-  filter(!is.na(MinSurveyorExperience)) %>%
-  inner_join(inv_ctrl) %>%
-  filter(!is.na(PrevPropCovered)) %>% # need initial pop size
-  mutate(PrevPercCovered = PrevPropCovered * 100)
+  filter(!is.na(Lag1LogRatioCovered)) %>%
+  inner_join(inv_ctrl)
 
-# checked before removing NA's
-filter(inv_dat, is.na(MinSurveyorExperience)) # 54 rows (9 surveys)
-
-# water quality
-qual <- lw_qual %>%
-  full_join(wa_qual) %>%
-  filter(QualityMetric == "Secchi_ft") %>%
-  group_by(PermanentID, GSYear) %>%
-  summarize(QualityValue = mean(QualityValue),
-            MonthsSampled = mean(MonthsSampled))
-
-# add quality data
-inv_qual_dat <- inv_dat %>%
-  inner_join(qual %>%
-               select(PermanentID, GSYear, QualityValue, MonthsSampled))
+# will need surveyor experience
+filter(inv_dat, is.na(Lag1MinSurveyorExperience)) # 54 rows (9 surveys)
 
 # split by species
 hydr_dat <- filter(inv_dat, CommonName == "Hydrilla")
@@ -55,100 +36,112 @@ wale_dat <- filter(inv_dat, CommonName == "Water lettuce")
 wahy_dat <- filter(inv_dat, CommonName == "Water hyacinth")
 torp_dat <- filter(inv_dat, CommonName == "Torpedograss")
 alwe_dat <- filter(inv_dat, CommonName == "Alligator weed")
-wita_dat <- filter(inv_dat, CommonName == "Wild taro")
+# wita_dat <- filter(inv_dat, CommonName == "Wild taro") # removing analyses: difficult to distinguish from elephant ear, surveys may be inaccurate
 cubu_dat <- filter(inv_dat, CommonName == "Cuban bulrush")
 pagr_dat <- filter(inv_dat, CommonName == "Para grass")
 wafe_dat <- filter(inv_dat, CommonName == "Water fern")
-
-hydr_qual_dat <- filter(inv_qual_dat, CommonName == "Hydrilla")
-wale_qual_dat <- filter(inv_qual_dat, CommonName == "Water lettuce")
-wahy_qual_dat <- filter(inv_qual_dat, CommonName == "Water hyacinth")
-torp_qual_dat <- filter(inv_qual_dat, CommonName == "Torpedograss")
-alwe_qual_dat <- filter(inv_qual_dat, CommonName == "Alligator weed")
-wita_qual_dat <- filter(inv_qual_dat, CommonName == "Wild taro")
-cubu_qual_dat <- filter(inv_qual_dat, CommonName == "Cuban bulrush")
-pagr_qual_dat <- filter(inv_qual_dat, CommonName == "Para grass")
-wafe_qual_dat <- filter(inv_qual_dat, CommonName == "Water fern")
 
 
 #### initial visualizations ####
 
 # all and species-specific control correlated?
-cor.test(~ Lag0Treated + Lag0AllTreated, data = hydr_dat)
-cor.test(~ Lag0Treated + Lag0AllTreated, data = wale_dat)
-cor.test(~ Lag0Treated + Lag0AllTreated, data = wahy_dat)  
-cor.test(~ Lag5Treated + Lag5AllTreated, data = hydr_dat)
-cor.test(~ Lag5Treated + Lag5AllTreated, data = wale_dat)
-cor.test(~ Lag5Treated + Lag5AllTreated, data = wahy_dat) 
+cor.test(~ Lag1Treated + Lag1AllTreated, data = hydr_dat)
+cor.test(~ Lag1Treated + Lag1AllTreated, data = wale_dat)
+cor.test(~ Lag1Treated + Lag1AllTreated, data = wahy_dat)  
+cor.test(~ Lag6Treated + Lag6AllTreated, data = hydr_dat)
+cor.test(~ Lag6Treated + Lag6AllTreated, data = wale_dat)
+cor.test(~ Lag6Treated + Lag6AllTreated, data = wahy_dat) 
 # yes
 
 # covariate correlations
-hydr_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+hydr_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-wahy_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+wahy_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs() # one high cover value
 
-wahy_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+wahy_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-torp_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+torp_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-alwe_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+alwe_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-wita_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+# wita_dat %>%
+#   select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
+#   ggpairs()
+
+cubu_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-cubu_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+pagr_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-pagr_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
-  ggpairs()
-
-wafe_qual_dat %>%
-  select(Lag0Treated, Lag1Treated, PrevPercCovered, MinSurveyorExperience, QualityValue) %>%
+wafe_dat %>%
+  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs() # lots of zeros
 
 # log ratio prop covered
-ggplot(hydr_dat, aes(x = PrevPercCovered, y = LogRatioCovered, 
-                     color = as.factor(Lag0Treated))) +
+ggplot(hydr_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
+                     color = as.factor(Lag1Treated))) +
   geom_point()
 
-ggplot(wale_dat, aes(x = PrevPercCovered, y = LogRatioCovered, 
-                     color = as.factor(Lag0Treated))) +
+ggplot(wale_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
+                     color = as.factor(Lag1Treated))) +
   geom_point()
 
-ggplot(wahy_dat, aes(x = PrevPercCovered, y = LogRatioCovered, 
-                     color = as.factor(Lag0Treated))) +
+ggplot(wahy_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
+                     color = as.factor(Lag1Treated))) +
   geom_point()
 
 # treated and change in prop
-ggplot(hydr_dat, aes(x = Lag5Treated, y = LogRatioCovered)) +
+ggplot(hydr_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean")
 
-ggplot(wale_dat, aes(x = Lag5Treated, y = LogRatioCovered)) +
+ggplot(wale_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean")
 
-ggplot(wahy_dat, aes(x = Lag5Treated, y = LogRatioCovered)) +
+ggplot(wahy_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean")
+
+ggplot(torp_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean")
+
+ggplot(alwe_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean")
+# no cases with 6 years of treatment
+
+ggplot(cubu_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean")
+
+ggplot(pagr_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean")
+
+ggplot(wafe_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean")
+# no cases with 6 years of treatment
 
 # data availability for lags
 hydr_dat %>%
   select(PermanentID, GSYear,
-         Lag0Treated, Lag1Treated, Lag2Treated, Lag3Treated, Lag4Treated, Lag5Treated) %>%
+         Lag1Treated, Lag2Treated, Lag3Treated, Lag4Treated, Lag5Treated, Lag6Treated) %>%
   pivot_longer(cols = starts_with("Lag"),
                names_to = "Lag",
                values_to = "Treated") %>%
@@ -156,65 +149,56 @@ hydr_dat %>%
   ggplot(aes(x = Lag)) +
   geom_bar()
 
+hydr_dat %>%
+  select(PermanentID, GSYear,
+         Lag1LogRatioCovered, Lag2LogRatioCovered, Lag3LogRatioCovered, Lag4LogRatioCovered, Lag5LogRatioCovered, Lag6LogRatioCovered) %>%
+  pivot_longer(cols = starts_with("Lag"),
+               names_to = "Lag",
+               values_to = "LogRatioCovered") %>%
+  filter(!is.na(LogRatioCovered)) %>%
+  ggplot(aes(x = Lag)) +
+  geom_bar()
+
 
 #### model-fitting functions ####
+
+# data filter function
+dat_mod_filt <- function(treat_col, dat_in){
+  
+  dat_mod <- dat_in %>%
+    filter(!is.na(Lag1LogRatioCovered) & !is.na(!!sym(treat_col)) & !is.na(Lag1InitPercCovered) & !is.na(Lag1MinSurveyorExperience)) %>%
+    mutate(SurveyorExperience_s = (Lag1MinSurveyorExperience - mean(Lag1MinSurveyorExperience)) / sd(Lag1MinSurveyorExperience),
+           InitPercCovered_c = Lag1InitPercCovered - mean(Lag1InitPercCovered),
+           LogRatioCovered = Lag1LogRatioCovered,
+           Treated = !!sym(treat_col))
+  
+  return(dat_mod)
+  
+}
 
 # functions to fit models
 mod_fit <- function(dat_in){
   
   # subset data
-  dat_mod <- dat_in %>%
-    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated)) %>%
-    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-           PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered))
+  dat_mod1 <- dat_mod_filt("Lag1Treated", dat_in)
+  dat_mod2 <- dat_mod_filt("Lag2Treated", dat_in)
+  dat_mod3 <- dat_mod_filt("Lag3Treated", dat_in)
+  dat_mod4 <- dat_mod_filt("Lag4Treated", dat_in)
+  dat_mod5 <- dat_mod_filt("Lag5Treated", dat_in)
+  dat_mod6 <- dat_mod_filt("Lag6Treated", dat_in)
   
   # fit models
-  mod0 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag0Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
-  mod1 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag1Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
-  mod2 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag2Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
-  mod3 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag3Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
-  mod4 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag4Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
-  mod5 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag5Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod)
+  mod1 <- feols(LogRatioCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod2 <- feols(LogRatioCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod2)
+  mod3 <- feols(LogRatioCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod3)
+  mod4 <- feols(LogRatioCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod4)
+  mod5 <- feols(LogRatioCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod5)
+  mod6 <- feols(LogRatioCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod6)
+
   
   # output
-  return(list(mod0, mod1, mod2, mod3, mod4, mod5))
+  return(list(mod1, mod2, mod3, mod4, mod4, mod6))
 
-}
-
-mod_qual_fit <- function(dat_in){
-  
-  # subset data
-  dat_mod <- dat_in %>%
-    filter(!is.na(Lag0Treated) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated)) %>%
-    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-           PrevPercCovered_c = PrevPercCovered - mean(PrevPercCovered),
-           Clarity_s = (QualityValue - mean(QualityValue)) / sd(QualityValue))
-  
-  # fit models
-  mod0 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag0Treated + SurveyorExperience_s + Clarity_s | PermanentID + GSYear, data = dat_mod)
-  mod1 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag1Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
-  mod2 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag2Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
-  mod3 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag3Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
-  mod4 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag4Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
-  mod5 <- feols(LogRatioCovered ~ PrevPercCovered_c * Lag5Treated + SurveyorExperience_s + Clarity_s| PermanentID + GSYear, data = dat_mod)
-  
-  # output
-  return(list(mod0, mod1, mod2, mod3, mod4, mod5))
-  
-}
-
-# function to compare models
-mod_lag_comp <- function(mod_list){
-  
-  # compare models
-  aic_mod <- tibble(Lag = c(0, 1, 2, 3, 4, 5),
-                    AIC = AIC(mod_list[[1]], mod_list[[2]], mod_list[[3]],
-                              mod_list[[4]], mod_list[[5]], mod_list[[6]])) %>%
-    mutate(deltaAIC = AIC - min(AIC))
-  
-  # output
-  return(aic_mod)
-  
 }
 
 
@@ -225,30 +209,20 @@ hydr_mods <- mod_fit(hydr_dat)
 wahy_mods <- mod_fit(wahy_dat)
 wale_mods <- mod_fit(wale_dat)
 torp_mods <- mod_fit(torp_dat)
-alwe_mods <- mod_fit(alwe_dat) # 'PrevPercCovered_c:Lag0Treated' removed because of collinearity
-wita_mods <- mod_fit(wita_dat)
+alwe_mods <- mod_fit(alwe_dat) # 'InitPercCovered_c:Treated' removed because of collinearity
+# wita_mods <- mod_fit(wita_dat)
 cubu_mods <- mod_fit(cubu_dat)
 pagr_mods <- mod_fit(pagr_dat)
-wafe_mods <- mod_fit(wafe_dat) # all 'PrevPercCovered_c:LagXTreated' removed because of collinearity
+wafe_mods <- mod_fit(wafe_dat) # all 'InitPercCovered_c:Treated' removed because of collinearity
 
 # name models
-names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(wita_mods) <- names(cubu_mods) <- names(pagr_mods) <- c("1", "2", "3", "4", "5", "6")
+names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(alwe_mods) <- names(cubu_mods) <- names(pagr_mods) <- names(wafe_mods) <- c("1", "2", "3", "4", "5", "6")
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "PrevPercCovered_c:Lag0Treated" = "Treatment x abundance",
-                "PrevPercCovered_c:Lag1Treated" = "Treatment x abundance",
-                "PrevPercCovered_c:Lag2Treated" = "Treatment x abundance",
-                "PrevPercCovered_c:Lag3Treated" = "Treatment x abundance",
-                "PrevPercCovered_c:Lag4Treated" = "Treatment x abundance",
-                "PrevPercCovered_c:Lag5Treated" = "Treatment x abundance",
-                "PrevPercCovered_c" = "Initial abundance (%)",
-                "Lag0Treated" = "Treatment frequency",
-                "Lag1Treated" = "Treatment frequency",
-                "Lag2Treated" = "Treatment frequency",
-                "Lag3Treated" = "Treatment frequency",
-                "Lag4Treated" = "Treatment frequency",
-                "Lag5Treated" = "Treatment frequency")
+                "InitPercCovered_c:Treated" = "Treatment x abundance",
+                "InitPercCovered_c" = "Initial abundance (%)",
+                "Treated" = "Treatment frequency")
 
 # panels
 hydr_fig <- modelplot(hydr_mods,
@@ -281,7 +255,19 @@ wale_fig <- modelplot(wale_mods,
        title = "(C) water lettuce") +
   def_theme_paper +
   theme(axis.text.y = element_blank(),
-        legend.position = "none")
+        legend.box.margin = margin(-10, 0, -10, -10)) +
+  guides(color = guide_legend(reverse = TRUE))
+
+alwe_fig <- modelplot(alwe_mods,
+                      coef_map = coef_names,
+                      background = list(geom_vline(xintercept = 0, color = "black",
+                                                   size = 0.5, linetype = "dashed"))) +
+  scale_color_viridis_d(direction = -1) +
+  labs(x = "",
+       title = "(D) alligator weed") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
 
 cubu_fig <- modelplot(cubu_mods,
                       coef_map = coef_names,
@@ -316,143 +302,146 @@ torp_fig <- modelplot(torp_mods,
   theme(legend.position = "none",
         axis.text.y = element_blank())
 
-wita_fig <- modelplot(wita_mods,
-                      coef_map = coef_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
-  labs(x = "",
-       title = "(G) wild taro") +
-  def_theme_paper +
-  theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10)) +
-  guides(color = guide_legend(reverse = TRUE))
+# wafe_fig <- modelplot(wafe_mods,
+#                       coef_map = coef_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = "",
+#        title = "(D) water fern") +
+#   def_theme_paper +
+#   theme(axis.text.y = element_blank(),
+#         legend.box.margin = margin(-10, 0, -10, -10)) +
+#   guides(color = guide_legend(reverse = TRUE))
+# all models are missing interaction
+
+
 
 # combine figures
 pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 13, height = 5)
-plot_grid(hydr_fig, wahy_fig, wale_fig, cubu_fig, pagr_fig, torp_fig, wita_fig, 
+plot_grid(hydr_fig, wahy_fig, wale_fig, alwe_fig, cubu_fig, pagr_fig, torp_fig,
           nrow = 1,
-          rel_widths = c(1, rep(0.57, 5), 0.75))
+          rel_widths = c(1, rep(0.57, 6), 0.75))
 dev.off()
 
 
 #### treatment, surveyor, clarity model figure ####
 
-# fit models
-hydr_qual_mods <- mod_qual_fit(hydr_qual_dat)
-wahy_qual_mods <- mod_qual_fit(wahy_qual_dat)
-wale_qual_mods <- mod_qual_fit(wale_qual_dat)
-torp_qual_mods <- mod_qual_fit(torp_qual_dat)
-alwe_qual_mods <- mod_qual_fit(alwe_qual_dat) # 'PrevPercCovered_c:Lag0Treated' removed because of collinearity
-wita_qual_mods <- mod_qual_fit(wita_qual_dat)
-cubu_qual_mods <- mod_qual_fit(cubu_qual_dat)
-pagr_qual_mods <- mod_qual_fit(pagr_qual_dat)
-wafe_qual_mods <- mod_qual_fit(wafe_qual_dat) # all 'PrevPercCovered_c:LagXTreated' removed because of collinearity
-
-# name models
-names(hydr_qual_mods) <- names(wahy_qual_mods) <- names(wale_qual_mods) <- names(torp_qual_mods) <- names(wita_qual_mods) <- names(cubu_qual_mods) <- names(pagr_qual_mods) <- c("1", "2", "3", "4", "5", "6")
-
-# rename coefficients
-coef_qual_names <- c("Clarity_s" = "Water clarity", 
-                     "SurveyorExperience_s" = "Surveyor experience",
-                     "PrevPercCovered_c:Lag0Treated" = "Treatment x abundance",
-                     "PrevPercCovered_c:Lag1Treated" = "Treatment x abundance",
-                     "PrevPercCovered_c:Lag2Treated" = "Treatment x abundance",
-                     "PrevPercCovered_c:Lag3Treated" = "Treatment x abundance",
-                     "PrevPercCovered_c:Lag4Treated" = "Treatment x abundance",
-                     "PrevPercCovered_c:Lag5Treated" = "Treatment x abundance",
-                     "PrevPercCovered_c" = "Initial abundance (%)",
-                     "Lag0Treated" = "Treatment frequency",
-                     "Lag1Treated" = "Treatment frequency",
-                     "Lag2Treated" = "Treatment frequency",
-                     "Lag3Treated" = "Treatment frequency",
-                     "Lag4Treated" = "Treatment frequency",
-                     "Lag5Treated" = "Treatment frequency")
-
-# panels
-hydr_qual_fig <- modelplot(hydr_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(A) hydrilla") +
-  def_theme_paper +
-  theme(legend.position = "none")
-
-wahy_qual_fig <- modelplot(wahy_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(B) water hyacinth") +
-  def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-wale_qual_fig <- modelplot(wale_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(C) water lettuce") +
-  def_theme_paper +
-  theme(axis.text.y = element_blank(),
-        legend.position = "none")
-
-cubu_qual_fig <- modelplot(cubu_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       title = "(D) Cuban bulrush") +
-  def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-pagr_qual_fig <- modelplot(pagr_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(E) para grass") +
-  def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-torp_qual_fig <- modelplot(torp_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(F) torpedograss") +
-  def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-wita_qual_fig <- modelplot(wita_qual_mods,
-                      coef_map = coef_qual_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
-  labs(x = "",
-       title = "(G) wild taro") +
-  def_theme_paper +
-  theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-# combine figures
-pdf("output/fwc_invasive_plant_treatment_clarity_model.pdf", width = 13, height = 5)
-plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig, cubu_qual_fig, pagr_qual_fig, torp_qual_fig, wita_qual_fig, 
-          nrow = 1,
-          rel_widths = c(1, rep(0.57, 5), 0.75))
-dev.off()
+# # fit models
+# hydr_qual_mods <- mod_qual_fit(hydr_qual_dat)
+# wahy_qual_mods <- mod_qual_fit(wahy_qual_dat)
+# wale_qual_mods <- mod_qual_fit(wale_qual_dat)
+# torp_qual_mods <- mod_qual_fit(torp_qual_dat)
+# alwe_qual_mods <- mod_qual_fit(alwe_qual_dat) # 'PrevPercCovered_c:Lag0Treated' removed because of collinearity
+# # wita_qual_mods <- mod_qual_fit(wita_qual_dat)
+# cubu_qual_mods <- mod_qual_fit(cubu_qual_dat)
+# pagr_qual_mods <- mod_qual_fit(pagr_qual_dat)
+# wafe_qual_mods <- mod_qual_fit(wafe_qual_dat) # all 'PrevPercCovered_c:LagXTreated' removed because of collinearity
+# 
+# # name models
+# names(hydr_qual_mods) <- names(wahy_qual_mods) <- names(wale_qual_mods) <- names(torp_qual_mods) <- names(cubu_qual_mods) <- names(pagr_qual_mods) <- c("1", "2", "3", "4", "5")
+# 
+# # rename coefficients
+# coef_qual_names <- c("Clarity_s" = "Water clarity", 
+#                      "SurveyorExperience_s" = "Surveyor experience",
+#                      "PrevPercCovered_c:Lag0Treated" = "Treatment x abundance",
+#                      "PrevPercCovered_c:Lag1Treated" = "Treatment x abundance",
+#                      "PrevPercCovered_c:Lag2Treated" = "Treatment x abundance",
+#                      "PrevPercCovered_c:Lag3Treated" = "Treatment x abundance",
+#                      "PrevPercCovered_c:Lag4Treated" = "Treatment x abundance",
+#                      "PrevPercCovered_c:Lag5Treated" = "Treatment x abundance",
+#                      "PrevPercCovered_c" = "Initial abundance (%)",
+#                      "Lag0Treated" = "Treatment frequency",
+#                      "Lag1Treated" = "Treatment frequency",
+#                      "Lag2Treated" = "Treatment frequency",
+#                      "Lag3Treated" = "Treatment frequency",
+#                      "Lag4Treated" = "Treatment frequency",
+#                      "Lag5Treated" = "Treatment frequency")
+# 
+# # panels
+# hydr_qual_fig <- modelplot(hydr_qual_mods,
+#                       coef_map = coef_qual_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = "",
+#        title = "(A) hydrilla") +
+#   def_theme_paper +
+#   theme(legend.position = "none")
+# 
+# wahy_qual_fig <- modelplot(wahy_qual_mods,
+#                       coef_map = coef_qual_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = "",
+#        title = "(B) water hyacinth") +
+#   def_theme_paper +
+#   theme(legend.position = "none",
+#         axis.text.y = element_blank())
+# 
+# wale_qual_fig <- modelplot(wale_qual_mods,
+#                       coef_map = coef_qual_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = "",
+#        title = "(C) water lettuce") +
+#   def_theme_paper +
+#   theme(axis.text.y = element_blank(),
+#         legend.position = "none")
+# 
+# cubu_qual_fig <- modelplot(cubu_qual_mods,
+#                       coef_map = coef_qual_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+#        title = "(D) Cuban bulrush") +
+#   def_theme_paper +
+#   theme(legend.position = "none",
+#         axis.text.y = element_blank())
+# 
+# pagr_qual_fig <- modelplot(pagr_qual_mods,
+#                       coef_map = coef_qual_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = "",
+#        title = "(E) para grass") +
+#   def_theme_paper +
+#   theme(legend.position = "none",
+#         axis.text.y = element_blank())
+# 
+# torp_qual_fig <- modelplot(torp_qual_mods,
+#                       coef_map = coef_qual_names,
+#                       background = list(geom_vline(xintercept = 0, color = "black",
+#                                                    size = 0.5, linetype = "dashed"))) +
+#   scale_color_viridis_d(direction = -1) +
+#   labs(x = "",
+#        title = "(F) torpedograss") +
+#   def_theme_paper +
+#   theme(legend.position = "none",
+#         axis.text.y = element_blank())
+# 
+# # wita_qual_fig <- modelplot(wita_qual_mods,
+# #                       coef_map = coef_qual_names,
+# #                       background = list(geom_vline(xintercept = 0, color = "black",
+# #                                                    size = 0.5, linetype = "dashed"))) +
+# #   scale_color_viridis_d(name = "Years\nof\ndata", direction = -1) +
+# #   labs(x = "",
+# #        title = "(G) wild taro") +
+# #   def_theme_paper +
+# #   theme(axis.text.y = element_blank(),
+# #         legend.box.margin = margin(-10, 0, -10, -10)) +
+# #   guides(color = guide_legend(reverse = TRUE))
+# 
+# # combine figures
+# pdf("output/fwc_invasive_plant_treatment_clarity_model.pdf", width = 13, height = 5)
+# plot_grid(hydr_qual_fig, wahy_qual_fig, wale_qual_fig, cubu_qual_fig, pagr_qual_fig, torp_qual_fig, 
+#           nrow = 1,
+#           rel_widths = c(1, rep(0.57, 5), 0.75))
+# dev.off()
 
 
 #### model prediction figure ####

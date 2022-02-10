@@ -26,14 +26,6 @@ fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
 lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
 wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
-# reimport fwc with correct column types
-fwc_cnames <- attr(fwc, "spec") # col_names
-fwc_ctype <- rep("?", ncol(fwc)) # create the col_parser abbr -- all guesses
-fwc_lcols <- grepl("Lag", names(fwc_cnames$col))
-fwc_ctype[fwc_lcols] <- "d" # do not guess on lag columns
-fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv", 
-                col_types = paste(fwc_ctype, collapse = ""))
-
 
 #### combine data ####
 
@@ -48,7 +40,6 @@ qual <- lw_qual %>%
 # combine fwc and fwri
 comb <- fwc %>%
   select(PermanentID, AreaName, Area_ha, GSYear, SurveyDate, CommonName, PropCovered, Surveyor, SurveyorExperience, SurveyorExperienceB, WaterbodyList_ha, WaterbodySum_ha, Edensa_Present, Nguad_Present) %>%
-  filter(!is.na(PropCovered)) %>%
   rename_with(.cols = c(AreaName, Area_ha, SurveyDate, PropCovered, Surveyor, SurveyorExperience, SurveyorExperienceB, WaterbodyList_ha, WaterbodySum_ha, Edensa_Present, Nguad_Present), 
               ~ paste0("FWC_", .x)) %>%
   inner_join(fwri %>%

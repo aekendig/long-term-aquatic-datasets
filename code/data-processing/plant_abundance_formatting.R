@@ -149,7 +149,7 @@ plant_abun_format <- function(dat, taxa){
     expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
     pmap(inv_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
     bind_rows() %>%
-    filter(NYears == Lag) %>% # all years for a lag must be available
+    filter(NYears == Lag+1) %>% # all years for a lag must be available
     select(-NYears) %>%
     pivot_wider(names_from = Lag,
                 values_from = c(InitPercCovered, MinSurveyorExperience, LogRatioCovered),
