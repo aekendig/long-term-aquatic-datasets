@@ -68,13 +68,16 @@ inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "
                    Code = c("HYDR", "WALE", "WAHY", "TORP", "ELEA", "PAGR", "ALWE", "BUSE", "WAFE"))
 
 # modify data
-inv_fwc <- plant_abun_format(plant_fwc, inv_taxa) # warnings from min/max functions, replaced with NA
+inv_fwc <- plant_fwc %>%
+  filter(!(WaterbodyName == "Tohopekaliga, Lake" & SurveyYear == 2017)) %>% # survey seems incomplete
+  plant_abun_format(inv_taxa) # warnings from min/max functions, replaced with NA
 inv_fwri <- plant_freq_format(plant_fwri, inv_taxa)
 
 # hydrilla look-alikes
 # Elodea canadensis is also one, but not in datasets
-hyd_looks_fwc <- plant_abun_format(plant_fwc,
-                                   tibble(TaxonName = c("Egeria densa", "Najas guadalupensis"),
+hyd_looks_fwc <- plant_fwc %>%
+  filter(!(WaterbodyName == "Tohopekaliga, Lake" & SurveyYear == 2017)) %>% # survey seems incomplete
+  plant_abun_format(tibble(TaxonName = c("Egeria densa", "Najas guadalupensis"),
                                           CommonName = c("Edensa", "Nguad"))) %>%
   mutate(SpeciesPresent = ifelse(SpeciesAcres > 0, 1, 0)) %>%
   select(PermanentID, GSYear, CommonName, SpeciesPresent) %>%

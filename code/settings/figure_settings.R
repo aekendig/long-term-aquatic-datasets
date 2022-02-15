@@ -25,6 +25,8 @@ def_theme_paper <- theme_bw() +
         legend.background = element_blank(),
         strip.text = element_text(size = 9, color="black"),
         strip.background = element_blank(),
-        plot.title = element_text(size = 11))
+        plot.title = element_text(size = 10))
 
 paper_text_size = 2.5
+
+scale_fun_1 <- function(x) sprintf("%.1f", x)

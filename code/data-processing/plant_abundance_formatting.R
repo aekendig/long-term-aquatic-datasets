@@ -136,7 +136,7 @@ plant_abun_format <- function(dat, taxa){
                                             NA_real_, 
                                             MinSurveyorExperience),
              Lag = Lag) %>%
-      select(PermanentID, TaxonName, GSYear, Lag, NYears, InitPercCovered, MinSurveyorExperience, LogRatioCovered)
+      select(PermanentID, TaxonName, GSYear, Lag, NYears, InitPercCovered, MinSurveyorExperience, LogRatioCovered, AvgPropCovered)
     
     # return
     return(outdat)
@@ -152,7 +152,7 @@ plant_abun_format <- function(dat, taxa){
     filter(NYears == Lag+1) %>% # all years for a lag must be available
     select(-NYears) %>%
     pivot_wider(names_from = Lag,
-                values_from = c(InitPercCovered, MinSurveyorExperience, LogRatioCovered),
+                values_from = c(InitPercCovered, MinSurveyorExperience, LogRatioCovered, AvgPropCovered),
                 names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
     full_join(abun_out2)
   

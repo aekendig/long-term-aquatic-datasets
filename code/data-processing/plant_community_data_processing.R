@@ -104,6 +104,7 @@ plant_fwc2 %>%
 
 # summarize by permanentID to remove duplicates
 plant_fwc3 <- plant_fwc2 %>%
+  filter(!(AreaOfInterest == "Tohopekaliga, Lake" & SurveyYear == 2017)) %>% # survey seems incomplete
   group_by(PermanentID, Area_ha, GSYear, PreCtrl, TaxonName, Habitat, Origin) %>%
   summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
             SurveyDate = max(SurveyDate),

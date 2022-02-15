@@ -8,7 +8,7 @@ library(tidyverse)
 library(GGally)
 library(fixest) # FE models
 library(modelsummary)
-library(cowplot)
+library(patchwork)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -16,8 +16,6 @@ source("code/settings/figure_settings.R")
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
 inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
-lw_qual <- read_csv("intermediate-data/LW_quality_formatted.csv")
-wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
 
 #### edit data ####
@@ -166,7 +164,7 @@ hydr_dat %>%
 dat_mod_filt <- function(treat_col, dat_in){
   
   dat_mod <- dat_in %>%
-    filter(!is.na(Lag1LogRatioCovered) & !is.na(!!sym(treat_col)) & !is.na(Lag1InitPercCovered) & !is.na(Lag1MinSurveyorExperience)) %>%
+    filter(!is.na(Lag1LogRatioCovered) & !is.na(Lag1InitPercCovered) & !is.na(Lag1MinSurveyorExperience) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated)) %>%
     mutate(SurveyorExperience_s = (Lag1MinSurveyorExperience - mean(Lag1MinSurveyorExperience)) / sd(Lag1MinSurveyorExperience),
            InitPercCovered_c = Lag1InitPercCovered - mean(Lag1InitPercCovered),
            LogRatioCovered = Lag1LogRatioCovered,
@@ -176,7 +174,7 @@ dat_mod_filt <- function(treat_col, dat_in){
   
 }
 
-# functions to fit models
+# function to fit models
 mod_fit <- function(dat_in){
   
   # subset data
@@ -202,7 +200,7 @@ mod_fit <- function(dat_in){
 }
 
 
-#### treatment, surveyor model figure ####
+#### treatment, surveyor model figures and tables ####
 
 # fit models
 hydr_mods <- mod_fit(hydr_dat)
@@ -220,18 +218,19 @@ names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- 
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "InitPercCovered_c:Treated" = "Treatment x abundance",
+                "InitPercCovered_c:Treated" = "Management:abundance",
                 "InitPercCovered_c" = "Initial abundance (%)",
-                "Treated" = "Treatment frequency")
+                "Treated" = "Management frequency")
 
-# panels
+# focal panels
 hydr_fig <- modelplot(hydr_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
+  scale_x_continuous(labels = scale_fun_1) +
   labs(x = "",
-       title = "(A) hydrilla") +
+       title = "(A) Hydrilla") +
   def_theme_paper +
   theme(legend.position = "none")
 
@@ -240,8 +239,8 @@ wahy_fig <- modelplot(wahy_mods,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(B) water hyacinth") +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       title = "(B) Water hyacinth") +
   def_theme_paper +
   theme(legend.position = "none",
         axis.text.y = element_blank())
@@ -250,14 +249,25 @@ wale_fig <- modelplot(wale_mods,
           coef_map = coef_names,
           background = list(geom_vline(xintercept = 0, color = "black",
                                        size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
+  scale_color_viridis_d(direction = -1, name = "Management\nyears\nincluded") +
   labs(x = "",
-       title = "(C) water lettuce") +
+       title = "(C) Water lettuce") +
   def_theme_paper +
   theme(axis.text.y = element_blank(),
         legend.box.margin = margin(-10, 0, -10, -10)) +
   guides(color = guide_legend(reverse = TRUE))
 
+# combine focal panels
+foc_fig <- hydr_fig + wahy_fig + wale_fig + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
+ggsave("output/fwc_focal_invasive_plant_treatment_model.eps", foc_fig,
+       device = "eps", width = 6.5, height = 3.5, units = "in")
+
+# export models
+save(hydr_mods, file = "output/fwc_hydrilla_treatment_models.rda")
+save(wahy_mods, file = "output/fwc_water_hyacinth_treatment_models.rda")
+save(wale_mods, file = "output/fwc_water_lettuce_treatment_models.rda")
+
+# non-focal panels
 alwe_fig <- modelplot(alwe_mods,
                       coef_map = coef_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
@@ -314,8 +324,6 @@ torp_fig <- modelplot(torp_mods,
 #         legend.box.margin = margin(-10, 0, -10, -10)) +
 #   guides(color = guide_legend(reverse = TRUE))
 # all models are missing interaction
-
-
 
 # combine figures
 pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 13, height = 5)

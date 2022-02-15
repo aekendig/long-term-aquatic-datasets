@@ -209,6 +209,11 @@ foc_ctrl_old <- ctrl_old3 %>%
          CtrlSet = "old") %>%
   filter(Species != "Cyperus blepharoleptos") # new name of Cuban bulrush added with expand_grid
 
+# check for new name of Cuban bulrush
+# foc_ctrl_old %>%
+#   filter(Species == "Cyperus blepharoleptos" & AreaTreated_ha > 0)
+# no data
+
 
 #### edit new data for FWC plants ####
 
@@ -256,6 +261,11 @@ foc_ctrl <- ctrl3 %>%
          CtrlSet = "new") %>%
   filter(Species != "Oxycaryum cubense") # old name of Cuban bulrush added with expand_grid
 
+# check for old name of Cuban bulrush
+# foc_ctrl %>%
+#   filter(Species == "Oxycaryum cubense" & AreaTreated_ha > 0)
+# no data
+
 
 #### combine data ####
 
@@ -290,12 +300,15 @@ ctrl_2010 <- all_ctrl_2010 %>%
 
 # combine
 inv_ctrl <- all_ctrl_old %>%
-  full_join(foc_ctrl_old) %>%
+  full_join(foc_ctrl_old %>%
+              mutate(Species = if_else(Species == "Oxycaryum cubense",
+                                       "Cyperus blepharoleptos", Species))) %>%
   full_join(all_ctrl %>%
               full_join(foc_ctrl)) %>%
   filter(GSYear != 2010) %>%
   full_join(ctrl_2010) %>%
-  left_join(inv_taxa) # duplicate each floating plant row for the two species, add taxon names
+  left_join(inv_taxa %>% # duplicate each floating plant row for the two species, add taxon names
+              filter(Species != "Oxycaryum cubense"))
 
 # check for redundancy
 inv_ctrl %>%
