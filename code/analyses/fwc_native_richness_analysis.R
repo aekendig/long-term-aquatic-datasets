@@ -6,7 +6,6 @@ rm(list = ls())
 # load packages
 library(plotly)
 library(tidyverse)
-library(GGally)
 library(fixest) # FE models
 library(modelsummary)
 library(inspectdf) # for inspect_cor
@@ -194,8 +193,6 @@ inv_ctrl3 <- inv_ctrl2 %>%
   inner_join(inv_ctrl2)
 
 # combine native, invasive, control
-# remove missing data
-# center and scale variables
 nat_dat <- nat_plant2 %>%
   inner_join(inv_plant3) %>%
   inner_join(inv_ctrl3)

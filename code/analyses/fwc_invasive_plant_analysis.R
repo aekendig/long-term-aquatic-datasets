@@ -218,8 +218,8 @@ names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- 
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "InitPercCovered_c:Treated" = "Management:abundance",
-                "InitPercCovered_c" = "Initial abundance (%)",
+                "InitPercCovered_c:Treated" = "Management:PAC",
+                "InitPercCovered_c" = "Initial PAC",
                 "Treated" = "Management frequency")
 
 # focal panels
@@ -332,6 +332,8 @@ plot_grid(hydr_fig, wahy_fig, wale_fig, alwe_fig, cubu_fig, pagr_fig, torp_fig,
           rel_widths = c(1, rep(0.57, 6), 0.75))
 dev.off()
 
+
+#### older code ####
 
 #### treatment, surveyor, clarity model figure ####
 
