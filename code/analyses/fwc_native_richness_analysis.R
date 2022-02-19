@@ -122,10 +122,33 @@ inv_avg_cols <- tibble(cols = colnames(inv_plant)) %>%
   filter(str_detect(cols, "AvgProp") == T) %>%
   pull(cols)
 
+# check invasive plant data availability
+inv_plant %>%
+  inner_join(nat_plant2 %>%
+               select(PermanentID, GSYear) %>%
+               unique()) %>%
+  inner_join(inv_ctrl %>%
+               select(PermanentID, GSYear) %>%
+               unique()) %>%
+  filter(Lag6AvgPropCovered > 0) %>%
+  ggplot(aes(x = GSYear, y = Lag6AvgPropCovered, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ CommonName, scales = "free_y") +
+  theme(legend.position = "none")
+# not enough data for: Alligator weed, water fern
+# Cuban bulrush is missing a lot of data before 2013 - will lose data with lag approach
+# wild taro is difficult to distinguish from elephant ear, surveys may be inaccurate
+
+inv_taxa <- inv_plant %>%
+  filter(CommonName %in% c("Hydrilla", "Water lettuce", "Water hyacinth",
+                           "Torpedograss", "Para grass", "Cuban bulrush")) %>%
+  select(CommonName, TaxonName) %>%
+  unique()
+
 # make long by lag
 # make wide by inv. plant species
 inv_plant2 <- inv_plant %>%
-  filter(CommonName != "Wild taro") %>%
+  filter(CommonName %in% inv_taxa$CommonName) %>%
   select(PermanentID, GSYear, CommonName, all_of(inv_avg_cols)) %>%
   pivot_longer(cols = all_of(inv_avg_cols),
                names_to = "Lag",
@@ -134,10 +157,8 @@ inv_plant2 <- inv_plant %>%
   mutate(CommonName = fct_recode(CommonName,
                                  "WaterHyacinth" = "Water hyacinth",
                                  "WaterLettuce" = "Water lettuce",
-                                 "AlligatorWeed" = "Alligator weed",
-                                 "CubanBulrush" = "Cuban bulrush",
-                                 "WaterFern" = "Water fern",
-                                 "ParaGrass" = "Para grass"),
+                                 "ParaGrass" = "Para grass",
+                                 "CubanBulrush" = "Cuban bulrush"),
          Lag = as.numeric(str_sub(Lag, 4, 4)),
          AvgPercCovered = AvgPropCovered * 100) %>%
   select(-AvgPropCovered) %>%
@@ -157,7 +178,7 @@ inv_ctrl_cols <- tibble(cols = colnames(inv_ctrl)) %>%
 # make long by lag
 # make wide by control target
 inv_ctrl2 <- inv_ctrl %>%
-  filter(Species != "Colocasia esculenta") %>%
+  filter(TaxonName %in% inv_taxa$TaxonName) %>%
   select(PermanentID, Species, GSYear, all_of(inv_ctrl_cols)) %>% 
   unique() %>% # remove duplication of floating plant treatment
   pivot_longer(cols = all_of(inv_ctrl_cols),
@@ -167,11 +188,9 @@ inv_ctrl2 <- inv_ctrl %>%
   mutate(Species = fct_recode(Species,
                               "Floating" = "Floating Plants (Eichhornia and Pistia)",
                               "Hydrilla" = "Hydrilla verticillata",
-                              "AlligatorWeed" = "Alternanthera philoxeroides",
-                              "CubanBulrush" = "Cyperus blepharoleptos",
                               "Torpedograss" = "Panicum repens",
-                              "WaterFern" = "Salvinia minima",
-                              "ParaGrass" = "Urochloa mutica"),
+                              "ParaGrass" = "Urochloa mutica",
+                              "CubanBulrush" = "Cyperus blepharoleptos"),
          Lag = as.numeric(str_sub(Lag, 4, 4))) %>%
   pivot_wider(names_from = Species,
               values_from = TreatFreq,
@@ -210,7 +229,8 @@ nat_dat %>%
   inspect_cor() %>% 
   ungroup() %>%
   filter(p_value < 0.05 & corr >= 0.4)
-# only floating plants
+# mostly floating plants
+# para grass and water hyacinth lag 6
 
 # prev and change in richness
 nat_dat %>%
@@ -230,16 +250,6 @@ ggplot(nat_dat, aes(x = Floating_AvgPercCovered, y = LogRatioRich)) +
   geom_smooth(method = "lm") +
   facet_wrap(~ Lag)
 
-ggplot(nat_dat, aes(x = AlligatorWeed_AvgPercCovered, y = LogRatioRich)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
-
-ggplot(nat_dat, aes(x = CubanBulrush_AvgPercCovered, y = LogRatioRich)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
-
 ggplot(nat_dat, aes(x = ParaGrass_AvgPercCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm") +
@@ -250,7 +260,7 @@ ggplot(nat_dat, aes(x = Torpedograss_AvgPercCovered, y = LogRatioRich)) +
   geom_smooth(method = "lm") +
   facet_wrap(~ Lag)
 
-ggplot(nat_dat, aes(x = WaterFern_AvgPercCovered, y = LogRatioRich)) +
+ggplot(nat_dat, aes(x = CubanBulrush_AvgPercCovered, y = LogRatioRich)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_wrap(~ Lag)
@@ -271,6 +281,10 @@ nat_dat_mod5 <- filter(nat_dat, Lag == 5) %>%
   mutate(PrevRich_s = (PrevRich - mean(PrevRich)) / sd(PrevRich))
 nat_dat_mod6 <- filter(nat_dat, Lag == 6) %>%
   mutate(PrevRich_s = (PrevRich - mean(PrevRich)) / sd(PrevRich))  
+
+# subset data for Cuban bulrush
+nat_dat_rec1 <- filter(nat_dat, Lag == 1 & GSYear > 2013) %>%
+  mutate(PrevRich_s = (PrevRich - mean(PrevRich)) / sd(PrevRich))
   
 # fit models for focal invasive plants
 nat_foc_mod1 <- feols(LogRatioRich ~ PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + Hydrilla_AvgPercCovered + Floating_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod1)
@@ -280,13 +294,16 @@ nat_foc_mod4 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla
 nat_foc_mod5 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + Hydrilla_AvgPercCovered + Floating_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod5)
 nat_foc_mod6 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + Hydrilla_AvgPercCovered + Floating_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod6)  
   
-# fit models for all invasive plants
-nat_all_mod1 <- feols(LogRatioRich ~ PrevRich_s + AlligatorWeed_TreatFreq + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + WaterFern_TreatFreq + AlligatorWeed_AvgPercCovered + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered + WaterFern_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod1)
-nat_all_mod2 <- feols(LogRatioRich ~  PrevRich_s + AlligatorWeed_TreatFreq + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + WaterFern_TreatFreq + AlligatorWeed_AvgPercCovered + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered + WaterFern_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod2)
-nat_all_mod3 <- feols(LogRatioRich ~  PrevRich_s + AlligatorWeed_TreatFreq + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + WaterFern_TreatFreq + AlligatorWeed_AvgPercCovered + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered + WaterFern_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod3)
-nat_all_mod4 <- feols(LogRatioRich ~  PrevRich_s + AlligatorWeed_TreatFreq + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + WaterFern_TreatFreq + AlligatorWeed_AvgPercCovered + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered + WaterFern_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod4)
-nat_all_mod5 <- feols(LogRatioRich ~  PrevRich_s + AlligatorWeed_TreatFreq + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + WaterFern_TreatFreq + AlligatorWeed_AvgPercCovered + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered + WaterFern_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod5)
-nat_all_mod6 <- feols(LogRatioRich ~  PrevRich_s + AlligatorWeed_TreatFreq + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + WaterFern_TreatFreq + AlligatorWeed_AvgPercCovered + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered + WaterFern_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod6)  
+# add non-focal invasive plants to model
+nat_all_mod1 <- feols(LogRatioRich ~ PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod1)
+nat_all_mod2 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod2)
+nat_all_mod3 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod3)
+nat_all_mod4 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod4)
+nat_all_mod5 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod5)
+nat_all_mod6 <- feols(LogRatioRich ~  PrevRich_s + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_mod6) 
+
+# add Cuban bulrush
+nat_rec_mod1 <- feols(LogRatioRich ~ PrevRich_s + CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_dat_rec1)
 
 
 #### model coefficient figures ####
@@ -299,21 +316,17 @@ nat_all_mods <- list(nat_all_mod1, nat_all_mod2, nat_all_mod3, nat_all_mod4, nat
 names(nat_foc_mods) <- names(nat_all_mods) <- c("1", "2", "3", "4", "5", "6")
 
 # rename coefficients
-mgmt_coef_names <- c("WaterFern_TreatFreq" = "Water fern",
+mgmt_coef_names <- c("CubanBulrush_TreatFreq" = "Cuban bulrush",
                      "Torpedograss_TreatFreq" = "Torpedograss",
                      "ParaGrass_TreatFreq" = "Para grass",
                      "Hydrilla_TreatFreq" = "Hydrilla",
-                     "Floating_TreatFreq" = "Floating plant",
-                     "CubanBulrush_TreatFreq" = "Cuban bulrush",
-                     "AlligatorWeed_TreatFreq" = "Alligator weed")
+                     "Floating_TreatFreq" = "Floating plant")
 
-inv_coef_names <- c("WaterFern_AvgPercCovered" = "Water fern",
+inv_coef_names <- c("CubanBulrush_AvgPercCovered" = "Cuban bulrush",
                     "Torpedograss_AvgPercCovered" = "Torpedograss",
                     "ParaGrass_AvgPercCovered" = "Para grass",
                     "Hydrilla_AvgPercCovered" = "Hydrilla",
-                    "Floating_AvgPercCovered" = "Floating plant",
-                    "CubanBulrush_AvgPercCovered" = "Cuban bulrush",
-                    "AlligatorWeed_AvgPercCovered" = "Alligator weed")
+                    "Floating_AvgPercCovered" = "Floating plant")
 
 # figure
 foc_mgmt_fig <- modelplot(nat_foc_mods,
@@ -372,6 +385,24 @@ all_inv_fig <- modelplot(nat_all_mods,
         plot.margin = margin(3, 0, 3, 3)) +
   guides(color = guide_legend(reverse = TRUE))
 
+rec_mgmt_fig <- modelplot(nat_rec_mod1,
+          coef_map = mgmt_coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed"))) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       y = "Treatment frequency",
+       title = "Change in native richness") +
+  def_theme_paper
+
+rec_inv_fig <- modelplot(nat_rec_mod1,
+          coef_map = inv_coef_names,
+          background = list(geom_vline(xintercept = 0, color = "black",
+                                       size = 0.5, linetype = "dashed"))) +
+  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
+       y = "Percent area covered",
+       title = "Change in native richness") +
+  def_theme_paper
+
 
 #### export figures and models ####
 
@@ -384,7 +415,12 @@ ggsave("output/fwc_native_richness_all_invasive_model.eps", all_inv_fig,
        device = "eps", width = 3.5, height = 5, units = "in")
 ggsave("output/fwc_native_richness_all_control_model.eps", all_mgmt_fig,
        device = "eps", width = 3.5, height = 5, units = "in")
+ggsave("output/fwc_native_richness_recent_invasive_model.eps", rec_inv_fig,
+       device = "eps", width = 3.5, height = 4, units = "in")
+ggsave("output/fwc_native_richness_recent_control_model.eps", rec_mgmt_fig,
+       device = "eps", width = 3.5, height = 4, units = "in")
 
 # model objects
 save(nat_foc_mods, file = "output/fwc_native_richness_focal_invasive_models.rda")
 save(nat_all_mods, file = "output/fwc_native_richness_all_invasive_models.rda")
+save(nat_rec_mod1, file = "output/fwc_native_richness_recent_invasive_model.rda")

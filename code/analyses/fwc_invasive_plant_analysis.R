@@ -28,17 +28,32 @@ inv_dat <- inv_plant %>%
 # will need surveyor experience
 filter(inv_dat, is.na(Lag1MinSurveyorExperience)) # 54 rows (9 surveys)
 
+# check data availability
+inv_dat %>%
+  filter(PropCovered > 0) %>%
+  ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ CommonName, scales = "free_y") +
+  theme(legend.position = "none")
+# not enough data for: Alligator weed, water fern
+# Cuban bulrush is missing a lot of data before 2013
+# wild taro is difficult to distinguish from elephant ear, surveys may be inaccurate
+
 # split by species
 hydr_dat <- filter(inv_dat, CommonName == "Hydrilla")
 wale_dat <- filter(inv_dat, CommonName == "Water lettuce")
 wahy_dat <- filter(inv_dat, CommonName == "Water hyacinth")
 torp_dat <- filter(inv_dat, CommonName == "Torpedograss")
-alwe_dat <- filter(inv_dat, CommonName == "Alligator weed")
-# wita_dat <- filter(inv_dat, CommonName == "Wild taro") # removing analyses: difficult to distinguish from elephant ear, surveys may be inaccurate
-cubu_dat <- filter(inv_dat, CommonName == "Cuban bulrush")
+cubu_dat <- filter(inv_dat, CommonName == "Cuban bulrush" & GSYear >= 2013)
 pagr_dat <- filter(inv_dat, CommonName == "Para grass")
-wafe_dat <- filter(inv_dat, CommonName == "Water fern")
 
+# check Cuban bulrush
+cubu_dat %>%
+  filter(PropCovered > 0) %>%
+  ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ CommonName, scales = "free_y") +
+  theme(legend.position = "none")
 
 #### initial visualizations ####
 
@@ -68,14 +83,6 @@ torp_dat %>%
   select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
 
-alwe_dat %>%
-  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
-  ggpairs()
-
-# wita_dat %>%
-#   select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
-#   ggpairs()
-
 cubu_dat %>%
   select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
@@ -83,10 +90,6 @@ cubu_dat %>%
 pagr_dat %>%
   select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
   ggpairs()
-
-wafe_dat %>%
-  select(Lag1Treated, Lag1InitPercCovered, Lag1MinSurveyorExperience) %>%
-  ggpairs() # lots of zeros
 
 # log ratio prop covered
 ggplot(hydr_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
@@ -100,6 +103,20 @@ ggplot(wale_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered,
 ggplot(wahy_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
                      color = as.factor(Lag1Treated))) +
   geom_point()
+
+ggplot(torp_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
+                     color = as.factor(Lag1Treated))) +
+  geom_point()
+# a lot untreated
+
+ggplot(cubu_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
+                     color = as.factor(Lag1Treated))) +
+  geom_point()
+
+ggplot(pagr_dat, aes(x = Lag1InitPercCovered, y = Lag1LogRatioCovered, 
+                     color = as.factor(Lag1Treated))) +
+  geom_point()
+# a lot untreated
 
 # treated and change in prop
 ggplot(hydr_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
@@ -118,11 +135,6 @@ ggplot(torp_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean")
 
-ggplot(alwe_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
-  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-  stat_summary(geom = "point", fun = "mean")
-# no cases with 6 years of treatment
-
 ggplot(cubu_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean")
@@ -130,11 +142,6 @@ ggplot(cubu_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
 ggplot(pagr_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean")
-
-ggplot(wafe_dat, aes(x = Lag6Treated, y = Lag6LogRatioCovered)) +
-  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-  stat_summary(geom = "point", fun = "mean")
-# no cases with 6 years of treatment
 
 # data availability for lags
 hydr_dat %>%
@@ -207,14 +214,11 @@ hydr_mods <- mod_fit(hydr_dat)
 wahy_mods <- mod_fit(wahy_dat)
 wale_mods <- mod_fit(wale_dat)
 torp_mods <- mod_fit(torp_dat)
-alwe_mods <- mod_fit(alwe_dat) # 'InitPercCovered_c:Treated' removed because of collinearity
-# wita_mods <- mod_fit(wita_dat)
 cubu_mods <- mod_fit(cubu_dat)
 pagr_mods <- mod_fit(pagr_dat)
-wafe_mods <- mod_fit(wafe_dat) # all 'InitPercCovered_c:Treated' removed because of collinearity
 
 # name models
-names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(alwe_mods) <- names(cubu_mods) <- names(pagr_mods) <- names(wafe_mods) <- c("1", "2", "3", "4", "5", "6")
+names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(cubu_mods) <- names(pagr_mods) <- c("1", "2", "3", "4", "5", "6")
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
@@ -268,27 +272,15 @@ save(wahy_mods, file = "output/fwc_water_hyacinth_treatment_models.rda")
 save(wale_mods, file = "output/fwc_water_lettuce_treatment_models.rda")
 
 # non-focal panels
-alwe_fig <- modelplot(alwe_mods,
-                      coef_map = coef_names,
-                      background = list(geom_vline(xintercept = 0, color = "black",
-                                                   size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
-  labs(x = "",
-       title = "(D) alligator weed") +
-  def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
 cubu_fig <- modelplot(cubu_mods,
                       coef_map = coef_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
   labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       title = "(D) Cuban bulrush") +
+       title = "(A) Cuban bulrush") +
   def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
+  theme(legend.position = "none")
 
 pagr_fig <- modelplot(pagr_mods,
                       coef_map = coef_names,
@@ -296,7 +288,7 @@ pagr_fig <- modelplot(pagr_mods,
                                                    size = 0.5, linetype = "dashed"))) +
   scale_color_viridis_d(direction = -1) +
   labs(x = "",
-       title = "(E) para grass") +
+       title = "(B) para grass") +
   def_theme_paper +
   theme(legend.position = "none",
         axis.text.y = element_blank())
@@ -305,32 +297,23 @@ torp_fig <- modelplot(torp_mods,
                       coef_map = coef_names,
                       background = list(geom_vline(xintercept = 0, color = "black",
                                                    size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1) +
+  scale_color_viridis_d(direction = -1, name = "Management\nyears\nincluded") +
   labs(x = "",
-       title = "(F) torpedograss") +
+       title = "(C) torpedograss") +
   def_theme_paper +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-# wafe_fig <- modelplot(wafe_mods,
-#                       coef_map = coef_names,
-#                       background = list(geom_vline(xintercept = 0, color = "black",
-#                                                    size = 0.5, linetype = "dashed"))) +
-#   scale_color_viridis_d(direction = -1) +
-#   labs(x = "",
-#        title = "(D) water fern") +
-#   def_theme_paper +
-#   theme(axis.text.y = element_blank(),
-#         legend.box.margin = margin(-10, 0, -10, -10)) +
-#   guides(color = guide_legend(reverse = TRUE))
-# all models are missing interaction
+  theme(axis.text.y = element_blank(),
+        legend.box.margin = margin(-10, 0, -10, -10)) +
+  guides(color = guide_legend(reverse = TRUE))
 
 # combine figures
-pdf("output/fwc_invasive_plant_treatment_model.pdf", width = 13, height = 5)
-plot_grid(hydr_fig, wahy_fig, wale_fig, alwe_fig, cubu_fig, pagr_fig, torp_fig,
-          nrow = 1,
-          rel_widths = c(1, rep(0.57, 6), 0.75))
-dev.off()
+nonfoc_fig <- cubu_fig + pagr_fig + torp_fig + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
+ggsave("output/fwc_non_focal_invasive_plant_treatment_model.eps", nonfoc_fig,
+       device = "eps", width = 6.5, height = 3.5, units = "in")
+
+# export models
+save(cubu_mods, file = "output/fwc_cuban_bulrush_treatment_models.rda")
+save(pagr_mods, file = "output/fwc_para_grass_treatment_models.rda")
+save(torp_mods, file = "output/fwc_torpedograss_lettuce_treatment_models.rda")
 
 
 #### older code ####

@@ -67,23 +67,87 @@ inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "
                    CommonName = c("Hydrilla", "Water lettuce", "Water hyacinth", "Torpedograss", "Wild taro", "Para grass", "Alligator weed", "Cuban bulrush", "Water fern"),
                    Code = c("HYDR", "WALE", "WAHY", "TORP", "ELEA", "PAGR", "ALWE", "BUSE", "WAFE"))
 
+# visualize raw abundances
+pdf("output/invasive_plant_raw_abundance_time_series.pdf", width = 18, height = 16)
+plant_fwc %>%
+  filter(TaxonName %in% inv_taxa$TaxonName) %>%
+  ggplot(aes(x = SurveyYear, y = SpeciesAcres/WaterbodyAcres, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ TaxonName,
+             scales = "free") +
+  theme(legend.position = "none") + 
+  labs(x = "Year", y = "Proportion area covered")
+
+plant_fwc %>%
+  filter(TaxonName %in% inv_taxa$TaxonName) %>%
+  mutate(SpeciesAcres = ifelse(SpeciesAcres == 0, NA_real_, SpeciesAcres)) %>%
+  filter(!is.na(SpeciesAcres)) %>%
+  ggplot(aes(x = SurveyYear)) +
+  geom_bar() +
+  facet_wrap(~ TaxonName, scales = "free") +
+  labs(x = "Year", y = "Number of surveys with cover > 0")
+dev.off()
+
+# surveys
+inv_surv <- plant_fwc %>%
+  select(AreaOfInterestID) %>%
+  unique() %>%
+  expand_grid(SurveyYear = seq(min(plant_fwc$SurveyYear), max(plant_fwc$SurveyYear))) %>%
+  left_join(plant_fwc %>%
+              filter(Origin == "Exotic") %>%
+              select(AreaOfInterestID, SurveyYear, TaxonName, SpeciesAcres, IsDetected)) %>%
+  mutate(Measured = if_else(SpeciesAcres > 0, 1, 0),
+         Measured = replace_na(Measured, 0)) %>%
+  group_by(AreaOfInterestID, SurveyYear) %>%
+  summarize(Measured = sum(Measured)) %>%
+  ungroup() %>%
+  mutate(Surveyed = if_else(Measured > 0, 1, 0)) %>%
+  select(-Measured)
+
+# check Tohopekaliga survey in 2017 (seems incomplete in other data exploration)
+filter(inv_surv, AreaOfInterestID == 476 & SurveyYear == 2017)
+
+# check that patterns look right
+inv_surv %>%
+  filter(Surveyed == 1) %>%
+  ggplot(aes(x = SurveyYear)) +
+  geom_bar()
+
 # modify data
 inv_fwc <- plant_fwc %>%
-  filter(!(WaterbodyName == "Tohopekaliga, Lake" & SurveyYear == 2017)) %>% # survey seems incomplete
-  plant_abun_format(inv_taxa) # warnings from min/max functions, replaced with NA
+  plant_abun_format(inv_taxa, inv_surv)
 inv_fwri <- plant_freq_format(plant_fwri, inv_taxa)
 
+# check patterns
+pdf("output/invasive_plant_processed_abundance_time_series.pdf", width = 18, height = 16)
+inv_fwc %>%
+  filter(!is.na(PropCovered)) %>%
+  ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ TaxonName, scales = "free") +
+  theme(legend.position = "none") + 
+  labs(x = "Year", y = "Proportion area covered")
+
+inv_fwc %>%
+  filter(!is.na(PropCovered)) %>%
+  ggplot(aes(x = GSYear)) +
+  geom_bar() +
+  facet_wrap(~ TaxonName, scales = "free") +
+  labs(x = "Year", y = "Number of surveys with cover data")
+dev.off()
+
 # hydrilla look-alikes
-# Elodea canadensis is also one, but not in datasets
-hyd_looks_fwc <- plant_fwc %>%
-  filter(!(WaterbodyName == "Tohopekaliga, Lake" & SurveyYear == 2017)) %>% # survey seems incomplete
-  plant_abun_format(tibble(TaxonName = c("Egeria densa", "Najas guadalupensis"),
-                                          CommonName = c("Edensa", "Nguad"))) %>%
-  mutate(SpeciesPresent = ifelse(SpeciesAcres > 0, 1, 0)) %>%
-  select(PermanentID, GSYear, CommonName, SpeciesPresent) %>%
-  pivot_wider(names_from = CommonName,
-              values_from = SpeciesPresent,
-              names_glue = "{CommonName}_Present")
+plant_fwc %>%
+  filter(TaxonName %in% c("Egeria densa", "Najas guadalupensis", "Elodea canadensis")) %>%
+  ggplot(aes(x = SurveyYear, y = SpeciesAcres/WaterbodyAcres, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ TaxonName,
+             scales = "free") +
+  theme(legend.position = "none") + 
+  labs(x = "Year", y = "Proportion area covered")
+# no Elodea canadensis
+# limited Egeria dens data
+# Najas guadalupensis data ends around 2005
 
 hyd_looks_fwri <- plant_freq_format(plant_fwri,
                                    tibble(Code = "SONA",
@@ -94,8 +158,7 @@ hyd_looks_fwri <- plant_freq_format(plant_fwri,
 # remove missing years
 # add hydrilla look-alikes
 inv_fwc2 <- inv_fwc %>%
-  filter(!is.na(PropCovered)) %>%
-  left_join(hyd_looks_fwc)
+  filter(!is.na(PropCovered))
 
 inv_fwri2 <- inv_fwri %>%
   left_join(hyd_looks_fwri)

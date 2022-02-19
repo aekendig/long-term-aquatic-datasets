@@ -367,6 +367,13 @@ inv_ctrl2 <- inv_ctrl %>%
   filter(!is.na(Lag1AllPropTreated)) %>% # must have measurement in final year 
   full_join(inv_ctrl)
 
+# check data
+inv_ctrl2 %>%
+  ggplot(aes(x = GSYear, y = PropTreated, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ TaxonName, scales = "free_y") +
+  theme(legend.position = "none")
+
 
 #### inv ctrl output ####
 write_csv(inv_ctrl2, "intermediate-data/FWC_invasive_control_formatted.csv")
