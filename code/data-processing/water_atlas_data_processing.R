@@ -198,10 +198,22 @@ length(unique(atlas$PermanentID))
 
 #### edit dates ####
 
+# date errors
+date_err <- atlas %>%
+  mutate(DateTime = as_datetime(SampleDate, format = "%m/%d/%y %H:%M", tz = "America/New_York")) %>%
+  filter(is.na(DateTime)) %>%
+  select(SampleDate) %>%
+  unique()
+# I think these are all daylight savings time errors
+# switch to 2 PM
+
 # edit date
 # remove missing data
 atlas2 <- atlas %>%
-  mutate(DateTime = as_datetime(SampleDate, format = "%m/%d/%y %H:%M", tz = "America/New_York"),
+  mutate(SampleDate = if_else(SampleDate %in% date_err$SampleDate, 
+                              str_replace(SampleDate, "2:", "14:"),
+                              SampleDate),
+         DateTime = as_datetime(SampleDate, format = "%m/%d/%y %H:%M", tz = "America/New_York"),
          Year = if_else(DateTime > as_date("2021-12-13"), # revise future dates
                         year(DateTime) - 100,
                         year(DateTime)),
