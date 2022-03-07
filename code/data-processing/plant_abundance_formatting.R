@@ -1,4 +1,4 @@
-plant_abun_format <- function(dat, taxa, mis_surv){
+plant_abun_format <- function(dat, taxa){
   
   # load packages
   library(magrittr)
@@ -20,35 +20,24 @@ plant_abun_format <- function(dat, taxa, mis_surv){
   surveyor_bins <- surv_out[[2]]
 
   # plant abundance dataset
-  abun_out <- dat %>% # start with all surveys
-    select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, WaterbodyAcres) %>%
-    unique() %>% # one row per survey
-    expand_grid(tibble(TaxonName = taxa$TaxonName)) %>% # one row per species per survey
-    full_join(dat %>% # add plant information
-                filter(TaxonName %in% taxa$TaxonName) %>%
-                select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, SurveyDate, Surveyor, WaterbodyAcres, TaxonName, SpeciesAcres)) %>%
-    mutate(SpeciesAcres = replace_na(SpeciesAcres, 0), # cover 0 when it wasn't in a survey
-           Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
+  abun_out <- dat %>% 
+    filter(TaxonName %in% taxa$TaxonName) %>% # select desired taxa
+    select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, WaterbodyAcres, 
+           SurveyDate, Surveyor, SurveyMonth, SurveyDay, SurveyYear, GSYear,
+           TaxonName, SpeciesAcres) %>%
+    mutate(Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
            Waterbody_ha = WaterbodyAcres * 0.405, # convert FWC waterbody size to hectares
            AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares
-           SurveyMonth = month(SurveyDate),
-           SurveyDay = day(SurveyDate),
-           SurveyYear = year(SurveyDate),
-           GSYear = case_when(SurveyMonth >= 4 ~ SurveyYear,
-                              SurveyMonth < 4 ~ SurveyYear - 1), # assume growing season starts in April
            MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
                                 SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>% # this is for joining dayDat
-    left_join(taxa) %>%
+    left_join(taxa) %>% # add common name and taxa code (FWRI)
     left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
     mutate(AreaChangeSD = lakeO_area_beta1 * (lakeO_area_days-Days) + lakeO_area_beta2 * (lakeO_area_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
     group_by(AreaOfInterestID, TaxonName) %>% # take standard deviation by survey area and species
-    mutate(EstAreaCoveredRaw_ha = case_when(SpeciesAcres > 0.01 ~ AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha),
-                                            TRUE ~ AreaCovered_ha)) %>% # calculate est. max abundance, NA if only one value is available
+    mutate(EstAreaCoveredRaw_ha = case_when(SpeciesAcres > 0.01 ~ AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha, na.rm = T), # adjust by sd
+                                            TRUE ~ AreaCovered_ha)) %>%
     ungroup() %>%
-    left_join(surveyor) %>% # surveyor experience
-    left_join(mis_surv) %>% # remove data if lake wasn't surveyed
-    mutate(SpeciesAcres = if_else(Surveyed == 1, SpeciesAcres, NA_real_),
-           EstAreaCoveredRaw_ha = if_else(Surveyed == 1, EstAreaCoveredRaw_ha, NA_real_))
+    left_join(surveyor) # surveyor experience
   
   # minimum area covered
   min_area <- abun_out %>%
@@ -58,20 +47,26 @@ plant_abun_format <- function(dat, taxa, mis_surv){
 
   # remove duplicates
   # summarize by waterbody
+  # calculate change over one year (add in missing data)
   abun_out2 <- abun_out %>%
-    nest(data = c(SurveyDate, Surveyor, SurveyorExperience, SpeciesAcres, AreaCovered_ha, SurveyMonth, SurveyDay, SurveyYear, MonthDay, Days, Surveyed, AreaChangeSD, EstAreaCoveredRaw_ha)) %>% # find multiple surveys within area of interest, growing season year, and species
-    mutate(newdata = map(data, ~rem_abun_dups(.))) %>% # remove duplicates
+    nest(data = c(SurveyDate, Surveyor, SurveyorExperience,
+                  SpeciesAcres, AreaCovered_ha,
+                  SurveyMonth, SurveyDay, SurveyYear, MonthDay, Days,
+                  AreaChangeSD, EstAreaCoveredRaw_ha)) %>% # find multiple surveys within area of interest, growing season year, and species
+    mutate(newdata = map(data, ~rem_abun_dups(.))) %>% # chose maximum abundance
     select(-data) %>%
     unnest(newdata) %>%
     group_by(PermanentID, Area_ha, GSYear, TaxonName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
-    summarise(AreaName = paste(AreaOfInterest, collapse = "/"),
+    summarise(AreaName = paste(sort(AreaOfInterest), collapse = "/"),
               SurveyDate = max(SurveyDate),
-              Surveyor = paste(unique(Surveyor), collapse = ", "),
+              Surveyor = paste(sort(unique(Surveyor)), collapse = ", "),
               SurveyorExperience = max(SurveyorExperience, na.rm = T), # assign the more experienced surveyor's exp.
-              WaterbodyList_ha = paste(Waterbody_ha, collapse = ", "),
-              WaterbodySum_ha = sum(Waterbody_ha),
-              SpeciesAcres = sum(SpeciesAcres),
-              EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
+              WaterbodyList_ha = paste(sort(Waterbody_ha), collapse = ", "),
+              WaterbodySum_ha = sum(Waterbody_ha, na.rm = T),
+              SpeciesAcres = if_else(sum(!is.na(SpeciesAcres)) == 0, NA_real_, # assign NA if all values are NA
+                                     sum(SpeciesAcres, na.rm = T)), # sum otherwise
+              EstAreaCoveredRaw_ha = if_else(sum(!is.na(EstAreaCoveredRaw_ha)) == 0, NA_real_, # assign NA if all values are NA
+                                             sum(EstAreaCoveredRaw_ha, na.rm = T))) %>% # sum otherwise
     ungroup() %>%
     mutate(EstAreaCovered_ha = case_when(EstAreaCoveredRaw_ha > Area_ha ~ Area_ha, # reduce areas covered to total area
                                          TRUE ~ EstAreaCoveredRaw_ha),
@@ -86,30 +81,34 @@ plant_abun_format <- function(dat, taxa, mis_surv){
     full_join(abun_out %>% # add row for every year for each site/species combo (NA's for missing surveys)
                 select(PermanentID, CommonName, TaxonName) %>%
                 unique() %>%
-                expand_grid(GSYear = min(abun_out$GSYear):max(abun_out$GSYear)))
-    # group_by(PermanentID, CommonName, TaxonName) %>%
-    # arrange(GSYear) %>%
-    # mutate(PrevPropCovered = lag(PropCovered), # previous year's abundance
-    #        PrevAreaCovered_ha = lag(EstAreaCovered_ha),
-    #        PrevAreaCoveredRaw_ha = lag(EstAreaCoveredRaw_ha),
-    #        PrevSpeciesPresent = as.numeric(lag(SpeciesAcres) > 0),
-    #        SurveyDays = as.numeric(SurveyDate - lag(SurveyDate)),
-    #        PrevSurveyorExperience = lag(SurveyorExperience)) %>%
-    # ungroup() %>%
-    # rowwise() %>%
-    # mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
-    # ungroup() %>%
-    # mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
-    #                                 EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / (0.01 * 0.405), # lower limit of SpeciesAcres
-    #                                 EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ (0.01 * 0.405) / PrevAreaCovered_ha,
-    #                                 TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
-    #        LogRatioCovered = log(RatioCovered),
-    #        MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
-    #                                       NA_real_,
-    #                                       MinSurveyorExperience))
+                expand_grid(GSYear = min(abun_out$GSYear):max(abun_out$GSYear))) %>%
+    group_by(PermanentID, TaxonName) %>%
+    arrange(GSYear) %>%
+    mutate(InitPercCovered = lag(PropCovered) * 100, # previous year's abundance
+           PrevAreaCovered_ha = lag(EstAreaCovered_ha),
+           PrevSurveyorExperience = lag(SurveyorExperience),
+           SurveyDays = as.numeric(SurveyDate - lag(SurveyDate))) %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(MinSurveyorExperience = min(c(SurveyorExperience, PrevSurveyorExperience), na.rm = T)) %>%
+    ungroup() %>%
+    mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
+                                    EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / min_area, # lower limit of SpeciesAcres
+                                    EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ min_area / PrevAreaCovered_ha,
+                                    TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
+           LogRatioCovered = log(RatioCovered),
+           MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
+                                          NA_real_,
+                                          MinSurveyorExperience))
+
+
+
 
 
   #### lag intervals ####
+
+  # commented out code is to calculate growth over lag interval
+  # I found this wasn't useful because the initial size isn't that closely related to the final size
 
   # function for cumulative treatment
   inv_lag_fun <- function(GSYear, Lag){
@@ -124,27 +123,32 @@ plant_abun_format <- function(dat, taxa, mis_surv){
     # summarize
     outdat <- subdat %>%
       group_by(PermanentID, TaxonName) %>%
-      arrange(GSYear) %>%
-      mutate(InitPercCovered = lag(PropCovered, n = Lag) * 100, # previous year's abundance
-             PrevAreaCovered_ha = lag(EstAreaCovered_ha, n = Lag),
-             PrevSurveyorExperience = lag(SurveyorExperience, n = Lag),
-             NYears = n_distinct(GSYear),
-             AvgPropCovered = mean(PropCovered)) %>%
+      # arrange(GSYear) %>%
+      # mutate(InitPercCovered = lag(PropCovered, n = Lag) * 100, # previous year's abundance
+      #        PrevAreaCovered_ha = lag(EstAreaCovered_ha, n = Lag),
+      #        PrevSurveyorExperience = lag(SurveyorExperience, n = Lag),
+      #        NYears = n_distinct(GSYear),
+      #        AvgPropCovered = mean(PropCovered)) %>%
+      summarize(AvgPropCovered = mean(PropCovered),
+                NYears = n_distinct(GSYear)) %>%
       ungroup() %>%
-      filter(GSYear == year1) %>%
-      rowwise() %>%
-      mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
-      ungroup() %>%
-      mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
-                                      EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / min_area, # lower limit of SpeciesAcres
-                                      EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ min_area / PrevAreaCovered_ha,
-                                      TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
-             LogRatioCovered = log(RatioCovered)/Lag,
-             MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
-                                            NA_real_,
-                                            MinSurveyorExperience),
-             Lag = Lag) %>%
-      select(PermanentID, TaxonName, GSYear, Lag, NYears, InitPercCovered, MinSurveyorExperience, LogRatioCovered, AvgPropCovered)
+      # filter(GSYear == year1) %>%
+      # rowwise() %>%
+      # mutate(MinSurveyorExperience = min(SurveyorExperience, PrevSurveyorExperience)) %>%
+      # ungroup() %>%
+      # mutate(RatioCovered = case_when(EstAreaCovered_ha == 0 & PrevAreaCovered_ha == 0 ~ 1,
+      #                                 EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / min_area, # lower limit of SpeciesAcres
+      #                                 EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ min_area / PrevAreaCovered_ha,
+      #                                 TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
+      #        LogRatioCovered = log(RatioCovered)/Lag,
+      #        MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
+      #                                       NA_real_,
+      #                                       MinSurveyorExperience),
+      #        Lag = Lag) %>%
+      mutate(Lag = Lag,
+             GSYear = year1) # %>%
+      # select(PermanentID, TaxonName, GSYear, Lag, NYears, AvgPropCovered)
+      # select(PermanentID, TaxonName, GSYear, Lag, NYears, InitPercCovered, MinSurveyorExperience, LogRatioCovered, AvgPropCovered)
 
     # return
     return(outdat)
@@ -159,11 +163,14 @@ plant_abun_format <- function(dat, taxa, mis_surv){
     bind_rows() %>%
     filter(NYears == Lag+1) %>% # all years for a lag must be available
     select(-NYears) %>%
+    # pivot_wider(names_from = Lag,
+    #             values_from = c(InitPercCovered, MinSurveyorExperience, LogRatioCovered, AvgPropCovered),
+    #             names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
     pivot_wider(names_from = Lag,
-                values_from = c(InitPercCovered, MinSurveyorExperience, LogRatioCovered, AvgPropCovered),
+                values_from = AvgPropCovered,
                 names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
     full_join(abun_out2)
-  
+
   return(abun_out3)
   
 }

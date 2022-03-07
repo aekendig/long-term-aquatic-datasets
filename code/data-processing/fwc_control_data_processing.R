@@ -16,7 +16,7 @@ gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
 ctrl_old <- read_csv("original-data/PrePMARS_IPMData.csv")
 ctrl <- read_csv("original-data/FWC_Herbicide_Treatments_mid2010-Oct2020.csv")
 herb_type <- read_csv("intermediate-data/herbicide_types.csv")
-inv_fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
+plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
 
 
 #### old control data ####
@@ -74,7 +74,15 @@ ctrl_old2 %>%
 ctrl_old3 <- ctrl_old2 %>%
   filter(!is.na(PermanentID)) %>%
   unique() %>%
-  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, TreatmentID, MethodHerbicide, CtrlSet, GSYear)
+  select(AreaOfInterestID, AreaOfInterest, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, TreatmentID, MethodHerbicide, CtrlSet, GSYear)
+
+# one permID per AOI?
+ctrl_old3 %>%
+  group_by(AreaOfInterestID) %>%
+  summarize(nPerm = n_distinct(PermanentID)) %>%
+  ungroup() %>%
+  filter(nPerm > 1)
+# yes
 
 
 #### control data ####
@@ -136,7 +144,7 @@ ctrl2 %>%
 ctrl3 <- ctrl2 %>%
   filter(!is.na(PermanentID)) %>%
   unique() %>%
-  group_by(AreaOfInterestID, PermanentID, Species, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%  # captures area treated for an event without duplication due to multiple methods
+  group_by(AreaOfInterestID, AreaOfInterest, PermanentID, Species, BeginDate, TreatmentID, TotalAcres, ShapeArea) %>%  # captures area treated for an event without duplication due to multiple methods
   mutate(AreaTreated_ha = TotalAcres * 0.405,
          Area_ha = ShapeArea * 100,
          AreaTreated_ha = case_when(AreaTreated_ha > Area_ha ~ Area_ha, # make full area if it exceeds it
@@ -155,10 +163,18 @@ ctrl3 <- ctrl2 %>%
          GSYear = case_when(TreatmentMonth >= 4 ~ TreatmentYear,
                             TreatmentMonth < 4 ~ TreatmentYear - 1)) %>%
   ungroup() %>%
-  select(AreaOfInterestID, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, MethodHerbicide, ActiveIngredients, Endothall, TreatmentMonth, BeginDate, TreatmentID, CtrlSet, GSYear) %>%
+  select(AreaOfInterestID, AreaOfInterest, PermanentID, TreatmentYear, Species, Area_ha, AreaTreated_ha, PropTreated, TreatmentMethod, MethodHerbicide, ActiveIngredients, Endothall, TreatmentMonth, BeginDate, TreatmentID, CtrlSet, GSYear) %>%
   rename(TreatmentDate = BeginDate) %>%
   unique() %>%  # some duplication due to different TotalHerbicideUsed (but nothing else) for the same TreatmentID
   mutate(Endothall = replace_na(Endothall, 0)) # warnings returned for NA active ingredient
+
+# one permID per AOI?
+ctrl3 %>%
+  group_by(AreaOfInterestID) %>%
+  summarize(nPerm = n_distinct(PermanentID)) %>%
+  ungroup() %>%
+  filter(nPerm > 1)
+# yes
 
 
 #### ctrl outputs ####
@@ -167,148 +183,138 @@ write_csv(ctrl_old3, "intermediate-data/FWC_control_old_formatted.csv")
 write_csv(ctrl3, "intermediate-data/FWC_control_new_formatted.csv")
 
 
-#### edit old data for FWC plants ####
+#### combine datasets ####
+
+# duplicates within old dataset
+ctrl_old3 %>%
+  get_dupes(AreaOfInterestID, TreatmentYear, Species, AreaTreated_ha)
+# one, but it's not an aquatic species
+
+# duplicates within new dataset
+ctrl3 %>%
+  get_dupes(AreaOfInterestID, TreatmentYear, Species, 
+            AreaTreated_ha, TreatmentMethod, TreatmentID)
+
+# combine datasets
+ctrl4 <- ctrl3 %>%
+  full_join(ctrl_old3 %>%
+              mutate(TreatmentDate = as.Date(paste0(GSYear, "-01-01"))))
+
+# check for duplication around 2010
+ctrl4_dups <- ctrl4 %>%
+  filter(TreatmentYear == 2010) %>%
+  get_dupes(AreaOfInterestID, Species, AreaTreated_ha) %>%
+  group_by(AreaOfInterestID, Species, AreaTreated_ha) %>%
+  summarize(Sets = n_distinct(CtrlSet)) %>%
+  ungroup() %>%
+  filter(Sets > 1)
+# only 6 examples, 3 will be included in analyses
+# okay to leave as separate events
+# especially given high replication within the new dataset for
+# these three parameters
+
+# are AOIs for each Perm ID consistent?
+ctrl4 %>%
+  group_by(PermanentID) %>%
+  summarize(nAOI = n_distinct(AreaOfInterest),
+            nAOI_ID = n_distinct(AreaOfInterestID)) %>%
+  ungroup() %>%
+  filter(nAOI_ID > 1) %>% # select lakes with multiple AOIs
+  inner_join(ctrl4 %>%
+               group_by(PermanentID, GSYear) %>%
+               summarize(AOI = paste(sort(unique(AreaOfInterest)), collapse = ", ")) %>%
+               ungroup() %>%
+               group_by(PermanentID, AOI) %>%
+               summarize(Years = paste(sort(unique(GSYear)), collapse = ", ")) %>%
+               ungroup()) %>% # AOIs surveyed each year
+  get_dupes(PermanentID) # select lakes with different AOIs over time
+# consistent with plants (fwc_plant_data_processing), but
+# leave Little Santa Fe because it was surveyed for plants
+
+# first plant survey date of growing season
+plant_surveys <- plant_fwc %>%
+  group_by(AreaOfInterestID, PermanentID, GSYear) %>%
+  summarize(SurveyDate = min(SurveyDate)) %>%
+  ungroup()
+
+# check that AOIs are consistent
+ctrl4 %>%
+  filter(PermanentID %in% plant_surveys$PermanentID & 
+           !(AreaOfInterestID %in% plant_surveys$AreaOfInterestID)) %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID) %>%
+  unique()
+# first for will be removed for temporal consistency
+
+plant_fwc %>%
+  filter(PermanentID == "107776163") %>%
+  select(AreaOfInterest, AreaOfInterestID, PermanentID) %>%
+  unique()
+# okay to remove the wetlands from the ctrl dataset
+# different area than lake in both datasets
+
+# remove additional AOIs (temporal consistency)
+# add plant survey date
+# adjust GSYear based on plant survey
+ctrl5 <- ctrl4 %>%
+  filter(!(AreaOfInterest == "Wauseon Bay" & PermanentID == "112029141") &
+           !(AreaOfInterest == "Red Water, Lake" & PermanentID == "112047993") &
+           !(AreaOfInterest == "Josephine Creek" & PermanentID == "112049879") &
+           !(AreaOfInterest == "Hunt, Lake" & PermanentID == "167180956") &
+           !(AreaOfInterest == "DeLeon Springs St Park Wetlands" & PermanentID == "107776163")) %>%
+  left_join(plant_surveys) %>%
+  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
+         GSYear = case_when(is.na(SurveyTreatDays) | SurveyTreatDays >= 14 ~ GSYear, # no survey/survey after treatment -> keep year
+                            SurveyTreatDays < 14 ~ GSYear + 1), # survey before or very soon after treatment -> move treatment to next year
+         Species = if_else(Species == "Oxycaryum cubense", "Cyperus blepharoleptos", Species)) # use more recent Cuban bulrush name
+
+
+#### summarize data ####
 
 # species
 inv_taxa <- tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Eichhornia and Pistia)", 2), # double each row that has floating plants
-                               "Panicum repens", "Colocasia esculenta", "Urochloa mutica", 
-                               "Alternanthera philoxeroides", "Oxycaryum cubense", "Cyperus blepharoleptos", "Salvinia minima"),
-                        TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
-                                      "Panicum repens", "Colocasia esculenta", "Urochloa mutica",
-                                      "Alternanthera philoxeroides", rep("Cyperus blepharoleptos", 2), "Salvinia minima"))
-# old data: "Oxycaryum cubense"
-# new data: "Cyperus blepharoleptos"
+                               "Panicum repens", "Urochloa mutica", "Cyperus blepharoleptos"),
+                   TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
+                                 "Panicum repens", "Urochloa mutica", "Cyperus blepharoleptos"))
 
 # all treatments
-# don't know treatment data, don't adjust GSYear
-all_ctrl_old <- ctrl_old3 %>%
-  group_by(PermanentID, GSYear, Area_ha) %>%
-  summarize(AllAreaTreated_ha = sum(AreaTreated_ha)) %>%
-  ungroup() %>%
-  full_join(ctrl_old3 %>%
-              select(PermanentID, Area_ha) %>%
+# fill in missing years
+# summarize by permanent ID
+all_ctrl <- ctrl5 %>%
+  full_join(ctrl5 %>%
+              select(PermanentID, AreaOfInterest, Area_ha) %>%
               unique() %>%
-              expand_grid(GSYear = min(ctrl_old3$GSYear):max(ctrl_old3$GSYear))) %>%
-  mutate(AllAreaTreated_ha = replace_na(AllAreaTreated_ha, 0),
-         AllPropTreated = AllAreaTreated_ha / Area_ha,
-         CtrlSet = "old")
+              expand_grid(GSYear = min(ctrl5$GSYear):max(ctrl5$GSYear))) %>% # could add +1 to max, but don't want to include last year anyway (likely incomplete)
+  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) %>% # add zeros for missing years (did not treat)
+  group_by(PermanentID, GSYear, Area_ha) %>%
+  summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
+            AllAreaTreated_ha = sum(AreaTreated_ha)) %>% # add all treatments within a year
+  ungroup() %>%
+  mutate(AllPropTreated = AllAreaTreated_ha / Area_ha)
 
 # focal species
-foc_ctrl_old <- ctrl_old3 %>%
+# fill in missing years
+# summarize by permanent ID
+foc_ctrl <- ctrl5 %>%
   filter(Species %in% inv_taxa$Species) %>%
-  group_by(PermanentID, GSYear, Area_ha, Species) %>%
-  summarize(AreaTreated_ha = sum(AreaTreated_ha)) %>%
-  ungroup() %>%
-  full_join(ctrl_old3 %>%
-              select(PermanentID, Area_ha) %>%
+  full_join(ctrl5 %>%
+              select(PermanentID, AreaOfInterest, Area_ha) %>%
               unique() %>%
-              expand_grid(GSYear = min(ctrl_old3$GSYear):max(ctrl_old3$GSYear)) %>%
-              expand_grid(Species = unique(inv_taxa$Species))) %>%
-  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0),
-         PropTreated = AreaTreated_ha / Area_ha,
-         CtrlSet = "old") %>%
-  filter(Species != "Cyperus blepharoleptos") # new name of Cuban bulrush added with expand_grid
-
-# check for new name of Cuban bulrush
-# foc_ctrl_old %>%
-#   filter(Species == "Cyperus blepharoleptos" & AreaTreated_ha > 0)
-# no data
-
-
-#### edit new data for FWC plants ####
-
-# all treatments
-all_ctrl <- ctrl3 %>%
-  left_join(inv_fwc %>%
-              select(PermanentID, SurveyDate, GSYear) %>% 
-              unique()) %>% # add survey dates for each lake and year
-  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
-         GSYear = case_when(is.na(SurveyTreatDays) | SurveyTreatDays >= 14 ~ GSYear, # no survey/survey after treatment -> keep year
-                            SurveyTreatDays < 14 ~ GSYear + 1)) %>% # survey before or very soon after treatment -> move treatment to next year 
-  full_join(ctrl3 %>%
-              select(PermanentID, Area_ha) %>%
-              unique() %>%
-              expand_grid(GSYear = min(ctrl3$GSYear):max(ctrl3$GSYear))) %>% # could add +1 to max, but don't want to include last year anyway (likely incomplete)
-  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) %>% # add zeros for missing years
-  group_by(PermanentID, GSYear, Area_ha) %>%
-  summarize(AllAreaTreated_ha = sum(AreaTreated_ha)) %>%
-  ungroup() %>%
-  mutate(AllPropTreated = AllAreaTreated_ha / Area_ha,
-         CtrlSet = "new")
-
-# focal species
-foc_ctrl <- ctrl3 %>%
-  filter(Species %in% inv_taxa$Species) %>%
-  left_join(inv_fwc %>%
-              select(PermanentID, SurveyDate, GSYear) %>% 
-              unique()) %>% # add survey dates for each lake and year
-  mutate(SurveyTreatDays = as.numeric(SurveyDate - TreatmentDate),
-         GSYear = case_when(is.na(SurveyTreatDays) | SurveyTreatDays >= 14 ~ GSYear, # no survey/survey after treatment -> keep year
-                            SurveyTreatDays < 14 ~ GSYear + 1)) %>% # survey before or very soon after treatment -> move treatment to next year 
-  full_join(ctrl3 %>%
-              select(PermanentID, Area_ha) %>%
-              unique() %>%
-              expand_grid(GSYear = min(ctrl3$GSYear):max(ctrl3$GSYear)) %>% # could add +1 to max, but don't want to include last year anyway (likely incomplete)
+              expand_grid(GSYear = min(ctrl5$GSYear):max(ctrl5$GSYear)) %>% # could add +1 to max, but don't want to include last year anyway (likely incomplete)
               expand_grid(Species = unique(inv_taxa$Species))) %>% 
   mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) %>% # add zeros for missing years
   group_by(PermanentID, GSYear, Area_ha, Species) %>%
-  summarize(AreaTreated_ha = sum(AreaTreated_ha),
+  summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
+            AreaTreated_ha = sum(AreaTreated_ha),  # add all treatments within a year
             TreatmentDays = case_when(AreaTreated_ha > 0 ~ as.numeric(n_distinct(TreatmentDate)),
                                       TRUE ~ 0),
             TreatmentDate = if_else(AreaTreated_ha > 0, max(TreatmentDate), NA_real_)) %>%
   ungroup() %>%
-  mutate(PropTreated = AreaTreated_ha / Area_ha,
-         CtrlSet = "new") %>%
-  filter(Species != "Oxycaryum cubense") # old name of Cuban bulrush added with expand_grid
-
-# check for old name of Cuban bulrush
-# foc_ctrl %>%
-#   filter(Species == "Oxycaryum cubense" & AreaTreated_ha > 0)
-# no data
-
-
-#### combine data ####
-
-# combine 2010 data (assume records between old and new are distinct)
-all_ctrl_2010 <- all_ctrl_old %>%
-  filter(GSYear == 2010) %>%
-  full_join(all_ctrl %>%
-              filter(GSYear == 2010)) %>%
-  group_by(PermanentID, GSYear, Area_ha) %>%
-  summarize(AllAreaTreated_ha = sum(AllAreaTreated_ha)) %>%
-  ungroup() %>%
-  mutate(AllPropTreated = AllAreaTreated_ha / Area_ha,
-         CtrlSet = "old/new")
-
-foc_ctrl_2010 <- foc_ctrl_old %>%
-  filter(GSYear == 2010) %>%
-  mutate(Species = if_else(Species == "Oxycaryum cubense", # update old name to avoid duplicate records
-                           "Cyperus blepharoleptos", Species)) %>%
-  full_join(foc_ctrl %>%
-              filter(GSYear == 2010)) %>%
-  group_by(PermanentID, GSYear, Area_ha, Species) %>%
-  summarize(AreaTreated_ha = sum(AreaTreated_ha)) %>%
-  ungroup() %>%
-  mutate(PropTreated = AreaTreated_ha / Area_ha,
-         CtrlSet = "old/new") %>%
-  left_join(foc_ctrl %>%
-              filter(GSYear == 2010) %>%
-              select(PermanentID, Species, TreatmentDays, TreatmentDate)) # add treatment info
-
-ctrl_2010 <- all_ctrl_2010 %>%
-  full_join(foc_ctrl_2010)
+  mutate(PropTreated = AreaTreated_ha / Area_ha)
 
 # combine
-inv_ctrl <- all_ctrl_old %>%
-  full_join(foc_ctrl_old %>%
-              mutate(Species = if_else(Species == "Oxycaryum cubense",
-                                       "Cyperus blepharoleptos", Species))) %>%
-  full_join(all_ctrl %>%
-              full_join(foc_ctrl)) %>%
-  filter(GSYear != 2010) %>%
-  full_join(ctrl_2010) %>%
-  left_join(inv_taxa %>% # duplicate each floating plant row for the two species, add taxon names
-              filter(Species != "Oxycaryum cubense"))
+inv_ctrl <- all_ctrl %>%
+  full_join(foc_ctrl) %>%
+  left_join(inv_taxa)
 
 # check for redundancy
 inv_ctrl %>%
@@ -374,6 +380,21 @@ inv_ctrl2 %>%
   facet_wrap(~ TaxonName, scales = "free_y") +
   theme(legend.position = "none")
 
+# some values are unusually high
+# see if they'll be in plant dataset
+inv_ctrl2 %>%
+  inner_join(plant_fwc %>%
+               select(PermanentID, GSYear) %>%
+               unique()) %>%
+  ggplot(aes(x = GSYear, y = PropTreated, color = PermanentID)) +
+  geom_line() +
+  facet_wrap(~ TaxonName, scales = "free_y") +
+  theme(legend.position = "none")
+
+# one outlier value remains
+filter(inv_ctrl2, TaxonName == "Urochloa mutica" & PropTreated > 0.06) %>% data.frame()
+# high for this species, but not an unreasonable area
+# leave in
 
 #### inv ctrl output ####
 write_csv(inv_ctrl2, "intermediate-data/FWC_invasive_control_formatted.csv")

@@ -22,22 +22,23 @@ inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
 # combine datasets
 inv_dat <- inv_plant %>%
-  filter(!is.na(Lag1LogRatioCovered)) %>%
+  filter(!is.na(LogRatioCovered)) %>% # need two consecutive years
   inner_join(inv_ctrl)
 
 # will need surveyor experience
-filter(inv_dat, is.na(Lag1MinSurveyorExperience)) # 54 rows (9 surveys)
+filter(inv_dat, is.na(MinSurveyorExperience))
+# none missing
 
 # check data availability
 inv_dat %>%
   filter(PropCovered > 0) %>%
   ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
-  geom_line() +
+  geom_vline(xintercept = 2014) +
+  geom_point() +
   facet_wrap(~ CommonName, scales = "free_y") +
   theme(legend.position = "none")
-# not enough data for: Alligator weed, water fern
-# Cuban bulrush is missing a lot of data before 2013
-# wild taro is difficult to distinguish from elephant ear, surveys may be inaccurate
+# Cuban bulrush is missing a lot of data before 2014
+# Para grass and torpedograss start in 2000
 
 # split by species
 hydr_dat <- filter(inv_dat, CommonName == "Hydrilla")

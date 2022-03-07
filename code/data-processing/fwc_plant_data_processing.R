@@ -7,6 +7,7 @@ rm(list = ls())
 library(tidyverse)
 library(janitor)
 library(taxize)
+library(lubridate)
 
 # load data
 fwc_plant <- read_csv("original-data/FWC Plant Surveys.csv")
@@ -18,192 +19,21 @@ gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
 ctrl_old <- read_csv("original-data/PrePMARS_IPMData.csv")
 ctrl <- read_csv("original-data/FWC_Herbicide_Treatments_mid2010-Oct2020.csv")
 fwc_ID <- read_csv("gis/data/FWC_Replaced_Coordinates.csv")
-
-
-#### new FWC plant survey data ####
-
-# format date
-# rename columns
-# add permanent ID based on AreaOfInterestID
-fwc_plant_new2 <- fwc_plant_new %>%
-  mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%y"),
-         County = toupper(County)) %>%
-  rename("AreaOfInterest" = "WaterbodyName") %>%
-  left_join(gis %>%
-              filter(CoordSource %in% c("FWC", "FWC_2")) %>%
-              select(AreaOfInterestID, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
-              unique())
-
-# duplicate rows?
-fwc_plant_new2 %>%
-  get_dupes()
-# none
-
-# missing ID?
-fwc_plant_new2 %>%
-  filter(is.na(PermanentID)) %>%
-  select(AreaOfInterestID, WaterbodyType) %>%
-  unique() %>%
-  group_by(WaterbodyType) %>%
-  count()
-# 5 lakes
-
-fwc_plant_new2 %>%
-  filter(is.na(PermanentID) & WaterbodyType == "Lake") %>%
-  select(AreaOfInterest) %>%
-  unique()
-# all are springs, creeks, run, reservoirs
-
-# remove missing perm ID
-fwc_plant_new3 <- fwc_plant_new2 %>%
-  filter(!is.na(PermanentID))
-
-
-#### FWC AreaOfInterestIDs ####
-
-# this dataset is missing AOI ID's
-# get ID's from other FWC datasets
-fwc_ID2 <- ctrl_old %>%
-  select(AreaOfInterest, County, AreaOfInterestID) %>%
-  full_join(ctrl %>%
-              select(AreaOfInterest, County, AreaOfInterestID)) %>%
-  full_join(fwc_plant_new %>%
-              rename("AreaOfInterest" = "WaterbodyName") %>%
-              select(AreaOfInterest, County, AreaOfInterestID)) %>%
-  full_join(fwc_ID %>%
-              select(AreaOfInterest, County, AreaOfInterestID)) %>%
-  mutate(County = toupper(County)) %>%
-  unique()
-
-# duplicate AreaOfInterest
-fwc_ID2 %>%
-  mutate(AOI_County = paste(AreaOfInterest, County, sep = "_")) %>%
-  get_dupes("AOI_County") %>%
-  select(AreaOfInterestID) %>%
-  inner_join(fwc_ID2)
-# 44 has two different counties, one is the same as 45
-# 714 is a private lake
-# 218 has two different counties, one is the same as 219
-# 872 is a private lake
-
-filter(ctrl_old, AreaOfInterestID == 44) %>% select(County) %>% unique()
-filter(ctrl, AreaOfInterestID == 44) %>% select(County) %>% unique()
-filter(fwc_plant_new, AreaOfInterestID == 44) %>% select(County) %>% unique()
-# 44 is in Highlands, not Polk
-
-filter(ctrl_old, AreaOfInterestID == 218) %>% select(County) %>% unique()
-filter(ctrl, AreaOfInterestID == 218) %>% select(County) %>% unique()
-filter(fwc_plant_new, AreaOfInterestID == 218) %>% select(County) %>% unique()
-# 218 is in Alachua, not Clay
-
-# remove duplicate name-county combos
-fwc_ID3 <- fwc_ID2 %>%
-  filter(!(AreaOfInterestID == 44 & County == "POLK") &
-           !(AreaOfInterestID == 218 & County == "CLAY") &
-           !(AreaOfInterestID %in% c(714, 872)))
-
-fwc_ID3 %>%
-  mutate(AOI_County = paste(AreaOfInterest, County, sep = "_")) %>%
-  get_dupes("AOI_County") 
-
-# missing IDs?
-fwc_ID3 %>%
-  filter(is.na(AreaOfInterestID))
-# none
-
-
-#### old FWC plant survey data ####
-
-# matches in ID dataset
-fwc_plant %>%
-  rename("AreaOfInterest" = "WaterbodyName") %>%
-  select(AreaOfInterest, County) %>%
-  unique() %>%
-  mutate(County = toupper(County)) %>%
-  anti_join(fwc_ID3)
-# all are matched
-
-# add ID's
-# format dates
-# add permanent ID based on AreaOfInterestID
-# remove missing ID
-# remove duplicate rows
-fwc_plant2 <- fwc_plant %>%
-  mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%Y"),
-         AreaOfInterest = WaterbodyName,
-         County = toupper(County)) %>%
-  left_join(fwc_ID3) %>%
-  left_join(gis %>%
-              filter(CoordSource %in% c("FWC", "FWC_2")) %>%
-              select(AreaOfInterestID, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
-              unique())
-
-# duplicate rows?
-fwc_plant2 %>%
-  get_dupes()
-# 415
-
-# remove duplicate rows
-fwc_plant3 <- fwc_plant2 %>%
-  unique()
-
-# missing ID?
-fwc_plant3 %>%
-  filter(is.na(PermanentID)) %>%
-  select(AreaOfInterestID, WaterbodyType) %>%
-  unique() %>%
-  group_by(WaterbodyType) %>%
-  count()
-# 7 lakes
-
-fwc_plant3 %>%
-  filter(is.na(PermanentID) & WaterbodyType == "Lake") %>%
-  select(AreaOfInterest) %>%
-  unique()
-# all are springs, creeks, run, reservoirs
-
-# remove missing perm ID
-fwc_plant4 <- fwc_plant3 %>%
-  filter(!is.na(PermanentID))
-
-
-#### combine old and new datasets ####
-
-# overlapping surveys?
-fwc_plant_new3 %>%
-  select(AreaOfInterestID, SurveyDate) %>%
-  inner_join(fwc_plant4 %>%
-               select(AreaOfInterestID, SurveyDate))
-# no
-
-# duplicate measurements?
-fwc_plant4 %>%
-  select(AreaOfInterestID, SurveyDate, SpeciesName) %>%
-  get_dupes() %>%
-  select(SpeciesName) %>%
-  unique() %>%
-  data.frame()
-# yes
-
-# remove rows with missing species names
-# sum cover for duplicate non-species
-# use max cover for duplicate species
-fwc_plant5 <- fwc_plant4 %>%
-  full_join(fwc_plant_new3) %>%
-  filter(!is.na(SpeciesName)) %>%
-  group_by(across(!SpeciesAcres)) %>%
-  summarise(SpeciesAcres = case_when(str_detect(SpeciesName, "Filamentous algae|other|spp.|/") == T ~ sum(SpeciesAcres, na.rm = T),
-                                  TRUE ~ max(SpeciesAcres, na.rm = T))) %>%
-  ungroup() %>%
-  mutate(SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres))
-# will give warnings, but these are addressed by making -Inf into NAs
+eppc_1999 <- read_csv("original-data/EPPC_1999.csv")
+key_all_acre <- read_csv("original-data/FWC_plant_survey_key_all_acreage.csv")
+key_exotic_acre <- read_csv("original-data/FWC_plant_survey_key_exotic_acreage.csv")
+key_all_pres <- read_csv("original-data/FWC_plant_survey_key_all_presence.csv")
 
 
 #### resolve species names ####
 
 # list of taxa
-taxa_list <- fwc_plant5 %>%
+taxa_list <- fwc_plant %>%
   select(SpeciesName) %>%
+  unique() %>%
+  full_join(fwc_plant_new %>%
+              select(SpeciesName) %>%
+              unique()) %>%
   unique() %>%
   mutate(Taxon = str_replace_all(SpeciesName, " spp.| spp| sp.| sp", ""), # for genus-level
          Taxon = str_replace_all(Taxon, ", sub| \\(exotic\\)| \\(other natives\\)| \\(other\\)|, natives|, emersed", ""), # for origin/growth type
@@ -296,71 +126,93 @@ species_list %>%
   filter(str_detect(Taxon, "Pomacea"))
 # Pomacea paludosa, Pomacea insularum
 
+# survey numbers
+taxa_surveys <- fwc_plant %>%
+  select(SpeciesName, SurveyYear, WaterbodyName) %>%
+  full_join(fwc_plant_new %>%
+              select(SpeciesName, SurveyYear, WaterbodyName))
+
 # names to combine
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Paspalum repens", "Paspalum fluitans")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
 # changed name after first year, used once after that -- combine
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Ludwigia grandiflora/hexapetala", "Ludwigia grandifolia")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
-# incorrect spelling only used in first two surveys -- combine
+# incorrect spelling only used in first three surveys and once after
+# leave as separate since it could be referring to a different species
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Cyperus blepharoleptos", "Oxycaryum cubense")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
 # name switched to Cyperus recently
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Sagittaria stagnorum", "Sagittaria subulata/graminea/gracillima")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
+# stagnorum used in same years as other, it's less common
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Echinochloa spp.", "Echinochloa spp. (exotic)", "Echinochloa spp")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
+# no period used in last two years, otherwise exotic and non co-occur in time
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Bidens spp.", "Bidens spp")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
+# no period used in last two years
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Fuirena spp.", "Fuirena spp")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
 # periods seem to be left out of recent surveys
 
-fwc_plant5 %>%
+taxa_surveys %>%
   filter(SpeciesName %in% c("Ipomoea sp.", "Ipomoea sp")) %>%
   ggplot(aes(x = SurveyYear, fill = SpeciesName)) +
   geom_bar()
 
 # check for potential duplication in survey
-fwc_plant5 %>%
-  filter(SurveyYear > 2010 & SpeciesName == "Paspalum fluitans") %>%
-  select(SurveyDate, AreaOfInterestID) %>%
-  inner_join(fwc_plant3) %>%
+taxa_surveys %>%
+  filter(SpeciesName == "Paspalum fluitans") %>%
+  select(SurveyYear, WaterbodyName) %>%
+  inner_join(taxa_surveys) %>%
   filter(SpeciesName == "Paspalum repens")
 # no duplication
 
-fwc_plant5 %>%
-  filter(SurveyYear < 2000 & SpeciesName == "Sagittaria stagnorum") %>%
-  select(SurveyDate, AreaOfInterestID) %>%
-  inner_join(fwc_plant3) %>%
+taxa_surveys %>%
+  filter(SpeciesName == "Sagittaria stagnorum") %>%
+  select(SurveyYear, WaterbodyName) %>%
+  inner_join(taxa_surveys) %>%
   filter(SpeciesName == "Sagittaria subulata/graminea/gracillima")
+# yes, both options were on a survey
+
+taxa_surveys %>%
+  filter(SpeciesName == "Ludwigia grandifolia") %>%
+  select(SurveyYear, WaterbodyName) %>%
+  inner_join(taxa_surveys) %>%
+  filter(SpeciesName == "Ludwigia grandiflora/hexapetala")
 # yes, both options were on a survey
 
 # combine names
 # remove snails
-fwc_plant6 <- fwc_plant5 %>%
-  mutate(TaxonName = case_when(SpeciesName == "Ludwigia grandifolia" ~ "Ludwigia grandiflora/hexapetala",
-                               SpeciesName == "Oxycaryum cubense" ~ "Cyperus blepharoleptos",
+taxa_list_mod <- fwc_plant %>%
+  select(SpeciesName) %>%
+  unique() %>%
+  full_join(fwc_plant_new %>%
+              select(SpeciesName) %>%
+              unique()) %>%
+  unique() %>%
+  mutate(TaxonName = case_when(SpeciesName == "Oxycaryum cubense" ~ "Cyperus blepharoleptos",
                                SpeciesName == "Paspalum fluitans" ~ "Paspalum repens",
                                SpeciesName == "Ipomoea sp" ~ "Ipomoea sp.",
                                TRUE ~ SpeciesName),
@@ -368,8 +220,209 @@ fwc_plant6 <- fwc_plant5 %>%
          TaxonName = str_replace_all(TaxonName, "spp..", "spp.")) %>%
   filter(str_detect(SpeciesName, "Pomacea") == F)
 
+# update fwc data
+fwc_plant2 <- fwc_plant %>%
+  left_join(taxa_list_mod)
+
+fwc_plant_new2 <- fwc_plant_new %>%
+  left_join(taxa_list_mod)
+
+# look at missing taxa
+filter(fwc_plant2, is.na(TaxonName)) %>% 
+  select(SpeciesName) %>% 
+  unique()
+# snail
+
+filter(fwc_plant_new2, is.na(TaxonName)) %>% 
+  select(SpeciesName) %>% 
+  unique()
+# snails and NA
+
+
+#### edit new FWC plant survey data ####
+
+# format date
+# rename columns
+# add permanent ID based on AreaOfInterestID
+fwc_plant_new3 <- fwc_plant_new2 %>%
+  mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%y"),
+         County = toupper(County)) %>%
+  rename("AreaOfInterest" = "WaterbodyName") %>%
+  left_join(gis %>%
+              filter(CoordSource %in% c("FWC", "FWC_2")) %>%
+              select(AreaOfInterestID, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
+              unique())
+
+# duplicate rows?
+fwc_plant_new3 %>%
+  get_dupes()
+# none
+
+# missing ID?
+fwc_plant_new3 %>%
+  filter(is.na(PermanentID)) %>%
+  select(AreaOfInterestID, WaterbodyType) %>%
+  unique() %>%
+  group_by(WaterbodyType) %>%
+  count()
+# 5 lakes
+
+fwc_plant_new3 %>%
+  filter(is.na(PermanentID) & WaterbodyType == "Lake") %>%
+  select(AreaOfInterest) %>%
+  unique()
+# all are springs, creeks, run, reservoirs
+
+# remove missing perm ID
+fwc_plant_new4 <- fwc_plant_new3 %>%
+  filter(!is.na(PermanentID))
+
+
+#### FWC AreaOfInterestIDs ####
+
+# this dataset is missing AOI ID's
+# get ID's from other FWC datasets
+fwc_ID2 <- ctrl_old %>%
+  select(AreaOfInterest, County, AreaOfInterestID) %>%
+  full_join(ctrl %>%
+              select(AreaOfInterest, County, AreaOfInterestID)) %>%
+  full_join(fwc_plant_new %>%
+              rename("AreaOfInterest" = "WaterbodyName") %>%
+              select(AreaOfInterest, County, AreaOfInterestID)) %>%
+  full_join(fwc_ID %>%
+              select(AreaOfInterest, County, AreaOfInterestID)) %>%
+  mutate(County = toupper(County)) %>%
+  unique()
+
+# duplicate AreaOfInterest
+fwc_ID2 %>%
+  mutate(AOI_County = paste(AreaOfInterest, County, sep = "_")) %>%
+  get_dupes("AOI_County") %>%
+  select(AreaOfInterestID) %>%
+  inner_join(fwc_ID2)
+# 44 has two different counties, one is the same as 45
+# 714 is a private lake
+# 218 has two different counties, one is the same as 219
+# 872 is a private lake
+
+filter(ctrl_old, AreaOfInterestID == 44) %>% select(County) %>% unique()
+filter(ctrl, AreaOfInterestID == 44) %>% select(County) %>% unique()
+filter(fwc_plant_new, AreaOfInterestID == 44) %>% select(County) %>% unique()
+# 44 is in Highlands, not Polk
+
+filter(ctrl_old, AreaOfInterestID == 218) %>% select(County) %>% unique()
+filter(ctrl, AreaOfInterestID == 218) %>% select(County) %>% unique()
+filter(fwc_plant_new, AreaOfInterestID == 218) %>% select(County) %>% unique()
+# 218 is in Alachua, not Clay
+
+# remove duplicate name-county combos
+fwc_ID3 <- fwc_ID2 %>%
+  filter(!(AreaOfInterestID == 44 & County == "POLK") &
+           !(AreaOfInterestID == 218 & County == "CLAY") &
+           !(AreaOfInterestID %in% c(714, 872)))
+
+fwc_ID3 %>%
+  mutate(AOI_County = paste(AreaOfInterest, County, sep = "_")) %>%
+  get_dupes("AOI_County") 
+
+# missing IDs?
+fwc_ID3 %>%
+  filter(is.na(AreaOfInterestID))
+# none
+
+
+#### old FWC plant survey data ####
+
+# matches in ID dataset
+fwc_plant2 %>%
+  rename("AreaOfInterest" = "WaterbodyName") %>%
+  select(AreaOfInterest, County) %>%
+  unique() %>%
+  mutate(County = toupper(County)) %>%
+  anti_join(fwc_ID3)
+# all are matched
+
+# add ID's
+# format dates
+# add permanent ID based on AreaOfInterestID
+# remove missing ID
+# remove duplicate rows
+fwc_plant3 <- fwc_plant2 %>%
+  mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%Y"),
+         AreaOfInterest = WaterbodyName,
+         County = toupper(County)) %>%
+  left_join(fwc_ID3) %>%
+  left_join(gis %>%
+              filter(CoordSource %in% c("FWC", "FWC_2")) %>%
+              select(AreaOfInterestID, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
+              unique())
+
+# duplicate rows?
+fwc_plant3 %>%
+  get_dupes()
+# 415
+
+# remove duplicate rows
+fwc_plant4 <- fwc_plant3 %>%
+  unique()
+
+# missing ID?
+fwc_plant4 %>%
+  filter(is.na(PermanentID)) %>%
+  select(AreaOfInterestID, WaterbodyType) %>%
+  unique() %>%
+  group_by(WaterbodyType) %>%
+  count()
+# 7 lakes
+
+fwc_plant4 %>%
+  filter(is.na(PermanentID) & WaterbodyType == "Lake") %>%
+  select(AreaOfInterest) %>%
+  unique()
+# all are springs, creeks, run, reservoirs
+
+# remove missing perm ID
+fwc_plant5 <- fwc_plant4 %>%
+  filter(!is.na(PermanentID))
+
+
+#### combine old and new datasets ####
+
+# overlapping surveys?
+fwc_plant_new4 %>%
+  select(AreaOfInterestID, SurveyDate) %>%
+  inner_join(fwc_plant5 %>%
+               select(AreaOfInterestID, SurveyDate))
+# no
+
+# duplicate measurements?
+fwc_plant5 %>%
+  select(AreaOfInterestID, SurveyDate, TaxonName) %>%
+  get_dupes() %>%
+  select(TaxonName) %>%
+  unique() %>%
+  data.frame()
+# yes
+
+# remove rows with missing species names
+# sum cover for duplicate non-species
+# use max cover for duplicate species
+fwc_plant6 <- fwc_plant5 %>%
+  full_join(fwc_plant_new4) %>%
+  filter(!is.na(SpeciesName)) %>%
+  group_by(across(!SpeciesAcres)) %>%
+  summarise(SpeciesAcres = case_when(str_detect(TaxonName, "Filamentous algae|other|spp.|/") == T ~ sum(SpeciesAcres, na.rm = T),
+                                  TRUE ~ max(SpeciesAcres, na.rm = T))) %>%
+  ungroup() %>%
+  mutate(SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres))
+# will give warnings, but these are addressed by making -Inf into NAs
+
+
+#### first records/continuous surveying ####
+
 # first records
 fwc_plant6 %>%
+  filter(IsDetected == "Yes") %>%
   group_by(TaxonName) %>%
   summarise(FirstDetect = min(SurveyYear)) %>%
   ungroup() %>%
@@ -383,6 +436,223 @@ write_csv(fwc_plant6 %>%
             ungroup(),
           "intermediate-data/FWC_plant_survey_first_detection.csv")
 
+# continued detection (in 2020 survey)
+plant_detect <- read_csv("intermediate-data/FWC_plant_survey_first_detection_manual.csv")
+
+# look at notes
+plant_detect %>%
+  select(Notes) %>%
+  unique()
+
+# species sampled somewhat continuously 
+# remove focal invasive species
+# remove confused origin species (not sampled continuously anyway)
+plant_cont <- plant_detect %>%
+  filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & 
+           (str_detect(Notes, "meaning of this changes over time") == F | is.na(Notes)))
+# 100 taxa
+
+
+#### edit keys ####
+
+# taxa with acreage
+taxa_acres <- fwc_plant6 %>%
+  select(TaxonName, Origin, SurveyYear, WaterbodyName, SpeciesAcres) %>%
+  filter(!is.na(SpeciesAcres))
+
+# are any taxa not in the EPPC list?
+non_eppc_taxa <- taxa_acres %>%
+  filter(SurveyYear %in% c(1999:2002, 2004:2016)) %>% # years EPPC list was used
+  left_join(eppc_1999 %>%
+              mutate(eppc = 1)) %>%
+  filter(is.na(eppc)) %>%
+  select(TaxonName, Origin) %>%
+  unique()
+# 144 taxa, some are clearly native
+
+# are their synonyms on the EPPC list?
+non_eppc_taxa %>%
+  inner_join(taxa_syn4 %>%
+               rename(TaxonName = Taxon)) %>%
+  inner_join(eppc_1999 %>%
+               rename(syn_name = TaxonName))
+# no
+
+# acreage for all taxa
+key_all_acre2 <- key_all_acre %>%
+  expand_grid(plant_cont %>%
+                select(TaxonName)) %>%
+  mutate(AcreageSurveyed = 1,
+         PresenceSurveyed = 1)
+
+# acreage for exotic taxa
+key_exotic_acre2 <- key_exotic_acre %>%
+  inner_join(plant_cont %>%
+               select(TaxonName)) %>% # some of the EPPC taxa are not aquatic
+  mutate(AcreageSurveyed = 1,
+         PresenceSurveyed = 1)
+
+# make sure no aquatic taxa are missing
+key_exotic_acre %>%
+  select(TaxonName) %>%
+  unique() %>%
+  anti_join(key_exotic_acre2) %>%
+  data.frame()
+# checked all in Google images and they all seem terrestrial
+
+# presence for all taxa
+key_all_pres2 <- key_all_pres %>%
+  expand_grid(plant_cont %>%
+                select(TaxonName)) %>%
+  mutate(PresenceSurveyed = 1)
+
+# identify invasive species of major concern (2017-2021)
+key_major_concern <- fwc_plant2 %>%
+  filter(SurveyYear %in% 2017:2021 & !is.na(SpeciesAcres) & Origin == "Exotic") %>%
+  select(WaterbodyName, County, SurveyYear, TaxonName) %>%
+  full_join(fwc_plant_new2 %>%
+              filter(SurveyYear %in% 2017:2021 & !is.na(SpeciesAcres) & Origin == "Exotic") %>%
+              select(WaterbodyName, County, SurveyYear, TaxonName)) %>%
+  mutate(Waterbody = paste(WaterbodyName, County)) %>%
+  group_by(TaxonName) %>%
+  summarize(Waterbodies = n_distinct(Waterbody),
+            Years = n_distinct(SurveyYear),
+            Tot = n())
+
+# visualize to determine cut-off
+ggplot(key_major_concern, aes(x = Waterbodies, y = Tot, color = as.factor(Years))) +
+  geom_hline(yintercept = 100, linetype = "dashed") +
+  geom_vline(xintercept = 100, linetype = "dashed") +
+  geom_point(size = 0.75, alpha = 0.5) +
+  geom_text(aes(label = TaxonName), size = 2, hjust = 0, vjust = 0) +
+  coord_cartesian(xlim = c(0, 450))
+
+# zoom in on less common taxa
+ggplot(key_major_concern, aes(x = Waterbodies, y = Tot, color = as.factor(Years))) +
+  geom_point(size = 0.75, alpha = 0.5) +
+  geom_text(aes(label = TaxonName), size = 2, hjust = 0, vjust = 0) +
+  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100))
+
+# key for concern
+key_major_concern2 <- key_major_concern %>%
+  filter(Waterbodies > 100 & Tot > 100) %>%
+  select(TaxonName) %>%
+  mutate(PresenceSurveyed = 1,
+         AcreageSurveyed = 1) %>%
+  expand_grid(SurveyYear = 2017:max(fwc_plant_new2$SurveyYear))
+
+# save
+write_csv(key_major_concern2, "intermediate-data/fwc_invasive_taxa_major_concern.csv")
+
+# combine keys
+keys <- key_all_acre2 %>%
+  full_join(key_exotic_acre2) %>%
+  full_join(key_major_concern2) %>%
+  full_join(key_all_pres2) %>%
+  mutate(AcreageSurveyed = replace_na(AcreageSurveyed, 0))
+
+
+#### add in non-detects and zero abundances ####
+
+# list of all surveys
+area_yr <- fwc_plant6 %>%
+  select(WaterbodyName, WaterbodyAcres, WaterbodyType, County, WMD, 
+         SurveyYear, SurveyDate, Surveyor,
+         AreaOfInterest, AreaOfInterestID, PermanentID, GNISID, GNISName,
+         Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
+  unique()
+
+# check unable to survey
+unique(fwc_plant6$IsUnableToSurvey)
+# all no
+# that could be the reason for some non-detects
+
+# see if SpeciesAcres = 0 when IsDetect is NA
+fwc_plant6 %>%
+  filter(SpeciesAcres == 0 & is.na(IsDetected))
+# no - can leave out of the case_when
+
+# expand keys for surveys in dataset
+keys2 <- keys %>% 
+  left_join(fwc_plant6 %>%
+              select(TaxonName, Origin, Eppc, Habitat, HabitatShortName) %>%
+              unique()) %>%
+  inner_join(area_yr)
+
+# add surveyed columns
+fwc_plant7 <- fwc_plant6 %>%
+  filter(TaxonName %in% plant_cont$TaxonName & SurveyYear > 1982) %>% # select for continuously monitored taxa
+  full_join(keys2) %>%
+  mutate(IsDetected = case_when(is.na(IsDetected) & SpeciesAcres > 0 ~ "Yes",
+                                is.na(IsDetected) & PresenceSurveyed == 1 ~ "No", # covers all the rest
+                                TRUE ~ IsDetected),
+         SpeciesAcres = case_when(is.na(SpeciesAcres) & AcreageSurveyed == 1 ~ 0,
+                                  SpeciesAcres == 0 & AcreageSurveyed == 0 ~  NA_real_, # a lot of taxa have 0 species acres in years they weren't recorded as surveyed
+                                  TRUE ~ SpeciesAcres),
+         AcreageSurveyed = if_else(!is.na(SpeciesAcres), 1, 0),
+         PresenceSurveyed = if_else(!is.na(IsDetected), 1, 0))
+
+
+#### Growing season year ####
+
+fwc_plant8 <- fwc_plant7 %>%
+  mutate(SurveyMonth = month(SurveyDate),
+         SurveyDay = day(SurveyDate),
+         SurveyYear = year(SurveyDate),
+         GSYear = case_when(SurveyMonth >= 4 ~ SurveyYear, # assume growing season starts in April
+                            SurveyMonth < 4 ~ SurveyYear - 1))
+
+
+#### Permanent ID/AOI ####
+
+# one permID per AOI?
+fwc_plant8 %>%
+  group_by(AreaOfInterestID) %>%
+  summarize(nPerm = n_distinct(PermanentID)) %>%
+  ungroup() %>%
+  filter(nPerm > 1)
+# yes
+
+# are AOIs for each Perm ID consistent?
+fwc_plant8 %>%
+  group_by(PermanentID) %>%
+  summarize(nAOI = n_distinct(AreaOfInterest),
+            nAOI_ID = n_distinct(AreaOfInterestID)) %>%
+  ungroup() %>%
+  filter(nAOI_ID > 1) %>% # select lakes with multiple AOIs
+  inner_join(fwc_plant8 %>%
+               group_by(PermanentID, GSYear) %>%
+               summarize(AOI = paste(sort(unique(AreaOfInterest)), collapse = ", ")) %>%
+               ungroup() %>%
+               group_by(PermanentID, AOI) %>%
+               summarize(Years = paste(sort(unique(GSYear)), collapse = ", ")) %>%
+               ungroup()) %>% # AOIs surveyed each year
+  get_dupes(PermanentID) # select lakes with different AOIs over time
+
+# dataset 1: greater temporal coverage
+# remove AOI additions that create inconsistencies across time
+fwc_plant8_time <- fwc_plant8 %>%
+  filter(!(AreaOfInterest == "Silver Glen Springs" & PermanentID == "107881197") &
+           !(AreaOfInterest == "Wauseon Bay" & PermanentID == "112029141") &
+           !(AreaOfInterest == "Red Water, Lake" & PermanentID == "112047993") &
+           !(AreaOfInterest == "Josephine Creek" & PermanentID == "112049879") &
+           !(AreaOfInterest == "Hunt, Lake" & PermanentID == "167180956") &
+           !(AreaOfInterest == "Tarpon, Lake Outfall Canal" & PermanentID == "68792760"))
+
+# dataset2: greater spatial coverage
+# remove years when both AOIs weren't sampled
+fwc_plant8_space <- fwc_plant8 %>%
+  filter(!(GSYear %in% c(1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 2017) & PermanentID == "107881197") &
+           !(GSYear %in% c(1983, 1984, 1985) & PermanentID == "112029141") &
+           !(GSYear %in% c(1983, 1984, 1986, 1988, 1989) & PermanentID == "112047993") &
+           !(GSYear %in% c(1983, 1984, 1985, 1986, 1987, 1988) & PermanentID == "112049879") &
+           !(GSYear %in% c(1983, 1984, 2000) & PermanentID == "167180956") &
+           !(GSYear %in% c(2018, 2019) & PermanentID == "68792760"))
+
+# reran summarizing function above with _time and _space datasets
+# should return no rows
 
 #### outputs ####
-write_csv(fwc_plant6, "intermediate-data/FWC_plant_formatted.csv")
+write_csv(fwc_plant8, "intermediate-data/FWC_plant_formatted.csv")
+write_csv(fwc_plant8_time, "intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
+write_csv(fwc_plant8_space, "intermediate-data/FWC_plant_formatted_spatial_coverage.csv")

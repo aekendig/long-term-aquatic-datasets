@@ -11,7 +11,6 @@ library(janitor) # used get_dupes when developing methods
 plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv",
                       col_types = list(JoinNotes = col_character(),
                                        PermanentID = col_character()))
-taxa_acres <- read_csv("intermediate-data/fwc_taxa_with_acres_summary.csv")
 common_fwc <- read_csv("intermediate-data/FWC_common_native_plants_formatted.csv")
 
 # load scripts
@@ -22,41 +21,46 @@ source("code/data-processing/plant_abundance_formatting.R")
 
 #### edit data ####
 
-# choose taxa with > 1000 records 
-nat_taxa <- taxa_acres %>%
-  filter(TaxonName %in% unique(common_fwc$TaxonName) & 
-           Surveys > 1000 & 
-           str_detect(TaxonName, "spp.") == F &
-           str_detect(TaxonName, "/") == F) %>%
+# summarize by taxon
+surv_num <- plant_fwc %>%
+  filter(Origin == "Native" & !is.na(SpeciesAcres) & 
+           SpeciesAcres > 0) %>%
+  group_by(TaxonName) %>%
+  summarize(surveys = n()) %>%
+  ungroup()
+
+# visualize survey numbers
+ggplot(surv_num, aes(x = surveys)) +
+  geom_histogram(bins = 100)
+
+# choose taxa with > 200 records 
+surv_comm <- surv_num %>%
+  filter(surveys >= 1000) %>%
   select(TaxonName) %>%
-  mutate(CommonName = case_when(TaxonName == "Pontederia cordata" ~ "pickerelweed",
-                                TaxonName == "Panicum hemitomon" ~ "maidencane",
-                                TaxonName == "Nuphar advena" ~ "yellow pond-lily",
-                                TaxonName == "Sagittaria lancifolia" ~ "bulltongue arrowhead",
-                                TaxonName == "Cephalanthus occidentalis" ~ "common buttonbush",
-                                TaxonName == "Nymphaea odorata" ~ "American white waterlily",
-                                TaxonName == "Cladium jamaicense" ~ "Jamaica swamp sawgrass",
-                                TaxonName == "Paspalidium geminatum" ~ "Egyptian panicgrass",
-                                TaxonName == "Vallisneria americana" ~ "American eelgrass",
-                                TaxonName == "Sacciolepis striata" ~ "American cupscale",
-                                TaxonName == "Ceratophyllum demersum" ~ "coon's tail",
-                                TaxonName == "Najas guadalupensis" ~ "southern waternymph",
-                                TaxonName == "Spartina bakeri" ~ "sand cordgrass",
-                                TaxonName == "Utricularia foliosa" ~ "leafy bladderwort",
-                                TaxonName == "Nymphoides aquatica" ~ "big floatingheart",
-                                TaxonName == "Luziola fluitans" ~ "southern watergrass",
-                                TaxonName == "Juncus effusus" ~ "common rush",
-                                TaxonName == "Bacopa caroliniana" ~ "blue waterhyssop",
-                                TaxonName == "Utricularia gibba" ~ "humped bladderwort"))
+  filter(str_detect(TaxonName, "spp.") == F &# remove genus-level
+           str_detect(TaxonName, "/") == F &
+           TaxonName != "Filamentous algae")
+
+# add common names
+nat_taxa <- surv_comm %>%
+  mutate(CommonName = case_when(TaxonName =="Cephalanthus occidentalis" ~ "common buttonbush",
+                                TaxonName =="Cladium jamaicense" ~ "Jamaica swamp sawgrass",
+                                TaxonName =="Nuphar advena" ~ "yellow pond-lily",
+                                TaxonName =="Nymphaea odorata" ~ "American white waterlily",
+                                TaxonName =="Panicum hemitomon" ~ "maidencane",
+                                TaxonName =="Paspalidium geminatum" ~ "Egyptian panicgrass",
+                                TaxonName =="Pontederia cordata" ~ "pickerelweed",
+                                TaxonName =="Sagittaria lancifolia" ~ "bulltongue arrowhead"))
 
 # visualize raw abundances
 pdf("output/native_plant_raw_abundance_time_series.pdf", width = 20, height = 16)
 plant_fwc %>%
-  filter(SpeciesName %in% nat_taxa$TaxonName) %>%
-  ggplot(aes(x = SurveyYear, y = SpeciesAcres/WaterbodyAcres, color = PermanentID)) +
-  geom_line() +
+  filter(TaxonName %in% nat_taxa$TaxonName & !is.na(SpeciesAcres)) %>%
+  ggplot(aes(x = GSYear, y = (SpeciesAcres * 0.405)/(ShapeArea * 100), color = PermanentID)) +
+  geom_line(size = 0.5, alpha = 0.25) +
+  geom_point(size = 0.5, alpha = 0.25) + 
   facet_wrap(~ TaxonName,
-             scales = "free") +
+             scales = "free_y") +
   theme(legend.position = "none") + 
   labs(x = "Year", y = "Proportion area covered")
 
@@ -64,59 +68,38 @@ plant_fwc %>%
   filter(SpeciesName %in% nat_taxa$TaxonName) %>%
   mutate(SpeciesAcres = ifelse(SpeciesAcres == 0, NA_real_, SpeciesAcres)) %>%
   filter(!is.na(SpeciesAcres)) %>%
-  ggplot(aes(x = SurveyYear)) +
+  ggplot(aes(x = GSYear)) +
   geom_bar() +
-  facet_wrap(~ TaxonName, scales = "free") +
+  facet_wrap(~ TaxonName, scales = "free_y") +
   labs(x = "Year", y = "Number of surveys with cover > 0")
 dev.off()
-# missing every other year 1985-1993 + 1994
-# missing most years after 1995
 
-# surveys
-nat_surv <- plant_fwc %>%
-  select(AreaOfInterestID) %>%
-  unique() %>%
-  expand_grid(SurveyYear = seq(min(plant_fwc$SurveyYear), max(plant_fwc$SurveyYear))) %>%
-  left_join(plant_fwc %>%
-              filter(Origin == "Native") %>%
-              select(AreaOfInterestID, SurveyYear, TaxonName, SpeciesAcres, IsDetected)) %>%
-  mutate(Measured = if_else(SpeciesAcres > 0, 1, 0),
-         Measured = replace_na(Measured, 0)) %>%
-  group_by(AreaOfInterestID, SurveyYear) %>%
-  summarize(Measured = sum(Measured)) %>%
-  ungroup() %>%
-  mutate(Surveyed = if_else(Measured > 0, 1, 0)) %>%
-  select(-Measured)
-
-# check Tohopekaliga survey in 2017 (seems incomplete in other data exploration)
-filter(nat_surv, AreaOfInterestID == 476 & SurveyYear == 2017)
-
-# check that patterns look right
-nat_surv %>%
-  filter(Surveyed == 1) %>%
-  ggplot(aes(x = SurveyYear)) +
-  geom_bar()
+# looked at taxa with highest survey numbers after 1998
+# and they are included in this list
 
 # modify data
 nat_fwc <- plant_fwc %>%
-  plant_abun_format(nat_taxa, nat_surv) 
+  filter(!(AreaOfInterestID == 476 & SurveyYear == 2017)) %>% # incomplete survey
+  plant_abun_format(nat_taxa) 
 
 # check patterns
 pdf("output/native_plant_processed_abundance_time_series.pdf", width = 20, height = 16)
 nat_fwc %>%
   filter(!is.na(PropCovered)) %>%
   ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
-  geom_line() +
+  geom_line(size = 0.5, alpha = 0.25) +
+  geom_point(size = 0.5, alpha = 0.25) + 
   facet_wrap(~ TaxonName, scales = "free") +
   theme(legend.position = "none") + 
   labs(x = "Year", y = "Proportion area covered")
 
 nat_fwc %>%
+  mutate(PropCovered = ifelse(PropCovered == 0, NA_real_, PropCovered)) %>%
   filter(!is.na(PropCovered)) %>%
   ggplot(aes(x = GSYear)) +
   geom_bar() +
   facet_wrap(~ TaxonName, scales = "free") +
-  labs(x = "Year", y = "Number of surveys with cover data")
+  labs(x = "Year", y = "Number of surveys with cover > 0")
 dev.off()
 
 # remove missing years
