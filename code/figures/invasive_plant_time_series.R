@@ -11,22 +11,55 @@ library(cowplot)
 source("code/settings/figure_settings.R")
 
 # import data
-inv_fwc <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
-                col_types = list(PrevPropCovered = col_double(),
-                                 PrevPropCoveredAdj = col_double(),
-                                 PrevAreaCoveredRaw_ha = col_double(),
-                                 SurveyDays = col_double(),
-                                 RatioCovered = col_double(),
-                                 LogRatioCovered = col_double(),
-                                 LogitPrevPropCovered = col_double(),
-                                 LogRatioCovered = col_double(),
-                                 LogitPrevPropCovered = col_double(),
-                                 LogRatioCovered = col_double()))
+inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
+inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
+
+
+#### time series by waterbody ####
+
+# combine plant and control
+inv_fwc <- inv_plant %>%
+  inner_join(inv_ctrl)
+
+# list of waterbodies
+perm_ids <- inv_fwc %>%
+  select(PermanentID, AreaName) %>%
+  unique() %>%
+  arrange(AreaName) %>%
+  pull(PermanentID)
+
+# loop through IDs and make figure
+pdf("output/invasive_plant_time_series_by_waterbody.pdf")
+
+for(i in 1:length(perm_ids)){
+  
+  # subset data
+  subdat <- inv_fwc %>% filter(PermanentID == perm_ids[i])
+  subdat_ctrl <- subdat %>% filter(Lag1Treated == 1)
+  subdat_name <- subdat %>% select(AreaName) %>% pull() %>% unique()
+  
+  # make figure
+  print(ggplot(subdat, aes(x = GSYear, y = PropCovered * 100, color = CommonName)) +
+          geom_vline(data = subdat_ctrl, aes(xintercept = GSYear)) +
+          geom_line() +
+          geom_point() + 
+          facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
+          labs(x = "Year", y = "Percent area covered", title = subdat_name) +
+          def_theme_paper +
+          theme(strip.text = element_blank(),
+                plot.title = element_text(hjust = 0.5, size = 8)))
+
+  }
+
+dev.off()
+
+
+#### continuous sampling ####
 
 # function to find longest time interval with the most lakes
 time_int_fun <- function(year1){
   
-  dat <- inv_fwc %>% # all possible surveys
+  dat <- inv_plant %>% # all possible surveys
     filter(TaxonName == "Hydrilla verticillata" & GSYear < 2020)
   
   dat2 <- dat %>%
