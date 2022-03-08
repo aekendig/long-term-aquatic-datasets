@@ -96,6 +96,8 @@ plant_abun_format <- function(dat, taxa){
                                     EstAreaCovered_ha != 0 & PrevAreaCovered_ha == 0 ~ EstAreaCovered_ha / min_area, # lower limit of SpeciesAcres
                                     EstAreaCovered_ha == 0 & PrevAreaCovered_ha != 0 ~ min_area / PrevAreaCovered_ha,
                                     TRUE ~ EstAreaCovered_ha / PrevAreaCovered_ha),
+           InitPercCoveredAdj = if_else(PrevAreaCovered_ha == 0, 100 * min_area/Area_ha, InitPercCovered),
+           PercCoveredAdj = if_else(EstAreaCovered_ha == 0, 100 * min_area/Area_ha, 100 * PropCovered),
            LogRatioCovered = log(RatioCovered),
            MinSurveyorExperience = ifelse(MinSurveyorExperience == Inf,  # min returns Inf if no value is available and na.rm = T
                                           NA_real_,
