@@ -9,6 +9,7 @@ library(GGally)
 library(fixest) # FE models
 library(modelsummary)
 library(patchwork)
+library(car)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -23,7 +24,12 @@ inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 # combine datasets
 inv_dat <- inv_plant %>%
   filter(!is.na(LogRatioCovered)) %>% # need two consecutive years
-  inner_join(inv_ctrl)
+  inner_join(inv_ctrl) %>%
+  mutate(InitPACBin = case_when(InitPercCoveredAdj < 1 ~ "< 1%",
+                                InitPercCoveredAdj >= 1 & InitPercCoveredAdj < 10 ~ "1%-10%",
+                                TRUE ~ "≥ 10%") %>%
+           fct_relevel("< 1%", "1%-10%"),
+         PercChangePAC = InitPercCoveredAdj * (exp(LogRatioCovered) - 1)) # final % - initial %
 
 # will need surveyor experience
 filter(inv_dat, is.na(MinSurveyorExperience))
@@ -92,6 +98,12 @@ pagr_dat %>%
   select(Lag1Treated, InitPercCoveredAdj, MinSurveyorExperience) %>%
   ggpairs()
 
+# change in cover
+ggplot(inv_dat, aes(x = InitPercCovered, y = PropCovered)) +
+  geom_point() +
+  facet_wrap(~ CommonName, scales = "free") +
+  geom_smooth(method = "lm")
+
 # log ratio prop covered
 ggplot(hydr_dat, aes(x = InitPercCoveredAdj, y = LogRatioCovered, 
                      color = as.factor(Lag1Treated))) +
@@ -155,6 +167,42 @@ hydr_dat %>%
   ggplot(aes(x = Lag)) +
   geom_bar()
 
+# initial PAC distributions
+hydr_dat %>%
+  mutate(InitPACBin = cut_number(InitPercCoveredAdj, n = 3)) %>%
+  ggplot(aes(x = InitPACBin)) +
+  geom_bar()
+# intervals are too small to be meaningful
+
+# initial PAC distributions
+# tried different thresholds before choosing these
+ggplot(hydr_dat, aes(x = InitPACBin)) +
+  geom_bar()
+ggplot(wale_dat, aes(x = InitPACBin)) +
+  geom_bar()
+ggplot(wahy_dat, aes(x = InitPACBin)) +
+  geom_bar()
+ggplot(torp_dat, aes(x = InitPACBin)) +
+  geom_bar()
+ggplot(cubu_dat, aes(x = InitPACBin)) +
+  geom_bar()
+ggplot(pagr_dat, aes(x = InitPACBin)) +
+  geom_bar()
+
+# % change in PAC
+ggplot(hydr_dat, aes(x = PercChangePAC)) +
+  geom_histogram()
+ggplot(wale_dat, aes(x = PercChangePAC)) +
+  geom_histogram()
+ggplot(wahy_dat, aes(x = PercChangePAC)) +
+  geom_histogram()
+ggplot(torp_dat, aes(x = PercChangePAC)) +
+  geom_histogram()
+ggplot(cubu_dat, aes(x = PercChangePAC)) +
+  geom_histogram()
+ggplot(pagr_dat, aes(x = PercChangePAC)) +
+  geom_histogram()
+
 
 #### model-fitting functions ####
 
@@ -165,7 +213,6 @@ dat_mod_filt <- function(treat_col, dat_in){
     filter(!is.na(LogRatioCovered) & !is.na(InitPercCoveredAdj) & !is.na(MinSurveyorExperience) & !is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated)) %>%
     mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
            InitPercCoveredAdj_c = InitPercCoveredAdj - mean(InitPercCoveredAdj),
-           LogRatioCovered = LogRatioCovered,
            Treated = !!sym(treat_col))
   
   return(dat_mod)
@@ -198,7 +245,7 @@ mod_fit <- function(dat_in){
 }
 
 
-#### coefficient figures and tables ####
+#### fit models ####
 
 # fit models
 hydr_mods <- mod_fit(hydr_dat)
@@ -210,6 +257,9 @@ pagr_mods <- mod_fit(pagr_dat)
 
 # name models
 names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(cubu_mods) <- names(pagr_mods) <- c("1", "2", "3", "4", "5", "6")
+
+
+#### coefficient figures and tables ####
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
@@ -313,50 +363,82 @@ pred_fig <- function(treat_col, dat_in, mod){
   
   # edit data
   raw_dat <- dat_mod_filt(treat_col, dat_in) %>%
-    mutate(PercChangePAC = exp(LogRatioCovered) - InitPercCoveredAdj)
+    mutate(PropChangePAC = exp(LogRatioCovered) - 1)
   
   # treatment frequency
   treat_n <- as.numeric(str_sub(treat_col, 4, 4))
   
   # prediction dataset
-  pred_dat <- tibble(InitPercCoveredAdj = c(0, 15, 30)) %>%
-    mutate(InitPercCoveredAdj_c = InitPercCoveredAdj - mean(raw_dat$InitPercCoveredAdj)) %>%
-    expand_grid(tibble(Treated = seq(0, 1, length.out = treat_n + 1))) %>%
-    expand_grid(raw_dat %>%
-                  select(PermanentID, GSYear) %>%
-                  unique()) %>%
-    mutate(SurveyorExperience_s = 0,
-           InitPercCoveredAdj_f = as.factor(InitPercCoveredAdj)) %>%
+  pred_dat <- raw_dat %>%
+    group_by(InitPACBin) %>%
+    mutate(InitPercCoveredAdjMean = mean(InitPercCoveredAdj)) %>% # set to mean for group
+    ungroup() %>%
+    mutate(InitPercCoveredAdj_c = InitPercCoveredAdjMean - mean(raw_dat$InitPercCoveredAdj)) %>% # center on overall mean
+    select(-Treated) %>%
+    expand_grid(tibble(Treated = seq(0, 1, length.out = treat_n + 1))) %>% # repeat all observations across all treatment frequencies
     mutate(Pred = predict(mod, newdata = .),
-           PercChangePAC = 100 * (exp(Pred) - 1))
+           PercChangePAC = InitPercCoveredAdj * (exp(Pred) - 1),
+           PropChangePAC = exp(Pred) - 1)
   
-  fig_out <- ggplot(pred_dat, aes(x = Treated, y = PercChangePAC)) +
-    # geom_hline(yintercept = 0, size = 0.25) +
-    # stat_summary(data = raw_dat, geom = "errorbar", fun.data = "mean_cl_boot",
-    #              width = 0) +
-    # stat_summary(data = raw_dat, geom = "point", fun = "mean",
-    #              size = 2) +
-    ggdist::stat_halfeye(data = raw_dat, aes(group = as.factor(Treated)), 
-                         width = 0.6, .width = 0) +
-    # stat_summary(geom = "line", size = 1.3, fun = "mean", aes(color = InitPercCoveredAdj_f)) +
-    # scale_color_viridis_d(name = "Modeled\ninitial\nabundance (%)",
-    #                       direction = -1) +
-    labs(x = "", y = "Change in PAC (%)") +
-    def_theme_paper
-  
-  return(fig_out)
+  # fig_out <- ggplot(pred_dat, aes(x = as.factor(round(Treated, 2)), y = PercChangePAC)) +
+  #   geom_hline(yintercept = 0, size = 0.25) +
+  #   # stat_summary(aes(color = InitPACBin),
+  #   #              geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
+  #   # stat_summary(aes(color = InitPACBin),
+  #   #              geom = "point", fun = "mean", size = 2) +
+  #   # stat_summary(data = pred_dat, aes(color = InitPACBin),
+  #   #              geom = "line", fun = "mean", size = 1) +
+  #   ggdist::stat_halfeye(aes(color = InitPACBin),
+  #                        ## custom bandwidth
+  #                        adjust = .5, 
+  #                        ## adjust height
+  #                        width = .6, 
+  #                        ## move geom to the right
+  #                        justification = -.2, 
+  #                        ## remove slab interval
+  #                        .width = 0, 
+  #                        point_colour = NA) +
+  #   scale_color_viridis_d(name = "Initial\nabundance",
+  #                         direction = -1) +
+  #   labs(x = "Management frequency", y = "Change in PAC") +
+  #   def_theme_paper
+  # 
+  return(pred_dat)
   
 }
 
+#### start here ####
+
+# why are estimates so different from raw data?
+
 # figures
 # hydr_pred_fig <- 
-  pred_fig("Lag6Treated", hydr_dat, hydr_mods[[6]]) +
-  labs(title = "(A) hydrilla")
+  pred_fig("Lag6Treated", hydr_dat, hydr_mods[[6]])
+  
+  pred_fig("Lag6Treated", wahy_dat, hydr_mods[[6]])
 
-test_dat <- dat_mod_filt("Lag6Treated", hydr_dat) %>%
-  mutate(PercCovered = PropCovered * 100,
-         PercChangePAC1 = 100 * (PercCovered - InitPercCoveredAdj) / InitPercCoveredAdj,
-         PercChangePAC2 = 100 * (exp(LogRatioCovered) - 1))
+test_dat <- pred_fig("Lag6Treated", hydr_dat, hydr_mods[[6]])
+
+ggplot(test_dat, aes(x = PercChangePAC)) +
+  geom_histogram() +
+  facet_grid(Treated ~ InitPACBin, scales = "free") +
+  def_theme
+
+test_dat2 <- dat_mod_filt("Lag6Treated", hydr_dat) %>%
+  group_by(InitPACBin) %>%
+  mutate(InitPercCoveredAdjMean = mean(InitPercCoveredAdj)) %>% # set to mean for group
+  ungroup() %>%
+  mutate(InitPercCoveredAdj_c = InitPercCoveredAdjMean - mean(dat_mod_filt("Lag6Treated", hydr_dat)$InitPercCoveredAdj)) %>% # center on overall mean
+  select(-Treated) %>%
+  expand_grid(tibble(Treated = seq(0, 1, length.out = 6 + 1))) %>% # repeat all observations across all treatment frequencies
+  mutate(Pred = predict(hydr_mods[[6]], newdata = .),
+         PercChangePAC = InitPercCoveredAdj * (exp(Pred) - 1),
+         PropChangePAC = exp(Pred) - 1)
+
+ggplot(test_dat2, aes(x = PercChangePAC)) +
+  geom_histogram() +
+  facet_grid(Treated ~ InitPACBin, scales = "free") +
+  def_theme
 
 
 #### older code ####
