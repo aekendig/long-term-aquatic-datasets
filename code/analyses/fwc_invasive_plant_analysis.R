@@ -10,7 +10,6 @@ library(fixest) # FE models
 library(modelsummary)
 library(patchwork)
 library(car)
-library(glmmTMB)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -34,7 +33,8 @@ inv_dat <- inv_plant %>%
                                 InitPercCovered >= 1 & InitPercCovered < 10 ~ "1%-10%",
                                 TRUE ~ "≥ 10%") %>%
            fct_relevel("< 1%", "1%-10%"),
-         PercChangeCovered = PropCovered * 100 - InitPercCovered,
+         PercDiffCovered = PropCovered * 100 - InitPercCovered,
+         PercChangeCovered = 100 * PercDiffCovered / InitPercCoveredAdj,
          PropCoveredLogit = logit(PropCovered, adjust = 0.001))
 
 # lakes that have the species present and been managed at least once
@@ -187,7 +187,7 @@ pagr_dat %>%
   ggpairs()
 
 # response distributions
-ggplot(inv_dat4, aes(x = PercChangeCovered)) +
+ggplot(inv_dat4, aes(x = PercDiffCovered)) +
   geom_histogram() +
   facet_wrap(~ CommonName, scales = "free")
 
@@ -204,7 +204,7 @@ ggplot(inv_dat4, aes(x = InitPercCovered, y = PropCoveredLogit,
 # positive, saturating
 # paragrass has very few treatments
 
-ggplot(inv_dat4, aes(x = InitPercCovered, y = PercChangeCovered,
+ggplot(inv_dat4, aes(x = InitPercCovered, y = PercDiffCovered,
                      color = as.factor(Lag1Treated))) +
   geom_point() +
   facet_wrap(~ CommonName, scales = "free") +
@@ -258,13 +258,13 @@ ggplot(inv_dat4, aes(x = InitPACBin)) +
 # para grass doesn't get above 10%
 
 # before/after comparison
-ggplot(inv_dat4, aes(x = Lag1Treated, y = PercChangeCovered)) +
+ggplot(inv_dat4, aes(x = Lag1Treated, y = PercDiffCovered)) +
   geom_hline(yintercept = 0, size = 0.25) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
   stat_summary(geom = "point", fun = "mean", size = 2) +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_dat4, aes(x = Lag6Treated, y = PercChangeCovered)) +
+ggplot(inv_dat4, aes(x = Lag6Treated, y = PercDiffCovered)) +
   geom_hline(yintercept = 0, size = 0.25) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
   stat_summary(geom = "point", fun = "mean", size = 2) +
@@ -296,24 +296,43 @@ mod_fit <- function(dat_in){
   dat_mod5 <- dat_mod_filt("Lag5Treated", dat_in)
   dat_mod6 <- dat_mod_filt("Lag6Treated", dat_in)
   
-  # fit models
+  # prop covered with initial PAC
   mod1 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
-  mod2 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod2)
-  mod3 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod3)
-  mod4 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod4)
-  mod5 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod5)
-  mod6 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod6)
+  mod2 <- update(mod1, data = dat_mod2)
+  mod3 <- update(mod1, data = dat_mod3)
+  mod4 <- update(mod1, data = dat_mod4)
+  mod5 <- update(mod1, data = dat_mod5)
+  mod6 <- update(mod1, data = dat_mod6)
 
-  mod7 <- feols(PercChangeCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
-  mod8 <- feols(PercChangeCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod2)
-  mod9 <- feols(PercChangeCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod3)
-  mod10 <- feols(PercChangeCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod4)
-  mod11 <- feols(PercChangeCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod5)
-  mod12 <- feols(PercChangeCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod6)
+  # perc diff with initial PAC
+  mod7 <- feols(PercDiffCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod8 <- update(mod7, data = dat_mod2)
+  mod9 <- update(mod7, data = dat_mod3)
+  mod10 <- update(mod7, data = dat_mod4)
+  mod11 <- update(mod7, data = dat_mod5)
+  mod12 <- update(mod7, data = dat_mod6)
+  
+  # prop covered without initial PAC
+  mod1b <- feols(PropCoveredLogit ~ Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod2b <- update(mod1b, data = dat_mod2)
+  mod3b <- update(mod1b, data = dat_mod3)
+  mod4b <- update(mod1b, data = dat_mod4)
+  mod5b <- update(mod1b, data = dat_mod5)
+  mod6b <- update(mod1b, data = dat_mod6)
+  
+  # perc diff without initial PAC
+  mod7b <- feols(PercDiffCovered ~ Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod8b <- update(mod7b, data = dat_mod2)
+  mod9b <- update(mod7b, data = dat_mod3)
+  mod10b <- update(mod7b, data = dat_mod4)
+  mod11b <- update(mod7b, data = dat_mod5)
+  mod12b <- update(mod7b, data = dat_mod6)
 
   # output
-  return(list(mod1, mod2, mod3, mod4, mod4, mod6,
-              mod7, mod8, mod9, mod10, mod11, mod12))
+  return(list(mod1, mod2, mod3, mod4, mod5, mod6,
+              mod7, mod8, mod9, mod10, mod11, mod12,
+              mod1b, mod2b, mod3b, mod4b, mod5b, mod6b,
+              mod7b, mod8b, mod9b, mod10b, mod11b, mod12b))
 
 }
 
@@ -328,23 +347,8 @@ torp_mods <- mod_fit(torp_dat)
 cubu_mods <- mod_fit(cubu_dat)
 pagr_mods <- mod_fit(pagr_dat)
 
-# separate by response
-hydr_mods_prop <- hydr_mods[1:6]
-wahy_mods_prop <- wahy_mods[1:6]
-wale_mods_prop <- wale_mods[1:6]
-torp_mods_prop <- torp_mods[1:6]
-cubu_mods_prop <- cubu_mods[1:6]
-pagr_mods_prop <- pagr_mods[1:6]
-
-hydr_mods_change <- hydr_mods[7:12]
-wahy_mods_change <- wahy_mods[7:12]
-wale_mods_change <- wale_mods[7:12]
-torp_mods_change <- torp_mods[7:12]
-cubu_mods_change <- cubu_mods[7:12]
-pagr_mods_change <- pagr_mods[7:12]
-
 # name models
-names(hydr_mods_prop) <- names(wahy_mods_prop) <- names(wale_mods_prop) <- names(torp_mods_prop) <- names(cubu_mods_prop) <- names(pagr_mods_prop) <- names(hydr_mods_change) <- names(wahy_mods_change) <- names(wale_mods_change) <- names(torp_mods_change) <- names(cubu_mods_change) <- names(pagr_mods_change) <- c("1", "2", "3", "4", "5", "6")
+names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(cubu_mods) <- names(pagr_mods) <- rep(c("1", "2", "3", "4", "5", "6"), 4)
 
 
 #### coefficient figures and tables ####
@@ -370,104 +374,70 @@ plot_fun <- function(models){
   
 }
 
-# focal panels
-hydr_fig_prop <- plot_fun(hydr_mods_prop) +
-  labs(x = "",
-       title = "(A) Hydrilla") +
-  def_theme_paper +
-  theme(legend.position = "none")
+# panel plot function
+panel_plot_fun <- function(mods1, mods2, mods3, 
+                           spp1, spp2, spp3,
+                           filename){
+  
+  # focal panels
+  fig1 <- plot_fun(mods1) +
+    labs(x = "",
+         title = paste("(A)", spp1)) +
+    def_theme_paper +
+    theme(legend.position = "none")
+  
+  fig2 <- plot_fun(mods2) +
+    labs(x = expression(paste("Estimate"%+-%" 95% CI", sep = "")),
+         title = paste("(B)", spp2)) +
+    theme(legend.position = "none",
+          axis.text.y = element_blank())
+  
+  fig3 <- plot_fun(mods3) +
+    labs(x = "",
+         title = paste("(C)", spp3)) +
+    theme(axis.text.y = element_blank(),
+          legend.box.margin = margin(-10, 0, -10, -10)) +
+    scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
+    guides(color = guide_legend(reverse = TRUE))
+  
+  comb_fig <- fig1 + fig2 + fig3 + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
+  
+  ggsave(filename, comb_fig,
+         device = "eps", width = 6.5, height = 3.5, units = "in")
+  
+}
 
-wahy_fig_prop <- plot_fun(wahy_mods_prop) +
-  labs(x = expression(paste("Estimate"%+-%" 95% CI", sep = "")),
-       title = "(B) Water hyacinth") +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
+# prop covered with initial PAC
+panel_plot_fun(hydr_mods[1:6], wahy_mods[1:6], wale_mods[1:6],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_invasive_prop_covered_init_model.eps")
+panel_plot_fun(cubu_mods[1:6], pagr_mods[1:6], torp_mods[1:6],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_invasive_prop_covered_init_model.eps")
 
-wale_fig_prop <- plot_fun(wale_mods_prop) +
-  labs(x = "",
-       title = "(C) Water lettuce") +
-  theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10)) +
-  scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
-  guides(color = guide_legend(reverse = TRUE))
+# perc diff with initial PAC
+panel_plot_fun(hydr_mods[7:12], wahy_mods[7:12], wale_mods[7:12],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_invasive_PAC_diff_init_model.eps")
+panel_plot_fun(cubu_mods[7:12], pagr_mods[7:12], torp_mods[7:12],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_invasive_PAC_diff_init_model.eps")
 
-hydr_fig_change <- plot_fun(hydr_mods_change) +
-  labs(x = "",
-       title = "(A) Hydrilla") +
-  def_theme_paper +
-  theme(legend.position = "none")
+# prop covered without initial PAC
+panel_plot_fun(hydr_mods[13:18], wahy_mods[13:18], wale_mods[13:18],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_invasive_prop_covered_model.eps")
+panel_plot_fun(cubu_mods[13:18], pagr_mods[13:18], torp_mods[13:18],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_invasive_prop_covered_model.eps")
 
-wahy_fig_change <- plot_fun(wahy_mods_change) +
-  labs(x = expression(paste("Change in PAC"%+-%" 95% CI", sep = "")),
-       title = "(B) Water hyacinth") +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-wale_fig_change <- plot_fun(wale_mods_change) +
-  labs(x = "",
-       title = "(C) Water lettuce") +
-  theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10)) +
-  scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
-  guides(color = guide_legend(reverse = TRUE))
-
-# combine focal panels
-foc_fig_prop <- hydr_fig_prop + wahy_fig_prop + wale_fig_prop + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
-foc_fig_change <- hydr_fig_change + wahy_fig_change + wale_fig_change + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
-
-# save focal panels
-ggsave("output/fwc_focal_invasive_prop_covered_treatment_model.eps", foc_fig_prop,
-       device = "eps", width = 6.5, height = 3.5, units = "in")
-
-ggsave("output/fwc_focal_invasive_PAC_change_treatment_model.eps", foc_fig_change,
-       device = "eps", width = 6.5, height = 3.5, units = "in")
-
-# non-focal panels
-cubu_fig_prop <- plot_fun(cubu_mods_prop) +
-  labs(x = "", title = "(A) Cuban bulrush") +
-  theme(legend.position = "none")
-
-pagr_fig_prop <- plot_fun(pagr_mods_prop) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       title = "(B) para grass") +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-torp_fig_prop <- plot_fun(torp_mods_prop) +
-  scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
-  labs(x = "",
-       title = "(C) torpedograss") +
-  theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-cubu_fig_change <- plot_fun(cubu_mods_change) +
-  labs(x = "", title = "(A) Cuban bulrush") +
-  theme(legend.position = "none")
-
-pagr_fig_change <- plot_fun(pagr_mods_change) +
-  labs(x = expression(paste("Change in PAC "%+-%" 95% CI", sep = "")),
-       title = "(B) para grass") +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
-
-torp_fig_change <- plot_fun(torp_mods_change) +
-  scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
-  labs(x = "",
-       title = "(C) torpedograss") +
-  theme(axis.text.y = element_blank(),
-        legend.box.margin = margin(-10, 0, -10, -10)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-# combine figures
-nonfoc_fig_prop <- cubu_fig_prop + pagr_fig_prop + torp_fig_prop + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
-nonfoc_fig_change <- cubu_fig_change + pagr_fig_change + torp_fig_change + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
-
-# save non-focal panels
-ggsave("output/fwc_non_focal_invasive_prop_covered_treatment_model.eps", nonfoc_fig_prop,
-       device = "eps", width = 6.5, height = 3.5, units = "in")
-ggsave("output/fwc_non_focal_invasive_PAC_change_treatment_model.eps", nonfoc_fig_change,
-       device = "eps", width = 6.5, height = 3.5, units = "in")
+# perc diff without initial PAC
+panel_plot_fun(hydr_mods[19:24], wahy_mods[19:24], wale_mods[19:24],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_invasive_PAC_diff_model.eps")
+panel_plot_fun(cubu_mods[19:24], pagr_mods[19:24], torp_mods[19:24],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_invasive_PAC_diff_model.eps")
 
 
 #### finalize models ####
@@ -482,12 +452,12 @@ torp_dat1 <- torp_dat %>% filter(!is.na(Lag1Treated))
 pagr_dat1 <- pagr_dat %>% filter(!is.na(Lag1Treated))
 
 # fit models
-hydr_mod <- feols(PercChangeCovered ~ Lag1Treated | PermanentID + GSYear, data = hydr_dat1)
-wahy_mod <- feols(PercChangeCovered ~ Lag1Treated | PermanentID + GSYear, data = wahy_dat1)
-wale_mod <- feols(PercChangeCovered ~ Lag1Treated | PermanentID + GSYear, data = wale_dat1)
-cubu_mod <- feols(PercChangeCovered ~ Lag1Treated | PermanentID + GSYear, data = cubu_dat1)
-torp_mod <- feols(PercChangeCovered ~ Lag1Treated | PermanentID + GSYear, data = torp_dat1)
-pagr_mod <- feols(PercChangeCovered ~ Lag1Treated | PermanentID + GSYear, data = pagr_dat1)
+hydr_mod <- feols(PercDiffCovered ~ Lag1Treated | PermanentID + GSYear, data = hydr_dat1)
+wahy_mod <- update(hydr_mod, data = wahy_dat1)
+wale_mod <- update(hydr_mod, data = wale_dat1)
+cubu_mod <- update(hydr_mod, data = cubu_dat1)
+torp_mod <- update(hydr_mod, data = torp_dat1)
+pagr_mod <- update(hydr_mod, data = pagr_dat1)
 
 # export models
 save(hydr_mod, file = "output/fwc_hydrilla_treatment_model.rda")
@@ -507,8 +477,9 @@ pred_dat <- function(dat_in, mod){
   dat_out <- dat_in %>%
     select(PermanentID, GSYear) %>%
     expand_grid(Lag1Treated = seq(0, 1, length.out = 4)) %>%
-    mutate(Pred = predict(mod, newdata = .),
-           CommonName = unique(dat_in$CommonName))
+    mutate(PercDiffCovered = predict(mod, newdata = .),
+           CommonName = unique(dat_in$CommonName),
+           PercChangeCovered = 100 * PercDiffCovered / mean(dat_in$InitPercCovered))
 
   return(dat_out)
   
@@ -517,7 +488,10 @@ pred_dat <- function(dat_in, mod){
 # combine datasets
 foc_raw_dat <- hydr_dat1 %>%
   full_join(wahy_dat1) %>%
-  full_join(wale_dat1)
+  full_join(wale_dat1) %>%
+  group_by(CommonName) %>%
+  mutate(PercChangeCovered = 100 * PercDiffCovered / mean(InitPercCovered)) %>%
+  ungroup()
 
 foc_pred_dat <- pred_dat(hydr_dat1, hydr_mod) %>%
   full_join(pred_dat(wahy_dat1, wahy_mod)) %>%
@@ -530,18 +504,19 @@ foc_pred_fig <- ggplot(foc_raw_dat, aes(x = Lag1Treated, y = PercChangeCovered))
                aes(color = CommonName)) +
   stat_summary(geom = "point", fun = "mean", size = 2,
                aes(color = CommonName)) +
-  stat_summary(data = foc_pred_dat, aes(y = Pred, fill = CommonName),
+  stat_summary(data = foc_pred_dat, aes(fill = CommonName),
                geom = "ribbon", fun.data = "mean_cl_boot", alpha = 0.5) +
-  stat_summary(data = foc_pred_dat, aes(y = Pred, color = CommonName),
-               geom = "line", fun = "mean", size = 1) +
+  stat_summary(data = foc_pred_dat, aes(color = CommonName),
+               geom = "line", fun = "mean", size = 0.5) +
+  facet_wrap(~ CommonName, scales = "free") +
   scale_x_continuous(breaks = c(0, 0.33, 0.67, 1)) +
-  labs(x = "Management frequency", y = "Change in PAC") +
+  labs(x = "Management frequency", y = "Percent change in PAC") +
   def_theme_paper +
-  facet_wrap(~ CommonName, scales = "free")
+  theme(legend.position = "none")
 
-# doesn't allow ribbon to be saved for eps
-ggsave("output/fwc_focal_invasive_PAC_change_treatment_prediction.eps", foc_pred_fig,
-       device = "eps", width = 6.5, height = 2.5, units = "in")
+# save
+ggsave("output/fwc_focal_invasive_PAC_change_treatment_prediction.png", foc_pred_fig,
+       device = "png", width = 6.5, height = 2.5, units = "in")
 
 
 #### older code ####
