@@ -479,7 +479,8 @@ pred_dat <- function(dat_in, mod){
     expand_grid(Lag1Treated = seq(0, 1, length.out = 4)) %>%
     mutate(PercDiffCovered = predict(mod, newdata = .),
            CommonName = unique(dat_in$CommonName),
-           PercChangeCovered = 100 * PercDiffCovered / mean(dat_in$InitPercCovered))
+           PercChangeCovered = 100 * PercDiffCovered / mean(dat_in$InitPercCovered),
+           Treated = Lag1Treated * 3)
 
   return(dat_out)
   
@@ -490,7 +491,8 @@ foc_raw_dat <- hydr_dat1 %>%
   full_join(wahy_dat1) %>%
   full_join(wale_dat1) %>%
   group_by(CommonName) %>%
-  mutate(PercChangeCovered = 100 * PercDiffCovered / mean(InitPercCovered)) %>%
+  mutate(PercChangeCovered = 100 * PercDiffCovered / mean(InitPercCovered),
+         Treated = Lag1Treated * 3) %>%
   ungroup()
 
 foc_pred_dat <- pred_dat(hydr_dat1, hydr_mod) %>%
@@ -498,7 +500,7 @@ foc_pred_dat <- pred_dat(hydr_dat1, hydr_mod) %>%
   full_join(pred_dat(wale_dat1, wale_mod))
 
 # figures
-foc_pred_fig <- ggplot(foc_raw_dat, aes(x = Lag1Treated, y = PercChangeCovered)) +
+foc_pred_fig <- ggplot(foc_raw_dat, aes(x = Treated, y = PercChangeCovered)) +
   geom_hline(yintercept = 0, size = 0.25) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(color = CommonName)) +
@@ -509,14 +511,33 @@ foc_pred_fig <- ggplot(foc_raw_dat, aes(x = Lag1Treated, y = PercChangeCovered))
   stat_summary(data = foc_pred_dat, aes(color = CommonName),
                geom = "line", fun = "mean", size = 0.5) +
   facet_wrap(~ CommonName, scales = "free") +
-  scale_x_continuous(breaks = c(0, 0.33, 0.67, 1)) +
-  labs(x = "Management frequency", y = "Percent change in PAC") +
+  labs(x = "Years managed (out of 3)", y = "Percent change in PAC") +
   def_theme_paper +
   theme(legend.position = "none")
 
 # save
 ggsave("output/fwc_focal_invasive_PAC_change_treatment_prediction.png", foc_pred_fig,
        device = "png", width = 6.5, height = 2.5, units = "in")
+
+# data tables
+foc_sum <- foc_raw_dat %>%
+  group_by(CommonName) %>%
+  summarize(InitPercCovered = mean(InitPercCovered)) %>%
+  ungroup() %>%
+  full_join(foc_pred_dat %>%
+              group_by(CommonName, Treated) %>%
+              summarize(PercChangeCovered = mean(PercChangeCovered)) %>%
+              ungroup() %>%
+              mutate(Treated = fct_recode(as.factor(Treated),
+                                          "None" = "0",
+                                          "One" = "1",
+                                          "Two" = "2",
+                                          "Three" = "3")) %>%
+              pivot_wider(names_from = Treated,
+                          values_from = PercChangeCovered))
+
+# save data table
+write_csv(foc_sum, "output/fwc_focal_invasive_PAC_change_treatment_prediction.csv")
 
 
 #### older code ####
