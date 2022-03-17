@@ -9,13 +9,13 @@ library(tidyverse)
 library(fixest) # FE models
 library(modelsummary)
 library(inspectdf) # for inspect_cor
+library(patchwork)
 
 # figure settings
 source("code/settings/figure_settings.R")
 
 # import data
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
-inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
+inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
 nat_plant <- read_csv("intermediate-data/FWC_common_native_plants_formatted.csv")
 
 
@@ -68,13 +68,11 @@ ggplot(nat_rich, aes(x = Area_ha, y = Richness)) +
 # summarize richness by waterbody and year
 nat_plant2 <-  nat_plant %>%
   group_by(PermanentID, GSYear, Area_ha) %>%
-  summarize(Richness = sum(Detected)) %>%
+  summarize(Richness = sum(Detected),
+            PrevRichness = sum(PrevDetected)) %>%
   ungroup() %>%
-  group_by(PermanentID) %>%
-  mutate(AvgRich = mean(Richness, na.rm = T)) %>% # average waterbody richness
-  ungroup() %>%
-  mutate(LogArea = log(Area_ha),
-         LogRich = log(Richness))
+  mutate(RichnessDiff = Richness - PrevRichness) %>%
+  filter(!is.na(RichnessDiff))
 
 # initial visualizations
 plot_ly(nat_plant2, x = ~GSYear, y = ~Richness, color = ~PermanentID) %>%
@@ -82,152 +80,282 @@ plot_ly(nat_plant2, x = ~GSYear, y = ~Richness, color = ~PermanentID) %>%
   layout(showlegend = FALSE)
 
 
-#### edit other data ####
-
-# check invasive plant data availability
-inv_plant %>%
-  inner_join(nat_plant2 %>%
-               select(PermanentID, GSYear) %>%
-               unique()) %>%
-  ggplot(aes(x = GSYear, y = Lag6AvgPropCovered, color = PermanentID)) +
-  geom_point() +
-  facet_wrap(~ CommonName, scales = "free_y") +
-  theme(legend.position = "none")
-# Cuban bulrush can do smaller lags, but not larger
-
-# Avg prop covered columns
-inv_avg_cols <- tibble(cols = colnames(inv_plant)) %>%
-  filter(str_detect(cols, "AvgProp") == T) %>%
-  pull(cols)
-
-# make long by lag
-# make wide by inv. plant species
-inv_plant2 <- inv_plant %>%
-  select(PermanentID, GSYear, CommonName, all_of(inv_avg_cols)) %>%
-  pivot_longer(cols = all_of(inv_avg_cols),
-               names_to = "Lag",
-               values_to = "AvgPropCovered") %>%
-  filter(!is.na(AvgPropCovered)) %>% # remove missing data
-  mutate(CommonName = fct_recode(CommonName,
-                                 "WaterHyacinth" = "Water hyacinth",
-                                 "WaterLettuce" = "Water lettuce",
-                                 "ParaGrass" = "Para grass",
-                                 "CubanBulrush" = "Cuban bulrush"),
-         Lag = as.numeric(str_sub(Lag, 4, 4)),
-         AvgPercCovered = AvgPropCovered * 100) %>%
-  select(-AvgPropCovered) %>%
-  pivot_wider(names_from = CommonName,
-              values_from = AvgPercCovered,
-              names_glue = "{CommonName}_AvgPercCovered") %>%
-  mutate(Floating_AvgPercCovered = WaterHyacinth_AvgPercCovered + WaterLettuce_AvgPercCovered,
-         Floating_AvgPercCovered = if_else(Floating_AvgPercCovered > 100, 100, Floating_AvgPercCovered))
-
-# Control columns
-inv_ctrl_cols <- tibble(cols = colnames(inv_ctrl)) %>%
-  filter(str_detect(cols, "Treated") == T & 
-           str_detect(cols, "Lag") == T & 
-           str_detect(cols, "PropTreated") == F & 
-           str_detect(cols, "All") == F) %>%
-  pull(cols)
-
-# make long by lag
-# make wide by control target
-inv_ctrl2 <- inv_ctrl %>%
-  select(PermanentID, Species, GSYear, all_of(inv_ctrl_cols)) %>% 
-  unique() %>% # remove duplication of floating plant treatment
-  pivot_longer(cols = all_of(inv_ctrl_cols),
-               names_to = "Lag",
-               values_to = "TreatFreq") %>%
-  filter(!is.na(TreatFreq)) %>% # remove missing data
-  mutate(Species = fct_recode(Species,
-                              "Floating" = "Floating Plants (Eichhornia and Pistia)",
-                              "Hydrilla" = "Hydrilla verticillata",
-                              "Torpedograss" = "Panicum repens",
-                              "ParaGrass" = "Urochloa mutica",
-                              "CubanBulrush" = "Cyperus blepharoleptos"),
-         Lag = as.numeric(str_sub(Lag, 4, 4))) %>%
-  pivot_wider(names_from = Species,
-              values_from = TreatFreq,
-              names_glue = "{Species}_TreatFreq")
-
-
 #### combine data ####
 
 # combine native, invasive, control
-nat_dat <- nat_plant2 %>%
-  inner_join(inv_plant2) %>%
-  inner_join(inv_ctrl2)
+nat_dat <- inv_plant %>%
+  left_join(nat_plant2)
 
-# filter for focal invasive plants
-nat_foc_dat <- nat_dat %>%
-  filter(!is.na(Hydrilla_AvgPercCovered) &
-           !is.na(Hydrilla_TreatFreq) &
-           !is.na(Floating_AvgPercCovered) &
-           !is.na(Floating_TreatFreq)) %>%
-  select(-c(CubanBulrush_AvgPercCovered, CubanBulrush_TreatFreq,
-            Torpedograss_AvgPercCovered, Torpedograss_TreatFreq,
-            ParaGrass_AvgPercCovered, ParaGrass_TreatFreq))
+# identify missing data
+nat_dat %>%
+  filter(is.na(Richness)) %>%
+  group_by(GSYear, CommonName) %>%
+  summarize(Lakes = n_distinct(PermanentID))
+# same number of lakes are missing each year
+# dataset is just cut early because of no native
+# plant sampling 2000-2001
 
-nat_all_dat <- nat_dat %>%
-  filter(!is.na(Hydrilla_AvgPercCovered) &
-           !is.na(Hydrilla_TreatFreq) &
-           !is.na(Floating_AvgPercCovered) &
-           !is.na(Floating_TreatFreq) &
-           !is.na(Torpedograss_AvgPercCovered) & 
-           !is.na(Torpedograss_TreatFreq) &
-           !is.na(ParaGrass_AvgPercCovered) & 
-           !is.na(ParaGrass_TreatFreq))
+# remove missing data
+nat_dat2 <- nat_dat %>%
+  filter(!is.na(Richness)) %>%
+  mutate(across(ends_with("AvgPropCovered"), ~ .x * 100)) %>%
+  rename_with(str_replace, pattern = "AvgPropCovered", replacement = "AvgPercCovered")
 
-nat_cb_dat <- nat_all_dat %>%
-  filter(!is.na(CubanBulrush_AvgPercCovered) & 
-           !is.na(CubanBulrush_TreatFreq))
-
-
-#### to do ####
-# subset of lakes and years where data are balanced
+# split by species
+hydr_dat <- filter(nat_dat2, CommonName == "Hydrilla") %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+wale_dat <- filter(nat_dat2, CommonName == "Water lettuce") %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+wahy_dat <- filter(nat_dat2, CommonName == "Water hyacinth") %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+torp_dat <- filter(nat_dat2, CommonName == "Torpedograss") %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+cubu_dat <- filter(nat_dat2, CommonName == "Cuban bulrush") %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+pagr_dat <- filter(nat_dat2, CommonName == "Para grass") %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
 
 
 #### initial visualizations ####
 
 # covariate correlations
-nat_dat %>%
-  select(ends_with("TreatFreq"), 
-         ends_with("AvgPercCovered"),
-         Lag) %>%
-  group_by(Lag) %>%
+nat_dat2 %>%
+  select(CommonName, Lag1Treated, Lag1AvgPercCovered, SurveyorExperience, PrevRichness) %>%
+  group_by(CommonName) %>%
   inspect_cor() %>% 
   ungroup() %>%
-  filter(p_value < 0.05 & corr >= 0.4) %>%
+  filter(p_value < 0.05) %>%
   data.frame()
-# all floating plants, except
-# Cuban bulrush with water hyacinth a few times
-# para grass with water hyacinth
 
-# invasive plant and richness
-ggplot(nat_dat, aes(x = Hydrilla_AvgPercCovered, y = Richness)) +
+# richness diff distribution
+ggplot(nat_dat2, aes(x = RichnessDiff)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName)
+
+# coefficients and richness
+ggplot(nat_dat2, aes(x = Lag1AvgPercCovered, y = RichnessDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
+  facet_wrap(~ CommonName, scales = "free")
 
-ggplot(nat_dat, aes(x = Floating_AvgPercCovered, y = Richness)) +
+ggplot(nat_dat2, aes(x = Lag1Treated, y = RichnessDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
+  facet_wrap(~ CommonName, scales = "free")
 
-ggplot(nat_dat, aes(x = ParaGrass_AvgPercCovered, y = Richness)) +
+ggplot(nat_dat2, aes(x = PrevRichness, y = RichnessDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
+  facet_wrap(~ CommonName, scales = "free")
 
-ggplot(nat_dat, aes(x = Torpedograss_AvgPercCovered, y = Richness)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
 
-ggplot(nat_dat, aes(x = CubanBulrush_AvgPercCovered, y = Richness)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_wrap(~ Lag)
+#### model-fitting functions ####
+
+# data filter function
+dat_mod_filt <- function(treat_col, inv_col, dat_in){
+  
+  dat_mod <- dat_in %>%
+    filter(!is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated) & !is.na(!!sym(inv_col))) %>%
+    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+           Treated = !!sym(treat_col),
+           AvgPercCovered = !!sym(inv_col),
+           PrevRichness_c = PrevRichness - mean(PrevRichness),
+           AvgPercCovered_c = AvgPercCovered - mean(AvgPercCovered))
+  
+  return(dat_mod)
+  
+}
+
+# function to fit models
+mod_fit <- function(dat_in, inv_col){
+  
+  # subset data
+  dat_mod1 <- dat_mod_filt("Lag1Treated", inv_col, dat_in)
+  dat_mod2 <- dat_mod_filt("Lag2Treated", inv_col, dat_in)
+  dat_mod3 <- dat_mod_filt("Lag3Treated", inv_col, dat_in)
+  dat_mod4 <- dat_mod_filt("Lag4Treated", inv_col, dat_in)
+  dat_mod5 <- dat_mod_filt("Lag5Treated", inv_col, dat_in)
+  dat_mod6 <- dat_mod_filt("Lag6Treated", inv_col, dat_in)
+  
+  # with initial richness
+  mod1 <- feols(RichnessDiff ~ PrevRichness_c + AvgPercCovered_c + Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod2 <- update(mod1, data = dat_mod2)
+  mod3 <- update(mod1, data = dat_mod3)
+  mod4 <- update(mod1, data = dat_mod4)
+  mod5 <- update(mod1, data = dat_mod5)
+  mod6 <- update(mod1, data = dat_mod6)
+  
+  # without initial richness
+  mod7 <- feols(RichnessDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod8 <- update(mod7, data = dat_mod2)
+  mod9 <- update(mod7, data = dat_mod3)
+  mod10 <- update(mod7, data = dat_mod4)
+  mod11 <- update(mod7, data = dat_mod5)
+  mod12 <- update(mod7, data = dat_mod6)
+  
+  # with initial richness without management
+  mod1b <- feols(RichnessDiff ~ PrevRichness_c + AvgPercCovered_c + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod2b <- update(mod1b, data = dat_mod2)
+  mod3b <- update(mod1b, data = dat_mod3)
+  mod4b <- update(mod1b, data = dat_mod4)
+  mod5b <- update(mod1b, data = dat_mod5)
+  mod6b <- update(mod1b, data = dat_mod6)
+  
+  # without initial richness without management
+  mod7b <- feols(RichnessDiff ~ AvgPercCovered_c + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod8b <- update(mod7b, data = dat_mod2)
+  mod9b <- update(mod7b, data = dat_mod3)
+  mod10b <- update(mod7b, data = dat_mod4)
+  mod11b <- update(mod7b, data = dat_mod5)
+  mod12b <- update(mod7b, data = dat_mod6)
+  
+  
+  # output
+  return(list(mod1, mod2, mod3, mod4, mod5, mod6,
+              mod7, mod8, mod9, mod10, mod11, mod12,
+              mod1b, mod2b, mod3b, mod4b, mod5b, mod6b,
+              mod7b, mod8b, mod9b, mod10b, mod11b, mod12b))
+  
+}
+
+
+#### fit models ####
+
+# fit models with all lags
+hydr_lag1_mods <- mod_fit(hydr_dat, "Lag1AvgPercCovered")
+wahy_lag1_mods <- mod_fit(wahy_dat, "Lag1AvgPercCovered")
+wale_lag1_mods <- mod_fit(wale_dat, "Lag1AvgPercCovered")
+torp_lag1_mods <- mod_fit(torp_dat, "Lag1AvgPercCovered")
+cubu_lag1_mods <- mod_fit(cubu_dat, "Lag1AvgPercCovered")
+pagr_lag1_mods <- mod_fit(pagr_dat, "Lag1AvgPercCovered")
+
+hydr_lag6_mods <- mod_fit(hydr_dat, "Lag6AvgPercCovered")
+wahy_lag6_mods <- mod_fit(wahy_dat, "Lag6AvgPercCovered")
+wale_lag6_mods <- mod_fit(wale_dat, "Lag6AvgPercCovered")
+torp_lag6_mods <- mod_fit(torp_dat, "Lag6AvgPercCovered")
+pagr_lag6_mods <- mod_fit(pagr_dat, "Lag6AvgPercCovered")
+
+
+# name models
+names(hydr_lag1_mods) <- names(wahy_lag1_mods) <- names(wale_lag1_mods) <- names(torp_lag1_mods) <- names(cubu_lag1_mods) <- names(pagr_lag1_mods) <- names(hydr_lag6_mods) <- names(wahy_lag6_mods) <- names(wale_lag6_mods) <- names(torp_lag6_mods) <- names(pagr_lag6_mods) <- rep(c("1", "2", "3", "4", "5", "6"), 4)
+
+
+#### coefficient figures and tables ####
+
+# rename coefficients
+coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
+                "PrevRichness_c" = "Initial richness",
+                "Treated" = "Management", 
+                "AvgPercCovered_c" = "Invasive PAC")
+
+# ggplot function
+plot_fun <- function(models){
+  
+  plot_out <- modelplot(models,
+                        coef_map = coef_names,
+                        background = list(geom_vline(xintercept = 0, color = "black",
+                                                     size = 0.5, linetype = "dashed"))) +
+    scale_color_viridis_d(direction = -1) +
+    scale_x_continuous(labels = scale_fun_1) +
+    def_theme_paper +
+    theme(plot.title = element_text(size = 9))
+  
+  return(plot_out)
+  
+}
+
+# panel plot function
+panel_plot_fun <- function(mods1, mods2, mods3, 
+                           spp1, spp2, spp3,
+                           filename){
+  
+  # focal panels
+  fig1 <- plot_fun(mods1) +
+    labs(x = "",
+         title = paste("(A)", spp1)) +
+    def_theme_paper +
+    theme(legend.position = "none")
+  
+  fig2 <- plot_fun(mods2) +
+    labs(x = expression(paste("Estimate"%+-%" 95% CI", sep = "")),
+         title = paste("(B)", spp2)) +
+    theme(legend.position = "none",
+          axis.text.y = element_blank())
+  
+  fig3 <- plot_fun(mods3) +
+    labs(x = "",
+         title = paste("(C)", spp3)) +
+    theme(axis.text.y = element_blank(),
+          legend.box.margin = margin(-10, 0, -10, -10)) +
+    scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
+    guides(color = guide_legend(reverse = TRUE))
+  
+  comb_fig <- fig1 + fig2 + fig3 + plot_annotation(
+    theme = theme(plot.margin = margin(5, -5, 0, -10),
+                  plot.title = element_text(size = 10, hjust = 0.5)),
+    title = "Effects on annual difference in native richness")
+  
+  ggsave(filename, comb_fig,
+         device = "eps", width = 6.5, height = 3.5, units = "in")
+  
+}
+
+# with initial richness and treatment
+panel_plot_fun(hydr_lag1_mods[1:6], wahy_lag1_mods[1:6], wale_lag1_mods[1:6],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_init_treat_lag1PAC_model.eps")
+panel_plot_fun(cubu_lag1_mods[1:6], pagr_lag1_mods[1:6], torp_lag1_mods[1:6],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_init_treat_lag1PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[1:6], wahy_lag6_mods[1:6], wale_lag6_mods[1:6],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_init_treat_lag6PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[1:6], pagr_lag6_mods[1:6], torp_lag6_mods[1:6],
+               "ignore", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_init_treat_lag6PAC_model.eps")
+
+# without initial richness, with treatment
+panel_plot_fun(hydr_lag1_mods[7:12], wahy_lag1_mods[7:12], wale_lag1_mods[7:12],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_treat_lag1PAC_model.eps")
+panel_plot_fun(cubu_lag1_mods[7:12], pagr_lag1_mods[7:12], torp_lag1_mods[7:12],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_treat_lag1PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[7:12], wahy_lag6_mods[7:12], wale_lag6_mods[7:12],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_treat_lag6PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[7:12], pagr_lag6_mods[7:12], torp_lag6_mods[7:12],
+               "ignore", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_treat_lag6PAC_model.eps")
+
+# with initial richness, without treatment
+panel_plot_fun(hydr_lag1_mods[13:18], wahy_lag1_mods[13:18], wale_lag1_mods[13:18],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_init_lag1PAC_model.eps")
+panel_plot_fun(cubu_lag1_mods[13:18], pagr_lag1_mods[13:18], torp_lag1_mods[13:18],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_init_lag1PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[13:18], wahy_lag6_mods[13:18], wale_lag6_mods[13:18],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_init_lag6PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[13:18], pagr_lag6_mods[13:18], torp_lag6_mods[13:18],
+               "ignore", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_init_lag6PAC_model.eps")
+
+# without initial richness and treatment
+panel_plot_fun(hydr_lag1_mods[19:24], wahy_lag1_mods[19:24], wale_lag1_mods[19:24],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_lag1PAC_model.eps")
+panel_plot_fun(cubu_lag1_mods[19:24], pagr_lag1_mods[19:24], torp_lag1_mods[19:24],
+               "Cuban bulrush", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_lag1PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[19:24], wahy_lag6_mods[19:24], wale_lag6_mods[19:24],
+               "Hydrilla", "Water hyacinth", "Water lettuce",
+               "output/fwc_focal_native_richness_lag6PAC_model.eps")
+panel_plot_fun(hydr_lag6_mods[19:24], pagr_lag6_mods[19:24], torp_lag6_mods[19:24],
+               "ignore", "Para grass", "Torpedograss",
+               "output/fwc_non_focal_native_richness_lag6PAC_model.eps")
+
 
 
 #### fit focal plant models ####

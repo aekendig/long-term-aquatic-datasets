@@ -4,12 +4,17 @@
 rm(list = ls())
 
 # load packages
+library(plotly)
 library(tidyverse)
-library(GGally)
-library(fixest) # FE models
-library(modelsummary)
-library(patchwork)
-library(car)
+library(inspectdf) # inspect_cor
+library(modelsummary) # modelplot
+library(patchwork) # combining figures
+library(car) # logit
+library(plm) # panel data models
+library(glmmTMB) # random effects
+library(sandwich) # vcovHC
+library(lmtest) # coeftest
+
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -27,14 +32,9 @@ inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
 # combine datasets
 inv_dat <- inv_plant %>%
-  filter(!is.na(InitPercCovered)) %>% # need two consecutive years
+  filter(!is.na(InitPercCovered)) %>% 
   inner_join(inv_ctrl) %>%
-  mutate(InitPACBin = case_when(InitPercCovered < 1 ~ "< 1%",
-                                InitPercCovered >= 1 & InitPercCovered < 10 ~ "1%-10%",
-                                TRUE ~ "≥ 10%") %>%
-           fct_relevel("< 1%", "1%-10%"),
-         PercDiffCovered = PropCovered * 100 - InitPercCovered,
-         PercChangeCovered = 100 * PercDiffCovered / InitPercCoveredAdj,
+  mutate(PercDiffCovered = PropCovered * 100 - InitPercCovered,
          PropCoveredLogit = logit(PropCovered, adjust = 0.001))
 
 # lakes that have the species present and been managed at least once
@@ -59,14 +59,16 @@ filter(inv_dat2, is.na(MinSurveyorExperience))
 inv_dat2 %>%
   filter(PropCovered > 0) %>%
   ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
-  geom_vline(xintercept = 2014) +
+  geom_vline(xintercept = 2013) +
   geom_point() +
   facet_wrap(~ CommonName, scales = "free_y") +
   theme(legend.position = "none")
-# Cuban bulrush is missing a lot of data before 2014
-# Para grass and torpedograss start in 2000
+# Cuban bulrush is missing a lot of data before 2013
+# Para grass and torpedograss start in 1999
 
 # complete time intervals
+# surveys were not conducted every year on every lake for every species
+# control data is implicitly complete -- missing interpretted as no control
 inv_time_int <- inv_dat2 %>%
   select(GSYear, CommonName) %>% 
   unique() %>%
@@ -94,7 +96,7 @@ inv_dat3 <- inv_dat2 %>%
                mutate(MinGSYear = GSYear,
                       MaxGSYear = GSYear + years_out - 1) %>% # 1 year added to years_out to count initial year
                select(CommonName, PermanentID, MinGSYear, MaxGSYear)) %>%
-  filter(GSYear >= MinGSYear & GSYear <= MaxGSYear)
+  filter(GSYear >= MinGSYear & GSYear <= MaxGSYear & !is.na(Lag1Treated))
 
 # taxa
 inv_taxa <- sort(unique(inv_dat3$CommonName))
@@ -136,55 +138,29 @@ floating_cover <- inv_dat %>%
 inv_dat4 <- inv_dat3 %>%
   left_join(floating_cover)
 
+# export
+write_csv(inv_dat4, "intermediate-data/FWC_invasive_plant_analysis_formatted.csv")
+
 # split by species
-hydr_dat <- filter(inv_dat4, CommonName == "Hydrilla") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-wale_dat <- filter(inv_dat4, CommonName == "Water lettuce") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-wahy_dat <- filter(inv_dat4, CommonName == "Water hyacinth") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-torp_dat <- filter(inv_dat4, CommonName == "Torpedograss") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-cubu_dat <- filter(inv_dat4, CommonName == "Cuban bulrush") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-pagr_dat <- filter(inv_dat4, CommonName == "Para grass") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+hydr_dat <- filter(inv_dat4, CommonName == "Hydrilla")
+wale_dat <- filter(inv_dat4, CommonName == "Water lettuce")
+wahy_dat <- filter(inv_dat4, CommonName == "Water hyacinth")
+torp_dat <- filter(inv_dat4, CommonName == "Torpedograss")
+cubu_dat <- filter(inv_dat4, CommonName == "Cuban bulrush")
+pagr_dat <- filter(inv_dat4, CommonName == "Para grass")
 
 
 #### initial visualizations ####
 
 # all and species-specific control correlated?
-cor.test(~ Lag1Treated + Lag1AllTreated, data = hydr_dat) # 0.6
-cor.test(~ Lag1Treated + Lag1AllTreated, data = wale_dat) # 0.8
-cor.test(~ Lag1Treated + Lag1AllTreated, data = torp_dat) # 0.8 
-cor.test(~ Lag1Treated + Lag1AllTreated, data = cubu_dat) # 0.3
-cor.test(~ Lag1Treated + Lag1AllTreated, data = pagr_dat) # 0.2
-# yes
-
-# covariate correlations
-hydr_dat %>%
-  select(Lag1Treated, InitPercCovered, MinSurveyorExperience) %>%
-  ggpairs()
-
-wahy_dat %>%
-  select(Lag1Treated, InitPercCovered, InitPercCoveredFloat, MinSurveyorExperience) %>%
-  ggpairs() # one high cover value
-
-wale_dat %>%
-  select(Lag1Treated, InitPercCovered,InitPercCoveredFloat,  MinSurveyorExperience) %>%
-  ggpairs() # one high cover value
-
-torp_dat %>%
-  select(Lag1Treated, InitPercCovered, MinSurveyorExperience) %>%
-  ggpairs()
-
-cubu_dat %>%
-  select(Lag1Treated, InitPercCovered, MinSurveyorExperience) %>%
-  ggpairs()
-
-pagr_dat %>%
-  select(Lag1Treated, InitPercCovered, MinSurveyorExperience) %>%
-  ggpairs()
+inv_dat4 %>%
+  select(CommonName, Lag1Treated, Lag1AllTreated, MinSurveyorExperience, InitPercCovered) %>%
+  group_by(CommonName) %>%
+  inspect_cor() %>% 
+  ungroup() %>%
+  filter(p_value < 0.05 & corr > 0.4) %>%
+  data.frame()
+# treated and all treated correlated for focal invasive species (expected)
 
 # response distributions
 ggplot(inv_dat4, aes(x = PercDiffCovered)) +
@@ -244,19 +220,6 @@ inv_dat4 %>%
   geom_bar() +
   facet_wrap(~ CommonName, scales = "free") 
 
-# initial PAC distributions
-inv_dat4 %>%
-  ggplot(aes(x = InitPercCovered)) +
-  geom_histogram() +
-  facet_wrap(~ CommonName, scales = "free") 
-
-# initial PAC distributions
-# tried different thresholds before choosing these
-ggplot(inv_dat4, aes(x = InitPACBin)) +
-  geom_bar() +
-  facet_wrap(~ CommonName, scales = "free") 
-# para grass doesn't get above 10%
-
 # before/after comparison
 ggplot(inv_dat4, aes(x = Lag1Treated, y = PercDiffCovered)) +
   geom_hline(yintercept = 0, size = 0.25) +
@@ -271,15 +234,96 @@ ggplot(inv_dat4, aes(x = Lag6Treated, y = PercDiffCovered)) +
   facet_wrap(~ CommonName, scales = "free")
 
 
+#### evaluate model structure ####
+
+# work from the premise that treatments, when done correctly, harm their target plants
+
+# filter for data with Lag1Treated
+hydr_lag1_dat <- hydr_dat %>% filter(!is.na(Lag1Treated))
+
+# simple lm
+mod_lm <- lm(PropCoveredLogit ~ Lag1Treated, data = hydr_lag1_dat)
+summary(mod_lm)
+# est. = 2.1
+
+# random effects
+mod_ran_loc <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|PermanentID), data = hydr_lag1_dat)
+summary(mod_ran_loc)
+# reduces est. to 1.5
+mod_ran_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|GSYear), data = hydr_lag1_dat)
+summary(mod_ran_yr)
+# keeps est. at 2.1
+mod_ran_loc_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|PermanentID) + (1|GSYear), data = hydr_lag1_dat)
+summary(mod_ran_loc_yr)
+# reduces est. to 1.5
+# location variance helps explain some of the positive relationship between treatment and cover
+
+# fixed effects
+mod_fix_loc <- plm(PropCoveredLogit ~ Lag1Treated, data = hydr_lag1_dat, 
+                   index = c("PermanentID", "GSYear"), model = "within")
+summary(mod_fix_loc)
+# reduces est. to 1.4
+mod_fix_loc_yr <- plm(PropCoveredLogit ~ Lag1Treated, data = hydr_lag1_dat, 
+                      index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+summary(mod_fix_loc_yr)
+# est. still 1.4
+
+# use treatment that is more temporally removed from cover
+hydr_lag3_dat <- hydr_dat %>% filter(!is.na(Lag3Treated)) # note that N changes
+hydr_lag6_dat <- hydr_dat %>% filter(!is.na(Lag6Treated))
+mod_fix_loc_yr3 <- plm(PropCoveredLogit ~ Lag3Treated, data = hydr_lag3_dat, 
+                      index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+summary(mod_fix_loc_yr3)
+# reduces est. to 0.5
+mod_fix_loc_yr6 <- plm(PropCoveredLogit ~ Lag6Treated, data = hydr_lag6_dat, 
+                       index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+summary(mod_fix_loc_yr6)
+# reduces est. to -0.4
+# is this significant when standard errors are corrected for heteroskedasticity and autocorrelation?
+coeftest(mod_fix_loc_yr6, vcov = vcovHC, type = "HC1")
+# no longer significant for < 0.05
+
+# use initial cover to account for reverse causality
+hydr_init_lag1_dat <- hydr_lag1_dat %>%
+  mutate(InitPercCovered_c = InitPercCovered - mean(InitPercCovered))
+mod_init_fix_loc_yr <- plm(PropCoveredLogit ~ InitPercCovered_c * Lag1Treated, data = hydr_init_lag1_dat,
+                           index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+summary(mod_init_fix_loc_yr)
+# reduces treatment est. to 1
+# for each percentage increase in cover, treatment effect decreases by 0.03
+# should get a negative treatment effect for ~40% increase in PAC above mean
+
+# use cover difference to account for reverse causality
+mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, data = hydr_init_lag1_dat,
+                           index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+summary(mod_diff_fix_loc_yr)
+# reduces treatment est. to -2.1
+# is this significant when standard errors are corrected for heteroskedasticity and autocorrelation?
+coeftest(mod_diff_fix_loc_yr, vcov = vcovHC, type = "HC1")
+# yes, highly significant
+
+# initial cover increases treatment frequency and decreases difference
+# how does including change estimate?
+mod_init_diff_fix_loc_yr <- plm(PercDiffCovered ~ InitPercCovered_c * Lag1Treated, data = hydr_init_lag1_dat,
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+summary(mod_init_diff_fix_loc_yr)
+# initial cover explains declines in difference
+# treatment est. increases to 3
+# treatment effect declines with higher initial cover
+# would need to be ~25% above average PAC to see negative effect of treatment
+
+
 #### model-fitting functions ####
 
 # data filter function
 dat_mod_filt <- function(treat_col, dat_in){
   
-  dat_mod <- dat_in %>%
+  dat_mod <- dat_in %>% 
+    filter(!is.na(InitPercCovered)) %>%
     filter(!is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated)) %>%
     mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-           Treated = !!sym(treat_col))
+           Treated = !!sym(treat_col),
+           InitPercCovered_c = InitPercCovered - mean(InitPercCovered))
   
   return(dat_mod)
   
@@ -297,7 +341,8 @@ mod_fit <- function(dat_in){
   dat_mod6 <- dat_mod_filt("Lag6Treated", dat_in)
   
   # prop covered with initial PAC
-  mod1 <- feols(PropCoveredLogit ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod1 <- plm(PropCoveredLogit ~ InitPercCovered_c * Treated + SurveyorExperience_s, data = dat_mod1,
+              index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
   mod2 <- update(mod1, data = dat_mod2)
   mod3 <- update(mod1, data = dat_mod3)
   mod4 <- update(mod1, data = dat_mod4)
@@ -305,7 +350,8 @@ mod_fit <- function(dat_in){
   mod6 <- update(mod1, data = dat_mod6)
 
   # perc diff with initial PAC
-  mod7 <- feols(PercDiffCovered ~ InitPercCovered * Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod7 <- plm(PercDiffCovered ~ InitPercCovered_c * Treated + SurveyorExperience_s, data = dat_mod1,
+              index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
   mod8 <- update(mod7, data = dat_mod2)
   mod9 <- update(mod7, data = dat_mod3)
   mod10 <- update(mod7, data = dat_mod4)
@@ -313,7 +359,8 @@ mod_fit <- function(dat_in){
   mod12 <- update(mod7, data = dat_mod6)
   
   # prop covered without initial PAC
-  mod1b <- feols(PropCoveredLogit ~ Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod1b <- plm(PropCoveredLogit ~ Treated + SurveyorExperience_s, data = dat_mod1,
+               index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
   mod2b <- update(mod1b, data = dat_mod2)
   mod3b <- update(mod1b, data = dat_mod3)
   mod4b <- update(mod1b, data = dat_mod4)
@@ -321,7 +368,8 @@ mod_fit <- function(dat_in){
   mod6b <- update(mod1b, data = dat_mod6)
   
   # perc diff without initial PAC
-  mod7b <- feols(PercDiffCovered ~ Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
+  mod7b <- plm(PercDiffCovered ~ Treated + SurveyorExperience_s, data = dat_mod1,
+               index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
   mod8b <- update(mod7b, data = dat_mod2)
   mod9b <- update(mod7b, data = dat_mod3)
   mod10b <- update(mod7b, data = dat_mod4)
@@ -355,8 +403,8 @@ names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- 
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "InitPercCovered:Treated" = "Management:PAC",
-                "InitPercCovered" = "Initial PAC",
+                "InitPercCovered_c:Treated" = "Management:PAC",
+                "InitPercCovered_c" = "Initial PAC",
                 "Treated" = "Management")
 
 # ggplot function
@@ -368,7 +416,8 @@ plot_fun <- function(models){
                                                      size = 0.5, linetype = "dashed"))) +
     scale_color_viridis_d(direction = -1) +
     scale_x_continuous(labels = scale_fun_1) +
-    def_theme_paper
+    def_theme_paper +
+    theme(plot.title = element_text(size = 9))
   
   return(plot_out)
   
@@ -377,7 +426,7 @@ plot_fun <- function(models){
 # panel plot function
 panel_plot_fun <- function(mods1, mods2, mods3, 
                            spp1, spp2, spp3,
-                           filename){
+                           filename, plotname){
   
   # focal panels
   fig1 <- plot_fun(mods1) +
@@ -400,7 +449,11 @@ panel_plot_fun <- function(mods1, mods2, mods3,
     scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
     guides(color = guide_legend(reverse = TRUE))
   
-  comb_fig <- fig1 + fig2 + fig3 + plot_annotation(theme = theme(plot.margin = margin(0, -5, 0, -10)))
+  comb_fig <- fig1 + fig2 + fig3 + plot_annotation(
+    theme = theme(plot.margin = margin(5, -5, 0, -10),
+                  plot.title = element_text(size = 10, hjust = 0.5)),
+    title = plotname
+  )
   
   ggsave(filename, comb_fig,
          device = "eps", width = 6.5, height = 3.5, units = "in")
@@ -410,54 +463,114 @@ panel_plot_fun <- function(mods1, mods2, mods3,
 # prop covered with initial PAC
 panel_plot_fun(hydr_mods[1:6], wahy_mods[1:6], wale_mods[1:6],
                "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_invasive_prop_covered_init_model.eps")
+               "output/fwc_focal_invasive_prop_covered_init_model.eps",
+               "Effects on invasive plant PAC (log-odds)")
 panel_plot_fun(cubu_mods[1:6], pagr_mods[1:6], torp_mods[1:6],
                "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_invasive_prop_covered_init_model.eps")
+               "output/fwc_non_focal_invasive_prop_covered_init_model.eps",
+               "Effects on invasive plant PAC (log-odds)")
 
 # perc diff with initial PAC
 panel_plot_fun(hydr_mods[7:12], wahy_mods[7:12], wale_mods[7:12],
                "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_invasive_PAC_diff_init_model.eps")
+               "output/fwc_focal_invasive_PAC_diff_init_model.eps",
+               "Effects on annual difference in invasive plant PAC")
 panel_plot_fun(cubu_mods[7:12], pagr_mods[7:12], torp_mods[7:12],
                "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_invasive_PAC_diff_init_model.eps")
+               "output/fwc_non_focal_invasive_PAC_diff_init_model.eps",
+               "Effects on annual difference in invasive plant PAC")
 
 # prop covered without initial PAC
 panel_plot_fun(hydr_mods[13:18], wahy_mods[13:18], wale_mods[13:18],
                "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_invasive_prop_covered_model.eps")
+               "output/fwc_focal_invasive_prop_covered_model.eps",
+               "Effects on invasive plant PAC (log-odds)")
 panel_plot_fun(cubu_mods[13:18], pagr_mods[13:18], torp_mods[13:18],
                "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_invasive_prop_covered_model.eps")
+               "output/fwc_non_focal_invasive_prop_covered_model.eps",
+               "Effects on invasive plant PAC (log-odds)")
 
 # perc diff without initial PAC
 panel_plot_fun(hydr_mods[19:24], wahy_mods[19:24], wale_mods[19:24],
                "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_invasive_PAC_diff_model.eps")
+               "output/fwc_focal_invasive_PAC_diff_model.eps",
+               "Effects on annual difference in invasive plant PAC")
 panel_plot_fun(cubu_mods[19:24], pagr_mods[19:24], torp_mods[19:24],
                "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_invasive_PAC_diff_model.eps")
+               "output/fwc_non_focal_invasive_PAC_diff_model.eps",
+               "Effects on annual difference in invasive plant PAC")
 
 
 #### finalize models ####
 
+# SE with heteroskedasticity and autocorrelation
+coeftest(hydr_mods[[19]], vcov = vcovHC, type = "HC1") # treatment sig, surveyor not
+coeftest(wahy_mods[[19]], vcov = vcovHC, type = "HC1") # treatment sig, surveyor not
+coeftest(wale_mods[[19]], vcov = vcovHC, type = "HC1") # neither sig
+coeftest(cubu_mods[[19]], vcov = vcovHC, type = "HC1") # neither sig
+coeftest(pagr_mods[[19]], vcov = vcovHC, type = "HC1") # neither sig
+coeftest(torp_mods[[19]], vcov = vcovHC, type = "HC1") # neither sig
+
 # don't need surveyor experience
 # only using year1 lag
-hydr_dat1 <- hydr_dat %>% filter(!is.na(Lag1Treated))
-wahy_dat1 <- wahy_dat %>% filter(!is.na(Lag1Treated))
-wale_dat1 <- wale_dat %>% filter(!is.na(Lag1Treated))
-cubu_dat1 <- cubu_dat %>% filter(!is.na(Lag1Treated))
-torp_dat1 <- torp_dat %>% filter(!is.na(Lag1Treated))
-pagr_dat1 <- pagr_dat %>% filter(!is.na(Lag1Treated))
+hydr_dat1 <- hydr_dat %>% filter(!is.na(Lag1Treated)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+wahy_dat1 <- wahy_dat %>% filter(!is.na(Lag1Treated)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+wale_dat1 <- wale_dat %>% filter(!is.na(Lag1Treated)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+cubu_dat1 <- cubu_dat %>% filter(!is.na(Lag1Treated)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+torp_dat1 <- torp_dat %>% filter(!is.na(Lag1Treated)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+pagr_dat1 <- pagr_dat %>% filter(!is.na(Lag1Treated)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
 
 # fit models
-hydr_mod <- feols(PercDiffCovered ~ Lag1Treated | PermanentID + GSYear, data = hydr_dat1)
+hydr_mod <- plm(PercDiffCovered ~ Lag1Treated, data = hydr_dat1,
+                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 wahy_mod <- update(hydr_mod, data = wahy_dat1)
 wale_mod <- update(hydr_mod, data = wale_dat1)
 cubu_mod <- update(hydr_mod, data = cubu_dat1)
 torp_mod <- update(hydr_mod, data = torp_dat1)
 pagr_mod <- update(hydr_mod, data = pagr_dat1)
+
+# SE with heteroskedasticity and autocorrelation
+coeftest(hydr_mod, vcov = vcovHC, type = "HC1") # sig
+coeftest(wahy_mod, vcov = vcovHC, type = "HC1") # sig
+coeftest(wale_mod, vcov = vcovHC, type = "HC1") # marginal
+coeftest(cubu_mod, vcov = vcovHC, type = "HC1") # not
+coeftest(pagr_mod, vcov = vcovHC, type = "HC1") # not
+coeftest(torp_mod, vcov = vcovHC, type = "HC1") # not
+
+# adjusted R2
+summary(hydr_mod) # -0.06
+summary(wahy_mod) # -0.06
+summary(wale_mod) # -0.06
+summary(cubu_mod) # -0.2
+summary(pagr_mod) # -0.2
+summary(torp_mod) # -0.07
+
+# add fitted values
+hydr_dat2 <- hydr_dat1 %>%
+  mutate(Fitted = as.numeric(hydr_dat1$PercDiffCovered - residuals(hydr_mod)))
+
+# start here
+# repeate above with other datasets
+# make figure like this:
+# https://github.com/ycroissant/plm/issues/16
+
+
+# fitted vs. observed
+ggplot(hydr_dat2, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+plot(as.numeric(hydr_dat1$PercDiffCovered - residuals(hydr_mod)), hydr_dat1$PercDiffCovered)
+plot(as.numeric(wahy_dat1$PercDiffCovered - residuals(wahy_mod)), wahy_dat1$PercDiffCovered)
+plot(as.numeric(wale_dat1$PercDiffCovered - residuals(wale_mod)), wale_dat1$PercDiffCovered)
+plot(as.numeric(cubu_dat1$PercDiffCovered - residuals(cubu_mod)), cubu_dat1$PercDiffCovered)
+plot(as.numeric(pagr_dat1$PercDiffCovered - residuals(pagr_mod)), pagr_dat1$PercDiffCovered)
+plot(as.numeric(torp_dat1$PercDiffCovered - residuals(torp_mod)), torp_dat1$PercDiffCovered)
+# poor fits
+
 
 # export models
 save(hydr_mod, file = "output/fwc_hydrilla_treatment_model.rda")
@@ -475,9 +588,10 @@ pred_dat <- function(dat_in, mod){
   
   # prediction dataset
   dat_out <- dat_in %>%
-    select(PermanentID, GSYear) %>%
+    tibble(PermanentID = names(fixef(mod))) %>% 
+    mutate(FixedEffects = fixef(mod)) %>%
     expand_grid(Lag1Treated = seq(0, 1, length.out = 4)) %>%
-    mutate(PercDiffCovered = predict(mod, newdata = .),
+    mutate(PercDiffCovered = FixedEffects + Lag1Treated * as.numeric(coef(mod)),
            CommonName = unique(dat_in$CommonName),
            PercChangeCovered = 100 * PercDiffCovered / mean(dat_in$InitPercCovered),
            Treated = Lag1Treated * 3)
@@ -499,6 +613,25 @@ foc_pred_dat <- pred_dat(hydr_dat1, hydr_mod) %>%
   full_join(pred_dat(wahy_dat1, wahy_mod)) %>%
   full_join(pred_dat(wale_dat1, wale_mod))
 
+foc_fit_dat <- hydr_dat1 %>%
+  mutate(Fitted = as.numeric(PercDiffCovered - residuals(hydr_mod))) %>%
+  full_join(wahy_dat1 %>%
+              mutate(Fitted = as.numeric(PercDiffCovered - residuals(wahy_mod)))) %>%
+  full_join(wale_dat1 %>%
+              mutate(Fitted = as.numeric(PercDiffCovered - residuals(wale_mod)))) %>%
+  mutate(Treated = Lag1Treated * 3) 
+
+ggplot(foc_fit_dat, aes(x = Treated, y = Fitted)) +
+  geom_hline(yintercept = 0, size = 0.25) +
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
+               aes(color = CommonName)) +
+  stat_summary(geom = "point", fun = "mean", size = 2,
+               aes(color = CommonName)) +
+  facet_wrap(~ CommonName, scales = "free") +
+  labs(x = "Years managed (out of 3)", y = "Percent change in PAC\n(relative to avg. invasion)") +
+  def_theme_paper +
+  theme(legend.position = "none")
+
 # figures
 foc_pred_fig <- ggplot(foc_raw_dat, aes(x = Treated, y = PercChangeCovered)) +
   geom_hline(yintercept = 0, size = 0.25) +
@@ -511,7 +644,7 @@ foc_pred_fig <- ggplot(foc_raw_dat, aes(x = Treated, y = PercChangeCovered)) +
   stat_summary(data = foc_pred_dat, aes(color = CommonName),
                geom = "line", fun = "mean", size = 0.5) +
   facet_wrap(~ CommonName, scales = "free") +
-  labs(x = "Years managed (out of 3)", y = "Percent change in PAC") +
+  labs(x = "Years managed (out of 3)", y = "Percent change in PAC\n(relative to avg. invasion)") +
   def_theme_paper +
   theme(legend.position = "none")
 

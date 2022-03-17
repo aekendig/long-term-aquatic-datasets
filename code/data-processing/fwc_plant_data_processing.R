@@ -468,7 +468,7 @@ non_eppc_taxa <- taxa_acres %>%
   filter(is.na(eppc)) %>%
   select(TaxonName, Origin) %>%
   unique()
-# 144 taxa, some are clearly native
+# 144 taxa, some are native
 
 # are their synonyms on the EPPC list?
 non_eppc_taxa %>%
