@@ -539,11 +539,20 @@ save(torp_mod, file = "output/fwc_torpedograss_treatment_model.rda")
 
 # combine SE tables
 foc_mod_se <- tidy(hydr_mod_se) %>%
-  mutate(term = "hydrilla") %>%
+  mutate(term = "hydrilla",
+         Waterbodies = n_distinct(hydr_dat3$PermanentID),
+         Years = n_distinct(hydr_dat3$GSYear),
+         N = nrow(hydr_dat3)) %>%
   full_join(tidy(wahy_mod_se) %>%
-              mutate(term = "water hyacinth")) %>%
+              mutate(term = "water hyacinth",
+                     Waterbodies = n_distinct(wahy_dat3$PermanentID),
+                     Years = n_distinct(wahy_dat3$GSYear),
+                     N = nrow(wahy_dat3))) %>%
   full_join(tidy(wale_mod_se) %>%
-              mutate(term = "water lettuce")) %>%
+              mutate(term = "water lettuce",
+                     Waterbodies = n_distinct(wale_dat3$PermanentID),
+                     Years = n_distinct(wale_dat3$GSYear),
+                     N = nrow(wale_dat3))) %>%
   rename(Species = term,
          Estimate = estimate,
          SE = std.error,
@@ -551,11 +560,20 @@ foc_mod_se <- tidy(hydr_mod_se) %>%
          P = p.value)
 
 non_foc_mod_se <- tidy(cubu_mod_se) %>%
-  mutate(term = "Cuban bulrush") %>%
+  mutate(term = "Cuban bulrush",
+         Waterbodies = n_distinct(cubu_dat3$PermanentID),
+         Years = n_distinct(cubu_dat3$GSYear),
+         N = nrow(cubu_dat3)) %>%
   full_join(tidy(pagr_mod_se) %>%
-              mutate(term = "para grass")) %>%
+              mutate(term = "para grass",
+                     Waterbodies = n_distinct(pagr_dat3$PermanentID),
+                     Years = n_distinct(pagr_dat3$GSYear),
+                     N = nrow(pagr_dat3))) %>%
   full_join(tidy(torp_mod_se) %>%
-              mutate(term = "torpedograss")) %>%
+              mutate(term = "torpedograss",
+                     Waterbodies = n_distinct(torp_dat3$PermanentID),
+                     Years = n_distinct(torp_dat3$GSYear),
+                     N = nrow(torp_dat3))) %>%
   rename(Species = term,
          Estimate = estimate,
          SE = std.error,
@@ -644,21 +662,23 @@ foc_sum <- foc_fit_dat %>%
   group_by(CommonName) %>%
   summarize(InitPercCovered = mean(InitPercCovered)) %>%
   ungroup() %>%
-  full_join(foc_fit_dat %>%
-              group_by(CommonName, Treated) %>%
-              summarize(PercDiffCovered = mean(Fitted)) %>%
-              ungroup()) %>%
-  mutate(PercChangeCovered = PercDiffCovered / InitPercCovered)
+  left_join(tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
+                   DiffNone = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), mean(fixef(wale_mod))),
+                   Coef = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod))))) %>%
+  mutate(DiffThree = DiffNone + Coef,
+         ChangeNone = 100 * DiffNone / InitPercCovered,
+         ChangeThree = 100 * DiffThree / InitPercCovered)
 
 non_foc_sum <- non_foc_fit_dat %>%
   group_by(CommonName) %>%
   summarize(InitPercCovered = mean(InitPercCovered)) %>%
   ungroup() %>%
-  full_join(non_foc_fit_dat %>%
-              group_by(CommonName, Treated) %>%
-              summarize(PercDiffCovered = mean(Fitted)) %>%
-              ungroup()) %>%
-  mutate(PercChangeCovered = PercDiffCovered / InitPercCovered)
+  left_join(tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
+                   DiffNone = c(mean(fixef(cubu_mod)), mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
+                   Coef = as.numeric(c(coef(cubu_mod), coef(pagr_mod), coef(torp_mod))))) %>%
+  mutate(DiffThree = DiffNone + Coef,
+         ChangeNone = 100 * DiffNone / InitPercCovered,
+         ChangeThree = 100 * DiffThree / InitPercCovered)
 
 # save data table
 write_csv(foc_sum, "output/fwc_focal_invasive_PAC_change_treatment_prediction.csv")
