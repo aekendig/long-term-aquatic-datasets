@@ -179,134 +179,133 @@ ggplot(nat_dat2, aes(x = PrevRichness, y = Richness)) +
 
 #### evaluate model structure ####
 
-# less clear what the expected direction is, but
-# lakes that are more species rich may be better habitats for invasive
-# plants (reverse causality)
-
-# remove Cuban bulrush (too few years) and Para grass (too few treatments)
-nat_dat3 <- nat_dat2 %>%
-  filter(CommonName %in% c("Hydrilla", "Water hyacinth", "Water lettuce", "Torpedograss"))
-
-
 # Poisson or negative binomial
-mean(nat_dat3$Richness)
-var(nat_dat3$Richness)
+mean(wahy_dat$Richness)
+var(wahy_dat$Richness)
+
+# function to fit models for each species
+mod_structure_fits <- function(dat_in){
+  
+  # create fixed effects data frame
+  # make a global variable so that pglm can access it (probably a pglm bug)
+  dat_fix <<- dat_in %>%
+    mutate(PrevRichness_c = PrevRichness - mean(PrevRichness))  %>%
+    ungroup() %>%
+    pdata.frame(index = c("PermanentID", "GSYear"))
+  # each waterbody is an individual
+  
+  # simple glm
+  mod_glm <- glm(Richness ~ Lag1AvgPercCovered + Lag1Treated, family = poisson, data = dat_in)
+
+  # random effects
+  mod_ran_loc <- glmmTMB(Richness ~ Lag1AvgPercCovered + Lag1Treated + (1|PermanentID), family = poisson, data = dat_in)
+  mod_ran_yr <- glmmTMB(Richness ~ Lag1AvgPercCovered + Lag1Treated + (1|GSYear), family = poisson, data = dat_in)
+  mod_ran_loc_yr <- glmmTMB(Richness ~ Lag1AvgPercCovered + Lag1Treated + (1|PermanentID) + (1|GSYear), family = poisson, data = dat_in)
+
+  # fixed effects
+  mod_fix_loc <- pglm(Richness ~ Lag1AvgPercCovered + Lag1Treated, family = poisson, data = dat_fix,
+                     model = "within")
+  mod_fix_loc_yr <- pglm(Richness ~ Lag1AvgPercCovered + Lag1Treated, family = poisson, data = dat_fix,
+                        model = "within", effect = "twoways")
+
+  # use initial richness to account for reverse causality
+  mod_init_fix_loc_yr <- pglm(Richness ~ PrevRichness_c + Lag1AvgPercCovered + Lag1Treated, family = poisson, data = dat_fix,
+                              model = "within", effect = "twoways")
+
+  # use richness difference to account for reverse causality
+  mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1AvgPercCovered + Lag1Treated, data = dat_fix,
+                             index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+
+  # richness difference and initial richness
+  mod_init_diff_fix_loc_yr <- plm(RichnessDiff ~ PrevRichness_c + Lag1AvgPercCovered + Lag1Treated, data = dat_fix,
+                                  index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+
+  # return list of models
+  return(list(glm = mod_glm,
+              ran_loc = mod_ran_loc,
+              ran_yr = mod_ran_yr,
+              ran_loc_yr = mod_ran_loc_yr,
+              fix_loc = mod_fix_loc,
+              fix_loc_yr = mod_fix_loc_yr,
+              init_fix_loc_yr = mod_init_fix_loc_yr,
+              diff_fix_loc_yr = mod_diff_fix_loc_yr,
+              init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr))
+
+}
 
 # filter for data with Lag1Treated
-nat_dat3 %>% filter(is.na(Lag1Treated) | is.na(Lag1AvgPercCovered)) # none are missing
+nat_dat2 %>% filter(is.na(Lag1Treated) | is.na(Lag1AvgPercCovered)) # none are missing
 
-# simple glm
-mod_glm <- glm(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, family = poisson, data = nat_dat3)
-summary(mod_glm)
-# treatment has a positive effect
-# invasive has slightly positive or slightly negative
+# fit models for each species
+hydr_mod_struc <- mod_structure_fits(hydr_dat)
+wahy_mod_struc <- mod_structure_fits(wahy_dat)
+wale_mod_struc <- mod_structure_fits(wale_dat)
 
-# random effects
-mod_ran_loc <- glmmTMB(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName + (1|PermanentID), 
-                       family = poisson,
-                       data = nat_dat3)
-summary(mod_ran_loc)
-# smaller estimates than glm, all positive except water lettuce cover
-mod_ran_yr <- glmmTMB(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName + (1|GSYear), 
-                      family = poisson,
-                      data = nat_dat3)
-summary(mod_ran_yr)
-# similar to glm, year explains much less variance than location
-mod_ran_loc_yr <- glmmTMB(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName + (1|GSYear) + (1|PermanentID), 
-                          family = poisson,
-                          data = nat_dat3)
-summary(mod_ran_loc_yr)
-# similar to location only
+# remove dat_fix
+rm("dat_fix")
 
-# create fixed effects data frame
-nat_fix_dat3 <- nat_dat3  %>%
-  mutate(NameID = paste0(CommonName, PermanentID)) %>%
-  pdata.frame(index = c("NameID", "GSYear", "PermanentID"))
-# each species in a waterbody is an individual
-# individuals are nested within waterbodies
+# compare model estimates
+hydr_mod_comp <- mod_structure_comp(simp_mods = hydr_mod_struc[1], 
+                                    ran_mods = hydr_mod_struc[2:4],
+                                    fix_mods = hydr_mod_struc[5:9])
+wahy_mod_comp <- mod_structure_comp(simp_mods = wahy_mod_struc[1], 
+                                    ran_mods = wahy_mod_struc[2:4],
+                                    fix_mods = wahy_mod_struc[5:9]) 
+wale_mod_comp <- mod_structure_comp(simp_mods = wale_mod_struc[1], 
+                                    ran_mods = wale_mod_struc[2:4],
+                                    fix_mods = wale_mod_struc[5:9]) 
 
-# fixed effects
-mod_fix_loc <- pglm(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, data = nat_fix_dat3,
-                    family = poisson,
-                    index = c("NameID", "GSYear", "PermanentID"), model = "within")
-summary(mod_fix_loc)
-# cannot fit torpedograss estimate, maybe because CommonName is nested in the individual index?
-# it could with invasive plant models...but these have the same richness values for a lake/year
-# regardless of the invasive species
-# treatments are positive, cover are positive and negative
-# estimates are very close to first glm
+# combine species
+mod_comp <- hydr_mod_comp %>%
+  mutate(Species = "hydrilla") %>%
+  full_join(wahy_mod_comp %>%
+              mutate(Species = "water hyacinth")) %>%
+  full_join(wale_mod_comp %>%
+              mutate(Species = "water lettuce")) %>%
+  mutate(coefficients = str_replace(coefficients, "Lag1Treated", "management"),
+         coefficients = str_replace(coefficients, "Lag1AvgPercCovered", "PAC"),
+         across(!c(coefficients, Species), ~ round(.x, digits = 3))) %>%
+  relocate(Species)
 
-mod_fix_loc_yr <- plm(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
-                      data = nat_fix_dat3,
-                      family = poisson,
-                      model = "within", effect = "twoways")
-summary(mod_fix_loc_yr)
-# no longer an issue with torpedograss
-# treatments and cover are positive except water lettuce
+write_csv(mod_comp, "output/fwc_native_richness_model_structure_comparison.csv")
 
-# test time effect
-plmtest(mod_fix_loc_yr, effect = "time", type = "bp")
-# significant
+# model comparison notes:
+# global intercept -> hydrilla PAC increased and floating plant PAC decreased
+  # all management increased
+# random effect waterbody -> reduced all estimates except water hyacinth PAC
+# random effect year -> only slight change
+# fixed effect waterbody -> similar to random effect waterbody
+# fixed effect year -> no change
+# previous richness -> same direction for all compared to fixed waterbody, smaller magnitudes
+# richness difference -> all estimates became negative
+  # floating management effect is similar for water hyacinth and water lettuce models (expected)
+# previous richness + richness difference -> positive effects of hydrilla and management
+  # negative effects of floating plants and management
+  # larger magnitudes than previous models
+  # floating management effects differ between water hyacinth and lettuce models
+  # previous richness estimates are consistent
 
-# use initial richness to account for reverse causality (positive cover)
-nat_init_fix_dat3 <- nat_dat3 %>%
-  group_by(CommonName) %>%
-  mutate(PrevRichness_c = PrevRichness - mean(PrevRichness))  %>%
-  ungroup() %>%
-  mutate(NameID = paste0(CommonName, PermanentID)) %>%
-  pdata.frame(index = c("NameID", "GSYear", "PermanentID"))
+# test fixed effects (seems like year isn't necessary)
+# have to refit because data need to be accessible (not "dat_fix")
+hydr_mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1AvgPercCovered + Lag1Treated, 
+                                data = hydr_dat, 
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
+plmtest(hydr_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-mod_init_fix_loc_yr <- plm(Richness ~ PrevRichness_c + Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
-                           data = nat_init_fix_dat3,
-                           family = poisson,
-                           model = "within", effect = "twoways")
-summary(mod_init_fix_loc_yr)
-# previous richness is positive
-# treatments are negative except hydrilla
-# cover are positive (hydrilla, torpedograss) and negative
+wahy_mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1AvgPercCovered + Lag1Treated, 
+                                data = wahy_dat, 
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
+plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-# use cover difference to account for reverse causality
-mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
-                           data = nat_fix_dat3, 
+wale_mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1AvgPercCovered + Lag1Treated, 
+                                data = wale_dat, 
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
+plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-                                                      index = c("NameID", "GSYear", "PermanentID"), 
-                           model = "within", effect = "twoways")
-summary(mod_diff_fix_loc_yr)
-# all estimates are negative
-# I wonder how these change with time lags
-
-# add initial cover
-mod_init_diff_fix_loc_yr <- plm(RichnessDiff ~ PrevRichness_c + Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
-                                data = nat_init_fix_dat3,
-                                index = c("NameID", "GSYear", "PermanentID"), 
-                                model = "within", effect = "twoways")
-summary(mod_init_diff_fix_loc_yr)
-# initial richness explains declines in difference
-# cover effect of hydrilla becomes positive
-# treatment effects of hydrilla and torpedograss become positive
-# estimates vary close to same model with richness as response
-
-# combine model summaries since so many are similar
-model_comp <- mod_structure_comp(simp_mods = list(glm = mod_glm), 
-                                 ran_mods = list(ran_loc = mod_ran_loc, ran_yr = mod_ran_yr, ran_loc_yr = mod_ran_loc_yr),
-                                 fix_mods = list(fix_loc = mod_fix_loc, fix_loc_yr = mod_fix_loc_yr, 
-                                                 init_fix_loc_yr = mod_init_fix_loc_yr,
-                                                 diff_fix_loc_yr = mod_diff_fix_loc_yr, 
-                                                 init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr)) %>%
-  mutate(coefficients = str_replace(coefficients, "CommonName", ""),
-         coefficients = str_replace(coefficients, "Lag1", ""))
-
-write_csv(model_comp, "output/fwc_native_richness_model_structure_comparison.csv")
-
-# still sig after accounting for heteroscedasticity and autocorrelation?
-# vcovHC recognizes panel data for autocorrelation
-# HC3 is suggested by vcovHC
-coeftest(mod_diff_fix_loc_yr, vcov = vcovHC, type = "HC3") # no longer significant
-
-# test fixed effects
-plmtest(mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
-plmtest(mod_diff_fix_loc_yr, effect = "twoways", type = "bp") 
+# use annual difference without initial PAC and with waterbody and year fixed effects
 
 
 
@@ -316,7 +315,7 @@ plmtest(mod_diff_fix_loc_yr, effect = "twoways", type = "bp")
 dat_mod_filt <- function(treat_col, inv_col, dat_in){
   
   dat_mod <- dat_in %>%
-    filter(!is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated) & !is.na(!!sym(inv_col))) %>%
+    filter(!is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated) & !is.na(Lag1AvgPercCovered) & !is.na(Lag2AvgPercCovered) & !is.na(Lag3AvgPercCovered) & !is.na(Lag4AvgPercCovered) & !is.na(Lag5AvgPercCovered) & !is.na(Lag6AvgPercCovered)) %>%
     mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
            Treated = !!sym(treat_col),
            AvgPercCovered = !!sym(inv_col),
@@ -328,54 +327,45 @@ dat_mod_filt <- function(treat_col, inv_col, dat_in){
 }
 
 # function to fit models
-mod_fit <- function(dat_in, inv_col){
+mod_fit <- function(dat_in){
+  
+  # focal species
+  foc_sp <- unique(dat_in$CommonName)
   
   # subset data
-  dat_mod1 <- dat_mod_filt("Lag1Treated", inv_col, dat_in)
-  dat_mod2 <- dat_mod_filt("Lag2Treated", inv_col, dat_in)
-  dat_mod3 <- dat_mod_filt("Lag3Treated", inv_col, dat_in)
-  dat_mod4 <- dat_mod_filt("Lag4Treated", inv_col, dat_in)
-  dat_mod5 <- dat_mod_filt("Lag5Treated", inv_col, dat_in)
-  dat_mod6 <- dat_mod_filt("Lag6Treated", inv_col, dat_in)
+  dat_mod1 <- dat_mod_filt("Lag1Treated", "Lag1AvgPercCovered", dat_in)
+  dat_mod2 <- dat_mod_filt("Lag2Treated", "Lag2AvgPercCovered", dat_in)
+  dat_mod3 <- dat_mod_filt("Lag3Treated", "Lag3AvgPercCovered", dat_in)
+  dat_mod4 <- dat_mod_filt("Lag4Treated", "Lag4AvgPercCovered", dat_in)
+  dat_mod5 <- dat_mod_filt("Lag5Treated", "Lag5AvgPercCovered", dat_in)
+  dat_mod6 <- dat_mod_filt("Lag6Treated", "Lag6AvgPercCovered", dat_in)
   
-  # with initial richness
-  mod1 <- feols(RichnessDiff ~ PrevRichness_c + AvgPercCovered_c + Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
-  mod2 <- update(mod1, data = dat_mod2)
-  mod3 <- update(mod1, data = dat_mod3)
-  mod4 <- update(mod1, data = dat_mod4)
-  mod5 <- update(mod1, data = dat_mod5)
-  mod6 <- update(mod1, data = dat_mod6)
-  
-  # without initial richness
-  mod7 <- feols(RichnessDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
-  mod8 <- update(mod7, data = dat_mod2)
-  mod9 <- update(mod7, data = dat_mod3)
-  mod10 <- update(mod7, data = dat_mod4)
-  mod11 <- update(mod7, data = dat_mod5)
-  mod12 <- update(mod7, data = dat_mod6)
-  
-  # with initial richness without management
-  mod1b <- feols(RichnessDiff ~ PrevRichness_c + AvgPercCovered_c + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
-  mod2b <- update(mod1b, data = dat_mod2)
-  mod3b <- update(mod1b, data = dat_mod3)
-  mod4b <- update(mod1b, data = dat_mod4)
-  mod5b <- update(mod1b, data = dat_mod5)
-  mod6b <- update(mod1b, data = dat_mod6)
-  
-  # without initial richness without management
-  mod7b <- feols(RichnessDiff ~ AvgPercCovered_c + SurveyorExperience_s | PermanentID + GSYear, data = dat_mod1)
-  mod8b <- update(mod7b, data = dat_mod2)
-  mod9b <- update(mod7b, data = dat_mod3)
-  mod10b <- update(mod7b, data = dat_mod4)
-  mod11b <- update(mod7b, data = dat_mod5)
-  mod12b <- update(mod7b, data = dat_mod6)
-  
+  # fit models
+  # only one year available for Cuban bulrush
+  if(foc_sp == "Cuban bulrush") {
+    
+    mod1 <- lm(RichnessDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s, data = dat_mod1)
+    mod2 <- update(mod1, data = dat_mod2)
+    mod3 <- update(mod1, data = dat_mod3)
+    mod4 <- update(mod1, data = dat_mod4)
+    mod5 <- update(mod1, data = dat_mod5)
+    mod6 <- update(mod1, data = dat_mod6)
+    
+  } else {
+    
+    mod1 <- plm(RichnessDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s, data = dat_mod1,
+                index = c("PermanentID", "GSYear"), model = "within")
+    mod2 <- update(mod1, data = dat_mod2)
+    mod3 <- update(mod1, data = dat_mod3)
+    mod4 <- update(mod1, data = dat_mod4)
+    mod5 <- update(mod1, data = dat_mod5)
+    mod6 <- update(mod1, data = dat_mod6)
+    
+  }
+
   
   # output
-  return(list(mod1, mod2, mod3, mod4, mod5, mod6,
-              mod7, mod8, mod9, mod10, mod11, mod12,
-              mod1b, mod2b, mod3b, mod4b, mod5b, mod6b,
-              mod7b, mod8b, mod9b, mod10b, mod11b, mod12b))
+  return(list(mod1, mod2, mod3, mod4, mod5, mod6))
   
 }
 
@@ -383,29 +373,21 @@ mod_fit <- function(dat_in, inv_col){
 #### fit models ####
 
 # fit models with all lags
-hydr_lag1_mods <- mod_fit(hydr_dat, "Lag1AvgPercCovered")
-wahy_lag1_mods <- mod_fit(wahy_dat, "Lag1AvgPercCovered")
-wale_lag1_mods <- mod_fit(wale_dat, "Lag1AvgPercCovered")
-torp_lag1_mods <- mod_fit(torp_dat, "Lag1AvgPercCovered")
-cubu_lag1_mods <- mod_fit(cubu_dat, "Lag1AvgPercCovered")
-pagr_lag1_mods <- mod_fit(pagr_dat, "Lag1AvgPercCovered")
-
-hydr_lag6_mods <- mod_fit(hydr_dat, "Lag6AvgPercCovered")
-wahy_lag6_mods <- mod_fit(wahy_dat, "Lag6AvgPercCovered")
-wale_lag6_mods <- mod_fit(wale_dat, "Lag6AvgPercCovered")
-torp_lag6_mods <- mod_fit(torp_dat, "Lag6AvgPercCovered")
-pagr_lag6_mods <- mod_fit(pagr_dat, "Lag6AvgPercCovered")
-
+hydr_mods <- mod_fit(hydr_dat)
+wahy_mods <- mod_fit(wahy_dat)
+wale_mods <- mod_fit(wale_dat)
+torp_mods <- mod_fit(torp_dat)
+cubu_mods <- mod_fit(cubu_dat)
+pagr_mods <- mod_fit(pagr_dat)           
 
 # name models
-names(hydr_lag1_mods) <- names(wahy_lag1_mods) <- names(wale_lag1_mods) <- names(torp_lag1_mods) <- names(cubu_lag1_mods) <- names(pagr_lag1_mods) <- names(hydr_lag6_mods) <- names(wahy_lag6_mods) <- names(wale_lag6_mods) <- names(torp_lag6_mods) <- names(pagr_lag6_mods) <- rep(c("1", "2", "3", "4", "5", "6"), 4)
+names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(cubu_mods) <- names(pagr_mods) <- c("1", "2", "3", "4", "5", "6")
 
 
 #### coefficient figures and tables ####
 
 # rename coefficients
 coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "PrevRichness_c" = "Initial richness",
                 "Treated" = "Management", 
                 "AvgPercCovered_c" = "Invasive PAC")
 
@@ -448,7 +430,7 @@ panel_plot_fun <- function(mods1, mods2, mods3,
          title = paste("(C)", spp3)) +
     theme(axis.text.y = element_blank(),
           legend.box.margin = margin(-10, 0, -10, -10)) +
-    scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
+    scale_color_viridis_d(direction = -1, name = "Lag\n(years)") +
     guides(color = guide_legend(reverse = TRUE))
   
   comb_fig <- fig1 + fig2 + fig3 + plot_annotation(
@@ -461,62 +443,19 @@ panel_plot_fun <- function(mods1, mods2, mods3,
   
 }
 
-# with initial richness and treatment
-panel_plot_fun(hydr_lag1_mods[1:6], wahy_lag1_mods[1:6], wale_lag1_mods[1:6],
+# figures
+panel_plot_fun(hydr_mods, wahy_mods, wale_mods,
                "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_init_treat_lag1PAC_model.eps")
-panel_plot_fun(cubu_lag1_mods[1:6], pagr_lag1_mods[1:6], torp_lag1_mods[1:6],
+               "output/fwc_focal_native_richness_PAC_diff_model.eps")
+panel_plot_fun(cubu_mods, pagr_mods, torp_mods,
                "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_init_treat_lag1PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[1:6], wahy_lag6_mods[1:6], wale_lag6_mods[1:6],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_init_treat_lag6PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[1:6], pagr_lag6_mods[1:6], torp_lag6_mods[1:6],
-               "ignore", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_init_treat_lag6PAC_model.eps")
+               "output/fwc_non_focal_native_richness_PAC_diff_model.eps")
 
-# without initial richness, with treatment
-panel_plot_fun(hydr_lag1_mods[7:12], wahy_lag1_mods[7:12], wale_lag1_mods[7:12],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_treat_lag1PAC_model.eps")
-panel_plot_fun(cubu_lag1_mods[7:12], pagr_lag1_mods[7:12], torp_lag1_mods[7:12],
-               "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_treat_lag1PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[7:12], wahy_lag6_mods[7:12], wale_lag6_mods[7:12],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_treat_lag6PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[7:12], pagr_lag6_mods[7:12], torp_lag6_mods[7:12],
-               "ignore", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_treat_lag6PAC_model.eps")
 
-# with initial richness, without treatment
-panel_plot_fun(hydr_lag1_mods[13:18], wahy_lag1_mods[13:18], wale_lag1_mods[13:18],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_init_lag1PAC_model.eps")
-panel_plot_fun(cubu_lag1_mods[13:18], pagr_lag1_mods[13:18], torp_lag1_mods[13:18],
-               "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_init_lag1PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[13:18], wahy_lag6_mods[13:18], wale_lag6_mods[13:18],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_init_lag6PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[13:18], pagr_lag6_mods[13:18], torp_lag6_mods[13:18],
-               "ignore", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_init_lag6PAC_model.eps")
+#### start here ####
 
-# without initial richness and treatment
-panel_plot_fun(hydr_lag1_mods[19:24], wahy_lag1_mods[19:24], wale_lag1_mods[19:24],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_lag1PAC_model.eps")
-panel_plot_fun(cubu_lag1_mods[19:24], pagr_lag1_mods[19:24], torp_lag1_mods[19:24],
-               "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_lag1PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[19:24], wahy_lag6_mods[19:24], wale_lag6_mods[19:24],
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_lag6PAC_model.eps")
-panel_plot_fun(hydr_lag6_mods[19:24], pagr_lag6_mods[19:24], torp_lag6_mods[19:24],
-               "ignore", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_lag6PAC_model.eps")
-
+# final model tables and figures
+# use code from fwc_invasive_plant_analysis
 
 
 #### fit focal plant models ####
