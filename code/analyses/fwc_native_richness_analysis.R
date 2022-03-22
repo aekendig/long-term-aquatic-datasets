@@ -6,13 +6,20 @@ rm(list = ls())
 # load packages
 library(plotly)
 library(tidyverse)
-library(fixest) # FE models
-library(modelsummary)
-library(inspectdf) # for inspect_cor
-library(patchwork)
+library(inspectdf) # inspect_cor
+library(modelsummary) # modelplot
+library(patchwork) # combining figures
+library(plm) # panel data models
+library(pglm) # panel data models
+library(sandwich) # vcovHC
+library(lmtest) # coeftest
+library(glmmTMB) # random effects
 
 # figure settings
 source("code/settings/figure_settings.R")
+
+# functions
+source("code/generic-functions/model_structure_comparison.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
@@ -66,13 +73,14 @@ ggplot(nat_rich, aes(x = Area_ha, y = Richness)) +
 #### edit native plant data ####
 
 # summarize richness by waterbody and year
+# require previous year's richness
 nat_plant2 <-  nat_plant %>%
   group_by(PermanentID, GSYear, Area_ha) %>%
   summarize(Richness = sum(Detected),
             PrevRichness = sum(PrevDetected)) %>%
   ungroup() %>%
   mutate(RichnessDiff = Richness - PrevRichness) %>%
-  filter(!is.na(RichnessDiff))
+  filter(!is.na(PrevRichness))
 
 # initial visualizations
 plot_ly(nat_plant2, x = ~GSYear, y = ~Richness, color = ~PermanentID) %>%
@@ -102,51 +110,204 @@ nat_dat2 <- nat_dat %>%
   rename_with(str_replace, pattern = "AvgPropCovered", replacement = "AvgPercCovered")
 
 # split by species
-hydr_dat <- filter(nat_dat2, CommonName == "Hydrilla") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-wale_dat <- filter(nat_dat2, CommonName == "Water lettuce") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-wahy_dat <- filter(nat_dat2, CommonName == "Water hyacinth") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-torp_dat <- filter(nat_dat2, CommonName == "Torpedograss") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-cubu_dat <- filter(nat_dat2, CommonName == "Cuban bulrush") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
-pagr_dat <- filter(nat_dat2, CommonName == "Para grass") %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience))
+hydr_dat <- filter(nat_dat2, CommonName == "Hydrilla")
+wale_dat <- filter(nat_dat2, CommonName == "Water lettuce")
+wahy_dat <- filter(nat_dat2, CommonName == "Water hyacinth")
+torp_dat <- filter(nat_dat2, CommonName == "Torpedograss")
+cubu_dat <- filter(nat_dat2, CommonName == "Cuban bulrush")
+pagr_dat <- filter(nat_dat2, CommonName == "Para grass")
 
 
 #### initial visualizations ####
 
 # covariate correlations
 nat_dat2 %>%
-  select(CommonName, Lag1Treated, Lag1AvgPercCovered, SurveyorExperience, PrevRichness) %>%
+  select(CommonName, Lag1Treated, Lag1AvgPercCovered, MinSurveyorExperience, PrevRichness) %>%
   group_by(CommonName) %>%
   inspect_cor() %>% 
   ungroup() %>%
-  filter(p_value < 0.05) %>%
+  filter(p_value < 0.05 & corr >= 0.4) %>%
   data.frame()
+# previous richness and surveyor experience for para grass
 
 # richness diff distribution
 ggplot(nat_dat2, aes(x = RichnessDiff)) +
   geom_histogram() +
-  facet_wrap(~ CommonName)
+  facet_wrap(~ CommonName, scales = "free_y")
+
+ggplot(nat_dat2, aes(x = Richness)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName, scales = "free_y")
 
 # coefficients and richness
 ggplot(nat_dat2, aes(x = Lag1AvgPercCovered, y = RichnessDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_wrap(~ CommonName, scales = "free")
+# generally close to zero
 
-ggplot(nat_dat2, aes(x = Lag1Treated, y = RichnessDiff)) +
+ggplot(nat_dat2, aes(x = Lag1AvgPercCovered, y = Richness)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_wrap(~ CommonName, scales = "free")
+# strong positive for hydrilla and torpedograss, negative for others
+
+ggplot(nat_dat2, aes(x = Lag6Treated, y = RichnessDiff)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ CommonName, scales = "free")
+# negligible
+
+ggplot(nat_dat2, aes(x = Lag1Treated, y = Richness)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ CommonName, scales = "free")
+# positive for all except para grass
 
 ggplot(nat_dat2, aes(x = PrevRichness, y = RichnessDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_wrap(~ CommonName, scales = "free")
+# consistently negative, but not strong
+
+ggplot(nat_dat2, aes(x = PrevRichness, y = Richness)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ CommonName, scales = "free")
+# very strong positive
+
+
+#### evaluate model structure ####
+
+# less clear what the expected direction is, but
+# lakes that are more species rich may be better habitats for invasive
+# plants (reverse causality)
+
+# remove Cuban bulrush (too few years) and Para grass (too few treatments)
+nat_dat3 <- nat_dat2 %>%
+  filter(CommonName %in% c("Hydrilla", "Water hyacinth", "Water lettuce", "Torpedograss"))
+
+
+# Poisson or negative binomial
+mean(nat_dat3$Richness)
+var(nat_dat3$Richness)
+
+# filter for data with Lag1Treated
+nat_dat3 %>% filter(is.na(Lag1Treated) | is.na(Lag1AvgPercCovered)) # none are missing
+
+# simple glm
+mod_glm <- glm(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, family = poisson, data = nat_dat3)
+summary(mod_glm)
+# treatment has a positive effect
+# invasive has slightly positive or slightly negative
+
+# random effects
+mod_ran_loc <- glmmTMB(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName + (1|PermanentID), 
+                       family = poisson,
+                       data = nat_dat3)
+summary(mod_ran_loc)
+# smaller estimates than glm, all positive except water lettuce cover
+mod_ran_yr <- glmmTMB(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName + (1|GSYear), 
+                      family = poisson,
+                      data = nat_dat3)
+summary(mod_ran_yr)
+# similar to glm, year explains much less variance than location
+mod_ran_loc_yr <- glmmTMB(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName + (1|GSYear) + (1|PermanentID), 
+                          family = poisson,
+                          data = nat_dat3)
+summary(mod_ran_loc_yr)
+# similar to location only
+
+# create fixed effects data frame
+nat_fix_dat3 <- nat_dat3  %>%
+  mutate(NameID = paste0(CommonName, PermanentID)) %>%
+  pdata.frame(index = c("NameID", "GSYear", "PermanentID"))
+# each species in a waterbody is an individual
+# individuals are nested within waterbodies
+
+# fixed effects
+mod_fix_loc <- pglm(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, data = nat_fix_dat3,
+                    family = poisson,
+                    index = c("NameID", "GSYear", "PermanentID"), model = "within")
+summary(mod_fix_loc)
+# cannot fit torpedograss estimate, maybe because CommonName is nested in the individual index?
+# it could with invasive plant models...but these have the same richness values for a lake/year
+# regardless of the invasive species
+# treatments are positive, cover are positive and negative
+# estimates are very close to first glm
+
+mod_fix_loc_yr <- plm(Richness ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
+                      data = nat_fix_dat3,
+                      family = poisson,
+                      model = "within", effect = "twoways")
+summary(mod_fix_loc_yr)
+# no longer an issue with torpedograss
+# treatments and cover are positive except water lettuce
+
+# test time effect
+plmtest(mod_fix_loc_yr, effect = "time", type = "bp")
+# significant
+
+# use initial richness to account for reverse causality (positive cover)
+nat_init_fix_dat3 <- nat_dat3 %>%
+  group_by(CommonName) %>%
+  mutate(PrevRichness_c = PrevRichness - mean(PrevRichness))  %>%
+  ungroup() %>%
+  mutate(NameID = paste0(CommonName, PermanentID)) %>%
+  pdata.frame(index = c("NameID", "GSYear", "PermanentID"))
+
+mod_init_fix_loc_yr <- plm(Richness ~ PrevRichness_c + Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
+                           data = nat_init_fix_dat3,
+                           family = poisson,
+                           model = "within", effect = "twoways")
+summary(mod_init_fix_loc_yr)
+# previous richness is positive
+# treatments are negative except hydrilla
+# cover are positive (hydrilla, torpedograss) and negative
+
+# use cover difference to account for reverse causality
+mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
+                           data = nat_fix_dat3, 
+
+                                                      index = c("NameID", "GSYear", "PermanentID"), 
+                           model = "within", effect = "twoways")
+summary(mod_diff_fix_loc_yr)
+# all estimates are negative
+# I wonder how these change with time lags
+
+# add initial cover
+mod_init_diff_fix_loc_yr <- plm(RichnessDiff ~ PrevRichness_c + Lag1Treated:CommonName + Lag1AvgPercCovered:CommonName, 
+                                data = nat_init_fix_dat3,
+                                index = c("NameID", "GSYear", "PermanentID"), 
+                                model = "within", effect = "twoways")
+summary(mod_init_diff_fix_loc_yr)
+# initial richness explains declines in difference
+# cover effect of hydrilla becomes positive
+# treatment effects of hydrilla and torpedograss become positive
+# estimates vary close to same model with richness as response
+
+# combine model summaries since so many are similar
+model_comp <- mod_structure_comp(simp_mods = list(glm = mod_glm), 
+                                 ran_mods = list(ran_loc = mod_ran_loc, ran_yr = mod_ran_yr, ran_loc_yr = mod_ran_loc_yr),
+                                 fix_mods = list(fix_loc = mod_fix_loc, fix_loc_yr = mod_fix_loc_yr, 
+                                                 init_fix_loc_yr = mod_init_fix_loc_yr,
+                                                 diff_fix_loc_yr = mod_diff_fix_loc_yr, 
+                                                 init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr)) %>%
+  mutate(coefficients = str_replace(coefficients, "CommonName", ""),
+         coefficients = str_replace(coefficients, "Lag1", ""))
+
+write_csv(model_comp, "output/fwc_native_richness_model_structure_comparison.csv")
+
+# still sig after accounting for heteroscedasticity and autocorrelation?
+# vcovHC recognizes panel data for autocorrelation
+# HC3 is suggested by vcovHC
+coeftest(mod_diff_fix_loc_yr, vcov = vcovHC, type = "HC3") # no longer significant
+
+# test fixed effects
+plmtest(mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
+plmtest(mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
+plmtest(mod_diff_fix_loc_yr, effect = "twoways", type = "bp") 
+
 
 
 #### model-fitting functions ####

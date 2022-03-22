@@ -214,6 +214,7 @@ library(fst)
 library(data.table)
 library(plotly)
 
+# AK note: I believe this is Allfish.csv, but only LMB data
 # fish<-read.fst("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/transectdata1_db.fst") #the "fish" data
 fish <- read.fst("original-data/dew-fish-analysis/transectdata1_db.fst")
 head(fish)
@@ -237,6 +238,7 @@ fishh<-fishh[fishh$Total.Weight < 9000,]
 fishh<-fishh[which(fishh$EffortSeconds>0),] 
 
 #############
+# AK: this is metadata/environmental information for electrofishing event
 ## merge in the "event" (transect) data to the electrofishing dataset
 # event<-read.fst("C:/Users/alex.dew/OneDrive - Florida Fish and Wildlife Conservation/R Scripts/transectdata2_db.fst")
 event <- read.fst("original-data/dew-fish-analysis/transectdata2_db.fst")

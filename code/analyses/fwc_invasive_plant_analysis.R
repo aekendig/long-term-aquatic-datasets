@@ -23,6 +23,7 @@ source("code/settings/figure_settings.R")
 # functions
 source("code/generic-functions/proportion_transformations.R")
 source("code/generic-functions/continuous_time_interval.R")
+source("code/generic-functions/model_structure_comparison.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
@@ -159,7 +160,7 @@ inv_dat4 %>%
   group_by(CommonName) %>%
   inspect_cor() %>% 
   ungroup() %>%
-  filter(p_value < 0.05 & corr > 0.4) %>%
+  filter(p_value < 0.05 & corr >= 0.4) %>%
   data.frame()
 # treated and all treated correlated for focal invasive species (expected)
 
@@ -238,93 +239,142 @@ ggplot(inv_dat4, aes(x = Lag6Treated, y = PercDiffCovered)) +
 
 #### evaluate model structure ####
 
-# work from the premise that treatments, when done correctly, harm their target plants
+# function to fit models for each species
+mod_structure_fits <- function(dat_in){
+  
+  # create fixed effects data frame
+  dat_fix <- dat_in %>%
+    mutate(InitPercCovered_c = InitPercCovered - mean(InitPercCovered))  %>%
+    ungroup() %>%
+    pdata.frame(index = c("PermanentID", "GSYear"))
+  # each waterbody is an individual
+  
+  # simple lm
+  mod_lm <- lm(PropCoveredLogit ~ Lag1Treated, data = dat_in)
+  
+  # random effects
+  mod_ran_loc <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|PermanentID), data = dat_in)
+  mod_ran_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|GSYear), data = dat_in)
+  mod_ran_loc_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|PermanentID) + (1|GSYear), data = dat_in)
+  mod_ran_slope_loc <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1 + Lag1Treated|PermanentID), data = dat_in)
+  
+  # fixed effects
+  mod_fix_loc <- plm(PropCoveredLogit ~ Lag1Treated, data = dat_fix, 
+                     index = c("PermanentID", "GSYear"), model = "within")
+  mod_fix_loc_yr <- plm(PropCoveredLogit ~ Lag1Treated, data = dat_fix, 
+                        index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+  
+  # use initial cover to account for reverse causality
+  mod_init_fix_loc_yr <- plm(PropCoveredLogit ~ InitPercCovered_c * Lag1Treated, data = dat_fix,
+                             index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 
-# remove Cuban bulrush (too few years) and Para grass (too few treatments)
-inv_dat5 <- inv_dat4 %>%
-  filter(CommonName %in% c("Hydrilla", "Water hyacinth", "Water lettuce", "Torpedograss"))
+  # use cover difference to account for reverse causality
+  mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, data = dat_fix, 
+                             index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+
+  # initial cover increases treatment frequency and decreases difference
+  # how does including change estimate?
+  mod_init_diff_fix_loc_yr <- plm(PercDiffCovered ~ InitPercCovered_c * Lag1Treated, data = dat_fix,
+                                  index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+  
+  # return list of models
+  return(list(lm = mod_lm, 
+              ran_loc = mod_ran_loc, 
+              ran_yr = mod_ran_yr, 
+              ran_loc_yr = mod_ran_loc_yr,
+              ran_slope_loc = mod_ran_slope_loc,
+              fix_loc = mod_fix_loc, 
+              fix_loc_yr = mod_fix_loc_yr, 
+              init_fix_loc_yr = mod_init_fix_loc_yr,
+              diff_fix_loc_yr = mod_diff_fix_loc_yr, 
+              init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr))
+
+}
 
 # filter for data with Lag1Treated
-inv_dat5 %>% filter(is.na(Lag1Treated)) # none are missing
+inv_dat4 %>% filter(is.na(Lag1Treated)) # none are missing
 
-# simple lm
-mod_lm <- lm(PropCoveredLogit ~ Lag1Treated * CommonName, data = inv_dat5)
-summary(mod_lm)
-# all decline in the absence of treatment
-# treatment weakens the decline (hydrilla) or has a negligible effect (others)
+# fit models for each species
+hydr_mod_struc <- mod_structure_fits(hydr_dat)
+wahy_mod_struc <- mod_structure_fits(wahy_dat)
+wale_mod_struc <- mod_structure_fits(wale_dat) # convergence error
 
-# random effects
-mod_ran_loc <- glmmTMB(PropCoveredLogit ~ Lag1Treated * CommonName + (1|PermanentID), 
-                       data = inv_dat5)
-summary(mod_ran_loc)
-# very similar estimates to lm
-mod_ran_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated * CommonName + (1|GSYear), 
-                      data = inv_dat5)
-summary(mod_ran_yr)
-# still similar estimates, year explains much less variance than location
-mod_ran_loc_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated * CommonName +
-                            (1|PermanentID) + (1|GSYear), data = inv_dat5)
-summary(mod_ran_loc_yr)
-# similar estimates
+# compare model estimates
+hydr_mod_comp <- mod_structure_comp(simp_mods = hydr_mod_struc[1], 
+                                    ran_mods = hydr_mod_struc[2:5],
+                                    fix_mods = hydr_mod_struc[6:10])
+wahy_mod_comp <- mod_structure_comp(simp_mods = wahy_mod_struc[1], 
+                                    ran_mods = wahy_mod_struc[2:5],
+                                    fix_mods = wahy_mod_struc[6:10]) 
+wale_mod_comp <- mod_structure_comp(simp_mods = wale_mod_struc[1], 
+                                    ran_mods = wale_mod_struc[2:5],
+                                    fix_mods = wale_mod_struc[6:10]) 
 
-# create fixed effects data frame
-inv_fix_dat5 <- inv_dat5  %>%
-  mutate(NameID = paste0(CommonName, PermanentID)) %>%
-  pdata.frame(index = c("NameID", "GSYear", "PermanentID"))
-# each species in a waterbody is an individual
-# individuals are nested within waterbodies
+# combine species
+mod_comp <- hydr_mod_comp %>%
+  mutate(Species = "hydrilla") %>%
+  full_join(wahy_mod_comp %>%
+              mutate(Species = "water hyacinth")) %>%
+  full_join(wale_mod_comp %>%
+              mutate(Species = "water lettuce")) %>%
+  mutate(coefficients = str_replace(coefficients, "Lag1Treated", "management"),
+         across(!c(coefficients, Species), ~ round(.x, digits = 3))) %>%
+  relocate(Species)
+  
+write_csv(mod_comp, "output/fwc_invasive_plant_model_structure_comparison.csv")
 
-# fixed effects
-mod_fix_loc <- plm(PropCoveredLogit ~ Lag1Treated * CommonName, data = inv_fix_dat5, 
-                   index = c("NameID", "GSYear", "PermanentID"), model = "within")
-summary(mod_fix_loc)
-# reduces hydrilla est. from 1.6 to 1.0
-# all others are neglible
-mod_fix_loc_yr <- plm(PropCoveredLogit ~ Lag1Treated * CommonName, data = inv_fix_dat5, 
-                      index = c("NameID", "GSYear", "PermanentID"), model = "within", effect = "twoways")
-summary(mod_fix_loc_yr)
-# similar to above
+# model comparison notes:
+# simple model -> positive effect of treatment on hydrilla, negligible/slightly positive for others
+# random effect of location -> slight changes, but qualitatively similar
+# random effect of year -> very small changes
+# random slope of location -> very small changes
+# fixed effect of location -> reduces treatment effect, but all still positive
+# fixed effect of year -> very small changes
+# add initial PAC -> reduces hydrilla treatment effect more, but all still positive
+  # initial PAC/hydrilla treatment interaction negative, but others aren't
+# make response variable annual difference -> all treatment effects negative
+# make response variable annual difference and add initial PAC -> treatment
+  # effects become positive again for hydrilla and water lettuce
+  # initial PAC/hydrilla treatment interaction negative, but others aren't
 
-# use initial cover to account for reverse causality
-inv_init_fix_dat5 <- inv_dat5 %>%
-  group_by(CommonName) %>%
-  mutate(InitPercCovered_c = InitPercCovered - mean(InitPercCovered))  %>%
-  ungroup() %>%
-  mutate(NameID = paste0(CommonName, PermanentID)) %>%
-  pdata.frame(index = c("NameID", "GSYear", "PermanentID"))
+# test fixed effects (seems like year isn't necessary)
+# have to refit because data need to be accessible (not "dat_fix")
+hydr_mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, 
+                                data = hydr_dat, 
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
+plmtest(hydr_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-mod_init_fix_loc_yr <- plm(PropCoveredLogit ~ InitPercCovered_c * Lag1Treated * CommonName, data = inv_init_fix_dat5,
-                           index = c("NameID", "GSYear", "PermanentID"), model = "within", effect = "twoways")
-summary(mod_init_fix_loc_yr)
-# initial cover has positive or neglible effect on cover
-# reduces treatment hydrilla treatment est. to 0.7 and others are neglible
-# for each percentage increase in cover, treatment effect decreases by 0.02 for hydrilla
-# and increases for others
+wahy_mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, 
+                                data = wahy_dat, 
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
+plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-# use cover difference to account for reverse causality
-mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated * CommonName, data = inv_fix_dat5, 
-                           index = c("NameID", "GSYear", "PermanentID"), model = "within", effect = "twoways")
-summary(mod_diff_fix_loc_yr)
-# reduces hydrilla treatment est. to -0.8 and others are negative, but smaller
+wale_mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, 
+                                data = wale_dat, 
+                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
+plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-# initial cover increases treatment frequency and decreases difference
-# how does including change estimate?
-mod_init_diff_fix_loc_yr <- plm(PercDiffCovered ~ InitPercCovered_c * Lag1Treated * CommonName, data = inv_init_fix_dat5,
-                                index = c("NameID", "GSYear", "PermanentID"), model = "within", effect = "twoways")
-summary(mod_init_diff_fix_loc_yr)
-# initial cover explains declines in difference
-# treatment est. for hydrilla increases to 2.6 and is neglible for others
-# treatment effect declines with higher initial cover for hydrilla, but increases for others
+# use annual difference without initial PAC and year fixed effects
 
-# still sig after accounting for heteroscedasticity and autocorrelation?
-# vcovHC recognizes panel data for autocorrelation
-# HC3 is suggested by vcovHC
-coeftest(mod_diff_fix_loc_yr, vcov = vcovHC, type = "HC3") # no longer significant
+# save linear model
+mod_lm_sum <- tidy(summary(hydr_mod_struc[[1]])) %>%
+  mutate(Species = "hydrilla") %>%
+  full_join(tidy(summary(wahy_mod_struc[[1]])) %>%
+              mutate(Species = "water hyacinth")) %>%
+  full_join(tidy(summary(wale_mod_struc[[1]])) %>%
+              mutate(Species = "water lettuce")) %>%
+  rename(Term = term,
+         Estimate = estimate,
+         SE = std.error,
+         "t value" = statistic,
+         "Pr(>|t|)" = p.value) %>%
+  mutate(Term = str_replace(Term, "Lag1Treated", "management")) %>%
+  relocate(Species)
 
-# test fixed effects
-plmtest(mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
-plmtest(mod_diff_fix_loc_yr, effect = "twoways", type = "bp") 
+write_csv(mod_lm_sum, "output/fwc_invasive_plant_lm_summary.csv")
 
 
 #### model-fitting functions ####
@@ -540,16 +590,19 @@ save(torp_mod, file = "output/fwc_torpedograss_treatment_model.rda")
 # combine SE tables
 foc_mod_se <- tidy(hydr_mod_se) %>%
   mutate(term = "hydrilla",
+         R2 = r.squared(hydr_mod),
          Waterbodies = n_distinct(hydr_dat3$PermanentID),
          Years = n_distinct(hydr_dat3$GSYear),
          N = nrow(hydr_dat3)) %>%
   full_join(tidy(wahy_mod_se) %>%
               mutate(term = "water hyacinth",
+                     R2 = r.squared(wahy_mod),
                      Waterbodies = n_distinct(wahy_dat3$PermanentID),
                      Years = n_distinct(wahy_dat3$GSYear),
                      N = nrow(wahy_dat3))) %>%
   full_join(tidy(wale_mod_se) %>%
               mutate(term = "water lettuce",
+                     R2 = r.squared(wale_mod),
                      Waterbodies = n_distinct(wale_dat3$PermanentID),
                      Years = n_distinct(wale_dat3$GSYear),
                      N = nrow(wale_dat3))) %>%
@@ -561,16 +614,19 @@ foc_mod_se <- tidy(hydr_mod_se) %>%
 
 non_foc_mod_se <- tidy(cubu_mod_se) %>%
   mutate(term = "Cuban bulrush",
+         R2 = r.squared(cubu_mod),
          Waterbodies = n_distinct(cubu_dat3$PermanentID),
          Years = n_distinct(cubu_dat3$GSYear),
          N = nrow(cubu_dat3)) %>%
   full_join(tidy(pagr_mod_se) %>%
               mutate(term = "para grass",
+                     R2 = r.squared(pagr_mod),
                      Waterbodies = n_distinct(pagr_dat3$PermanentID),
                      Years = n_distinct(pagr_dat3$GSYear),
                      N = nrow(pagr_dat3))) %>%
   full_join(tidy(torp_mod_se) %>%
               mutate(term = "torpedograss",
+                     R2 = r.squared(torp_mod),
                      Waterbodies = n_distinct(torp_dat3$PermanentID),
                      Years = n_distinct(torp_dat3$GSYear),
                      N = nrow(torp_dat3))) %>%
