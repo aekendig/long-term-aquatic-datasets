@@ -5,297 +5,272 @@ rm(list = ls())
 
 # load packages
 library(tidyverse)
-library(lubridate)
-library(GGally)
-library(broom)
-library(janitor)
+library(inspectdf) # inspect_cor
+library(broom) # glance
+library(pals) # color palettes
 
 # figure settings
 source("code/settings/figure_settings.R")
 
+# functions
+source("code/generic-functions/proportion_transformations.R")
+
 # import data
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv",
-                      col_types = list(PrevPropCovered = col_double(),
-                                       PrevAreaCoveredRaw_ha = col_double(),
-                                       SurveyDays = col_double(),
-                                       RatioCovered = col_double(),
-                                       LogRatioCovered = col_double(),
-                                       LogitPrevPropCovered = col_double(),
-                                       LogRatioCovered = col_double(),
-                                       LogitPrevPropCovered = col_double(),
-                                       LogRatioCovered = col_double()))
-inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
+inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
 nat_plant <- read_csv("intermediate-data/FWC_common_native_plants_formatted.csv")
 
 
 #### edit data ####
 
-# add SurveyYear to invasive plant
-inv_plant$SurveyYear = year(inv_plant$SurveyDate)
-
-# check that invasive plant and plant community data match
-inv_plant %>%
-  filter(!is.na(SpeciesAcres) & !(SurveyYear %in% c(2000, 2001))) %>%
-  select(PermanentID, SurveyDate) %>%
-  unique() %>%
-  anti_join(nat_plant %>%
-              select(PermanentID, SurveyDate) %>%
-              unique())
-# water hyacinth was surveyed 9 days before other plants (or type-o?)
-
-nat_plant %>%
-  select(PermanentID, SurveyDate) %>%
-  unique() %>%
-  anti_join(inv_plant %>%
-              select(PermanentID, SurveyDate))
-
-# check that management data doesn't go later than plant surveys
-inv_ctrl %>%
-  left_join(nat_plant %>%
-              group_by(PermanentID) %>%
-              summarize(MaxYearPlant = max(GSYear)) %>%
-              ungroup()) %>%
-  filter(GSYear > MaxYearPlant) %>%
-  select(PermanentID, GSYear, MaxYearPlant) %>%
-  unique()
-# it does for 400 cases
-
-# summarize data
-nat_plant2 <- nat_plant %>%
-  filter(PreCtrl == "post ctrl data") %>%
-  group_by(PermanentID, TaxonName, Habitat) %>%
-  summarize(YearsDetected = sum(Detected),
-            YearsSurveyed = n()) %>%
+# select relevant invasive plant columns
+# join with native plant data
+# summarize
+comb_dat <- inv_plant %>%
+  select(PermanentID, GSYear, CommonName, PropCovered, Lag1Treated) %>%
+  inner_join(nat_plant) %>%
+  group_by(CommonName, PermanentID, TaxonName, Habitat) %>%
+  summarize(AvgPAC = mean(PropCovered * 100),
+            TreatFreq = mean(Lag1Treated),
+            YearsDetected = sum(Detected),
+            YearsSurveyed = n_distinct(GSYear)) %>%
   ungroup() %>%
-  mutate(YearsUndetected = YearsSurveyed - YearsDetected,
-         PropDetected = YearsDetected / YearsSurveyed)
-
-inv_plant2 <- inv_plant %>%
-  filter(!is.na(SpeciesAcres) & GSYear >= min(inv_ctrl$GSYear)) %>%
-  mutate(CommonName = fct_recode(CommonName,
-                                 "WaterHyacinth" = "Water hyacinth",
-                                 "WaterLettuce" = "Water lettuce")) %>%
-  select(PermanentID, GSYear, CommonName, PropCovered) %>%
-  pivot_wider(names_from = CommonName,
-              values_from = PropCovered) %>%
-  mutate(Floating = WaterHyacinth + WaterLettuce) %>%
-  group_by(PermanentID) %>%
-  summarize(Hydrilla = mean(Hydrilla) * 100,
-            WaterHyacinth = mean(WaterHyacinth) * 100,
-            WaterLettuce = mean(WaterLettuce) * 100,
-            Floating = mean(Floating) * 100) %>%
-  ungroup()
-
-inv_ctrl2 <- inv_ctrl %>%
-  left_join(nat_plant %>%
-              group_by(PermanentID) %>%
-              summarize(MaxYearPlant = max(GSYear)) %>%
-              ungroup()) %>%
-  filter(GSYear <= MaxYearPlant) %>%
-  group_by(PermanentID, TaxonName) %>%
-  summarize(TreatmentFreq = mean(Lag0Treated),
-            YearsTreatment = n()) %>%
+  group_by(CommonName, TaxonName) %>%
+  mutate(AvgPAC_c = AvgPAC - mean(AvgPAC)) %>%
   ungroup() %>%
-  mutate(TaxonName = fct_recode(TaxonName, 
-                                "FloatingTrt" = "Eichhornia crassipes",
-                                "HydrillaTrt" = "Hydrilla verticillata",
-                                "FloatingTrt2" = "Pistia stratiotes")) %>%
-  filter(TaxonName != "FloatingTrt2") %>%
-  pivot_wider(names_from = TaxonName,
-              values_from = TreatmentFreq)
+  mutate(YearsUndetected = YearsSurveyed - YearsDetected)
 
-# combine data
-nat_plant3 <- nat_plant2 %>%
-  inner_join(inv_plant2) %>%
-  inner_join(inv_ctrl2)
+# check that invasive plant values are repeated by permanentID
+comb_dat %>%
+  group_by(CommonName, PermanentID) %>%
+  summarize(nPAC = n_distinct(AvgPAC),
+            nTreat = n_distinct(TreatFreq)) %>%
+  ungroup() %>%
+  filter(nPAC > 1 | nTreat > 1)
+# yes
 
+# check that all lakes were surveyed the same number of times
+comb_dat %>%
+  group_by(CommonName) %>%
+  summarize(nYears = n_distinct(YearsSurveyed)) %>%
+  ungroup() %>%
+  filter(nYears > 1)
+# yes
+  
 
 #### initial visualizations ####
 
-ggplot(nat_plant3, aes(Hydrilla, PropDetected, color = Habitat)) +
-  geom_point(size = 0.75, alpha = 0.5) +
-  facet_wrap(~ TaxonName)
-
-ggplot(nat_plant3, aes(WaterHyacinth, PropDetected, color = Habitat)) +
-  geom_point(size = 0.75, alpha = 0.5) +
-  facet_wrap(~ TaxonName)
-
-ggplot(nat_plant3, aes(WaterLettuce, PropDetected, color = Habitat)) +
-  geom_point(size = 0.75, alpha = 0.5) +
-  facet_wrap(~ TaxonName)
-
-ggplot(nat_plant3, aes(Floating, PropDetected, color = Habitat)) +
-  geom_point(size = 0.75, alpha = 0.5) +
-  facet_wrap(~ TaxonName)
-
-ggplot(nat_plant3, aes(FloatingTrt, PropDetected, color = Habitat)) +
-  geom_point(size = 0.75, alpha = 0.5) +
-  facet_wrap(~ TaxonName)
-
-ggplot(nat_plant3, aes(HydrillaTrt, PropDetected)) +
-  geom_point(size = 0.75, alpha = 0.5) +
-  facet_wrap(~ TaxonName)
-
-nat_plant3 %>%
-  select(Hydrilla, HydrillaTrt, WaterHyacinth, WaterLettuce, Floating, FloatingTrt) %>%
+# covariate correlations
+comb_dat %>%
+  select(CommonName, PermanentID, TreatFreq, AvgPAC_c) %>%
   unique() %>%
-  ggpairs()
-# all are less than 0.4 except water lettuce and water hyacinth (0.7) - use floating
+  select(-PermanentID) %>%
+  group_by(CommonName) %>%
+  inspect_cor() %>% 
+  ungroup()
+# treatment not significantly correlated with PAC 
+# except for hydrilla, but corr = 0.2
 
-# update data, remove high floating point
-# prevented models from converging (see below)
-nat_plant3b <- nat_plant3 %>%
-  filter(Floating < 40)
+ggplot(comb_dat, aes(AvgPAC, YearsDetected, color = TaxonName)) +
+  geom_point(size = 0.75, alpha = 0.5) +
+  geom_smooth(method = "lm", se = F, size = 0.25) +
+  facet_wrap(~ CommonName, scales = "free") +
+  theme(legend.position = "none")
 
-nat_plant3b %>%
-  select(Hydrilla, HydrillaTrt, WaterHyacinth, WaterLettuce, Floating, FloatingTrt) %>%
-  unique() %>%
-  ggpairs()
-# water hyacinth and lettuce less correlated
+ggplot(comb_dat, aes(TreatFreq, YearsDetected, color = TaxonName)) +
+  geom_point(size = 0.75, alpha = 0.5) +
+  geom_smooth(method = "lm", se = F, size = 0.25) +
+  facet_wrap(~ CommonName, scales = "free") +
+  theme(legend.position = "none")
 
 
-#### models ####
+#### fit models ####
 
 # species with too many 1's or 0's
-nat_plant3 %>%
-  group_by(TaxonName) %>%
+comb_dat %>%
+  group_by(TaxonName, CommonName) %>%
   summarize(YearsDetected = sum(YearsDetected),
             YearsSurveyed = sum(YearsSurveyed)) %>%
   ungroup() %>%
   filter(YearsDetected >= (YearsSurveyed - 20) | YearsDetected <= 20)
-# nothing obvious
+# para grass models might not work, some have a few or a lot of detections
 
-# apply model to each taxon
-plant_mods <- nat_plant3 %>%
-  select(TaxonName, YearsDetected, YearsUndetected, 
-         Hydrilla, Floating, HydrillaTrt, FloatingTrt) %>%
-  nest(data = c(YearsDetected, YearsUndetected, Hydrilla, Floating, HydrillaTrt, 
-                FloatingTrt)) %>%
-  mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + Floating + FloatingTrt, 
+# apply model to each invasive plant and taxon
+plant_mods <- comb_dat %>%
+  select(CommonName, TaxonName, Habitat, YearsDetected, YearsUndetected, 
+         AvgPAC_c, TreatFreq) %>%
+  nest(data = c(YearsDetected, YearsUndetected, AvgPAC_c, TreatFreq)) %>%
+  mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ AvgPAC_c + TreatFreq, 
                               data = ., family = binomial)))
-# multiple models with errors
-
-# model summaries
-plant_mods %>%
-  mutate(glanced = map(fit, glance)) %>%
-  select(TaxonName, glanced) %>%
-  unnest(glanced) %>%
-  data.frame()
-# Nuphar advena has a much lower loglik
-
-# examine species
-nu_ad_dat <- nat_plant3 %>%
-  filter(TaxonName == "Nuphar advena")
-
-nu_ad_mod <- glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + Floating + FloatingTrt, 
-                 data = nu_ad_dat, family = binomial)
-summary(nu_ad_mod)
-# very large estimates
-
-# remove high floating point
-nu_ad_dat2 <- nat_plant3b %>%
-  filter(TaxonName == "Nuphar advena")
-
-# refit model
-nu_ad_mod2 <- glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + Floating + FloatingTrt, 
-                  data = nu_ad_dat2, family = binomial)
-summary(nu_ad_mod2)
-# much more reasonable estimates without warnings
-
-# update models
-plant_mods2 <- nat_plant3b %>%
-  select(TaxonName, YearsDetected, YearsUndetected, 
-         Hydrilla, WaterHyacinth, WaterLettuce, Floating,
-         HydrillaTrt, FloatingTrt) %>%
-  nest(data = c(YearsDetected, YearsUndetected, 
-                Hydrilla, WaterHyacinth, WaterLettuce, Floating,
-                HydrillaTrt, FloatingTrt)) %>%
-  mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + WaterLettuce + FloatingTrt, 
-                              data = ., family = binomial)),
-         fit2 = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + Floating + FloatingTrt, 
-                              data = ., family = binomial)))
-# two errors
-
-# taxa list
-taxa <- sort(unique(nat_plant3b$TaxonName))
-taxa2 <- taxa[taxa != "Mayaca fluviatilis"] 
-# use to run loop after identifying M. fluviatilis as the first warning
+# model fit error
 
 # convert warnings to errors to break loop
 options(warn = 2)
 
+# common/taxa list
+# update as pairs break loop
+comm_tax <- comb_dat %>%
+  select(CommonName, TaxonName) %>%
+  unique() %>%
+  mutate(SppPair = paste(CommonName, TaxonName, sep = ", ")) %>%
+  filter(!(SppPair %in% c("Para grass, Cicuta maculata",
+                          "Para grass, Crinum americanum",
+                          "Para grass, Salix spp.",
+                          "Water hyacinth, Mayaca fluviatilis",
+                          "Water hyacinth, Myriophyllum laxum/pinnatum",
+                          "Water lettuce, Fuirena spp.",
+                          "Water lettuce, Mayaca fluviatilis",
+                          "Water lettuce, Micranthemum umbrosum",
+                          "Water lettuce, Myriophyllum laxum/pinnatum",
+                          "Water lettuce, Nitella spp.",
+                          "Water lettuce, Nymphoides aquatica")))
+
 # find issue model
-for(i in 1:length(taxa)){
-  
-  print(taxa[i])
-  
-  print(glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + WaterLettuce + FloatingTrt,
-      data = filter(nat_plant3b, TaxonName == taxa[i]), family = binomial))
+for(i in 1:nrow(comm_tax)) {
+    
+    print(comm_tax$SppPair[i])
+    
+    print(glm(cbind(YearsDetected, YearsUndetected) ~ AvgPAC_c + TreatFreq,
+              data = filter(comb_dat, 
+                            CommonName == comm_tax$CommonName[i] & 
+                              TaxonName == comm_tax$TaxonName[i]), 
+              family = binomial))
   
 }
 
-# refit model
-ma_fl_dat <- nat_plant3b %>%
-  filter(TaxonName == "Mayaca fluviatilis")
-ma_fl_mod <- glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + FloatingTrt, 
-                  data = ma_fl_dat, family = binomial)
-summary(ma_fl_mod)
-# water lettuce triggers warning
+# remove problematic species pairs
+comb_dat2 <- comb_dat %>%
+  inner_join(comm_tax)
 
-my_la_dat <- nat_plant3b %>%
-  filter(TaxonName == "Myriophyllum laxum/pinnatum")
-my_la_mod <- glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + FloatingTrt, 
-                 data = my_la_dat, family = binomial)
-summary(my_la_mod)
-# water lettuce triggers warning
+# refit models
+plant_mods2 <- comb_dat2 %>%
+  select(CommonName, TaxonName, Habitat, YearsDetected, YearsUndetected, 
+         AvgPAC_c, TreatFreq) %>%
+  nest(data = c(YearsDetected, YearsUndetected, AvgPAC_c, TreatFreq)) %>%
+  mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ AvgPAC_c + TreatFreq, 
+                              data = ., family = binomial)))
 
-# reset warning
-options(warn = 1)
-
-# model summaries
-plant_aic <- plant_mods2 %>%
-  mutate(glanced = map(fit, glance)) %>%
-  select(TaxonName, glanced) %>%
-  unnest(glanced) %>%
-  select(TaxonName, AIC) %>%
-  rename(AICSep = AIC) %>%
-  full_join(plant_mods2 %>%
-              mutate(glanced = map(fit2, glance)) %>%
-              select(TaxonName, glanced) %>%
-              unnest(glanced) %>%
-              select(TaxonName, AIC) %>%
-              rename(AICAdd = AIC)) %>%
-  mutate(AICDiff = AICSep - AICAdd)
-
-ggplot(plant_aic, aes(x = AICDiff)) +
-  geom_vline(xintercept = 4, color = "blue") +
-  geom_vline(xintercept = -4, color = "blue") +
-  geom_histogram(binwidth = 1)
-# when models differ, AICSep is a better fit
-
-# update models to remove errors
-plant_mods3 <- nat_plant3b %>%
-  select(TaxonName, YearsDetected, YearsUndetected, 
-         Hydrilla, WaterHyacinth, WaterLettuce, Floating,
-         HydrillaTrt, FloatingTrt) %>%
-  nest(data = c(YearsDetected, YearsUndetected, 
-                Hydrilla, WaterHyacinth, WaterLettuce, Floating,
-                HydrillaTrt, FloatingTrt)) %>%
-  mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + WaterLettuce + FloatingTrt, 
-                              data = ., family = binomial)),
-         fit2 = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ Hydrilla + HydrillaTrt + WaterHyacinth + FloatingTrt, 
-                               data = ., family = binomial)))
 
 #### coefficients ####
-plant_coef1 <- plant_mods3 %>%
+
+# all coefficients
+plant_coef <- plant_mods2 %>%
   mutate(tidied = map(fit, tidy)) %>%
-  select(TaxonName, tidied) %>%
+  select(CommonName, TaxonName, Habitat, tidied) %>%
   unnest(tidied)
 
-plant_coef2 <- plant_mods3 %>%
-  mutate(tidied = map(fit2, tidy)) %>%
-  select(TaxonName, tidied) %>%
-  unnest(tidied)
+# models with significant PAC effects
+plant_coef_PAC <- plant_coef %>%
+  mutate(Sig = if_else(term == "AvgPAC_c" & p.value < 0.05, "yes", "no")) %>%
+  filter(term == "AvgPAC_c") %>%
+  rename(Coef = estimate) %>%
+  select(CommonName, TaxonName, Habitat, Coef, Sig) %>%
+  full_join(plant_coef %>%
+              filter(term == "(Intercept)") %>%
+              select(CommonName, TaxonName, estimate) %>%
+              rename(Intercept = estimate))
+
+# models with significant treatment effects
+plant_coef_treat <- plant_coef %>%
+  mutate(Sig = if_else(term == "TreatFreq" & p.value < 0.05, "yes", "no")) %>%
+  filter(term == "TreatFreq") %>%
+  rename(Coef = estimate) %>%
+  select(CommonName, TaxonName, Habitat, Coef, Sig) %>%
+  full_join(plant_coef %>%
+              filter(term == "(Intercept)") %>%
+              select(CommonName, TaxonName, estimate) %>%
+              rename(Intercept = estimate))
+
+
+#### predicted values ####
+
+# add coefficients to full data
+comb_dat_PAC <- comb_dat2 %>%
+  left_join(plant_coef_PAC) %>%
+  mutate(Pred = logit2prob(Intercept + Coef * AvgPAC_c) * YearsSurveyed,
+         Sig = fct_relevel(Sig, "yes"),
+         PanelName = case_when(CommonName == "Hydrilla" ~ "(A) hydrilla",
+                               CommonName == "Water hyacinth" ~ "(B) water hyacinth",
+                               CommonName == "Water lettuce" ~ "(C) water lettuce",
+                               CommonName == "Cuban bulrush" ~ "(A) Cuban bulrush",
+                               CommonName == "Para grass" ~ "(B) para grass",
+                               CommonName == "Torpedograss" ~ "(C) torpedograss")) 
+
+comb_dat_treat <- comb_dat2 %>%
+  left_join(plant_coef_treat) %>%
+  mutate(Pred = logit2prob(Intercept + Coef * TreatFreq) * YearsSurveyed,
+         Sig = fct_relevel(Sig, "yes"),
+         Treat = TreatFreq * 3,
+         PanelName = case_when(CommonName == "Hydrilla" ~ "(A) hydrilla management",
+                               CommonName == "Water hyacinth" ~ "(B) water hyacinth management",
+                               CommonName == "Water lettuce" ~ "(C) water lettuce management",
+                               CommonName == "Cuban bulrush" ~ "(A) Cuban bulrush management",
+                               CommonName == "Para grass" ~ "(B) para grass management",
+                               CommonName == "Torpedograss" ~ "(C) torpedograss management"))
+
+# split by focal/non-focal
+foc_dat_PAC <- comb_dat_PAC %>%
+  filter(CommonName %in% c("Hydrilla", "Water hyacinth", "Water lettuce"))
+
+foc_dat_treat <- comb_dat_treat %>%
+  filter(CommonName %in% c("Hydrilla", "Water hyacinth", "Water lettuce"))
+
+non_foc_dat_PAC <- comb_dat_PAC %>%
+  filter(CommonName %in% c("Cuban bulrush", "Para grass", "Torpedograss"))
+
+non_foc_dat_treat <- comb_dat_treat %>%
+  filter(CommonName %in% c("Cuban bulrush", "Para grass", "Torpedograss"))
+
+
+
+#### figures ####
+
+foc_fig_PAC <- ggplot(foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, color = Habitat)) +
+  geom_line(aes(alpha = Sig, size = Sig)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
+  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
+  labs(x = "Invasive plant PAC", y = "Years detected") +
+  scale_color_manual(values = brewer.set2(n = 3)) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
+  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+
+foc_fig_treat <- ggplot(foc_dat_treat, aes(x = Treat, y = Pred, group = TaxonName, color = Habitat)) +
+  geom_line(aes(alpha = Sig, size = Sig)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
+  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
+  labs(x = "Years managed (out of 3)", y = "Years detected") +
+  scale_color_manual(values = brewer.set2(n = 3)) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
+  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+
+non_foc_fig_PAC <- ggplot(non_foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, color = Habitat)) +
+  geom_line(aes(alpha = Sig, size = Sig)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
+  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
+  labs(x = "Invasive plant PAC", y = "Years detected") +
+  scale_color_manual(values = brewer.set2(n = 3)) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
+  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+
+non_foc_fig_treat <- ggplot(non_foc_dat_treat, aes(x = Treat, y = Pred, group = TaxonName, color = Habitat)) +
+  geom_line(aes(alpha = Sig, size = Sig)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
+  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
+  labs(x = "Years managed (out of 3)", y = "Years detected") +
+  scale_color_manual(values = brewer.set2(n = 3)) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
+  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+
+
+
+#### older code ####
 
 plant_coef <- plant_coef1 %>%
   filter(!(TaxonName %in% c("Mayaca fluviatilis", "Myriophyllum laxum/pinnatum"))) %>%

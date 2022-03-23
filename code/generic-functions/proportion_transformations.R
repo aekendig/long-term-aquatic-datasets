@@ -20,3 +20,8 @@ inv_logit_adjust <- function(f,a) {
 
 # standardize proportion adjustment
 prop_adjust <- 0.001
+
+# inverse logit
+logit2prob <- function(x) {
+  exp(x)/(1+exp(x))
+}
