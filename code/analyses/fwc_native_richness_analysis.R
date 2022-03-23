@@ -14,6 +14,7 @@ library(pglm) # panel data models
 library(sandwich) # vcovHC
 library(lmtest) # coeftest
 library(glmmTMB) # random effects
+library(pals) # color palettes
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -452,403 +453,308 @@ panel_plot_fun(cubu_mods, pagr_mods, torp_mods,
                "output/fwc_non_focal_native_richness_PAC_diff_model.eps")
 
 
-#### start here ####
+#### finalize models ####
 
-# final model tables and figures
-# use code from fwc_invasive_plant_analysis
+# SE with heteroskedasticity and autocorrelation
+coeftest(hydr_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig, surveyor and PAC not
+coeftest(wahy_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and surveyor sig, PAC marginal
+coeftest(wale_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and surveyor sig, PAC not
+coeftest(cubu_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
+coeftest(pagr_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
+coeftest(torp_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and PAC sig
 
+# don't need surveyor experience
+# only using lag 3
+hydr_dat3 <- hydr_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+wahy_dat3 <- wahy_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+wale_dat3 <- wale_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+cubu_dat3 <- cubu_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+torp_dat3 <- torp_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+pagr_dat3 <- pagr_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
+  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
+         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
 
-#### fit focal plant models ####
+# fit models
+hydr_nat_rich_mod <- plm(RichnessDiff ~ AvgPercCovered_c + Lag3Treated + SurveyorExperience_s, data = hydr_dat3,
+                index = c("PermanentID", "GSYear"), model = "within")
+wahy_nat_rich_mod <- update(hydr_nat_rich_mod, data = wahy_dat3)
+wale_nat_rich_mod <- update(hydr_nat_rich_mod, data = wale_dat3)
+cubu_nat_rich_mod <- update(hydr_nat_rich_mod, data = cubu_dat3)
+torp_nat_rich_mod <- update(hydr_nat_rich_mod, data = torp_dat3)
+pagr_nat_rich_mod <- update(hydr_nat_rich_mod, data = pagr_dat3)
 
-# subset data
-nat_foc_dat1 <- filter(nat_foc_dat, Lag == 1)
-nat_foc_dat2 <- filter(nat_foc_dat, Lag == 2)
-nat_foc_dat3 <- filter(nat_foc_dat, Lag == 3)
-nat_foc_dat4 <- filter(nat_foc_dat, Lag == 4)
-nat_foc_dat5 <- filter(nat_foc_dat, Lag == 5)
-nat_foc_dat6 <- filter(nat_foc_dat, Lag == 6)
+# check fits
+# overall p-values matches management estimate - use adjusted below
+summary(hydr_nat_rich_mod)
+summary(wahy_nat_rich_mod)
+summary(wale_nat_rich_mod)
+summary(cubu_nat_rich_mod)
+summary(torp_nat_rich_mod)
+summary(pagr_nat_rich_mod)
+# all are balanced
 
-# Poisson or negative binomial?
-mean(nat_foc_dat1$Richness)
-var(nat_foc_dat1$Richness)
-# negative binomial
-# fenegbin function suggested Poisson
+# SE with heteroscedasticity and autocorrelation
+hydr_nat_rich_mod_se <- coeftest(hydr_nat_rich_mod, vcov = vcovHC, type = "HC3") # treated sig
+wahy_nat_rich_mod_se <- coeftest(wahy_nat_rich_mod, vcov = vcovHC, type = "HC3") # treated, surveyor sig
+wale_nat_rich_mod_se <- coeftest(wale_nat_rich_mod, vcov = vcovHC, type = "HC3") # treated, surveyor sig
+cubu_nat_rich_mod_se <- coeftest(cubu_nat_rich_mod, vcov = vcovHC, type = "HC3") # none
+pagr_nat_rich_mod_se <- coeftest(pagr_nat_rich_mod, vcov = vcovHC, type = "HC3") # cover, treated sig
+torp_nat_rich_mod_se <- coeftest(torp_nat_rich_mod, vcov = vcovHC, type = "HC3") # all sig
 
-# fit models for focal invasive plants
-nat_foc_mod1 <- fepois(Richness ~ Floating_TreatFreq + Hydrilla_TreatFreq + Hydrilla_AvgPercCovered + Floating_AvgPercCovered | PermanentID + GSYear, data = nat_foc_dat1)
-nat_foc_mod2 <- update(nat_foc_mod1, data = nat_foc_dat2)
-nat_foc_mod3 <- update(nat_foc_mod1, data = nat_foc_dat3)
-nat_foc_mod4 <- update(nat_foc_mod1, data = nat_foc_dat4)
-nat_foc_mod5 <- update(nat_foc_mod1, data = nat_foc_dat5)
-nat_foc_mod6 <- update(nat_foc_mod1, data = nat_foc_dat6)
+# add fitted values to pdata.frame (important to match rows)
+# convert to regular dataframe
+hydr_fit <- mutate(hydr_dat3, Fitted = as.numeric(hydr_dat3$RichnessDiff - hydr_nat_rich_mod$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wahy_fit <- mutate(wahy_dat3, Fitted = as.numeric(wahy_dat3$RichnessDiff - wahy_nat_rich_mod$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wale_fit <- mutate(wale_dat3, Fitted = as.numeric(wale_dat3$RichnessDiff - wale_nat_rich_mod$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_fit <- mutate(cubu_dat3, Fitted = as.numeric(cubu_dat3$RichnessDiff - cubu_nat_rich_mod$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+pagr_fit <- mutate(pagr_dat3, Fitted = as.numeric(pagr_dat3$RichnessDiff - pagr_nat_rich_mod$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_fit <- mutate(torp_dat3, Fitted = as.numeric(torp_dat3$RichnessDiff - torp_nat_rich_mod$residuals)) %>%
+  as.data.frame(keep.attributes = F)
 
+# fitted vs. observed
+ggplot(hydr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+ggplot(wahy_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+ggplot(wale_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+ggplot(cubu_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+ggplot(pagr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+ggplot(torp_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+# generally poor fits
 
-#### fit all (-CB) plant models ####
+# export models
+save(hydr_nat_rich_mod, file = "output/fwc_hydrilla_native_richness_model.rda")
+save(wahy_nat_rich_mod, file = "output/fwc_water_hyacinth_native_richness_model.rda")
+save(wale_nat_rich_mod, file = "output/fwc_water_lettuce_native_richness_model.rda")
+save(cubu_nat_rich_mod, file = "output/fwc_cuban_bulrush_native_richness_model.rda")
+save(pagr_nat_rich_mod, file = "output/fwc_para_grass_native_richness_model.rda")
+save(torp_nat_rich_mod, file = "output/fwc_torpedograss_native_richness_model.rda")
 
-# subset data
-nat_all_dat1 <- filter(nat_all_dat, Lag == 1)
-nat_all_dat2 <- filter(nat_all_dat, Lag == 2)
-nat_all_dat3 <- filter(nat_all_dat, Lag == 3)
-nat_all_dat4 <- filter(nat_all_dat, Lag == 4)
-nat_all_dat5 <- filter(nat_all_dat, Lag == 5)
-nat_all_dat6 <- filter(nat_all_dat, Lag == 6)
+# combine SE tables
+foc_mod_se <- tidy(hydr_mod_se) %>%
+  mutate(Invasive = "hydrilla",
+         R2 = r.squared(hydr_nat_rich_mod),
+         Waterbodies = n_distinct(hydr_dat3$PermanentID),
+         Years = n_distinct(hydr_dat3$GSYear),
+         N = nrow(hydr_dat3)) %>%
+  full_join(tidy(wahy_mod_se) %>%
+              mutate(Invasive = "water hyacinth",
+                     R2 = r.squared(wahy_nat_rich_mod),
+                     Waterbodies = n_distinct(wahy_dat3$PermanentID),
+                     Years = n_distinct(wahy_dat3$GSYear),
+                     N = nrow(wahy_dat3))) %>%
+  full_join(tidy(wale_mod_se) %>%
+              mutate(Invasive = "water lettuce",
+                     R2 = r.squared(wale_nat_rich_mod),
+                     Waterbodies = n_distinct(wale_dat3$PermanentID),
+                     Years = n_distinct(wale_dat3$GSYear),
+                     N = nrow(wale_dat3))) %>%
+  mutate(term = fct_recode(term,
+                           "invasive PAC" = "AvgPercCovered_c",
+                           "management" = "Lag3Treated",
+                           "surv. experience" = "SurveyorExperience_s")) %>%
+  rename(Term = term,
+         Estimate = estimate,
+         SE = std.error,
+         t = statistic,
+         P = p.value) %>%
+  relocate(Invasive)
 
-# fit models for focal invasive plants
-nat_all_mod1 <- fepois(Richness ~ Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_all_dat1)
-nat_all_mod2 <- update(nat_all_mod1, data = nat_all_dat2)
-nat_all_mod3 <- update(nat_all_mod1, data = nat_all_dat3)
-nat_all_mod4 <- update(nat_all_mod1, data = nat_all_dat4)
-nat_all_mod5 <- update(nat_all_mod1, data = nat_all_dat5)
-nat_all_mod6 <- update(nat_all_mod1, data = nat_all_dat6)
+non_foc_mod_se <- tidy(cubu_mod_se) %>%
+  mutate(Invasive = "Cuban bulrush",
+         R2 = r.squared(cubu_nat_rich_mod),
+         Waterbodies = n_distinct(cubu_dat3$PermanentID),
+         Years = n_distinct(cubu_dat3$GSYear),
+         N = nrow(cubu_dat3)) %>%
+  full_join(tidy(pagr_mod_se) %>%
+              mutate(Invasive = "para grass",
+                     R2 = r.squared(pagr_nat_rich_mod),
+                     Waterbodies = n_distinct(pagr_dat3$PermanentID),
+                     Years = n_distinct(pagr_dat3$GSYear),
+                     N = nrow(pagr_dat3))) %>%
+  full_join(tidy(torp_mod_se) %>%
+              mutate(Invasive = "torpedograss",
+                     R2 = r.squared(torp_nat_rich_mod),
+                     Waterbodies = n_distinct(torp_dat3$PermanentID),
+                     Years = n_distinct(torp_dat3$GSYear),
+                     N = nrow(torp_dat3))) %>%
+  mutate(term = fct_recode(term,
+                           "invasive PAC" = "AvgPercCovered_c",
+                           "management" = "Lag3Treated",
+                           "surv. experience" = "SurveyorExperience_s")) %>%
+  rename(Term = term,
+         Estimate = estimate,
+         SE = std.error,
+         t = statistic,
+         P = p.value) %>%
+  relocate(Invasive)
 
-
-#### fit all plant model ####
-
-# subset data
-nat_cb_dat1 <- filter(nat_cb_dat, Lag == 1)
-
-# add Cuban bulrush
-nat_cb_mod1 <- feols(Richness ~ CubanBulrush_TreatFreq + Floating_TreatFreq + Hydrilla_TreatFreq + ParaGrass_TreatFreq + Torpedograss_TreatFreq + CubanBulrush_AvgPercCovered + Floating_AvgPercCovered + Hydrilla_AvgPercCovered + ParaGrass_AvgPercCovered + Torpedograss_AvgPercCovered | PermanentID + GSYear, data = nat_cb_dat1)
-
-
-
-#### model coefficient figures ####
-
-# combine models
-nat_foc_mods <- list(nat_foc_mod1, nat_foc_mod2, nat_foc_mod3, nat_foc_mod4, nat_foc_mod5, nat_foc_mod6)
-nat_all_mods <- list(nat_all_mod1, nat_all_mod2, nat_all_mod3, nat_all_mod4, nat_all_mod5, nat_all_mod6)
-
-# name models
-names(nat_foc_mods) <- names(nat_all_mods) <- c("1", "2", "3", "4", "5", "6")
-
-# rename coefficients
-mgmt_coef_names <- c("CubanBulrush_TreatFreq" = "Cuban bulrush",
-                     "Torpedograss_TreatFreq" = "Torpedograss",
-                     "ParaGrass_TreatFreq" = "Para grass",
-                     "Hydrilla_TreatFreq" = "Hydrilla",
-                     "Floating_TreatFreq" = "Floating plant")
-
-inv_coef_names <- c("CubanBulrush_AvgPercCovered" = "Cuban bulrush",
-                    "Torpedograss_AvgPercCovered" = "Torpedograss",
-                    "ParaGrass_AvgPercCovered" = "Para grass",
-                    "Hydrilla_AvgPercCovered" = "Hydrilla",
-                    "Floating_AvgPercCovered" = "Floating plant")
-
-# figure
-foc_mgmt_fig <- modelplot(nat_foc_mods,
-                          coef_map = mgmt_coef_names,
-                          background = list(geom_vline(xintercept = 0, color = "black",
-                                                       size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1,
-                        name = "Management\nlag\n(years)") +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       y = "Management") +
-  def_theme_paper +
-  theme(legend.box.margin = margin(-10, 0, -10, -10),
-        plot.margin = margin(3, 0, 3, 3)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-foc_inv_fig <- modelplot(nat_foc_mods,
-                         coef_map = inv_coef_names,
-                         background = list(geom_vline(xintercept = 0, color = "black",
-                                                      size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1,
-                        name = "Invasion\nyears\nincluded") +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       y = "Percent area covered") +
-  def_theme_paper +
-  theme(legend.box.margin = margin(-10, 0, -10, -10),
-        plot.margin = margin(3, 0, 3, 3)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-all_mgmt_fig <- modelplot(nat_all_mods,
-                          coef_map = mgmt_coef_names,
-                          background = list(geom_vline(xintercept = 0, color = "black",
-                                                       size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1,
-                        name = "Management\nlag\n(years)") +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       y = "Management") +
-  def_theme_paper +
-  theme(legend.box.margin = margin(-10, 0, -10, -10),
-        plot.margin = margin(3, 0, 3, 3)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-all_inv_fig <- modelplot(nat_all_mods,
-                         coef_map = inv_coef_names,
-                         background = list(geom_vline(xintercept = 0, color = "black",
-                                                      size = 0.5, linetype = "dashed"))) +
-  scale_color_viridis_d(direction = -1,
-                        name = "Invasion\nyears\nincluded") +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       y = "Percent area covered") +
-  def_theme_paper +
-  theme(legend.box.margin = margin(-10, 0, -10, -10),
-        plot.margin = margin(3, 0, 3, 3)) +
-  guides(color = guide_legend(reverse = TRUE))
-
-cb_mgmt_fig <- modelplot(nat_cb_mod1,
-          coef_map = mgmt_coef_names,
-          background = list(geom_vline(xintercept = 0, color = "black",
-                                       size = 0.5, linetype = "dashed"))) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       y = "Management") +
-  def_theme_paper
-
-cb_inv_fig <- modelplot(nat_cb_mod1,
-          coef_map = inv_coef_names,
-          background = list(geom_vline(xintercept = 0, color = "black",
-                                       size = 0.5, linetype = "dashed"))) +
-  labs(x = expression(paste("Estimate "%+-%" 95% CI", sep = "")),
-       y = "Percent area covered") +
-  def_theme_paper
-
-
-#### export figures and models ####
-
-# figures
-ggsave("output/fwc_native_richness_focal_invasive_model.eps", foc_inv_fig,
-       device = "eps", width = 3.5, height = 3, units = "in")
-ggsave("output/fwc_native_richness_focal_control_model.eps", foc_mgmt_fig,
-       device = "eps", width = 3.5, height = 3, units = "in")
-ggsave("output/fwc_native_richness_all_invasive_model.eps", all_inv_fig,
-       device = "eps", width = 3.5, height = 5, units = "in")
-ggsave("output/fwc_native_richness_all_control_model.eps", all_mgmt_fig,
-       device = "eps", width = 3.5, height = 5, units = "in")
-ggsave("output/fwc_native_richness_recent_invasive_model.eps", cb_inv_fig,
-       device = "eps", width = 3.5, height = 4, units = "in")
-ggsave("output/fwc_native_richness_recent_control_model.eps", cb_mgmt_fig,
-       device = "eps", width = 3.5, height = 4, units = "in")
-
-# model objects
-save(nat_foc_mods, file = "output/fwc_native_richness_focal_invasive_models.rda")
-save(nat_all_mods, file = "output/fwc_native_richness_all_invasive_models.rda")
-save(nat_cb_mod1, file = "output/fwc_native_richness_recent_invasive_model.rda")
+# export
+write_csv(foc_mod_se, "output/fwc_focal_native_richness_model_summary.csv")
+write_csv(non_foc_mod_se, "output/fwc_non_focal_native_richness_model_summary.csv")
 
 
 #### model prediction figures ####
 
-# function to create raw data
-raw_dat_fun <- function(dat_in){
-  
-  dat_out <- dat_in %>%
-    mutate(across(.cols = contains("TreatFreq"), ~ .x * 3))
-  
-  return(dat_out)
-  
-}
+# extract fixed effects and treatment coefficients
+# fitted values (as used in fwc_invasive_plant_analysis) include surveyor and PAC effects
+# combine data
+foc_fit_dat <- hydr_fit %>%
+  full_join(wahy_fit) %>%
+  full_join(wale_fit) %>%
+  as_tibble() %>%
+  select(CommonName, PermanentID, GSYear, Lag3Treated, RichnessDiff) %>%
+  full_join(tibble(PermanentID = names(fixef(hydr_nat_rich_mod)),
+                   fixef = as.numeric(fixef(hydr_nat_rich_mod)),
+                   coef = as.numeric(coef(hydr_nat_rich_mod)[2]),
+                   CommonName = "Hydrilla",
+                   PanelName = "(A) hydrilla management") %>%
+              full_join(tibble(PermanentID = names(fixef(wahy_nat_rich_mod)),
+                               fixef = as.numeric(fixef(wahy_nat_rich_mod)),
+                               coef = as.numeric(coef(wahy_nat_rich_mod)[2]),
+                               CommonName = "Water hyacinth",
+                               PanelName = "(B) water hyacinth management")) %>%
+              full_join(tibble(PermanentID = names(fixef(wale_nat_rich_mod)),
+                               fixef = as.numeric(fixef(wale_nat_rich_mod)),
+                               coef = as.numeric(coef(wale_nat_rich_mod)[2]),
+                               CommonName = "Water lettuce",
+                               PanelName = "(C) water lettuce management"))) %>%
+  mutate(Treated = Lag3Treated * 3,
+         Fitted = fixef + coef * Treated) # replace Fitted with treatment-only effect
 
-# function to create range of values
-range_dat_fun <- function(dat_in, col_name){
-  
-  # set all values to zero
-  zero_dat <- tibble(Floating_TreatFreq = 0,
-                     Hydrilla_TreatFreq = 0,
-                     ParaGrass_TreatFreq = 0,
-                     Torpedograss_TreatFreq = 0,
-                     Floating_AvgPercCovered = 0,
-                     Hydrilla_AvgPercCovered = 0,
-                     ParaGrass_AvgPercCovered = 0,
-                     Torpedograss_AvgPercCovered = 0)
-  
-  # expand based on cover or treatment
-  if(str_detect(col_name, "Covered") == T) {
-    
-    # min and max values
-    min_value <- min(dat_in[, col_name])
-    max_value <- max(dat_in[, col_name])
-    
-    # expand for column
-    dat_out <- zero_dat %>%
-      select(-{{col_name}}) %>%
-      expand_grid(temp_col = seq(min_value, max_value, length.out = 10))
-    
-  } else {
-    
-    # expand for column
-    dat_out <- zero_dat %>%
-      select(-{{col_name}}) %>%
-      expand_grid(temp_col = seq(0, 1, length.out = 10))
-    
-  }
+non_foc_fit_dat <- cubu_fit %>%
+  full_join(pagr_fit) %>%
+  full_join(torp_fit) %>%
+  as_tibble() %>%
+  select(CommonName, PermanentID, GSYear, Lag3Treated, RichnessDiff) %>%
+  full_join(tibble(PermanentID = names(fixef(cubu_nat_rich_mod)),
+                   fixef = as.numeric(fixef(cubu_nat_rich_mod)),
+                   coef = as.numeric(coef(cubu_nat_rich_mod)[2]),
+                   CommonName = "Cuban bulrush",
+                   PanelName = "(A) Cuban bulrush management") %>%
+              full_join(tibble(PermanentID = names(fixef(pagr_nat_rich_mod)),
+                               fixef = as.numeric(fixef(pagr_nat_rich_mod)),
+                               coef = as.numeric(coef(pagr_nat_rich_mod)[2]),
+                               CommonName = "Para grass",
+                               PanelName = "(B) para grass management")) %>%
+              full_join(tibble(PermanentID = names(fixef(torp_nat_rich_mod)),
+                               fixef = as.numeric(fixef(torp_nat_rich_mod)),
+                               coef = as.numeric(coef(torp_nat_rich_mod)[2]),
+                               CommonName = "Torpedograss",
+                               PanelName = "(C) torpedograss management"))) %>%
+  mutate(Treated = Lag3Treated * 3,
+         Fitted = fixef + coef * Treated) # replace Fitted with treatment-only effect
 
-  # rename column
-  dat_out[, col_name] <- dat_out$temp_col
-  
-  # return
-  return(dat_out %>% select(-temp_col))
-  
-}
-
-# function to create predicted data
-pred_dat_fun <- function(dat_in, mod){
-  
-  # column names
-  col_names <- c("Floating_TreatFreq",
-                 "Hydrilla_TreatFreq",
-                 "ParaGrass_TreatFreq",
-                 "Torpedograss_TreatFreq",
-                 "Floating_AvgPercCovered",
-                 "Hydrilla_AvgPercCovered",
-                 "ParaGrass_AvgPercCovered",
-                 "Torpedograss_AvgPercCovered")
-  
-  # set each variable to 0 and expand one variable at a time
-  dat_out <- tibble(col_name = col_names) %>%
-    mutate(out = pmap(., function(col_name) 
-      range_dat_fun(dat_in = dat_in, col_name = col_name))) %>%
-    unnest(cols = out) %>%
-    select(-col_name) %>%
-    unique() %>% # remove duplicate 0 rows
-    expand_grid(dat_in %>%
-                  select(PermanentID, GSYear) %>%
-                  unique()) %>% # repeat for each waterbody and year
-    mutate(Richness = predict(mod, newdata = ., type = "response"),
-           across(.cols = contains("TreatFreq"), ~ .x * 3))
-  
-  return(dat_out)
-  
-}
-
-# lag 1
-raw_dat1 <- raw_dat_fun(nat_all_dat1)
-pred_dat1 <- pred_dat_fun(nat_all_dat1, nat_all_mod1)
-
-# make data long by cover
-raw_cover_dat1 <- raw_dat1 %>%
-  select(PermanentID, GSYear, contains("Covered"), Richness) %>%
-  select(-c(CubanBulrush_AvgPercCovered, WaterHyacinth_AvgPercCovered, WaterLettuce_AvgPercCovered)) %>%
-  pivot_longer(cols = contains("Covered"),
-               names_to = "CommonName",
-               values_to = "AvgPercCovered") %>%
-  mutate(CommonName = str_remove(CommonName, "_AvgPercCovered") %>%
-           fct_recode("Floating plants" = "Floating",
-                      "Para grass" = "ParaGrass"),
-         LogitPAC = logit(AvgPercCovered/100, adjust = 0.001))
-
-pred_cover_dat1 <- pred_dat1 %>%
-  select(PermanentID, GSYear, contains("Covered"), Richness) %>%
-  pivot_longer(cols = contains("Covered"),
-               names_to = "CommonName",
-               values_to = "AvgPercCovered") %>%
-  mutate(CommonName = str_remove(CommonName, "_AvgPercCovered") %>%
-           fct_recode("Floating plants" = "Floating",
-                      "Para grass" = "ParaGrass")) %>%
-  filter(AvgPercCovered > 0) %>% # 0 values can have a range of other species treatment values
-  full_join(pred_dat1 %>%
-              filter(Hydrilla_AvgPercCovered == 0 & # use all zero for zero
-                       ParaGrass_AvgPercCovered == 0 &
-                       Torpedograss_AvgPercCovered == 0 &
-                       Floating_AvgPercCovered == 0 & 
-                       Hydrilla_TreatFreq == 0 &
-                       ParaGrass_TreatFreq == 0 &
-                       Torpedograss_TreatFreq == 0 &
-                       Floating_TreatFreq == 0) %>%
-              select(PermanentID, GSYear, contains("Covered"), Richness) %>%
-              pivot_longer(cols = contains("Covered"),
-                           names_to = "CommonName",
-                           values_to = "AvgPercCovered") %>%
-              mutate(CommonName = str_remove(CommonName, "_AvgPercCovered") %>%
-                       fct_recode("Floating plants" = "Floating",
-                                  "Para grass" = "ParaGrass"))) %>%
-  mutate(LogitPAC = logit(AvgPercCovered/100, adjust = 0.001))
-
-# make data long by treatment
-raw_treat_dat1 <- raw_dat1 %>%
-  select(PermanentID, GSYear, contains("Treat"), Richness) %>%
-  select(-CubanBulrush_TreatFreq) %>%
-  pivot_longer(cols = contains("Treat"),
-               names_to = "CommonName",
-               values_to = "TreatFreq") %>%
-  mutate(CommonName = str_remove(CommonName, "_TreatFreq") %>%
-           fct_recode("Floating plants" = "Floating",
-                      "Para grass" = "ParaGrass"))
-
-pred_treat_dat1 <- pred_dat1 %>%
-  select(PermanentID, GSYear, contains("Treat"), Richness) %>%
-  pivot_longer(cols = contains("Treat"),
-               names_to = "CommonName",
-               values_to = "TreatFreq") %>%
-  mutate(CommonName = str_remove(CommonName, "_TreatFreq") %>%
-           fct_recode("Floating plants" = "Floating",
-                      "Para grass" = "ParaGrass")) %>%
-  filter(TreatFreq > 0) %>% # 0 values can have a range of other species treatment values
-  full_join(pred_dat1 %>%
-              filter(Hydrilla_TreatFreq == 0 & # use all zero for zero
-                       ParaGrass_TreatFreq == 0 &
-                       Torpedograss_TreatFreq == 0 &
-                       Floating_TreatFreq == 0 &
-                       Hydrilla_AvgPercCovered == 0 &
-                       ParaGrass_AvgPercCovered == 0 &
-                       Torpedograss_AvgPercCovered == 0 &
-                       Floating_AvgPercCovered == 0) %>%
-              select(PermanentID, GSYear, contains("Treat"), Richness) %>%
-              pivot_longer(cols = contains("Treat"),
-                           names_to = "CommonName",
-                           values_to = "TreatFreq") %>%
-              mutate(CommonName = str_remove(CommonName, "_TreatFreq") %>%
-                       fct_recode("Floating plants" = "Floating",
-                                  "Para grass" = "ParaGrass")))
-
-# figures
-cover_fig1 <- ggplot(raw_cover_dat1, aes(x = AvgPercCovered, y = Richness)) +
-  geom_point(aes(color = CommonName), alpha = 0.3) +
-  stat_summary(data = pred_cover_dat1, aes(fill = CommonName),
-               geom = "ribbon", fun.data = "mean_cl_boot", alpha = 0.5) +
-  stat_summary(data = pred_cover_dat1, aes(color = CommonName),
-               geom = "line", fun = "mean", size = 0.5) +
-  facet_wrap(~ CommonName, scales = "free") +
-  labs(x = "Average PAC", y = "Native taxonomic richness") +
+# raw data (each waterbody represented)
+ggplot(foc_fit_dat, aes(x = Treated, color = PermanentID)) +
+  geom_point(aes(y = RichnessDiff), alpha = 0.3) +
+  geom_line(aes(y = Fitted)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
   def_theme_paper +
   theme(legend.position = "none")
 
-treat_fig1 <- ggplot(raw_treat_dat1, aes(x = TreatFreq, y = Richness)) +
+ggplot(non_foc_fit_dat, aes(x = Treated, color = PermanentID)) +
+  geom_point(aes(y = RichnessDiff), alpha = 0.3) +
+  geom_line(aes(y = Fitted)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
+  def_theme_paper +
+  theme(legend.position = "none")
+
+
+# summarize raw data
+foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
+  geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
-               aes(color = CommonName)) +
+               aes(y = RichnessDiff)) +
   stat_summary(geom = "point", fun = "mean", size = 2,
-               aes(color = CommonName)) +
-  stat_summary(data = pred_treat_dat1, aes(fill = CommonName),
-               geom = "ribbon", fun.data = "mean_cl_boot", alpha = 0.5) +
-  stat_summary(data = pred_treat_dat1, aes(color = CommonName),
-               geom = "line", fun = "mean", size = 0.5) +
-  facet_wrap(~ CommonName, scales = "free") +
-  labs(x = "Years managed (out of 3)", y = "Native taxonomic richness") +
+               aes(y = RichnessDiff)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
+  scale_color_manual(values = rep(kelly(), 9)) +
   def_theme_paper +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+non_foc_pred_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
+  geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
+               aes(y = RichnessDiff)) +
+  stat_summary(geom = "point", fun = "mean", size = 2,
+               aes(y = RichnessDiff)) +
+  facet_wrap(~ PanelName, scales = "free") +
+  labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
+  scale_color_manual(values = rep(kelly(), 9)) +
+  scale_x_continuous(breaks = c(0, 1, 2, 3)) +
+  def_theme_paper +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 9, color = "black", hjust = 0))
 
 # save
-ggsave("output/fwc_native_richness_invasive_PAC_prediction.png", cover_fig1,
-       device = "png", width = 5, height = 5, units = "in")
-ggsave("output/fwc_native_richness_invasive_management_prediction.png", treat_fig1,
-       device = "png", width = 5, height = 5, units = "in")
+ggsave("output/fwc_focal_invasive_native_richness_treatment_prediction.png", foc_pred_fig,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+
+ggsave("output/fwc_non_focal_invasive_native_richness_treatment_prediction.png", non_foc_pred_fig,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+
+
+#### values for text ####
 
 # data tables
-nat_treat_sum <- pred_treat_dat1 %>%
-  group_by(CommonName, TreatFreq) %>%
-  summarize(Richness = mean(Richness)) %>%
-  ungroup() %>%
-  mutate(TreatFreq = fct_recode(as.factor(TreatFreq),
-                              "None" = "0",
-                              "One" = "1",
-                              "Two" = "2",
-                              "Three" = "3")) %>%
-  pivot_wider(names_from = TreatFreq,
-              values_from = Richness)
+foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
+                   DiffNone = c(mean(fixef(hydr_nat_rich_mod)), mean(fixef(wahy_nat_rich_mod)), mean(fixef(wale_nat_rich_mod))),
+                   Treat = as.numeric(c(coef(hydr_nat_rich_mod)[2], coef(wahy_nat_rich_mod)[2], coef(wale_nat_rich_mod)[2])),
+                  Surv = as.numeric(c(coef(hydr_nat_rich_mod)[3], coef(wahy_nat_rich_mod)[3], coef(wale_nat_rich_mod)[3]))) %>%
+  mutate(DiffThree = DiffNone + Treat,
+         YearsNone = 1/DiffNone,
+         YearsThree = 1/DiffThree,
+         YearsSurv = 1/(DiffNone + Surv)) %>%
+  left_join(hydr_dat3 %>%
+              full_join(wahy_dat3) %>%
+              full_join(wale_dat3) %>%
+              group_by(CommonName) %>%
+              summarize(SurvMean = mean(SurveyorExperience),
+                        SurvSD = sd(SurveyorExperience)) %>%
+              ungroup() %>%
+              mutate(SurvExp = SurvMean + SurvSD))
 
-nat_cover_sum <- pred_cover_dat1 %>%
-  group_by(CommonName) %>%
-  summarize(AvgPercCovered = max(AvgPercCovered)) %>%
-  ungroup() %>%
-  full_join(tibble(CommonName = unique(pred_cover_dat1$CommonName),
-                   AvgPercCovered = 0)) %>%
-  left_join(pred_cover_dat1) %>%
-  group_by(CommonName, AvgPercCovered) %>%
-  summarize(Richness = mean(Richness)) %>%
-  ungroup() %>%
-  mutate(AvgPercCovered = if_else(AvgPercCovered == 0, "Min", "Max")) %>%
-  pivot_wider(names_from = AvgPercCovered,
-              values_from = Richness)
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
+                      DiffNone = c(mean(fixef(cubu_nat_rich_mod)), mean(fixef(pagr_nat_rich_mod)), mean(fixef(torp_nat_rich_mod))),
+                      Treat = as.numeric(c(coef(cubu_nat_rich_mod)[2], coef(pagr_nat_rich_mod)[2], coef(torp_nat_rich_mod)[2])),
+                      Surv = as.numeric(c(coef(cubu_nat_rich_mod)[3], coef(pagr_nat_rich_mod)[3], coef(torp_nat_rich_mod)[3]))) %>%
+  mutate(DiffThree = DiffNone + Treat,
+         YearsNone = 1/DiffNone,
+         YearsThree = 1/DiffThree,
+         YearsSurv = 1/(DiffNone + Surv)) %>%
+  left_join(cubu_dat3 %>%
+              full_join(pagr_dat3) %>%
+              full_join(torp_dat3) %>%
+              group_by(CommonName) %>%
+              summarize(SurvMean = mean(SurveyorExperience),
+                        SurvSD = sd(SurveyorExperience)) %>%
+              ungroup() %>%
+              mutate(SurvExp = SurvMean + SurvSD))
 
 # save data table
-write_csv(nat_cover_sum, "output/fwc_native_richness_invasive_PAC_prediction.csv")
-write_csv(nat_treat_sum, "output/fwc_native_richness_invasive_management_prediction.csv")
+write_csv(foc_sum, "output/fwc_focal_invasive_native_richness_treatment_prediction.csv")
+write_csv(non_foc_sum, "output/fwc_non_focal_invasive_native_richness_treatment_prediction.csv")

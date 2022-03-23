@@ -14,7 +14,7 @@ library(plm) # panel data models
 library(glmmTMB) # random effects
 library(sandwich) # vcovHC
 library(lmtest) # coeftest
-library(pals)
+library(pals) # color palettes
 
 
 # figure settings
@@ -712,6 +712,9 @@ ggsave("output/fwc_focal_invasive_PAC_diff_treatment_prediction.png", foc_pred_f
 
 ggsave("output/fwc_non_focal_invasive_PAC_diff_treatment_prediction.png", non_foc_pred_fig,
        device = "png", width = 6.5, height = 2.5, units = "in")
+
+
+#### values for text ####
 
 # data tables
 foc_sum <- foc_fit_dat %>%
