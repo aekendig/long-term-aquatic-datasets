@@ -355,7 +355,7 @@ mod_fit <- function(dat_in){
   } else {
     
     mod1 <- plm(RichnessDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s, data = dat_mod1,
-                index = c("PermanentID", "GSYear"), model = "within")
+                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
     mod2 <- update(mod1, data = dat_mod2)
     mod3 <- update(mod1, data = dat_mod3)
     mod4 <- update(mod1, data = dat_mod4)
@@ -447,18 +447,18 @@ panel_plot_fun <- function(mods1, mods2, mods3,
 # figures
 panel_plot_fun(hydr_mods, wahy_mods, wale_mods,
                "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_native_richness_PAC_diff_model.eps")
+               "output/fwc_focal_native_richness_diff_model.eps")
 panel_plot_fun(cubu_mods, pagr_mods, torp_mods,
                "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_native_richness_PAC_diff_model.eps")
+               "output/fwc_non_focal_native_richness_diff_model.eps")
 
 
 #### finalize models ####
 
 # SE with heteroskedasticity and autocorrelation
-coeftest(hydr_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig, surveyor and PAC not
-coeftest(wahy_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and surveyor sig, PAC marginal
-coeftest(wale_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and surveyor sig, PAC not
+coeftest(hydr_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
+coeftest(wahy_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig
+coeftest(wale_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig
 coeftest(cubu_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
 coeftest(pagr_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
 coeftest(torp_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and PAC sig
@@ -491,8 +491,8 @@ pagr_dat3 <- pagr_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered
   pdata.frame(index = c("PermanentID", "GSYear"))
 
 # fit models
-hydr_nat_rich_mod <- plm(RichnessDiff ~ AvgPercCovered_c + Lag3Treated + SurveyorExperience_s, data = hydr_dat3,
-                index = c("PermanentID", "GSYear"), model = "within")
+hydr_nat_rich_mod <- plm(RichnessDiff ~ AvgPercCovered_c + Lag3Treated, data = hydr_dat3,
+                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 wahy_nat_rich_mod <- update(hydr_nat_rich_mod, data = wahy_dat3)
 wale_nat_rich_mod <- update(hydr_nat_rich_mod, data = wale_dat3)
 cubu_nat_rich_mod <- update(hydr_nat_rich_mod, data = cubu_dat3)
@@ -510,12 +510,12 @@ summary(pagr_nat_rich_mod)
 # all are balanced
 
 # SE with heteroscedasticity and autocorrelation
-hydr_nat_rich_mod_se <- coeftest(hydr_nat_rich_mod, vcov = vcovHC, type = "HC3") # treated sig
-wahy_nat_rich_mod_se <- coeftest(wahy_nat_rich_mod, vcov = vcovHC, type = "HC3") # treated, surveyor sig
-wale_nat_rich_mod_se <- coeftest(wale_nat_rich_mod, vcov = vcovHC, type = "HC3") # treated, surveyor sig
-cubu_nat_rich_mod_se <- coeftest(cubu_nat_rich_mod, vcov = vcovHC, type = "HC3") # none
-pagr_nat_rich_mod_se <- coeftest(pagr_nat_rich_mod, vcov = vcovHC, type = "HC3") # cover, treated sig
-torp_nat_rich_mod_se <- coeftest(torp_nat_rich_mod, vcov = vcovHC, type = "HC3") # all sig
+(hydr_nat_rich_mod_se <- coeftest(hydr_nat_rich_mod, vcov = vcovHC, type = "HC3"))
+(wahy_nat_rich_mod_se <- coeftest(wahy_nat_rich_mod, vcov = vcovHC, type = "HC3")) # treated sig
+(wale_nat_rich_mod_se <- coeftest(wale_nat_rich_mod, vcov = vcovHC, type = "HC3")) # treated sig
+(cubu_nat_rich_mod_se <- coeftest(cubu_nat_rich_mod, vcov = vcovHC, type = "HC3")) # none
+(pagr_nat_rich_mod_se <- coeftest(pagr_nat_rich_mod, vcov = vcovHC, type = "HC3")) # cover sig
+(torp_nat_rich_mod_se <- coeftest(torp_nat_rich_mod, vcov = vcovHC, type = "HC3")) # all sig
 
 # add fitted values to pdata.frame (important to match rows)
 # convert to regular dataframe
@@ -570,8 +570,7 @@ foc_mod_se <- tidy(hydr_nat_rich_mod_se) %>%
                      N = nrow(wale_dat3))) %>%
   mutate(term = fct_recode(term,
                            "invasive PAC" = "AvgPercCovered_c",
-                           "management" = "Lag3Treated",
-                           "surv. experience" = "SurveyorExperience_s")) %>%
+                           "management" = "Lag3Treated")) %>%
   rename(Term = term,
          Estimate = estimate,
          SE = std.error,
@@ -599,8 +598,7 @@ non_foc_mod_se <- tidy(cubu_nat_rich_mod_se) %>%
                      N = nrow(torp_dat3))) %>%
   mutate(term = fct_recode(term,
                            "invasive PAC" = "AvgPercCovered_c",
-                           "management" = "Lag3Treated",
-                           "surv. experience" = "SurveyorExperience_s")) %>%
+                           "management" = "Lag3Treated")) %>%
   rename(Term = term,
          Estimate = estimate,
          SE = std.error,
@@ -681,7 +679,6 @@ ggplot(non_foc_fit_dat, aes(x = Treated, color = PermanentID)) +
   def_theme_paper +
   theme(legend.position = "none")
 
-
 # summarize raw data
 foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
   geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
@@ -725,40 +722,25 @@ ggsave("output/fwc_non_focal_invasive_native_richness_treatment_prediction.png",
 # data tables
 foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
                    DiffNone = c(mean(fixef(hydr_nat_rich_mod)), mean(fixef(wahy_nat_rich_mod)), mean(fixef(wale_nat_rich_mod))),
-                   Treat = as.numeric(c(coef(hydr_nat_rich_mod)[2], coef(wahy_nat_rich_mod)[2], coef(wale_nat_rich_mod)[2])),
-                  Surv = as.numeric(c(coef(hydr_nat_rich_mod)[3], coef(wahy_nat_rich_mod)[3], coef(wale_nat_rich_mod)[3]))) %>%
+                   Treat = as.numeric(c(coef(hydr_nat_rich_mod)[2], coef(wahy_nat_rich_mod)[2], coef(wale_nat_rich_mod)[2]))) %>%
   mutate(DiffThree = DiffNone + Treat,
          YearsNone = 1/DiffNone,
-         YearsThree = 1/DiffThree,
-         YearsSurv = 1/(DiffNone + Surv)) %>%
-  left_join(hydr_dat3 %>%
-              full_join(wahy_dat3) %>%
-              full_join(wale_dat3) %>%
-              group_by(CommonName) %>%
-              summarize(SurvMean = mean(SurveyorExperience),
-                        SurvSD = sd(SurveyorExperience)) %>%
-              ungroup() %>%
-              mutate(SurvExp = SurvMean + SurvSD))
+         YearsThree = 1/DiffThree)
 
 non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
                       DiffNone = c(mean(fixef(cubu_nat_rich_mod)), mean(fixef(pagr_nat_rich_mod)), mean(fixef(torp_nat_rich_mod))),
                       Treat = as.numeric(c(coef(cubu_nat_rich_mod)[2], coef(pagr_nat_rich_mod)[2], coef(torp_nat_rich_mod)[2])),
-                      PAC = as.numeric(c(coef(cubu_nat_rich_mod)[1], coef(pagr_nat_rich_mod)[1], coef(torp_nat_rich_mod)[1])),
-                      Surv = as.numeric(c(coef(cubu_nat_rich_mod)[3], coef(pagr_nat_rich_mod)[3], coef(torp_nat_rich_mod)[3]))) %>%
+                      PAC = as.numeric(c(coef(cubu_nat_rich_mod)[1], coef(pagr_nat_rich_mod)[1], coef(torp_nat_rich_mod)[1]))) %>%
   mutate(DiffThree = DiffNone + Treat,
          YearsNone = 1/DiffNone,
          YearsThree = 1/DiffThree,
-         YearsPAC = 1/(DiffNone + PAC),
-         YearsSurv = 1/(DiffNone + Surv)) %>%
+         YearsPAC = 1/(DiffNone + PAC)) %>%
   left_join(cubu_dat3 %>%
               full_join(pagr_dat3) %>%
               full_join(torp_dat3) %>%
               group_by(CommonName) %>%
-              summarize(SurvMean = mean(SurveyorExperience),
-                        SurvSD = sd(SurveyorExperience),
-                        InitPercCovered = mean(InitPercCovered)) %>%
-              ungroup() %>%
-              mutate(SurvExp = SurvMean + SurvSD))
+              summarize(InitPercCovered = mean(InitPercCovered)) %>%
+              ungroup())
 
 # save data table
 write_csv(foc_sum, "output/fwc_focal_invasive_native_richness_treatment_prediction.csv")

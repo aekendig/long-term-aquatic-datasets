@@ -13,7 +13,7 @@ def_theme <- theme_bw() +
 
 def_theme_paper <- theme_bw() +
   theme(axis.text = element_text(size = 8, color="black"),
-        axis.title = element_text(size = 10, color="black"),
+        axis.title = element_text(size = 9, color="black"),
         panel.background = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -25,7 +25,7 @@ def_theme_paper <- theme_bw() +
         legend.background = element_blank(),
         strip.text = element_text(size = 9, color="black"),
         strip.background = element_blank(),
-        plot.title = element_text(size = 10))
+        plot.title = element_text(size = 9))
 
 paper_text_size = 2.5
 
