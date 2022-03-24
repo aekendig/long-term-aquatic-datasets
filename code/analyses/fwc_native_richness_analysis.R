@@ -550,19 +550,19 @@ save(pagr_nat_rich_mod, file = "output/fwc_para_grass_native_richness_model.rda"
 save(torp_nat_rich_mod, file = "output/fwc_torpedograss_native_richness_model.rda")
 
 # combine SE tables
-foc_mod_se <- tidy(hydr_mod_se) %>%
+foc_mod_se <- tidy(hydr_nat_rich_mod_se) %>%
   mutate(Invasive = "hydrilla",
          R2 = r.squared(hydr_nat_rich_mod),
          Waterbodies = n_distinct(hydr_dat3$PermanentID),
          Years = n_distinct(hydr_dat3$GSYear),
          N = nrow(hydr_dat3)) %>%
-  full_join(tidy(wahy_mod_se) %>%
+  full_join(tidy(wahy_nat_rich_mod_se) %>%
               mutate(Invasive = "water hyacinth",
                      R2 = r.squared(wahy_nat_rich_mod),
                      Waterbodies = n_distinct(wahy_dat3$PermanentID),
                      Years = n_distinct(wahy_dat3$GSYear),
                      N = nrow(wahy_dat3))) %>%
-  full_join(tidy(wale_mod_se) %>%
+  full_join(tidy(wale_nat_rich_mod_se) %>%
               mutate(Invasive = "water lettuce",
                      R2 = r.squared(wale_nat_rich_mod),
                      Waterbodies = n_distinct(wale_dat3$PermanentID),
@@ -579,19 +579,19 @@ foc_mod_se <- tidy(hydr_mod_se) %>%
          P = p.value) %>%
   relocate(Invasive)
 
-non_foc_mod_se <- tidy(cubu_mod_se) %>%
+non_foc_mod_se <- tidy(cubu_nat_rich_mod_se) %>%
   mutate(Invasive = "Cuban bulrush",
          R2 = r.squared(cubu_nat_rich_mod),
          Waterbodies = n_distinct(cubu_dat3$PermanentID),
          Years = n_distinct(cubu_dat3$GSYear),
          N = nrow(cubu_dat3)) %>%
-  full_join(tidy(pagr_mod_se) %>%
+  full_join(tidy(pagr_nat_rich_mod_se) %>%
               mutate(Invasive = "para grass",
                      R2 = r.squared(pagr_nat_rich_mod),
                      Waterbodies = n_distinct(pagr_dat3$PermanentID),
                      Years = n_distinct(pagr_dat3$GSYear),
                      N = nrow(pagr_dat3))) %>%
-  full_join(tidy(torp_mod_se) %>%
+  full_join(tidy(torp_nat_rich_mod_se) %>%
               mutate(Invasive = "torpedograss",
                      R2 = r.squared(torp_nat_rich_mod),
                      Waterbodies = n_distinct(torp_dat3$PermanentID),
@@ -684,6 +684,7 @@ ggplot(non_foc_fit_dat, aes(x = Treated, color = PermanentID)) +
 
 # summarize raw data
 foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
+  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
   geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(y = RichnessDiff)) +
@@ -697,6 +698,7 @@ foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
         strip.text = element_text(size = 9, color = "black", hjust = 0))
 
 non_foc_pred_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
+  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
   geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(y = RichnessDiff)) +
@@ -741,17 +743,20 @@ foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
 non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
                       DiffNone = c(mean(fixef(cubu_nat_rich_mod)), mean(fixef(pagr_nat_rich_mod)), mean(fixef(torp_nat_rich_mod))),
                       Treat = as.numeric(c(coef(cubu_nat_rich_mod)[2], coef(pagr_nat_rich_mod)[2], coef(torp_nat_rich_mod)[2])),
+                      PAC = as.numeric(c(coef(cubu_nat_rich_mod)[1], coef(pagr_nat_rich_mod)[1], coef(torp_nat_rich_mod)[1])),
                       Surv = as.numeric(c(coef(cubu_nat_rich_mod)[3], coef(pagr_nat_rich_mod)[3], coef(torp_nat_rich_mod)[3]))) %>%
   mutate(DiffThree = DiffNone + Treat,
          YearsNone = 1/DiffNone,
          YearsThree = 1/DiffThree,
+         YearsPAC = 1/(DiffNone + PAC),
          YearsSurv = 1/(DiffNone + Surv)) %>%
   left_join(cubu_dat3 %>%
               full_join(pagr_dat3) %>%
               full_join(torp_dat3) %>%
               group_by(CommonName) %>%
               summarize(SurvMean = mean(SurveyorExperience),
-                        SurvSD = sd(SurveyorExperience)) %>%
+                        SurvSD = sd(SurveyorExperience),
+                        InitPercCovered = mean(InitPercCovered)) %>%
               ungroup() %>%
               mutate(SurvExp = SurvMean + SurvSD))
 

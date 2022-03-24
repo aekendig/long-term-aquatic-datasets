@@ -8,6 +8,7 @@ library(tidyverse)
 library(inspectdf) # inspect_cor
 library(broom) # glance
 library(pals) # color palettes
+library(patchwork)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -37,7 +38,8 @@ comb_dat <- inv_plant %>%
   group_by(CommonName, TaxonName) %>%
   mutate(AvgPAC_c = AvgPAC - mean(AvgPAC)) %>%
   ungroup() %>%
-  mutate(YearsUndetected = YearsSurveyed - YearsDetected)
+  mutate(YearsUndetected = YearsSurveyed - YearsDetected,
+         Habitat = tolower(Habitat))
 
 # check that invasive plant values are repeated by permanentID
 comb_dat %>%
@@ -181,6 +183,40 @@ plant_coef_treat <- plant_coef %>%
               rename(Intercept = estimate))
 
 
+#### summary table ####
+
+# count taxa per category
+plant_coef_summ <- plant_coef %>%
+  filter(term %in% c("AvgPAC_c", "TreatFreq")) %>%
+  mutate(Sig = if_else(p.value < 0.05, "yes", "no"),
+         Dir = if_else(estimate > 0, "pos", "neg"),
+         term = fct_recode(term, "PAC" = "AvgPAC_c",
+                           "Treat" = "TreatFreq"),
+         CountGroup = paste(term, Sig, Dir, sep = "_"),
+         Habitat = fct_relevel(Habitat, "floating")) %>%
+  group_by(CommonName, Habitat, CountGroup) %>%
+  summarize(Taxa = n_distinct(TaxonName)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = CountGroup,
+              values_from = Taxa) %>%
+  mutate(across(.cols = where(is.integer), ~ replace_na(.x, 0)),
+         PAC_no = PAC_no_neg + PAC_no_pos,
+         Treat_no = Treat_no_neg + Treat_no_pos,
+         CommonName = tolower(CommonName),
+         CommonName = str_replace(CommonName, "cuban", "Cuban")) %>%
+  select(CommonName, Habitat, PAC_yes_neg, PAC_yes_pos, PAC_no, Treat_yes_neg, Treat_yes_pos, Treat_no)
+
+# split by invasive group
+foc_plant_coef_summ <- plant_coef_summ %>%
+  filter(CommonName %in% c("hydrilla", "water hyacinth", "water lettuce"))
+
+non_foc_plant_coef_summ <- plant_coef_summ %>%
+  filter(CommonName %in% c("Cuban bulrush", "para grass", "torpedograss"))
+
+write_csv(foc_plant_coef_summ, "output/fwc_focal_invasive_native_detected_PAC_treatment_summary.csv")
+write_csv(non_foc_plant_coef_summ, "output/fwc_non_focal_invasive_native_detected_PAC_treatment_summary.csv")
+
+
 #### predicted values ####
 
 # add coefficients to full data
@@ -193,19 +229,21 @@ comb_dat_PAC <- comb_dat2 %>%
                                CommonName == "Water lettuce" ~ "(C) water lettuce",
                                CommonName == "Cuban bulrush" ~ "(A) Cuban bulrush",
                                CommonName == "Para grass" ~ "(B) para grass",
-                               CommonName == "Torpedograss" ~ "(C) torpedograss")) 
+                               CommonName == "Torpedograss" ~ "(C) torpedograss"),
+         Habitat = fct_relevel(Habitat, "floating")) 
 
 comb_dat_treat <- comb_dat2 %>%
   left_join(plant_coef_treat) %>%
   mutate(Pred = logit2prob(Intercept + Coef * TreatFreq) * YearsSurveyed,
          Sig = fct_relevel(Sig, "yes"),
-         Treat = TreatFreq * 3,
+         Treat = TreatFreq * YearsSurveyed,
          PanelName = case_when(CommonName == "Hydrilla" ~ "(A) hydrilla management",
                                CommonName == "Water hyacinth" ~ "(B) water hyacinth management",
                                CommonName == "Water lettuce" ~ "(C) water lettuce management",
                                CommonName == "Cuban bulrush" ~ "(A) Cuban bulrush management",
                                CommonName == "Para grass" ~ "(B) para grass management",
-                               CommonName == "Torpedograss" ~ "(C) torpedograss management"))
+                               CommonName == "Torpedograss" ~ "(C) torpedograss management"),
+         Habitat = fct_relevel(Habitat, "floating"))
 
 # split by focal/non-focal
 foc_dat_PAC <- comb_dat_PAC %>%
@@ -224,50 +262,89 @@ non_foc_dat_treat <- comb_dat_treat %>%
 
 #### figures ####
 
+# PAC figures
 foc_fig_PAC <- ggplot(foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, color = Habitat)) +
   geom_line(aes(alpha = Sig, size = Sig)) +
   facet_wrap(~ PanelName, scales = "free") +
   scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
-  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
-  labs(x = "Invasive plant PAC", y = "Years detected") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
+  scale_size_manual(values = c(0.4, 0.25), name = "P < 0.05") +
+  labs(x = "Invasive plant PAC", y = "Native abundance\n(years detected)") +
+  scale_color_manual(values = brewer.set2(n = 3), name = "Native\nhabitat") +
   def_theme_paper +
   theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
-  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
-
-foc_fig_treat <- ggplot(foc_dat_treat, aes(x = Treat, y = Pred, group = TaxonName, color = Habitat)) +
-  geom_line(aes(alpha = Sig, size = Sig)) +
-  facet_wrap(~ PanelName, scales = "free") +
-  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
-  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
-  labs(x = "Years managed (out of 3)", y = "Years detected") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  def_theme_paper +
-  theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
-  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+  guides(color = guide_legend(order = 1, override.aes = list(size = 0.4, alpha = 1)))
 
 non_foc_fig_PAC <- ggplot(non_foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, color = Habitat)) +
   geom_line(aes(alpha = Sig, size = Sig)) +
   facet_wrap(~ PanelName, scales = "free") +
   scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
-  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
-  labs(x = "Invasive plant PAC", y = "Years detected") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
+  scale_size_manual(values = c(0.4, 0.25), name = "P < 0.05") +
+  labs(x = "Invasive plant PAC", y = "Native abundance\n(years detected)") +
+  scale_color_manual(values = brewer.set2(n = 3), name = "Native\nhabitat") +
   def_theme_paper +
   theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
-  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+  guides(color = guide_legend(order = 1, override.aes = list(size = 0.4, alpha = 1)))
 
-non_foc_fig_treat <- ggplot(non_foc_dat_treat, aes(x = Treat, y = Pred, group = TaxonName, color = Habitat)) +
-  geom_line(aes(alpha = Sig, size = Sig)) +
-  facet_wrap(~ PanelName, scales = "free") +
-  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
-  scale_size_manual(values = c(0.75, 0.5), name = "P < 0.05") +
-  labs(x = "Years managed (out of 3)", y = "Years detected") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  def_theme_paper +
-  theme(strip.text = element_text(size = 9, color = "black", hjust = 0)) +
-  guides(color = guide_legend(override.aes = list(size = 0.75, alpha = 1)))
+# can't adjust strip text titles to fit management in title
+# make separate panels
+# figure template
+treat_panels <- function(dat) {
+  
+  ggplot(dat, aes(x = Treat, y = Pred, group = TaxonName, color = Habitat)) +
+    geom_line(aes(alpha = Sig, size = Sig)) +
+    scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
+    scale_size_manual(values = c(0.4, 0.25), name = "P < 0.05") +
+    scale_color_manual(values = brewer.set2(n = 3), name = "Native\nhabitat") +
+    def_theme_paper +
+    guides(color = guide_legend(order = 1, override.aes = list(size = 0.4, alpha = 1)))
+  
+}
 
+# focal treatment
+hydr_fig_treat <- panel_template(filter(foc_dat_treat, CommonName == "Hydrilla")) +
+  labs(y = "Native abundance\n(years detected)", title = "(A) hydrilla management") +
+  theme(axis.title.x = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(size = 9, hjust = -1))
+wahy_fig_treat <- panel_template(filter(foc_dat_treat, CommonName == "Water hyacinth")) +
+  labs(x = "Years managed", title = "(B) water hyacinth management") +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(size = 9, hjust = 0.8))
+wale_fig_treat <- panel_template(filter(foc_dat_treat, CommonName == "Water lettuce")) +
+  labs(title = "(C) water lettuce management") +
+  theme(axis.title = element_blank(),
+        plot.title = element_text(size = 9, hjust = 0.6))
+
+foc_fig_treat <- hydr_fig_treat + wahy_fig_treat + wale_fig_treat
+
+# non-focal treatment
+cubu_fig_treat <- panel_template(filter(non_foc_dat_treat, CommonName == "Cuban bulrush")) +
+  labs(y = "Native abundance\n(years detected)", title = "(A) Cuban bulrush management") +
+  theme(axis.title.x = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(size = 9, hjust = 0.8))
+pagr_fig_treat <- panel_template(filter(non_foc_dat_treat, CommonName == "Para grass")) +
+  labs(x = "Years managed", title = "(B) para grass management") +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(size = 9, hjust = 0.8))
+torp_fig_treat <- panel_template(filter(non_foc_dat_treat, CommonName == "Torpedograss")) +
+  labs(title = "(C) torpedograss management") +
+  theme(axis.title = element_blank(),
+        plot.title = element_text(size = 9, hjust = 0.6))
+
+non_foc_fig_treat <- cubu_fig_treat + pagr_fig_treat + torp_fig_treat
+
+# save figures
+ggsave("output/fwc_focal_invasive_native_detected_PAC_prediction.png", foc_fig_PAC,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+ggsave("output/fwc_focal_invasive_native_detected_treatment_prediction.png", foc_fig_treat,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+ggsave("output/fwc_non_focal_invasive_native_detected_PAC_prediction.png", non_foc_fig_PAC,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+ggsave("output/fwc_non_focal_invasive_native_detected_treatment_prediction.png", non_foc_fig_treat,
+       device = "png", width = 6.5, height = 2.5, units = "in")
 
 
 #### older code ####

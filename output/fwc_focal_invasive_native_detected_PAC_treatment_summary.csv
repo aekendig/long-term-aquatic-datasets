@@ -1,0 +1,10 @@
+CommonName,Habitat,PAC_yes_neg,PAC_yes_pos,PAC_no,Treat_yes_neg,Treat_yes_pos,Treat_no
+hydrilla,floating,0,4,0,2,0,2
+hydrilla,emersed,4,24,15,10,19,14
+hydrilla,submersed,5,8,4,4,10,3
+water hyacinth,floating,0,3,1,0,4,0
+water hyacinth,emersed,23,14,6,3,28,12
+water hyacinth,submersed,12,1,2,6,7,2
+water lettuce,floating,0,3,1,0,4,0
+water lettuce,emersed,11,14,15,1,27,12
+water lettuce,submersed,8,2,4,1,9,4
