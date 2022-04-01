@@ -4,123 +4,99 @@
 rm(list = ls())
 
 # load packages
-library(plotly)
 library(tidyverse)
-library(fixest) # FE models
-library(modelsummary)
-library(inspectdf) # for inspect_cor
+library(inspectdf) # inspect_cor
+library(modelsummary) # modelplot
+library(patchwork) # combining figures
+library(plm) # panel data models
+library(pglm) # panel data models
+library(sandwich) # vcovHC
+library(lmtest) # coeftest
+library(glmmTMB) # random effects
+library(pals) # color palettes               
 
 # figure settings
 source("code/settings/figure_settings.R")
 
+# functions
+source("code/generic-functions/model_structure_comparison.R")
+
 # import data
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
-inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
+inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
 lw_chl <- read_csv("intermediate-data/LW_chlorophyll_formatted.csv")
 lwwa_chl <- read_csv("intermediate-data/LW_water_atlas_chlorophyll_formatted.csv")
 
 
 #### edit data ####
 
-# Avg prop covered columns
-inv_avg_cols <- tibble(cols = colnames(inv_plant)) %>%
-  filter(str_detect(cols, "AvgProp") == T) %>%
-  pull(cols)
+# add max years to invasion data
+inv_plant2 <- inv_plant %>%
+  filter(!is.na(Lag3AvgPropCovered) & !is.na(Lag3Treated)) %>%
+  group_by(CommonName) %>%
+  mutate(maxYears = n_distinct(GSYear)) %>%
+  ungroup()
 
-# check invasive plant data availability
-inv_plant %>%
-  inner_join(lwwa_chl %>%
-               select(PermanentID, GSYear) %>%
-               unique()) %>%
-  inner_join(inv_ctrl %>%
-               select(PermanentID, GSYear) %>%
-               unique()) %>%
-  filter(Lag6AvgPropCovered > 0) %>%
-  ggplot(aes(x = GSYear, y = Lag6AvgPropCovered, color = PermanentID)) +
-  geom_line() +
-  facet_wrap(~ CommonName, scales = "free_y") +
-  theme(legend.position = "none")
-# not enough data for: Alligator weed, water fern
-# Cuban bulrush is missing a lot of data before 2013
-# wild taro is difficult to distinguish from elephant ear, surveys may be inaccurate
-
-inv_taxa <- inv_plant %>%
-  filter(CommonName %in% c("Hydrilla", "Water lettuce", "Water hyacinth",
-                           "Torpedograss", "Para grass", "Cuban bulrush")) %>%
-  select(CommonName, TaxonName) %>%
+# check
+inv_plant2 %>%
+  select(CommonName, maxYears) %>%
   unique()
 
-# make long by lag
-# make wide by inv. plant species
-inv_plant2 <- inv_plant %>%
-  filter(CommonName %in% inv_taxa$CommonName) %>%
-  select(PermanentID, GSYear, CommonName, all_of(inv_avg_cols)) %>%
-  pivot_longer(cols = all_of(inv_avg_cols),
-               names_to = "Lag",
-               values_to = "AvgPropCovered") %>%
-  filter(!is.na(AvgPropCovered)) %>% # remove missing data
-  mutate(CommonName = fct_recode(CommonName,
-                                 "WaterHyacinth" = "Water hyacinth",
-                                 "WaterLettuce" = "Water lettuce",
-                                 "ParaGrass" = "Para grass",
-                                 "CubanBulrush" = "Cuban bulrush"),
-         Lag = as.numeric(str_sub(Lag, 4, 4)),
-         AvgPercCovered = AvgPropCovered * 100) %>%
-  select(-AvgPropCovered) %>%
-  pivot_wider(names_from = CommonName,
-              values_from = AvgPercCovered,
-              names_glue = "{CommonName}_AvgPercCovered") %>%
-  mutate(Floating_AvgPercCovered = WaterHyacinth_AvgPercCovered + WaterLettuce_AvgPercCovered)
 
-# Avg prop covered columns
-inv_ctrl_cols <- tibble(cols = colnames(inv_ctrl)) %>%
-  filter(str_detect(cols, "Treated") == T & 
-           str_detect(cols, "Lag") == T & 
-           str_detect(cols, "PropTreated") == F & 
-           str_detect(cols, "All") == F) %>%
-  pull(cols)
-
-# make long by lag
-# make wide by control target
-inv_ctrl2 <- inv_ctrl %>%
-  filter(TaxonName %in% inv_taxa$TaxonName) %>%
-  select(PermanentID, Species, GSYear, all_of(inv_ctrl_cols)) %>% 
-  unique() %>% # remove duplication of floating plant treatment
-  pivot_longer(cols = all_of(inv_ctrl_cols),
-               names_to = "Lag",
-               values_to = "TreatFreq") %>%
-  filter(!is.na(TreatFreq)) %>% # remove missing data
-  mutate(Species = fct_recode(Species,
-                              "Floating" = "Floating Plants (Eichhornia and Pistia)",
-                              "Hydrilla" = "Hydrilla verticillata",
-                              "Torpedograss" = "Panicum repens",
-                              "ParaGrass" = "Urochloa mutica",
-                              "CubanBulrush" = "Cyperus blepharoleptos"),
-         Lag = as.numeric(str_sub(Lag, 4, 4))) %>%
-  pivot_wider(names_from = Species,
-              values_from = TreatFreq,
-              names_glue = "{Species}_TreatFreq")
-
-# filter invasion for all lags
-inv_plant3 <- inv_plant2 %>%
-  filter(Lag == 6) %>%
-  select(PermanentID, GSYear) %>%
-  inner_join(inv_plant2)
-
-# filter control for all lags
-inv_ctrl3 <- inv_ctrl2 %>%
-  filter(Lag == 6) %>%
-  select(PermanentID, GSYear) %>%
-  inner_join(inv_ctrl2)
+#### start here ####
+# this method omits torpedograss
+# don't just want max years within chlorophyll data because they may not be the same years
 
 # combine chlorophyll, invasive, control
+# select waterbodies sampled throughout
 chl_dat <- lwwa_chl %>%
-  inner_join(inv_plant3) %>%
-  inner_join(inv_ctrl3)
+  mutate(ValueDiff = QualityValue - PrevValue) %>% # change over time
+  filter(!is.na(PrevValue)) %>%
+  inner_join(inv_plant2) %>%
+  group_by(CommonName, PermanentID, Quarter) %>%
+  mutate(nYears = n_distinct(GSYear)) %>% # years per waterbody
+  ungroup() %>%
+  filter(nYears == maxYears)
 
-lw_chl_dat <- lw_chl %>%
-  inner_join(inv_plant3) %>%
-  inner_join(inv_ctrl3)
+# sample sizes
+chl_dat %>%
+  group_by(CommonName, Quarter) %>%
+  summarize(Years = n_distinct(GSYear),
+            Waterbodies = n_distinct(PermanentID))
+  
+  # %>% # remove incomplete time-series
+  # group_by(CommonName, Quarter) %>%
+  # mutate(nWBs = n_distinct(PermanentID)) %>% # waterbodies per quarter
+  # ungroup() %>%
+  # group_by(CommonName) %>%
+  # mutate(maxWBs = max(nWBs)) %>% # max waterbodies per taxon
+  # ungroup() %>%
+  # filter(nWBs == maxWBs) # select quarter with max
+
+# taxa
+inv_taxa <- sort(unique(chl_dat$CommonName))
+
+# loop through taxa
+pdf("output/chlorophyll_continuous_time_series_by_taxon.pdf")
+
+for(i in 1:length(inv_taxa)){
+  
+  # subset data
+  subdat <- chl_dat %>% filter(CommonName == inv_taxa[i])
+  subdat_ctrl <- subdat %>% filter(Lag1Treated > 0)
+  
+  # make figure
+  print(ggplot(subdat, aes(x = GSYear, y = QualityValue, color = PermanentID)) +
+          geom_line() +
+          geom_point(data = subdat_ctrl) + 
+          facet_wrap(~ Quarter) + 
+          labs(x = "Year", y = "Chlorophyll a (ug/L)", title = inv_taxa[i]) +
+          def_theme_paper +
+          theme(plot.title = element_text(hjust = 0.5, size = 8),
+                legend.position = "none"))
+  
+}
+
+dev.off()
 
 
 #### initial visualizations ####

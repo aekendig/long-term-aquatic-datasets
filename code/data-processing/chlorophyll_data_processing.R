@@ -14,34 +14,36 @@ wa_qual <- read_csv("intermediate-data/water_atlas_quality_formatted.csv")
 
 
 #### iniital visualizations ####
-
-ggplot(lw_qual, aes(x = GSYear, y = QualityValue, color = PermanentID)) +
+lw_qual %>%
+  filter(QualityMetric %in% c("CHL_ug_L", "TN_ug_L", "TP_ug_L", "Secchi_ft", "Color_Pt_Co_Units", "Cond_uS_cm")) %>%
+ggplot(aes(x = GSYear, y = QualityValue, color = PermanentID)) +
   geom_line() +
-  facet_wrap(~ QualityMetric, scales = "free_y") +
+  facet_grid(QualityMetric ~ Quarter, scales = "free_y") +
   theme(legend.position = "none")
 # color and conductivity don't start until 2000-2006
 # some weirdly high P values
+# one very high chlorophyll value in quarter 2
 # assume missing is missing, not zero values
 
 ggplot(wa_qual, aes(x = GSYear, y = QualityValue, color = PermanentID)) +
   geom_line() +
-  facet_wrap(~ QualityMetric, scales = "free_y") +
+  facet_grid(QualityMetric ~ Quarter, scales = "free_y") +
   theme(legend.position = "none")
-# one super high chlorophyll value (don't exceed 400 in LW data)
+# some super high chlorophyll values (don't exceed 400 in LW data)
 # some very high P values
 
 wa_qual %>%
-  filter(QualityMetric == "CHL_ug_L" & QualityValue > 2e4) %>%
+  filter(QualityMetric == "CHL_ug_L" & QualityValue > 1e4) %>%
   data.frame()
-# Lawne Lake in 1971 -- won't be going back that far
+# most are pre-1980 -- won't be going back that far
 # Noreast Lake in 2006
 # neither has a QACode
 
 wa_qual %>%
-  filter(GSYear >= 2000 & !(QualityMetric == "CHL_ug_L" & QualityValue > 2e4)) %>%
+  filter(GSYear >= 2000 & !(QualityMetric == "CHL_ug_L" & QualityValue > 1e4)) %>%
   ggplot(aes(x = GSYear, y = QualityValue, color = PermanentID)) +
   geom_line() +
-  facet_wrap(~ QualityMetric, scales = "free_y") +
+  facet_grid(QualityMetric ~ Quarter, scales = "free_y") +
   theme(legend.position = "none")
 
 
@@ -53,22 +55,13 @@ lw_chl <- lw_qual %>%
   full_join(lw_qual %>%
               select(PermanentID) %>%
               unique() %>%
-              expand_grid(GSYear = min(lw_qual$GSYear):max(lw_qual$GSYear))) %>%
-  group_by(PermanentID) %>%
+              expand_grid(GSYear = min(lw_qual$GSYear):max(lw_qual$GSYear)) %>%
+              expand_grid(Quarter = 1:4)) %>%
+  group_by(PermanentID, Quarter) %>%
   arrange(GSYear) %>% 
   mutate(PrevValue = lag(QualityValue)) %>% # previous year's value
   ungroup() %>%
-  mutate(RatioQual = QualityValue / PrevValue,
-         LogRatioQual = log(RatioQual)) %>%
-  filter(!is.na(QualityValue) & !is.na(PrevValue) & !(LogRatioQual %in% c(Inf, -Inf)))
-# one lake has a chlorophyll value of 0 in 2002, resulting in -Inf
-
-# check values
-ggplot(lw_chl, aes(x = GSYear, y = LogRatioQual, color = PermanentID)) +
-  geom_line() +
-  theme(legend.position = "none")
-
-filter(lw_chl, LogRatioQual < -3) %>% data.frame()
+  filter(!is.na(QualityValue))
 
 # repeat for Water Atlas
 wa_chl <- wa_qual %>%
@@ -76,27 +69,19 @@ wa_chl <- wa_qual %>%
   full_join(lw_qual %>%
               select(PermanentID) %>%
               unique() %>%
-              expand_grid(GSYear = min(lw_qual$GSYear):max(lw_qual$GSYear))) %>%
-  group_by(PermanentID) %>%
+              expand_grid(GSYear = min(lw_qual$GSYear):max(lw_qual$GSYear)) %>%
+              expand_grid(Quarter = 1:4)) %>%
+  group_by(PermanentID, Quarter) %>%
   arrange(GSYear) %>% 
   mutate(PrevValue = lag(QualityValue)) %>% # previous year's value
   ungroup() %>%
-  mutate(RatioQual = QualityValue / PrevValue,
-         LogRatioQual = log(RatioQual)) %>%
-  filter(!is.na(QualityValue) & !is.na(PrevValue) & !(LogRatioQual %in% c(Inf, -Inf)))
-# one lake has a zero value in one year
-
-# check values
-ggplot(wa_chl, aes(x = GSYear, y = LogRatioQual, color = PermanentID)) +
-  geom_line() +
-  theme(legend.position = "none")
-# much larger values than LW
+  filter(!is.na(QualityValue))
 
 # combine data
 qual <- lw_qual %>%
   full_join(wa_qual) %>%
   filter(QualityMetric == "CHL_ug_L") %>%
-  group_by(PermanentID, GSYear) %>%
+  group_by(PermanentID, GSYear, Quarter) %>%
   summarize(QualityValue = mean(QualityValue),
             MonthsSampled = mean(MonthsSampled)) %>%
   ungroup()
@@ -105,19 +90,13 @@ lwwa_chl <-  qual %>%
   full_join(qual %>%
               select(PermanentID) %>%
               unique() %>%
-              expand_grid(GSYear = min(qual$GSYear):max(qual$GSYear))) %>%
-  group_by(PermanentID) %>%
+              expand_grid(GSYear = min(qual$GSYear):max(qual$GSYear)) %>%
+              expand_grid(Quarter = 1:4)) %>%
+  group_by(PermanentID, Quarter) %>%
   arrange(GSYear) %>% 
   mutate(PrevValue = lag(QualityValue)) %>% # previous year's value
   ungroup() %>%
-  mutate(RatioQual = QualityValue / PrevValue,
-         LogRatioQual = log(RatioQual)) %>%
-  filter(!is.na(QualityValue) & !is.na(PrevValue) & !(LogRatioQual %in% c(Inf, -Inf)))
-
-# check values
-ggplot(lwwa_chl, aes(x = GSYear, y = LogRatioQual, color = PermanentID)) +
-  geom_line() +
-  theme(legend.position = "none")
+  filter(!is.na(QualityValue))
 
 
 #### output #####

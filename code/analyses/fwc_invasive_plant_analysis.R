@@ -16,7 +16,6 @@ library(sandwich) # vcovHC
 library(lmtest) # coeftest
 library(pals) # color palettes
 
-
 # figure settings
 source("code/settings/figure_settings.R")
 

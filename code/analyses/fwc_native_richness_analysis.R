@@ -110,6 +110,32 @@ nat_dat2 <- nat_dat %>%
   mutate(across(ends_with("AvgPropCovered"), ~ .x * 100)) %>%
   rename_with(str_replace, pattern = "AvgPropCovered", replacement = "AvgPercCovered")
 
+# taxa
+inv_taxa <- sort(unique(nat_dat2$CommonName))
+
+# loop through taxa
+pdf("output/native_richness_continuous_time_series_by_taxon.pdf")
+
+for(i in 1:length(inv_taxa)){
+  
+  # subset data
+  subdat <- nat_dat2 %>% filter(CommonName == inv_taxa[i])
+  subdat_ctrl <- subdat %>% filter(Lag1Treated > 0)
+  
+  # make figure
+  print(ggplot(subdat, aes(x = GSYear, y = Richness, color = PermanentID)) +
+          geom_line() +
+          geom_point(data = subdat_ctrl) + 
+          labs(x = "Year", y = "Native taxonomic richness", title = inv_taxa[i]) +
+          def_theme_paper +
+          theme(strip.text = element_blank(),
+                plot.title = element_text(hjust = 0.5, size = 8),
+                legend.position = "none"))
+  
+}
+
+dev.off()
+
 # split by species
 hydr_dat <- filter(nat_dat2, CommonName == "Hydrilla")
 wale_dat <- filter(nat_dat2, CommonName == "Water lettuce")

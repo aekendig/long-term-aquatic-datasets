@@ -244,7 +244,7 @@ qa_nods <- qa %>%
   select(-c(DataSource, Notes))
 
 # QA codes
-# J# codes are multiple charactes long, others are one
+# J# codes are multiple characters long, others are one
 atlas_qa <- atlas2 %>%
   filter(!is.na(QACode) & QACode != "NULL") %>%
   select(DataSource, QACode) %>%
@@ -494,7 +494,7 @@ sum(is.na(atlas4$Result_Value))
 
 # select relevant columns
 # remove duplicate values (within and across data sources)
-# summarize by permanent ID and growing season year
+# summarize by permanent ID and month
 atlas5 <- atlas4 %>%
   mutate(GSYear = case_when(Month >= 4 ~ Year,
                             Month < 4 ~ Year - 1)) %>%
@@ -524,8 +524,22 @@ atlas5 <- atlas4 %>%
             QAMeaning = paste(unique(QAMeaning), collapse = "; "),
             AvgStationsPerDate = mean(StationsPerDate),
             DatesSampled = n()) %>%
-  ungroup() %>%
-  group_by(PermanentID, WaterBodyName, GSYear, Parameter) %>%
+  ungroup()
+
+# visulaize month distribution
+ggplot(atlas5, aes(x = Month)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ Parameter)
+# grouping samples by quarters includes at least one highly sampled month
+
+# year quarters
+quarts <- tibble(Month = 1:12,
+                 Quarter = rep(c(4, 1:3), each = 3))
+
+# summarize by permanent ID and quarter
+atlas6 <- atlas5 %>%
+  left_join(quarts) %>%
+  group_by(PermanentID, WaterBodyName, GSYear, Quarter, Parameter) %>%
   summarize(Result_Value = mean(Result_Value), # average across months within a GS year
             QACode = paste(unique(QACode), collapse = "; "),
             QAMeaning = paste(unique(QAMeaning), collapse = "; "),
@@ -544,4 +558,4 @@ atlas5 <- atlas4 %>%
          "QualityValue" = "Result_Value")
 
 # save data
-write_csv(atlas5, "intermediate-data/water_atlas_quality_formatted.csv")
+write_csv(atlas6, "intermediate-data/water_atlas_quality_formatted.csv")

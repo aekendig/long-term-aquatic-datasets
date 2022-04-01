@@ -73,7 +73,7 @@ qual4 <- qual3 %>%
   filter(!is.na(PermanentID)) %>% # non-lakes or lakes without clear geographic matches
   select(-AreaOfInterest)
 
-# summarize quality data by growing season year
+# summarize quality data by month
 qual5 <- qual4 %>%
   mutate(GSYear = case_when(Month >= 4 ~ Year,
                             Month < 4 ~ Year - 1)) %>%
@@ -93,8 +93,22 @@ qual5 <- qual4 %>%
             DatesSampled = n(),
             across(.cols = c(Lake, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource), 
                    ~ unique(.x))) %>%
-  ungroup() %>%
-  group_by(PermanentID, GSYear, QualityMetric) %>% # average across months is a GS Year
+  ungroup() 
+
+# visulaize month distribution
+ggplot(qual5, aes(x = Month)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ QualityMetric)
+# grouping samples by quarters includes at least one highly sampled month
+
+# year quarters
+quarts <- tibble(Month = 1:12,
+                 Quarter = rep(c(4, 1:3), each = 3))
+
+# summarize quality data by quarter
+qual6 <- qual5 %>%
+  left_join(quarts) %>%
+  group_by(PermanentID, GSYear, Quarter, QualityMetric) %>% # average across months in a quarter
   summarize(QualityValue = mean(QualityValue, na.rm = TRUE),
             AvgStationsPerDate = mean(AvgStationsPerDate),
             AvgDatesPerMonth = mean(DatesSampled),
@@ -104,14 +118,14 @@ qual5 <- qual4 %>%
   ungroup()
 
 # distribution of samples
-qual5 %>%
+qual6 %>%
   filter(QualityMetric %in% c("CHL_ug_L", "TN_ug_L", "TP_ug_L", "Secchi_ft", "Color_Pt_Co_Units", "Cond_uS_cm")) %>%
   ggplot(aes(x = MonthsSampled)) +
-  geom_histogram() +
-  facet_wrap(~QualityMetric, scales = "free")
+  geom_histogram(binwidth = 1) +
+  facet_grid(Quarter ~ QualityMetric, scales = "free")
 
 # some have a ton of dates (used to change summarizing above)
-# (many_dates <- qual5 %>%
+# (many_dates <- qual6 %>%
 #   filter(DatesSampled > 24) %>%
 #   select(PermanentID, GSYear, QualityMetric, DatesSampled) %>%
 #   left_join(qual4 %>%
@@ -121,4 +135,4 @@ qual5 %>%
 
 
 #### output ####
-write_csv(qual5, "intermediate-data/LW_quality_formatted.csv")
+write_csv(qual6, "intermediate-data/LW_quality_formatted.csv")
