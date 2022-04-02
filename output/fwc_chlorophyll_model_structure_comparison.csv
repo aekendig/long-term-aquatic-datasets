@@ -1,0 +1,13 @@
+Species,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,init_fix_loc_yr,diff_fix_loc_yr,init_diff_fix_loc_yr
+hydrilla,(Intercept),51.671,53.541,51.55,53.698,NA,NA,NA,NA,NA
+hydrilla,PAC,-0.657,0.254,-0.788,0.012,0.622,0.276,0.255,0.207,0.255
+hydrilla,management,5.805,-2.026,6.674,-1.095,-2.895,-1.154,-0.755,0.149,-0.755
+hydrilla,PrevValue_s,NA,NA,NA,NA,NA,NA,12.125,NA,-27.542
+water hyacinth,(Intercept),45.227,48.346,44.639,46.978,NA,NA,NA,NA,NA
+water hyacinth,PAC,15.134,8.674,14.976,8.311,1.468,1.489,1.467,1.416,1.467
+water hyacinth,management,7.4,4.678,8.35,6.887,3.519,4.45,2.762,-1.158,2.762
+water hyacinth,PrevValue_s,NA,NA,NA,NA,NA,NA,11.943,NA,-27.729
+water lettuce,(Intercept),55.825,50.625,55.904,50.089,NA,NA,NA,NA,NA
+water lettuce,PAC,24.93,14.354,24.772,13.392,4.438,3.941,3.582,2.686,3.582
+water lettuce,management,-2.819,8.081,-2.868,9.157,7.562,6.582,3.052,-5.772,3.052
+water lettuce,PrevValue_s,NA,NA,NA,NA,NA,NA,12.232,NA,-30.579

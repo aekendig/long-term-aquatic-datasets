@@ -153,11 +153,11 @@ nat_dat2 %>%
   group_by(CommonName) %>%
   inspect_cor() %>% 
   ungroup() %>%
-  filter(p_value < 0.05 & corr >= 0.4) %>%
+  filter(p_value < 0.05 & abs(corr) >= 0.4) %>%
   data.frame()
 # previous richness and surveyor experience for para grass
 
-# richness diff distribution
+# response distributions
 ggplot(nat_dat2, aes(x = RichnessDiff)) +
   geom_histogram() +
   facet_wrap(~ CommonName, scales = "free_y")
@@ -332,7 +332,7 @@ wale_mod_diff_fix_loc_yr <- plm(RichnessDiff ~ Lag1AvgPercCovered + Lag1Treated,
 plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
 plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-# use annual difference without initial PAC and with waterbody and year fixed effects
+# use annual difference without initial richness and with waterbody and year fixed effects
 
 
 

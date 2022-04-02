@@ -159,7 +159,7 @@ inv_dat4 %>%
   group_by(CommonName) %>%
   inspect_cor() %>% 
   ungroup() %>%
-  filter(p_value < 0.05 & corr >= 0.4) %>%
+  filter(p_value < 0.05 & abs(corr) >= 0.4) %>%
   data.frame()
 # treated and all treated correlated for focal invasive species (expected)
 
