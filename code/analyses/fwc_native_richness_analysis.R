@@ -559,12 +559,12 @@ torp_fit <- mutate(torp_dat3, Fitted = as.numeric(torp_dat3$RichnessDiff - torp_
   as.data.frame(keep.attributes = F)
 
 # fitted vs. observed
-ggplot(hydr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(wahy_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(wale_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(cubu_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(pagr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(torp_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
+ggplot(hydr_fit, aes(x = Fitted, y = RichnessDiff)) + geom_point()
+ggplot(wahy_fit, aes(x = Fitted, y = RichnessDiff)) + geom_point()
+ggplot(wale_fit, aes(x = Fitted, y = RichnessDiff)) + geom_point()
+ggplot(cubu_fit, aes(x = Fitted, y = RichnessDiff)) + geom_point()
+ggplot(pagr_fit, aes(x = Fitted, y = RichnessDiff)) + geom_point()
+ggplot(torp_fit, aes(x = Fitted, y = RichnessDiff)) + geom_point()
 # generally poor fits
 
 # export models

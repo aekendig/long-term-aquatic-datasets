@@ -163,14 +163,13 @@ cubu_dat <- filter(chl_dat2, CommonName == "Cuban bulrush")
 # covariate correlations
 chl_dat2 %>%
   select(Quarter, CommonName, 
-         Lag3Treated, Lag3AvgPercCovered, MinSurveyorExperience, PrevValue) %>%
+         Lag3Treated, Lag3AvgPercCovered, PrevValue) %>%
   group_by(Quarter, CommonName) %>%
   inspect_cor() %>% 
   ungroup() %>%
   filter(p_value < 0.05 & abs(corr) >= 0.4) %>%
   data.frame()
 # water lettuce: prev value is correlated with PAC
-# water lettuce: surveyor experience is correlated with treat
 
 # response distributions
 ggplot(chl_dat2, aes(x = ValueDiff)) +
@@ -352,8 +351,7 @@ plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 dat_mod_filt <- function(treat_col, inv_col, dat_in){
   
   dat_mod <- dat_in %>%
-    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-           Treated = !!sym(treat_col),
+    mutate(Treated = !!sym(treat_col),
            AvgPercCovered = !!sym(inv_col),
            AvgPercCovered_c = AvgPercCovered - mean(AvgPercCovered))
   
@@ -378,7 +376,7 @@ mod_fit <- function(dat_in){
   # fit models
   if(foc_sp == "Cuban bulrush") {
     
-    mod1 <- plm(ValueDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s, data = dat_mod1,
+    mod1 <- plm(ValueDiff ~ AvgPercCovered_c + Treated, data = dat_mod1,
                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
     mod2 <- update(mod1, data = dat_mod2)
     mod3 <- update(mod1, data = dat_mod3)
@@ -387,7 +385,7 @@ mod_fit <- function(dat_in){
     
   } else {
     
-    mod1 <- plm(ValueDiff ~ AvgPercCovered_c + Treated + SurveyorExperience_s, data = dat_mod1,
+    mod1 <- plm(ValueDiff ~ AvgPercCovered_c + Treated, data = dat_mod1,
                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
     mod2 <- update(mod1, data = dat_mod2)
     mod3 <- update(mod1, data = dat_mod3)
@@ -441,8 +439,7 @@ names(cubu_mods_q1) <- names(cubu_mods_q2) <- names(cubu_mods_q3) <- names(cubu_
 #### coefficient figures and tables ####
 
 # rename coefficients
-coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "Treated" = "Management", 
+coef_names <- c("Treated" = "Management", 
                 "AvgPercCovered_c" = "Invasive PAC")
 
 # ggplot function
@@ -493,7 +490,7 @@ panel_plot_fun <- function(mods1, mods2, mods3,
     title = "Effects on annual difference in chlorophyll a")
   
   ggsave(filename, comb_fig,
-         device = "eps", width = 6.5, height = 3.5, units = "in")
+         device = "eps", width = 6.5, height = 3, units = "in")
   
 }
 
@@ -526,7 +523,7 @@ panel_plot_non_foc_fun <- function(mods1, mods2,
       title = "Effects on annual difference in chlorophyll a")
   
   ggsave(filename, comb_fig,
-         device = "eps", width = 4.7, height = 3.5, units = "in")
+         device = "eps", width = 4.7, height = 3, units = "in")
   
 }
 
@@ -566,161 +563,249 @@ panel_plot_non_foc_fun(cubu_mods_q4, torp_mods_q4,
 # chlorophyll change measured in Q4
 
 
-#### start here ####
-
 #### finalize models ####
 
-# SE with heteroskedasticity and autocorrelation
-coeftest(hydr_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
-coeftest(wahy_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig
-coeftest(wale_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig
-coeftest(cubu_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
-coeftest(pagr_mods[[3]], vcov = vcovHC, type = "HC3") # none sig
-coeftest(torp_mods[[3]], vcov = vcovHC, type = "HC3") # treatment and PAC sig
+# data format function
+dat_mod_fin <- function(dat_in, quarter){
+  
+  # center invasive PAC
+  # make p data frame
+  dat_out <- dat_in %>%
+    filter(Quarter == quarter) %>%
+    mutate(AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered),
+           Treated = Lag3Treated) %>%
+    pdata.frame(index = c("PermanentID", "GSYear"))
+  
+  return(dat_out)
+    
+}
 
-# don't need surveyor experience
-# only using lag 3
-hydr_dat3 <- hydr_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-wahy_dat3 <- wahy_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-wale_dat3 <- wale_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-cubu_dat3 <- cubu_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-torp_dat3 <- torp_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-pagr_dat3 <- pagr_dat %>% filter(!is.na(Lag3Treated) & !is.na(Lag3AvgPercCovered)) %>%
-  mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-         AvgPercCovered_c = Lag3AvgPercCovered - mean(Lag3AvgPercCovered)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
+# format data
+hydr_dat3_q1 <- dat_mod_fin(hydr_dat, 1)
+wahy_dat3_q1 <- dat_mod_fin(wahy_dat, 1)
+wale_dat3_q1 <- dat_mod_fin(wale_dat, 1)
+cubu_dat3_q1 <- dat_mod_fin(cubu_dat, 1)
+torp_dat3_q1 <- dat_mod_fin(torp_dat, 1)
+
+hydr_dat3_q2 <- dat_mod_fin(hydr_dat, 2)
+wahy_dat3_q2 <- dat_mod_fin(wahy_dat, 2)
+wale_dat3_q2 <- dat_mod_fin(wale_dat, 2)
+cubu_dat3_q2 <- dat_mod_fin(cubu_dat, 2)
+torp_dat3_q2 <- dat_mod_fin(torp_dat, 2)
+
+hydr_dat3_q3 <- dat_mod_fin(hydr_dat, 3)
+wahy_dat3_q3 <- dat_mod_fin(wahy_dat, 3)
+wale_dat3_q3 <- dat_mod_fin(wale_dat, 3)
+cubu_dat3_q3 <- dat_mod_fin(cubu_dat, 3)
+torp_dat3_q3 <- dat_mod_fin(torp_dat, 3)
+
+hydr_dat3_q4 <- dat_mod_fin(hydr_dat, 4)
+wahy_dat3_q4 <- dat_mod_fin(wahy_dat, 4)
+wale_dat3_q4 <- dat_mod_fin(wale_dat, 4)
+cubu_dat3_q4 <- dat_mod_fin(cubu_dat, 4)
+torp_dat3_q4 <- dat_mod_fin(torp_dat, 4)
 
 # fit models
-hydr_nat_rich_mod <- plm(RichnessDiff ~ AvgPercCovered_c + Lag3Treated, data = hydr_dat3,
-                         index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-wahy_nat_rich_mod <- update(hydr_nat_rich_mod, data = wahy_dat3)
-wale_nat_rich_mod <- update(hydr_nat_rich_mod, data = wale_dat3)
-cubu_nat_rich_mod <- update(hydr_nat_rich_mod, data = cubu_dat3)
-torp_nat_rich_mod <- update(hydr_nat_rich_mod, data = torp_dat3)
-pagr_nat_rich_mod <- update(hydr_nat_rich_mod, data = pagr_dat3)
+hydr_chl_mod_q1 <- plm(ValueDiff ~ AvgPercCovered_c + Treated, data = hydr_dat3_q1,
+                       index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+wahy_chl_mod_q1 <- update(hydr_chl_mod_q1, data = wahy_dat3_q1)
+wale_chl_mod_q1 <- update(hydr_chl_mod_q1, data = wale_dat3_q1)
+cubu_chl_mod_q1 <- update(hydr_chl_mod_q1, data = cubu_dat3_q1)
+torp_chl_mod_q1 <- update(hydr_chl_mod_q1, data = torp_dat3_q1)
 
-# check fits
-# overall p-values matches management estimate - use adjusted below
-summary(hydr_nat_rich_mod)
-summary(wahy_nat_rich_mod)
-summary(wale_nat_rich_mod)
-summary(cubu_nat_rich_mod)
-summary(torp_nat_rich_mod)
-summary(pagr_nat_rich_mod)
-# all are balanced
+hydr_chl_mod_q2 <- update(hydr_chl_mod_q1, data = hydr_dat3_q2)
+wahy_chl_mod_q2 <- update(hydr_chl_mod_q2, data = wahy_dat3_q2)
+wale_chl_mod_q2 <- update(hydr_chl_mod_q2, data = wale_dat3_q2)
+cubu_chl_mod_q2 <- update(hydr_chl_mod_q2, data = cubu_dat3_q2)
+torp_chl_mod_q2 <- update(hydr_chl_mod_q2, data = torp_dat3_q2)
+
+hydr_chl_mod_q3 <- update(hydr_chl_mod_q1, data = hydr_dat3_q3)
+wahy_chl_mod_q3 <- update(hydr_chl_mod_q3, data = wahy_dat3_q3)
+wale_chl_mod_q3 <- update(hydr_chl_mod_q3, data = wale_dat3_q3)
+cubu_chl_mod_q3 <- update(hydr_chl_mod_q3, data = cubu_dat3_q3)
+torp_chl_mod_q3 <- update(hydr_chl_mod_q3, data = torp_dat3_q3)
+
+hydr_chl_mod_q4 <- update(hydr_chl_mod_q1, data = hydr_dat3_q4)
+wahy_chl_mod_q4 <- update(hydr_chl_mod_q4, data = wahy_dat3_q4)
+wale_chl_mod_q4 <- update(hydr_chl_mod_q4, data = wale_dat3_q4)
+cubu_chl_mod_q4 <- update(hydr_chl_mod_q4, data = cubu_dat3_q4)
+torp_chl_mod_q4 <- update(hydr_chl_mod_q4, data = torp_dat3_q4)
 
 # SE with heteroscedasticity and autocorrelation
-(hydr_nat_rich_mod_se <- coeftest(hydr_nat_rich_mod, vcov = vcovHC, type = "HC3"))
-(wahy_nat_rich_mod_se <- coeftest(wahy_nat_rich_mod, vcov = vcovHC, type = "HC3")) # treated sig
-(wale_nat_rich_mod_se <- coeftest(wale_nat_rich_mod, vcov = vcovHC, type = "HC3")) # treated sig
-(cubu_nat_rich_mod_se <- coeftest(cubu_nat_rich_mod, vcov = vcovHC, type = "HC3")) # none
-(pagr_nat_rich_mod_se <- coeftest(pagr_nat_rich_mod, vcov = vcovHC, type = "HC3")) # cover sig
-(torp_nat_rich_mod_se <- coeftest(torp_nat_rich_mod, vcov = vcovHC, type = "HC3")) # all sig
+coeftest(hydr_chl_mod_q1, vcov = vcovHC, type = "HC3")
+coeftest(wahy_chl_mod_q1, vcov = vcovHC, type = "HC3") # PAC
+coeftest(wale_chl_mod_q1, vcov = vcovHC, type = "HC3") 
+coeftest(cubu_chl_mod_q1, vcov = vcovHC, type = "HC3") 
+coeftest(torp_chl_mod_q1, vcov = vcovHC, type = "HC3") 
+
+coeftest(hydr_chl_mod_q2, vcov = vcovHC, type = "HC3")
+coeftest(wahy_chl_mod_q2, vcov = vcovHC, type = "HC3") 
+coeftest(wale_chl_mod_q2, vcov = vcovHC, type = "HC3") 
+coeftest(cubu_chl_mod_q2, vcov = vcovHC, type = "HC3") # PAC
+coeftest(torp_chl_mod_q2, vcov = vcovHC, type = "HC3") 
+
+coeftest(hydr_chl_mod_q3, vcov = vcovHC, type = "HC3")
+coeftest(wahy_chl_mod_q3, vcov = vcovHC, type = "HC3") 
+coeftest(wale_chl_mod_q3, vcov = vcovHC, type = "HC3") 
+coeftest(cubu_chl_mod_q3, vcov = vcovHC, type = "HC3") 
+coeftest(torp_chl_mod_q3, vcov = vcovHC, type = "HC3") 
+
+coeftest(hydr_chl_mod_q4, vcov = vcovHC, type = "HC3")
+coeftest(wahy_chl_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(wale_chl_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(cubu_chl_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(torp_chl_mod_q4, vcov = vcovHC, type = "HC3") 
 
 # add fitted values to pdata.frame (important to match rows)
 # convert to regular dataframe
-hydr_fit <- mutate(hydr_dat3, Fitted = as.numeric(hydr_dat3$RichnessDiff - hydr_nat_rich_mod$residuals)) %>%
+hydr_fit_q1 <- mutate(hydr_dat3_q1, Fitted = as.numeric(hydr_dat3_q1$ValueDiff - hydr_chl_mod_q1$residuals)) %>%
   as.data.frame(keep.attributes = F)
-wahy_fit <- mutate(wahy_dat3, Fitted = as.numeric(wahy_dat3$RichnessDiff - wahy_nat_rich_mod$residuals)) %>%
+wahy_fit_q1 <- mutate(wahy_dat3_q1, Fitted = as.numeric(wahy_dat3_q1$ValueDiff - wahy_chl_mod_q1$residuals)) %>%
   as.data.frame(keep.attributes = F)
-wale_fit <- mutate(wale_dat3, Fitted = as.numeric(wale_dat3$RichnessDiff - wale_nat_rich_mod$residuals)) %>%
+wale_fit_q1 <- mutate(wale_dat3_q1, Fitted = as.numeric(wale_dat3_q1$ValueDiff - wale_chl_mod_q1$residuals)) %>%
   as.data.frame(keep.attributes = F)
-cubu_fit <- mutate(cubu_dat3, Fitted = as.numeric(cubu_dat3$RichnessDiff - cubu_nat_rich_mod$residuals)) %>%
+cubu_fit_q1 <- mutate(cubu_dat3_q1, Fitted = as.numeric(cubu_dat3_q1$ValueDiff - cubu_chl_mod_q1$residuals)) %>%
   as.data.frame(keep.attributes = F)
-pagr_fit <- mutate(pagr_dat3, Fitted = as.numeric(pagr_dat3$RichnessDiff - pagr_nat_rich_mod$residuals)) %>%
+torp_fit_q1 <- mutate(torp_dat3_q1, Fitted = as.numeric(torp_dat3_q1$ValueDiff - torp_chl_mod_q1$residuals)) %>%
   as.data.frame(keep.attributes = F)
-torp_fit <- mutate(torp_dat3, Fitted = as.numeric(torp_dat3$RichnessDiff - torp_nat_rich_mod$residuals)) %>%
+
+hydr_fit_q2 <- mutate(hydr_dat3_q2, Fitted = as.numeric(hydr_dat3_q2$ValueDiff - hydr_chl_mod_q2$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wahy_fit_q2 <- mutate(wahy_dat3_q2, Fitted = as.numeric(wahy_dat3_q2$ValueDiff - wahy_chl_mod_q2$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wale_fit_q2 <- mutate(wale_dat3_q2, Fitted = as.numeric(wale_dat3_q2$ValueDiff - wale_chl_mod_q2$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_fit_q2 <- mutate(cubu_dat3_q2, Fitted = as.numeric(cubu_dat3_q2$ValueDiff - cubu_chl_mod_q2$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_fit_q2 <- mutate(torp_dat3_q2, Fitted = as.numeric(torp_dat3_q2$ValueDiff - torp_chl_mod_q2$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+
+hydr_fit_q3 <- mutate(hydr_dat3_q3, Fitted = as.numeric(hydr_dat3_q3$ValueDiff - hydr_chl_mod_q3$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wahy_fit_q3 <- mutate(wahy_dat3_q3, Fitted = as.numeric(wahy_dat3_q3$ValueDiff - wahy_chl_mod_q3$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wale_fit_q3 <- mutate(wale_dat3_q3, Fitted = as.numeric(wale_dat3_q3$ValueDiff - wale_chl_mod_q3$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_fit_q3 <- mutate(cubu_dat3_q3, Fitted = as.numeric(cubu_dat3_q3$ValueDiff - cubu_chl_mod_q3$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_fit_q3 <- mutate(torp_dat3_q3, Fitted = as.numeric(torp_dat3_q3$ValueDiff - torp_chl_mod_q3$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+
+hydr_fit_q4 <- mutate(hydr_dat3_q4, Fitted = as.numeric(hydr_dat3_q4$ValueDiff - hydr_chl_mod_q4$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wahy_fit_q4 <- mutate(wahy_dat3_q4, Fitted = as.numeric(wahy_dat3_q4$ValueDiff - wahy_chl_mod_q4$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+wale_fit_q4 <- mutate(wale_dat3_q4, Fitted = as.numeric(wale_dat3_q4$ValueDiff - wale_chl_mod_q4$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_fit_q4 <- mutate(cubu_dat3_q4, Fitted = as.numeric(cubu_dat3_q4$ValueDiff - cubu_chl_mod_q4$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_fit_q4 <- mutate(torp_dat3_q4, Fitted = as.numeric(torp_dat3_q4$ValueDiff - torp_chl_mod_q4$residuals)) %>%
   as.data.frame(keep.attributes = F)
 
 # fitted vs. observed
-ggplot(hydr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(wahy_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(wale_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(cubu_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(pagr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(torp_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-# generally poor fits
+ggplot(hydr_fit_q1, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wahy_fit_q1, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wale_fit_q1, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(cubu_fit_q1, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(torp_fit_q1, aes(x = Fitted, y = ValueDiff)) + geom_point()
+
+ggplot(hydr_fit_q2, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wahy_fit_q2, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wale_fit_q2, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(cubu_fit_q2, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(torp_fit_q2, aes(x = Fitted, y = ValueDiff)) + geom_point()
+
+ggplot(hydr_fit_q3, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wahy_fit_q3, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wale_fit_q3, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(cubu_fit_q3, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(torp_fit_q3, aes(x = Fitted, y = ValueDiff)) + geom_point()
+
+ggplot(hydr_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wahy_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(wale_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(cubu_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
+ggplot(torp_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
+
+# combine models
+hydr_chl_mods <- list(hydr_chl_mod_q1, hydr_chl_mod_q2, hydr_chl_mod_q3, hydr_chl_mod_q4)
+wahy_chl_mods <- list(wahy_chl_mod_q1, wahy_chl_mod_q2, wahy_chl_mod_q3, wahy_chl_mod_q4)
+wale_chl_mods <- list(wale_chl_mod_q1, wale_chl_mod_q2, wale_chl_mod_q3, wale_chl_mod_q4)
+cubu_chl_mods <- list(cubu_chl_mod_q1, cubu_chl_mod_q2, cubu_chl_mod_q3, cubu_chl_mod_q4)
+torp_chl_mods <- list(torp_chl_mod_q1, torp_chl_mod_q2, torp_chl_mod_q3, torp_chl_mod_q4)
 
 # export models
-save(hydr_nat_rich_mod, file = "output/fwc_hydrilla_native_richness_model.rda")
-save(wahy_nat_rich_mod, file = "output/fwc_water_hyacinth_native_richness_model.rda")
-save(wale_nat_rich_mod, file = "output/fwc_water_lettuce_native_richness_model.rda")
-save(cubu_nat_rich_mod, file = "output/fwc_cuban_bulrush_native_richness_model.rda")
-save(pagr_nat_rich_mod, file = "output/fwc_para_grass_native_richness_model.rda")
-save(torp_nat_rich_mod, file = "output/fwc_torpedograss_native_richness_model.rda")
+save(hydr_chl_mods, file = "output/fwc_hydrilla_chlorophyll_models.rda")
+save(wahy_chl_mods, file = "output/fwc_water_hyacinth_chlorophyll_models.rda")
+save(wale_chl_mods, file = "output/fwc_water_lettuce_chlorophyll_models.rda")
+save(cubu_chl_mods, file = "output/fwc_cuban_bulrush_chlorophyll_models.rda")
+save(torp_chl_mods, file = "output/fwc_torpedograss_chlorophyll_models.rda")
+
+# process model SE
+mod_se_fun <- function(models, dat, spp){
+  
+  dat_out <- tidy(coeftest(models[[1]], vcov = vcovHC, type = "HC3")) %>%
+    mutate(Quarter = "Apr-Jun",
+           R2 = r.squared(models[[1]])) %>%
+    full_join(tidy(coeftest(models[[2]], vcov = vcovHC, type = "HC3")) %>%
+                mutate(Quarter = "Jul-Sep",
+                       R2 = r.squared(models[[2]]))) %>%
+    full_join(tidy(coeftest(models[[3]], vcov = vcovHC, type = "HC3")) %>%
+                mutate(Quarter = "Oct-Dec",
+                       R2 = r.squared(models[[3]]))) %>%
+    full_join(tidy(coeftest(models[[4]], vcov = vcovHC, type = "HC3")) %>%
+                mutate(Quarter = "Jan-Mar",
+                       R2 = r.squared(models[[4]]))) %>%
+    mutate(Invasive = spp,
+           Waterbodies = n_distinct(dat$PermanentID),
+           Years = n_distinct(dat$GSYear),
+           N = Waterbodies * Years)
+  
+  return(dat_out)
+  
+}
 
 # combine SE tables
-foc_mod_se <- tidy(hydr_nat_rich_mod_se) %>%
-  mutate(Invasive = "hydrilla",
-         R2 = r.squared(hydr_nat_rich_mod),
-         Waterbodies = n_distinct(hydr_dat3$PermanentID),
-         Years = n_distinct(hydr_dat3$GSYear),
-         N = nrow(hydr_dat3)) %>%
-  full_join(tidy(wahy_nat_rich_mod_se) %>%
-              mutate(Invasive = "water hyacinth",
-                     R2 = r.squared(wahy_nat_rich_mod),
-                     Waterbodies = n_distinct(wahy_dat3$PermanentID),
-                     Years = n_distinct(wahy_dat3$GSYear),
-                     N = nrow(wahy_dat3))) %>%
-  full_join(tidy(wale_nat_rich_mod_se) %>%
-              mutate(Invasive = "water lettuce",
-                     R2 = r.squared(wale_nat_rich_mod),
-                     Waterbodies = n_distinct(wale_dat3$PermanentID),
-                     Years = n_distinct(wale_dat3$GSYear),
-                     N = nrow(wale_dat3))) %>%
+foc_mod_se <- mod_se_fun(hydr_chl_mods, hydr_dat, "hydrilla") %>%
+  full_join(mod_se_fun(wahy_chl_mods, wahy_dat, "water hyacinth")) %>%
+  full_join(mod_se_fun(wale_chl_mods, wale_dat, "water lettuce")) %>%
   mutate(term = fct_recode(term,
                            "invasive PAC" = "AvgPercCovered_c",
-                           "management" = "Lag3Treated")) %>%
+                           "management" = "Treated")) %>%
   rename(Term = term,
          Estimate = estimate,
          SE = std.error,
          t = statistic,
          P = p.value) %>%
-  relocate(Invasive)
+  relocate(Invasive, Quarter)
 
-non_foc_mod_se <- tidy(cubu_nat_rich_mod_se) %>%
-  mutate(Invasive = "Cuban bulrush",
-         R2 = r.squared(cubu_nat_rich_mod),
-         Waterbodies = n_distinct(cubu_dat3$PermanentID),
-         Years = n_distinct(cubu_dat3$GSYear),
-         N = nrow(cubu_dat3)) %>%
-  full_join(tidy(pagr_nat_rich_mod_se) %>%
-              mutate(Invasive = "para grass",
-                     R2 = r.squared(pagr_nat_rich_mod),
-                     Waterbodies = n_distinct(pagr_dat3$PermanentID),
-                     Years = n_distinct(pagr_dat3$GSYear),
-                     N = nrow(pagr_dat3))) %>%
-  full_join(tidy(torp_nat_rich_mod_se) %>%
-              mutate(Invasive = "torpedograss",
-                     R2 = r.squared(torp_nat_rich_mod),
-                     Waterbodies = n_distinct(torp_dat3$PermanentID),
-                     Years = n_distinct(torp_dat3$GSYear),
-                     N = nrow(torp_dat3))) %>%
+non_foc_mod_se <- mod_se_fun(cubu_chl_mods, cubu_dat, "Cuban bulrush") %>%
+  full_join(mod_se_fun(torp_chl_mods, torp_dat, "torpedograss")) %>%
   mutate(term = fct_recode(term,
                            "invasive PAC" = "AvgPercCovered_c",
-                           "management" = "Lag3Treated")) %>%
+                           "management" = "Treated")) %>%
   rename(Term = term,
          Estimate = estimate,
          SE = std.error,
          t = statistic,
          P = p.value) %>%
-  relocate(Invasive)
+  relocate(Invasive, Quarter)
 
 # export
-write_csv(foc_mod_se, "output/fwc_focal_native_richness_model_summary.csv")
-write_csv(non_foc_mod_se, "output/fwc_non_focal_native_richness_model_summary.csv")
+write_csv(foc_mod_se, "output/fwc_focal_chlorophyll_model_summary.csv")
+write_csv(non_foc_mod_se, "output/fwc_non_focal_chlorophyll_model_summary.csv")
+
+
+#### values for text ####
+
+non_foc_sum <- tibble(CommonName = "Cuban bulrush",
+                      Quarter = 2,
+                      DiffNone = mean(fixef(cubu_chl_mod_q2)),
+                      PAC = as.numeric(coef(cubu_chl_mod_q2)[1])) %>%
+  mutate(DiffPAC = DiffNone + PAC) %>%
+  left_join(cubu_dat %>%
+              group_by(CommonName, Quarter) %>%
+              summarize(PrevValue = mean(PrevValue)) %>%
+              ungroup())
+
+write_csv(non_foc_sum, "output/fwc_non_focal_invasive_chlorophyll_prediction.csv")
