@@ -38,19 +38,28 @@ inv_dat <- inv_plant %>%
   mutate(PercDiffCovered = PropCovered * 100 - InitPercCovered,
          PropCoveredLogit = logit(PropCovered, adjust = 0.001))
 
-# lakes that have the species present and been managed at least once
+# species presence and management
 # by using EstAreaCoveredRaw_ha, there had to be more than one year per permanentID
 perm_tax <- inv_dat %>%
-  group_by(PermanentID, TaxonName) %>%
+  group_by(PermanentID, CommonName) %>%
   summarize(Treatments = as.numeric(sum(Lag1Treated, na.rm = T) > 0),
             Established = as.numeric(sum(EstAreaCoveredRaw_ha) > 0)) %>%
-  ungroup() %>%
+  ungroup() 
+
+# lakes that have the species present and been managed at least once
+perm_tax_inv <- perm_tax %>%
   filter(Treatments > 0 & Established > 0)
+
+# uninvaded lakes
+perm_tax_uninv <- perm_tax %>%
+  filter(Established == 0)
+
+write_csv(perm_tax_uninv, "output/fwc_uninvaded_permID.csv")
 
 # filter for lakes
 inv_dat2 <- inv_dat %>%
-  inner_join(perm_tax %>%
-               select(PermanentID, TaxonName))
+  inner_join(perm_tax_inv %>%
+               select(PermanentID, CommonName))
 
 # will need surveyor experience
 filter(inv_dat2, is.na(MinSurveyorExperience))

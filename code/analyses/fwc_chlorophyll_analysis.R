@@ -25,6 +25,7 @@ source("code/generic-functions/model_structure_comparison.R")
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
 lw_chl <- read_csv("intermediate-data/LW_chlorophyll_formatted.csv")
 lwwa_chl <- read_csv("intermediate-data/LW_water_atlas_chlorophyll_formatted.csv")
+uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
 
 
 #### edit data ####
@@ -71,11 +72,13 @@ chl_dat <- lwwa_chl %>%
   rename_with(str_replace, pattern = "AvgPropCovered", replacement = "AvgPercCovered")
 
 # sample sizes
-chl_dat %>%
+(chl_samp_sum <- chl_dat %>%
   group_by(CommonName, Quarter) %>%
   summarize(Years = n_distinct(GSYear),
-            Waterbodies = n_distinct(PermanentID)) %>%
-  data.frame()
+            Waterbodies = n_distinct(PermanentID),
+            minYear = min(GSYear),
+            maxYear = max(GSYear)) %>%
+  data.frame())
 # torpedograss was completely missing before date cut-offs
 # its distribution is highly concentrated in center of state
 # https://nas.er.usgs.gov/viewer/omap.aspx?SpeciesID=1124
@@ -156,6 +159,16 @@ wale_dat <- filter(chl_dat2, CommonName == "Water lettuce")
 wahy_dat <- filter(chl_dat2, CommonName == "Water hyacinth")
 torp_dat <- filter(chl_dat2, CommonName == "Torpedograss")
 cubu_dat <- filter(chl_dat2, CommonName == "Cuban bulrush")
+
+# add water quality to uninvaded dataset
+# select years to match invasion dataset
+uninv2 <- lwwa_chl %>%
+  filter(!is.na(PrevValue)) %>%
+  inner_join(uninv) %>%
+  left_join(chl_samp_sum %>%
+              select(CommonName, minYear, maxYear) %>%
+              unique()) %>%
+  filter(GSYear >= minYear & GSYear <= maxYear)
 
 
 #### initial visualizations ####
@@ -798,6 +811,32 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_chlorophyll_model_summary.csv")
 
 #### values for text ####
 
+# summarize uninvaded
+uninv_sum <- uninv2 %>%
+  group_by(CommonName, Quarter) %>%
+  summarize(PrevValueUninv = mean(PrevValue),
+            UninvN = n()) %>%
+  ungroup()
+
+foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth"),
+                  Quarter = c(2, 4, 1),
+                  DiffNone = c(mean(fixef(hydr_chl_mod_q2)), mean(fixef(hydr_chl_mod_q4)), mean(fixef(wahy_chl_mod_q1))),
+                  PAC = as.numeric(c(coef(hydr_chl_mod_q2)[1], coef(hydr_chl_mod_q4)[1], coef(wahy_chl_mod_q1)[1])),
+                  Treat = as.numeric(c(coef(hydr_chl_mod_q2)[2], coef(hydr_chl_mod_q4)[2], coef(wahy_chl_mod_q1)[2]))) %>%
+  mutate(DiffPAC = DiffNone + PAC,
+         DiffTreat = DiffNone + Treat) %>%
+  left_join(hydr_dat %>%
+              group_by(CommonName, Quarter) %>%
+              summarize(PrevValue = mean(PrevValue)) %>%
+              ungroup() %>%
+              full_join(wahy_dat %>%
+                          group_by(CommonName, Quarter) %>%
+                          summarize(PrevValue = mean(PrevValue)) %>%
+                          ungroup())) %>%
+  left_join(uninv_sum)
+
+write_csv(foc_sum, "output/fwc_focal_invasive_chlorophyll_prediction.csv")
+
 non_foc_sum <- tibble(CommonName = "Cuban bulrush",
                       Quarter = 2,
                       DiffNone = mean(fixef(cubu_chl_mod_q2)),
@@ -806,6 +845,7 @@ non_foc_sum <- tibble(CommonName = "Cuban bulrush",
   left_join(cubu_dat %>%
               group_by(CommonName, Quarter) %>%
               summarize(PrevValue = mean(PrevValue)) %>%
-              ungroup())
+              ungroup()) %>%
+  left_join(uninv_sum)
 
 write_csv(non_foc_sum, "output/fwc_non_focal_invasive_chlorophyll_prediction.csv")
