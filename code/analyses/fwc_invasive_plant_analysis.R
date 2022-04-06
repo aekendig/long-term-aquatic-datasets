@@ -688,6 +688,7 @@ ggplot(non_foc_fit_dat, aes(x = Treated, color = PermanentID)) +
 
 # summarize raw data
 foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
+  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
   geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(y = PercDiffCovered)) +
@@ -701,6 +702,7 @@ foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
         strip.text = element_text(size = 9, color = "black", hjust = 0))
 
 non_foc_pred_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
+  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
   geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(y = PercDiffCovered)) +
