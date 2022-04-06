@@ -818,6 +818,7 @@ uninv_sum <- uninv2 %>%
             UninvN = n()) %>%
   ungroup()
 
+# focal summaries
 foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth"),
                   Quarter = c(2, 4, 1),
                   DiffNone = c(mean(fixef(hydr_chl_mod_q2)), mean(fixef(hydr_chl_mod_q4)), mean(fixef(wahy_chl_mod_q1))),
@@ -837,15 +838,20 @@ foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth"),
 
 write_csv(foc_sum, "output/fwc_focal_invasive_chlorophyll_prediction.csv")
 
-non_foc_sum <- tibble(CommonName = "Cuban bulrush",
-                      Quarter = 2,
-                      DiffNone = mean(fixef(cubu_chl_mod_q2)),
-                      PAC = as.numeric(coef(cubu_chl_mod_q2)[1])) %>%
+# non-focal summaries
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Torpedograss"),
+                      Quarter = c(2, 4),
+                      DiffNone = c(mean(fixef(cubu_chl_mod_q2)), mean(fixef(torp_chl_mod_q4))),
+                      PAC = as.numeric(c(coef(cubu_chl_mod_q2)[1], coef(torp_chl_mod_q4)[1]))) %>%
   mutate(DiffPAC = DiffNone + PAC) %>%
   left_join(cubu_dat %>%
               group_by(CommonName, Quarter) %>%
               summarize(PrevValue = mean(PrevValue)) %>%
-              ungroup()) %>%
+              ungroup() %>%
+              full_join(torp_dat %>%
+                          group_by(CommonName, Quarter) %>%
+                          summarize(PrevValue = mean(PrevValue)) %>%
+                          ungroup())) %>%
   left_join(uninv_sum)
 
 write_csv(non_foc_sum, "output/fwc_non_focal_invasive_chlorophyll_prediction.csv")

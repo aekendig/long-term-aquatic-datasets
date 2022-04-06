@@ -731,10 +731,10 @@ foc_sum <- foc_fit_dat %>%
   ungroup() %>%
   left_join(tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
                    DiffNone = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), mean(fixef(wale_mod))),
-                   Coef = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod))))) %>%
-  mutate(DiffThree = DiffNone + Coef,
+                   Treat = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod))))) %>%
+  mutate(DiffTreat = DiffNone + Treat,
          ChangeNone = 100 * DiffNone / InitPercCovered,
-         ChangeThree = 100 * DiffThree / InitPercCovered)
+         ChangeTreat = 100 * DiffTreat / InitPercCovered)
 
 non_foc_sum <- non_foc_fit_dat %>%
   group_by(CommonName) %>%
@@ -742,10 +742,10 @@ non_foc_sum <- non_foc_fit_dat %>%
   ungroup() %>%
   left_join(tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
                    DiffNone = c(mean(fixef(cubu_mod)), mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
-                   Coef = as.numeric(c(coef(cubu_mod), coef(pagr_mod), coef(torp_mod))))) %>%
-  mutate(DiffThree = DiffNone + Coef,
+                   Treat = as.numeric(c(coef(cubu_mod), coef(pagr_mod), coef(torp_mod))))) %>%
+  mutate(DiffTreat = DiffNone + Treat,
          ChangeNone = 100 * DiffNone / InitPercCovered,
-         ChangeThree = 100 * DiffThree / InitPercCovered)
+         ChangeTreat = 100 * DiffTreat / InitPercCovered)
 
 # save data table
 write_csv(foc_sum, "output/fwc_focal_invasive_PAC_change_treatment_prediction.csv")

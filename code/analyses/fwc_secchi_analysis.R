@@ -25,6 +25,7 @@ source("code/generic-functions/model_structure_comparison.R")
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
 lw_sec <- read_csv("intermediate-data/LW_secchi_formatted.csv")
 lwwa_sec <- read_csv("intermediate-data/LW_water_atlas_secchi_formatted.csv")
+uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
 
 
 #### edit data ####
@@ -71,11 +72,13 @@ sec_dat <- lwwa_sec %>%
   rename_with(str_replace, pattern = "AvgPropCovered", replacement = "AvgPercCovered")
 
 # sample sizes
-sec_dat %>%
-  group_by(CommonName, Quarter) %>%
-  summarize(Years = n_distinct(GSYear),
-            Waterbodies = n_distinct(PermanentID)) %>%
-  data.frame()
+(sec_samp_sum <- sec_dat %>%
+    group_by(CommonName, Quarter) %>%
+    summarize(Years = n_distinct(GSYear),
+              Waterbodies = n_distinct(PermanentID),
+              minYear = min(GSYear),
+              maxYear = max(GSYear)) %>%
+    data.frame())
 
 # why are there no data matching with torpedograss?
 inv_plant2 %>%
@@ -152,6 +155,16 @@ wale_dat <- filter(sec_dat2, CommonName == "Water lettuce")
 wahy_dat <- filter(sec_dat2, CommonName == "Water hyacinth")
 torp_dat <- filter(sec_dat2, CommonName == "Torpedograss")
 cubu_dat <- filter(sec_dat2, CommonName == "Cuban bulrush")
+
+# add water quality to uninvaded dataset
+# select years to match invasion dataset
+uninv2 <- lwwa_sec %>%
+  filter(!is.na(PrevValue)) %>%
+  inner_join(uninv) %>%
+  left_join(sec_samp_sum %>%
+              select(CommonName, minYear, maxYear) %>%
+              unique()) %>%
+  filter(GSYear >= minYear & GSYear <= maxYear)
 
 
 #### initial visualizations ####
@@ -791,22 +804,39 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_secchi_model_summary.csv")
 
 #### values for text ####
 
-foc_sum <- tibble(CommonName = c("Hydrilla", "Water lettuce", "Water lettuce"),
-                      Quarter = c(1, 1, 2),
-                      DiffNone = c(mean(fixef(hydr_sec_mod_q1)), mean(fixef(wale_sec_mod_q1)), mean(fixef(wale_sec_mod_q2))),
-                      PAC = as.numeric(c(coef(hydr_sec_mod_q1)[1], coef(wale_sec_mod_q1)[1], coef(wale_sec_mod_q2)[1]))) %>%
-  mutate(DiffPAC = DiffNone + PAC) %>%
+# summarize uninvaded
+uninv_sum <- uninv2 %>%
+  group_by(CommonName, Quarter) %>%
+  summarize(PrevValueUninv = mean(PrevValue),
+            UninvN = n()) %>%
+  ungroup()
+
+# focal summaries
+foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water hyacinth", "Water lettuce", "Water lettuce"),
+                      Quarter = c(1, 1, 4, 1, 2),
+                      DiffNone = c(mean(fixef(hydr_sec_mod_q1)), mean(fixef(wahy_sec_mod_q1)), mean(fixef(wahy_sec_mod_q4)), mean(fixef(wale_sec_mod_q1)), mean(fixef(wale_sec_mod_q2))),
+                      PAC = as.numeric(c(coef(hydr_sec_mod_q1)[1], coef(wahy_sec_mod_q1)[1], coef(wahy_sec_mod_q4)[1], coef(wale_sec_mod_q1)[1], coef(wale_sec_mod_q2)[1])),
+                  Treat= as.numeric(c(coef(hydr_sec_mod_q1)[2], coef(wahy_sec_mod_q1)[2], coef(wahy_sec_mod_q4)[2], coef(wale_sec_mod_q1)[2], coef(wale_sec_mod_q2)[2]))) %>%
+  mutate(DiffPAC = DiffNone + PAC,
+         DiffTreat = DiffNone + Treat) %>%
   left_join(hydr_dat %>%
               group_by(CommonName, Quarter) %>%
               summarize(PrevValue = mean(PrevValue)) %>%
               ungroup() %>%
+              full_join(wahy_dat %>%
+                          group_by(CommonName, Quarter) %>%
+                          summarize(PrevValue = mean(PrevValue)) %>%
+                          ungroup()) %>%
               full_join(wale_dat %>%
                           group_by(CommonName, Quarter) %>%
                           summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup()))
+                          ungroup())) %>%
+  left_join(uninv_sum) %>%
+  mutate(across(.cols = c(DiffNone, PAC, Treat, DiffPAC, DiffTreat, PrevValue, PrevValueUninv), ~ .x * 30.48)) # convert from ft to cm
 
 write_csv(foc_sum, "output/fwc_focal_invasive_secchi_prediction.csv")
 
+# non-focal summaries
 non_foc_sum <- tibble(CommonName = "Torpedograss",
                       Quarter = 1:4,
                       DiffNone = c(mean(fixef(torp_sec_mod_q1)), mean(fixef(torp_sec_mod_q2)), mean(fixef(torp_sec_mod_q3)), mean(fixef(torp_sec_mod_q4))),
@@ -815,6 +845,8 @@ non_foc_sum <- tibble(CommonName = "Torpedograss",
   left_join(torp_dat %>%
               group_by(CommonName, Quarter) %>%
               summarize(PrevValue = mean(PrevValue)) %>%
-              ungroup())
+              ungroup()) %>%
+  left_join(uninv_sum) %>%
+  mutate(across(.cols = c(DiffNone, PAC, DiffPAC, PrevValue, PrevValueUninv), ~ .x * 30.48)) # convert from ft to cm
 
 write_csv(non_foc_sum, "output/fwc_non_focal_invasive_secchi_prediction.csv")
