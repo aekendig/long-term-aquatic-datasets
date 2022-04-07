@@ -31,6 +31,12 @@ ggplot(wa_qual, aes(x = GSYear, y = QualityValue, color = PermanentID)) +
   theme(legend.position = "none")
 # a handful of high TN values, but not huge
 
+# high value in final dataset (fwc_nitrogen_analysis)
+wa_qual %>%
+  filter(PermanentID == "16798757" & GSYear == 2012 & QualityMetric == "TN_ug_L")
+# no QA codes, this extreme value shows up in time series
+# https://www.polk.wateratlas.usf.edu/waterbodies/lakes/160778/
+
 
 #### edit data ####
 

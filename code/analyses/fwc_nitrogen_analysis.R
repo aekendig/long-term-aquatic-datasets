@@ -132,6 +132,13 @@ for(i in 1:length(inv_taxa)){
 
 dev.off()
 
+# look at high value
+nit_dat %>%
+  filter(QualityValue > 1e4) %>%
+  select(PermanentID, GSYear, QualityValue) %>%
+  unique() %>%
+  inner_join(lwwa_nit)
+
 # remove paragrass (only 1-2 waterbodies)
 # use same waterbodies in all 4 quarters
 nit_dat2 <- nit_dat %>%
@@ -167,7 +174,6 @@ uninv2 <- lwwa_nit %>%
   filter(GSYear >= minYear & GSYear <= maxYear)
 
 
-#### start here ####
 #### initial visualizations ####
 
 # covariate correlations
@@ -204,22 +210,23 @@ ggplot(nit_dat2, aes(x = Lag3AvgPercCovered, y = QualityValue)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_grid(Quarter ~ CommonName, scales = "free")
-# strong positive for water hyacinth and lettuce
-# negative for hydrilla and torpedograss
-# switches over time for Cuban bulrush
+# strong negative for hydrilla and torpedograss
+# strong positive for floating plants (potentially driven by handful of points)
 
 ggplot(nit_dat2, aes(x = Lag3Treated, y = ValueDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_grid(Quarter ~ CommonName, scales = "free")
 # negligible
+# don't see what caused correlation error about treatment variance
+# except torpedograss doesn't have any 1 values
 
 ggplot(nit_dat2, aes(x = Lag1Treated, y = QualityValue)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_grid(Quarter ~ CommonName, scales = "free")
-# positive for floating plants in quarter 3
-# negative for torpedograss in quarters 2 and 3
+# positive for hydrilla (maybe correlated with hydrilla abundance)
+# others seem close to zero
 
 ggplot(nit_dat2, aes(x = PrevValue, y = ValueDiff)) +
   geom_point() +
@@ -320,18 +327,19 @@ mod_comp <- hydr_mod_comp %>%
 write_csv(mod_comp, "output/fwc_nitrogen_model_structure_comparison.csv")
 
 # model comparison notes:
-# simple model: PAC reduces nitrogen (hydrilla) or increases it (floating),
-# management increases nitrogen (hydrilla and hyacinth) or reduces it (lettuce)
-# location random effect: hydrilla PAC now increases nitrogen and management reduces
-# floating PAC and management increase it
-# year random effect: similar to simple model
-# location + year random: similar to location random
-# location fixed effect: similar to location random
-# location + year fixed: similar to location random
-# initial quality: same direction as location random, smaller estimates
-# difference response: hydrilla PAC and management increase nitrogen change
-# floating PAC increases it, management decreases it
-# difference response + initial quality: estimates almost identical to initial quality
+# simple model: hydrilla PAC decreases, floating PAC increases
+# management increases for all three
+# random location: all PAC increases
+# hydrilla and water hyacinth management decreases, water lettuce increases
+# random year: similar estimates to simple model
+# random location and year: hydrilla PAC v small, floating PAC increases
+# hydrilla management decreases, floating management increases
+# fixed location: similar to random location
+# fixed location/year: similar to fixed location
+# init value: PAC increases, management decreases for all three
+# difference: hydrilla PAC v small, management increases, but small
+# floating PAC increases and management decreases
+# init + difference: very similar to init + raw response
 
 # test fixed effects (seems like year isn't necessary)
 # have to refit because data need to be accessible (not "dat_fix")
@@ -498,7 +506,7 @@ panel_plot_fun <- function(mods1, mods2, mods3,
   comb_fig <- fig1 + fig2 + fig3 + plot_annotation(
     theme = theme(plot.margin = margin(5, -5, 0, -10),
                   plot.title = element_text(size = 10, hjust = 0.5)),
-    title = "Effects on annual difference in nitrogen a")
+    title = "Effects on annual difference in total nitrogen")
   
   ggsave(filename, comb_fig,
          device = "eps", width = 6.5, height = 3, units = "in")
@@ -531,7 +539,7 @@ panel_plot_non_foc_fun <- function(mods1, mods2,
       theme = theme(plot.caption = element_text(size = 9, color="black", hjust = 0.6, vjust = 10),
                     plot.margin = margin(5, -5, -5, -10),
                     plot.title = element_text(size = 10, hjust = 0.5)),
-      title = "Effects on annual difference in nitrogen a")
+      title = "Effects on annual difference in total nitrogen")
   
   ggsave(filename, comb_fig,
          device = "eps", width = 4.7, height = 3, units = "in")
@@ -566,12 +574,8 @@ panel_plot_non_foc_fun(cubu_mods_q4, torp_mods_q4,
                        "output/fwc_non_focal_nitrogen_quarter4_diff_model.eps")
 
 # lag/quarter notes
-# most effects are probably non significant except some year 1
-# nitrogen change measured in Q1 (Apr-Jun) or Q4 (Jan-Mar) 
-# increased with floating plant abundance with 1-year lag
-# primary production correlation?
-# hydrilla management with 1-year lag also increased
-# nitrogen change measured in Q4
+# strong positive effects of floating plants in Q1 for lags 1 + 2
+# lag 3 generally represents conservative trends
 
 
 #### finalize models ####
@@ -644,27 +648,27 @@ torp_nit_mod_q4 <- update(hydr_nit_mod_q4, data = torp_dat3_q4)
 
 # SE with heteroscedasticity and autocorrelation
 coeftest(hydr_nit_mod_q1, vcov = vcovHC, type = "HC3")
-coeftest(wahy_nit_mod_q1, vcov = vcovHC, type = "HC3") # PAC
-coeftest(wale_nit_mod_q1, vcov = vcovHC, type = "HC3") 
-coeftest(cubu_nit_mod_q1, vcov = vcovHC, type = "HC3") 
-coeftest(torp_nit_mod_q1, vcov = vcovHC, type = "HC3") 
+coeftest(wahy_nit_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(wale_nit_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(cubu_nit_mod_q1, vcov = vcovHC, type = "HC3") # +mgmt
+coeftest(torp_nit_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
 
 coeftest(hydr_nit_mod_q2, vcov = vcovHC, type = "HC3")
 coeftest(wahy_nit_mod_q2, vcov = vcovHC, type = "HC3") 
-coeftest(wale_nit_mod_q2, vcov = vcovHC, type = "HC3") 
-coeftest(cubu_nit_mod_q2, vcov = vcovHC, type = "HC3") # PAC
-coeftest(torp_nit_mod_q2, vcov = vcovHC, type = "HC3") 
+coeftest(wale_nit_mod_q2, vcov = vcovHC, type = "HC3") # -PAC
+coeftest(cubu_nit_mod_q2, vcov = vcovHC, type = "HC3")
+coeftest(torp_nit_mod_q2, vcov = vcovHC, type = "HC3") # +PAC
 
-coeftest(hydr_nit_mod_q3, vcov = vcovHC, type = "HC3")
+coeftest(hydr_nit_mod_q3, vcov = vcovHC, type = "HC3") # -PAC marg
 coeftest(wahy_nit_mod_q3, vcov = vcovHC, type = "HC3") 
 coeftest(wale_nit_mod_q3, vcov = vcovHC, type = "HC3") 
 coeftest(cubu_nit_mod_q3, vcov = vcovHC, type = "HC3") 
 coeftest(torp_nit_mod_q3, vcov = vcovHC, type = "HC3") 
 
-coeftest(hydr_nit_mod_q4, vcov = vcovHC, type = "HC3")
+coeftest(hydr_nit_mod_q4, vcov = vcovHC, type = "HC3") # +trt marg
 coeftest(wahy_nit_mod_q4, vcov = vcovHC, type = "HC3") 
 coeftest(wale_nit_mod_q4, vcov = vcovHC, type = "HC3") 
-coeftest(cubu_nit_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(cubu_nit_mod_q4, vcov = vcovHC, type = "HC3") # -trt mrt
 coeftest(torp_nit_mod_q4, vcov = vcovHC, type = "HC3") 
 
 # add fitted values to pdata.frame (important to match rows)
@@ -737,6 +741,7 @@ ggplot(wahy_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
 ggplot(wale_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
 ggplot(cubu_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
 ggplot(torp_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
+# q2-4 look pretty good
 
 # combine models
 hydr_nit_mods <- list(hydr_nit_mod_q1, hydr_nit_mod_q2, hydr_nit_mod_q3, hydr_nit_mod_q4)
@@ -817,11 +822,11 @@ uninv_sum <- uninv2 %>%
   ungroup()
 
 # focal summaries
-foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth"),
-                  Quarter = c(2, 4, 1),
-                  DiffNone = c(mean(fixef(hydr_nit_mod_q2)), mean(fixef(hydr_nit_mod_q4)), mean(fixef(wahy_nit_mod_q1))),
-                  PAC = as.numeric(c(coef(hydr_nit_mod_q2)[1], coef(hydr_nit_mod_q4)[1], coef(wahy_nit_mod_q1)[1])),
-                  Treat = as.numeric(c(coef(hydr_nit_mod_q2)[2], coef(hydr_nit_mod_q4)[2], coef(wahy_nit_mod_q1)[2]))) %>%
+foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth", "Water lettuce", "Water lettuce"),
+                  Quarter = c(3, 4, 1, 1, 2),
+                  DiffNone = c(mean(fixef(hydr_nit_mod_q3)), mean(fixef(hydr_nit_mod_q4)), mean(fixef(wahy_nit_mod_q1)), mean(fixef(wale_nit_mod_q1)), mean(fixef(wale_nit_mod_q2))),
+                  PAC = as.numeric(c(coef(hydr_nit_mod_q3)[1], coef(hydr_nit_mod_q4)[1], coef(wahy_nit_mod_q1)[1], coef(wale_nit_mod_q1)[1], coef(wale_nit_mod_q2)[1])),
+                  Treat = as.numeric(c(coef(hydr_nit_mod_q3)[2], coef(hydr_nit_mod_q4)[2], coef(wahy_nit_mod_q1)[2], coef(wale_nit_mod_q1)[2], coef(wale_nit_mod_q2)[2]))) %>%
   mutate(DiffPAC = DiffNone + PAC,
          DiffTreat = DiffNone + Treat) %>%
   left_join(hydr_dat %>%
@@ -831,17 +836,23 @@ foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth"),
               full_join(wahy_dat %>%
                           group_by(CommonName, Quarter) %>%
                           summarize(PrevValue = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              full_join(wale_dat %>%
+                          group_by(CommonName, Quarter) %>%
+                          summarize(PrevValue = mean(PrevValue)) %>%
                           ungroup())) %>%
   left_join(uninv_sum)
 
 write_csv(foc_sum, "output/fwc_focal_invasive_nitrogen_prediction.csv")
 
 # non-focal summaries
-non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Torpedograss"),
-                      Quarter = c(2, 4),
-                      DiffNone = c(mean(fixef(cubu_nit_mod_q2)), mean(fixef(torp_nit_mod_q4))),
-                      PAC = as.numeric(c(coef(cubu_nit_mod_q2)[1], coef(torp_nit_mod_q4)[1]))) %>%
-  mutate(DiffPAC = DiffNone + PAC) %>%
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Cuban bulrush", "Torpedograss", "Torpedograss"),
+                      Quarter = c(1, 4, 1, 2),
+                      DiffNone = c(mean(fixef(cubu_nit_mod_q1)), mean(fixef(cubu_nit_mod_q4)), mean(fixef(torp_nit_mod_q1)), mean(fixef(torp_nit_mod_q2))),
+                      PAC = as.numeric(c(coef(cubu_nit_mod_q1)[1], coef(cubu_nit_mod_q4)[1], coef(torp_nit_mod_q1)[1], coef(torp_nit_mod_q2)[1])),
+                      Treat = as.numeric(c(coef(cubu_nit_mod_q1)[2], coef(cubu_nit_mod_q4)[2], coef(torp_nit_mod_q1)[2], coef(torp_nit_mod_q2)[2]))) %>%
+  mutate(DiffPAC = DiffNone + PAC,
+         DiffTreat = DiffNone + Treat) %>%
   left_join(cubu_dat %>%
               group_by(CommonName, Quarter) %>%
               summarize(PrevValue = mean(PrevValue)) %>%
