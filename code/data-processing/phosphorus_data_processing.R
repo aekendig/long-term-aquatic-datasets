@@ -33,6 +33,7 @@ ggplot(wa_qual, aes(x = GSYear, y = QualityValue, color = PermanentID)) +
 wa_qual %>%
   filter((PermanentID == "16798757" & GSYear == 2012) | (PermanentID == "78690681" & GSYear == 2016)) %>%
   filter(QualityMetric == "TP_ug_L")
+# no QA codes
 # Banana lake is just high that year (saw in N data)
 # high P in time series for Garfield in 2016: https://polk.wateratlas.usf.edu/waterbodies/lakes/161045/lake-garfield
 

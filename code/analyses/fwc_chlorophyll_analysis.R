@@ -754,6 +754,13 @@ save(wale_chl_mods, file = "output/fwc_water_lettuce_chlorophyll_models.rda")
 save(cubu_chl_mods, file = "output/fwc_cuban_bulrush_chlorophyll_models.rda")
 save(torp_chl_mods, file = "output/fwc_torpedograss_chlorophyll_models.rda")
 
+# load models
+load("output/fwc_hydrilla_chlorophyll_models.rda")
+load("output/fwc_water_hyacinth_chlorophyll_models.rda")
+load("output/fwc_water_lettuce_chlorophyll_models.rda")
+load("output/fwc_cuban_bulrush_chlorophyll_models.rda")
+load("output/fwc_torpedograss_chlorophyll_models.rda")
+
 # process model SE
 mod_se_fun <- function(models, dat, spp){
   
@@ -814,44 +821,78 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_chlorophyll_model_summary.csv")
 # summarize uninvaded
 uninv_sum <- uninv2 %>%
   group_by(CommonName, Quarter) %>%
-  summarize(PrevValueUninv = mean(PrevValue),
+  summarize(UninvAvg = mean(PrevValue),
             UninvN = n()) %>%
   ungroup()
 
-# focal summaries
-foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth"),
-                  Quarter = c(2, 4, 1),
-                  DiffNone = c(mean(fixef(hydr_chl_mod_q2)), mean(fixef(hydr_chl_mod_q4)), mean(fixef(wahy_chl_mod_q1))),
-                  PAC = as.numeric(c(coef(hydr_chl_mod_q2)[1], coef(hydr_chl_mod_q4)[1], coef(wahy_chl_mod_q1)[1])),
-                  Treat = as.numeric(c(coef(hydr_chl_mod_q2)[2], coef(hydr_chl_mod_q4)[2], coef(wahy_chl_mod_q1)[2]))) %>%
-  mutate(DiffPAC = DiffNone + PAC,
-         DiffTreat = DiffNone + Treat) %>%
+# translate model coefficients
+mod_coef_fun <- function(models, spp){
+  
+  dat_out <- tibble(Invasive = spp,
+                    Quarter = c("Apr-Jun", "Jul-Sep", "Oct-Dec", "Jan-Mar"),
+                    DiffAvg = sapply(models, function(x) mean(fixef(x))),
+                    PACEffect = sapply(models, function(x) coef(x)[1]),
+                    TreatEffect = DiffAvg + sapply(models, function(x) coef(x)[2]))
+  
+  return(dat_out)
+  
+}
+
+# identify significant effects
+foc_sig <- foc_mod_se %>%
+  filter(P < 0.1) %>%
+  select(Invasive, Quarter, Term) %>%
+  left_join(mod_coef_fun(hydr_chl_mods, "hydrilla") %>%
+              full_join(mod_coef_fun(wahy_chl_mods, "water hyacinth")) %>%
+              full_join(mod_coef_fun(wale_chl_mods, "water lettuce"))) %>%
+  mutate(PACEffect = if_else(Term == "management", NA_real_, PACEffect),
+         TreatEffect = if_else(Term == "invasive PAC", NA_real_, TreatEffect),
+         Metric = "chlorophyll a") %>%
   left_join(hydr_dat %>%
               group_by(CommonName, Quarter) %>%
-              summarize(PrevValue = mean(PrevValue)) %>%
+              summarize(Average = mean(PrevValue)) %>%
               ungroup() %>%
               full_join(wahy_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup())) %>%
-  left_join(uninv_sum)
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              full_join(wale_dat %>%
+                          group_by(CommonName, Quarter) %>%
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              left_join(uninv_sum) %>%
+              mutate(Quarter = case_when(Quarter == 1 ~ "Apr-Jun", 
+                                         Quarter == 2 ~ "Jul-Sep", 
+                                         Quarter == 3 ~ "Oct-Dec", 
+                                         Quarter == 4 ~ "Jan-Mar"),
+                     CommonName = tolower(CommonName)) %>%
+              rename(Invasive = CommonName))
 
-write_csv(foc_sum, "output/fwc_focal_invasive_chlorophyll_prediction.csv")
+write_csv(foc_sig, "output/fwc_focal_invasive_chlorophyll_significant.csv")
 
-# non-focal summaries
-non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Torpedograss"),
-                      Quarter = c(2, 4),
-                      DiffNone = c(mean(fixef(cubu_chl_mod_q2)), mean(fixef(torp_chl_mod_q4))),
-                      PAC = as.numeric(c(coef(cubu_chl_mod_q2)[1], coef(torp_chl_mod_q4)[1]))) %>%
-  mutate(DiffPAC = DiffNone + PAC) %>%
+non_foc_sig <- non_foc_mod_se %>%
+  filter(P < 0.1) %>%
+  select(Invasive, Quarter, Term) %>%
+  left_join(mod_coef_fun(cubu_chl_mods, "Cuban bulrush") %>%
+              full_join(mod_coef_fun(torp_chl_mods, "torpedograss"))) %>%
+  mutate(PACEffect = if_else(Term == "management", NA_real_, PACEffect),
+         TreatEffect = if_else(Term == "invasive PAC", NA_real_, TreatEffect),
+         Metric = "chlorophyll a") %>%
   left_join(cubu_dat %>%
               group_by(CommonName, Quarter) %>%
-              summarize(PrevValue = mean(PrevValue)) %>%
+              summarize(Average = mean(PrevValue)) %>%
               ungroup() %>%
               full_join(torp_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup())) %>%
-  left_join(uninv_sum)
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              left_join(uninv_sum) %>%
+              mutate(Quarter = case_when(Quarter == 1 ~ "Apr-Jun", 
+                                         Quarter == 2 ~ "Jul-Sep", 
+                                         Quarter == 3 ~ "Oct-Dec", 
+                                         Quarter == 4 ~ "Jan-Mar"),
+                     CommonName = fct_recode(CommonName, 
+                                           "torpedograss" = "Torpedograss")) %>%
+              rename(Invasive = CommonName))
 
-write_csv(non_foc_sum, "output/fwc_non_focal_invasive_chlorophyll_prediction.csv")
+write_csv(non_foc_sig, "output/fwc_non_focal_invasive_chlorophyll_significant.csv")

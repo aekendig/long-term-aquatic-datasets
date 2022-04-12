@@ -97,16 +97,16 @@ comb_dat %>%
 # para grass models might not work, some have a few or a lot of detections
 
 # apply model to each invasive plant and taxon
-plant_mods <- comb_dat %>%
-  select(CommonName, TaxonName, Habitat, YearsDetected, YearsUndetected,
-         AvgPAC_c, TreatFreq) %>%
-  nest(data = c(YearsDetected, YearsUndetected, AvgPAC_c, TreatFreq)) %>%
-  mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ AvgPAC_c + TreatFreq,
-                              data = ., family = binomial)))
+# plant_mods <- comb_dat %>%
+#   select(CommonName, TaxonName, Habitat, YearsDetected, YearsUndetected,
+#          AvgPAC_c, TreatFreq) %>%
+#   nest(data = c(YearsDetected, YearsUndetected, AvgPAC_c, TreatFreq)) %>%
+#   mutate(fit = map(data, ~glm(cbind(YearsDetected, YearsUndetected) ~ AvgPAC_c + TreatFreq,
+#                               data = ., family = binomial)))
 # model fit error
 
 # convert warnings to errors to break loop
-options(warn = 2)
+# options(warn = 2)
 
 # common/taxa list
 # update as pairs break loop
@@ -163,7 +163,7 @@ plant_coef <- plant_mods2 %>%
 
 # models with significant PAC effects
 plant_coef_PAC <- plant_coef %>%
-  mutate(Sig = if_else(term == "AvgPAC_c" & p.value < 0.05, "yes", "no")) %>%
+  mutate(Sig = if_else(term == "AvgPAC_c" & p.value < 0.1, "yes", "no")) %>%
   filter(term == "AvgPAC_c") %>%
   rename(Coef = estimate) %>%
   select(CommonName, TaxonName, Habitat, Coef, Sig) %>%
@@ -174,7 +174,7 @@ plant_coef_PAC <- plant_coef %>%
 
 # models with significant treatment effects
 plant_coef_treat <- plant_coef %>%
-  mutate(Sig = if_else(term == "TreatFreq" & p.value < 0.05, "yes", "no")) %>%
+  mutate(Sig = if_else(term == "TreatFreq" & p.value < 0.1, "yes", "no")) %>%
   filter(term == "TreatFreq") %>%
   rename(Coef = estimate) %>%
   select(CommonName, TaxonName, Habitat, Coef, Sig) %>%
@@ -189,7 +189,7 @@ plant_coef_treat <- plant_coef %>%
 # count taxa per category
 plant_coef_summ <- plant_coef %>%
   filter(term %in% c("AvgPAC_c", "TreatFreq")) %>%
-  mutate(Sig = if_else(p.value < 0.05, "yes", "no"),
+  mutate(Sig = if_else(p.value < 0.1, "yes", "no"),
          Dir = if_else(estimate > 0, "pos", "neg"),
          term = fct_recode(term, "PAC" = "AvgPAC_c",
                            "Treat" = "TreatFreq"),
@@ -269,8 +269,8 @@ non_foc_dat_treat <- comb_dat_treat %>%
 foc_fig_PAC <- ggplot(foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, color = Habitat)) +
   geom_line(aes(alpha = Sig, size = Sig)) +
   facet_wrap(~ PanelName, scales = "free") +
-  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
-  scale_size_manual(values = c(0.4, 0.25), name = "P < 0.05") +
+  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.1") +
+  scale_size_manual(values = c(0.4, 0.25), name = "P < 0.1") +
   labs(x = "Invasive plant PAC", y = "Native abundance\n(years detected)") +
   scale_color_manual(values = brewer.set2(n = 3), name = "Native\nhabitat") +
   def_theme_paper +
@@ -280,8 +280,8 @@ foc_fig_PAC <- ggplot(foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, 
 non_foc_fig_PAC <- ggplot(non_foc_dat_PAC, aes(x = AvgPAC, y = Pred, group = TaxonName, color = Habitat)) +
   geom_line(aes(alpha = Sig, size = Sig)) +
   facet_wrap(~ PanelName, scales = "free") +
-  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.05") +
-  scale_size_manual(values = c(0.4, 0.25), name = "P < 0.05") +
+  scale_alpha_manual(values = c(1, 0.5), name = "P < 0.1") +
+  scale_size_manual(values = c(0.4, 0.25), name = "P < 0.1") +
   labs(x = "Invasive plant PAC", y = "Native abundance\n(years detected)") +
   scale_color_manual(values = brewer.set2(n = 3), name = "Native\nhabitat") +
   def_theme_paper +

@@ -57,11 +57,11 @@ plant_abun_format <- function(dat, taxa){
     select(-data) %>%
     unnest(newdata) %>%
     group_by(PermanentID, Area_ha, GSYear, TaxonName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
-    summarise(AreaName = paste(sort(AreaOfInterest), collapse = "/"),
+    summarise(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
               SurveyDate = max(SurveyDate),
               Surveyor = paste(sort(unique(Surveyor)), collapse = ", "),
               SurveyorExperience = max(SurveyorExperience, na.rm = T), # assign the more experienced surveyor's exp.
-              WaterbodyList_ha = paste(sort(Waterbody_ha), collapse = ", "),
+              WaterbodyList_ha = paste(sort(unique(Waterbody_ha)), collapse = ", "),
               WaterbodySum_ha = sum(Waterbody_ha, na.rm = T),
               SpeciesAcres = if_else(sum(!is.na(SpeciesAcres)) == 0, NA_real_, # assign NA if all values are NA
                                      sum(SpeciesAcres, na.rm = T)), # sum otherwise

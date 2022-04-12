@@ -138,6 +138,7 @@ pho_dat %>%
   select(PermanentID, GSYear, QualityValue) %>%
   unique() %>%
   inner_join(lwwa_pho)
+# checked data in phosphorus_data_processing.R and they seem fine
 
 # remove paragrass (only 1-2 waterbodies)
 # use same waterbodies in all 4 quarters
@@ -187,15 +188,11 @@ pho_dat2 %>%
   data.frame()
 # floating plants: prev value and PAC
 
-#### start here ####
-# all valuediff were zero last time
-# I think I fixed it
-
 # response distributions
 ggplot(pho_dat2, aes(x = ValueDiff)) +
   geom_histogram() +
   facet_grid(CommonName ~ Quarter, scales = "free")
-# normal and relatively wide around zero
+# normal and highly clustered around zero
 
 ggplot(pho_dat2, aes(x = QualityValue)) +
   geom_histogram() +
@@ -213,16 +210,14 @@ ggplot(pho_dat2, aes(x = Lag3AvgPercCovered, y = QualityValue)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_grid(Quarter ~ CommonName, scales = "free")
-# strong negative for hydrilla and torpedograss
-# strong positive for floating plants (potentially driven by handful of points)
+# slight negative for hydrilla
+# strong positive for floating plants
 
 ggplot(pho_dat2, aes(x = Lag3Treated, y = ValueDiff)) +
   geom_point() +
   geom_smooth(method = "lm") +
   facet_grid(Quarter ~ CommonName, scales = "free")
 # negligible
-# don't see what caused correlation error about treatment variance
-# except torpedograss doesn't have any 1 values
 
 ggplot(pho_dat2, aes(x = Lag1Treated, y = QualityValue)) +
   geom_point() +
@@ -301,7 +296,7 @@ mod_structure_fits <- function(dat_in){
 
 # fit models for each species
 hydr_mod_struc <- mod_structure_fits(hydr_dat)
-wahy_mod_struc <- mod_structure_fits(wahy_dat)
+wahy_mod_struc <- mod_structure_fits(wahy_dat) # model convergence error for glmmTMB
 wale_mod_struc <- mod_structure_fits(wale_dat)
 
 # compare model estimates
@@ -330,19 +325,18 @@ mod_comp <- hydr_mod_comp %>%
 write_csv(mod_comp, "output/fwc_phosphorus_model_structure_comparison.csv")
 
 # model comparison notes:
-# simple model: hydrilla PAC decreases, floating PAC increases
-# management increases for all three
-# random location: all PAC increases
-# hydrilla and water hyacinth management decreases, water lettuce increases
-# random year: similar estimates to simple model
-# random location and year: hydrilla PAC v small, floating PAC increases
-# hydrilla management decreases, floating management increases
-# fixed location: similar to random location
-# fixed location/year: similar to fixed location
-# init value: PAC increases, management decreases for all three
-# difference: hydrilla PAC v small, management increases, but small
-# floating PAC increases and management decreases
-# init + difference: very similar to init + raw response
+# simple model: hydrilla PAC and management decreased
+# floating PAC and management increased
+# random location: all PAC increased, hydrilla management decreased, floating management increased
+# random year: same as simple model
+# random location + year: similar to random location
+# fixed location: hydrilla PAC no effect, floating PAC decreased
+# hydrilla management decreased, floating management increased
+# fixed lcoation + year: similar to fixed location
+# initial value: similar to random location
+# difference response: hydrilla PAC no effect, floating PAC increased
+# hydrilla management decreased, floating management increased
+# difference response + initial: similar to random location
 
 # test fixed effects (seems like year isn't necessary)
 # have to refit because data need to be accessible (not "dat_fix")
@@ -356,13 +350,13 @@ wahy_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag1AvgPercCovered + Lag1Treated,
                                 data = filter(wahy_dat, Quarter == 3), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
-plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
+plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # not sig
 
 wale_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag1AvgPercCovered + Lag1Treated, 
                                 data = filter(wale_dat, Quarter == 3), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # marginal
-plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
+plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # not sig
 
 # use annual difference without initial value and with waterbody and year fixed effects
 
@@ -512,7 +506,7 @@ panel_plot_fun <- function(mods1, mods2, mods3,
     title = "Effects on annual difference in total phosphorus")
   
   ggsave(filename, comb_fig,
-         device = "eps", width = 6.5, height = 3, uphos = "in")
+         device = "eps", width = 6.5, height = 3, units = "in")
   
 }
 
@@ -545,7 +539,7 @@ panel_plot_non_foc_fun <- function(mods1, mods2,
       title = "Effects on annual difference in total phosphorus")
   
   ggsave(filename, comb_fig,
-         device = "eps", width = 4.7, height = 3, uphos = "in")
+         device = "eps", width = 4.7, height = 3, units = "in")
   
 }
 
@@ -577,7 +571,7 @@ panel_plot_non_foc_fun(cubu_mods_q4, torp_mods_q4,
                        "output/fwc_non_focal_phosphorus_quarter4_diff_model.eps")
 
 # lag/quarter notes
-# strong positive effects of floating plants in Q1 for lags 1 + 2
+# generally positive PAC effects and management effects around zero
 # lag 3 generally represents conservative trends
 
 
@@ -652,27 +646,27 @@ torp_pho_mod_q4 <- update(hydr_pho_mod_q4, data = torp_dat3_q4)
 # SE with heteroscedasticity and autocorrelation
 coeftest(hydr_pho_mod_q1, vcov = vcovHC, type = "HC3")
 coeftest(wahy_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
-coeftest(wale_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
-coeftest(cubu_pho_mod_q1, vcov = vcovHC, type = "HC3") # +mgmt
-coeftest(torp_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(wale_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC 
+coeftest(cubu_pho_mod_q1, vcov = vcovHC, type = "HC3") 
+coeftest(torp_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC marginal 
 
-coeftest(hydr_pho_mod_q2, vcov = vcovHC, type = "HC3")
-coeftest(wahy_pho_mod_q2, vcov = vcovHC, type = "HC3") 
-coeftest(wale_pho_mod_q2, vcov = vcovHC, type = "HC3") # -PAC
+coeftest(hydr_pho_mod_q2, vcov = vcovHC, type = "HC3") # +treat marginal
+coeftest(wahy_pho_mod_q2, vcov = vcovHC, type = "HC3") # +PAC 
+coeftest(wale_pho_mod_q2, vcov = vcovHC, type = "HC3") 
 coeftest(cubu_pho_mod_q2, vcov = vcovHC, type = "HC3")
-coeftest(torp_pho_mod_q2, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(torp_pho_mod_q2, vcov = vcovHC, type = "HC3") # +treat 
 
-coeftest(hydr_pho_mod_q3, vcov = vcovHC, type = "HC3") # -PAC marg
-coeftest(wahy_pho_mod_q3, vcov = vcovHC, type = "HC3") 
-coeftest(wale_pho_mod_q3, vcov = vcovHC, type = "HC3") 
-coeftest(cubu_pho_mod_q3, vcov = vcovHC, type = "HC3") 
+coeftest(hydr_pho_mod_q3, vcov = vcovHC, type = "HC3")
+coeftest(wahy_pho_mod_q3, vcov = vcovHC, type = "HC3") # +PAC 
+coeftest(wale_pho_mod_q3, vcov = vcovHC, type = "HC3") # +PAC +treat, both marginal 
+coeftest(cubu_pho_mod_q3, vcov = vcovHC, type = "HC3") # +treat 
 coeftest(torp_pho_mod_q3, vcov = vcovHC, type = "HC3") 
 
-coeftest(hydr_pho_mod_q4, vcov = vcovHC, type = "HC3") # +trt marg
-coeftest(wahy_pho_mod_q4, vcov = vcovHC, type = "HC3") 
-coeftest(wale_pho_mod_q4, vcov = vcovHC, type = "HC3") 
-coeftest(cubu_pho_mod_q4, vcov = vcovHC, type = "HC3") # -trt mrt
-coeftest(torp_pho_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(hydr_pho_mod_q4, vcov = vcovHC, type = "HC3")
+coeftest(wahy_pho_mod_q4, vcov = vcovHC, type = "HC3") # +PAC 
+coeftest(wale_pho_mod_q4, vcov = vcovHC, type = "HC3") # +PAC 
+coeftest(cubu_pho_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(torp_pho_mod_q4, vcov = vcovHC, type = "HC3") # +treat marginal 
 
 # add fitted values to pdata.frame (important to match rows)
 # convert to regular dataframe
@@ -744,7 +738,7 @@ ggplot(wahy_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
 ggplot(wale_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
 ggplot(cubu_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
 ggplot(torp_fit_q4, aes(x = Fitted, y = ValueDiff)) + geom_point()
-# q2-4 look pretty good
+# look okay
 
 # combine models
 hydr_pho_mods <- list(hydr_pho_mod_q1, hydr_pho_mod_q2, hydr_pho_mod_q3, hydr_pho_mod_q4)
@@ -759,6 +753,13 @@ save(wahy_pho_mods, file = "output/fwc_water_hyacinth_phosphorus_models.rda")
 save(wale_pho_mods, file = "output/fwc_water_lettuce_phosphorus_models.rda")
 save(cubu_pho_mods, file = "output/fwc_cuban_bulrush_phosphorus_models.rda")
 save(torp_pho_mods, file = "output/fwc_torpedograss_phosphorus_models.rda")
+
+# load models
+load("output/fwc_hydrilla_phosphorus_models.rda")
+load("output/fwc_water_hyacinth_phosphorus_models.rda")
+load("output/fwc_water_lettuce_phosphorus_models.rda")
+load("output/fwc_cuban_bulrush_phosphorus_models.rda")
+load("output/fwc_torpedograss_phosphorus_models.rda")
 
 # process model SE
 mod_se_fun <- function(models, dat, spp){
@@ -820,50 +821,78 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_phosphorus_model_summary.csv")
 # summarize uninvaded
 uninv_sum <- uninv2 %>%
   group_by(CommonName, Quarter) %>%
-  summarize(PrevValueUninv = mean(PrevValue),
+  summarize(UninvAvg = mean(PrevValue),
             UninvN = n()) %>%
   ungroup()
 
-# focal summaries
-foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth", "Water lettuce", "Water lettuce"),
-                  Quarter = c(3, 4, 1, 1, 2),
-                  DiffNone = c(mean(fixef(hydr_pho_mod_q3)), mean(fixef(hydr_pho_mod_q4)), mean(fixef(wahy_pho_mod_q1)), mean(fixef(wale_pho_mod_q1)), mean(fixef(wale_pho_mod_q2))),
-                  PAC = as.numeric(c(coef(hydr_pho_mod_q3)[1], coef(hydr_pho_mod_q4)[1], coef(wahy_pho_mod_q1)[1], coef(wale_pho_mod_q1)[1], coef(wale_pho_mod_q2)[1])),
-                  Treat = as.numeric(c(coef(hydr_pho_mod_q3)[2], coef(hydr_pho_mod_q4)[2], coef(wahy_pho_mod_q1)[2], coef(wale_pho_mod_q1)[2], coef(wale_pho_mod_q2)[2]))) %>%
-  mutate(DiffPAC = DiffNone + PAC,
-         DiffTreat = DiffNone + Treat) %>%
+# translate model coefficients
+mod_coef_fun <- function(models, spp){
+  
+  dat_out <- tibble(Invasive = spp,
+                    Quarter = c("Apr-Jun", "Jul-Sep", "Oct-Dec", "Jan-Mar"),
+                    DiffAvg = sapply(models, function(x) mean(fixef(x))),
+                    PACEffect = sapply(models, function(x) coef(x)[1]),
+                    TreatEffect = DiffAvg + sapply(models, function(x) coef(x)[2]))
+  
+  return(dat_out)
+  
+}
+
+# identify significant effects
+foc_sig <- foc_mod_se %>%
+  filter(P < 0.1) %>%
+  select(Invasive, Quarter, Term) %>%
+  left_join(mod_coef_fun(hydr_pho_mods, "hydrilla") %>%
+              full_join(mod_coef_fun(wahy_pho_mods, "water hyacinth")) %>%
+              full_join(mod_coef_fun(wale_pho_mods, "water lettuce"))) %>%
+  mutate(PACEffect = if_else(Term == "management", NA_real_, PACEffect),
+         TreatEffect = if_else(Term == "invasive PAC", NA_real_, TreatEffect),
+         Metric = "total phosphorus") %>%
   left_join(hydr_dat %>%
               group_by(CommonName, Quarter) %>%
-              summarize(PrevValue = mean(PrevValue)) %>%
+              summarize(Average = mean(PrevValue)) %>%
               ungroup() %>%
               full_join(wahy_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
+                          summarize(Average = mean(PrevValue)) %>%
                           ungroup()) %>%
               full_join(wale_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup())) %>%
-  left_join(uninv_sum)
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              left_join(uninv_sum) %>%
+              mutate(Quarter = case_when(Quarter == 1 ~ "Apr-Jun", 
+                                         Quarter == 2 ~ "Jul-Sep", 
+                                         Quarter == 3 ~ "Oct-Dec", 
+                                         Quarter == 4 ~ "Jan-Mar"),
+                     CommonName = tolower(CommonName)) %>%
+              rename(Invasive = CommonName))
 
-write_csv(foc_sum, "output/fwc_focal_invasive_phosphorus_prediction.csv")
+write_csv(foc_sig, "output/fwc_focal_invasive_phosphorus_significant.csv")
 
-# non-focal summaries
-non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Cuban bulrush", "Torpedograss", "Torpedograss"),
-                      Quarter = c(1, 4, 1, 2),
-                      DiffNone = c(mean(fixef(cubu_pho_mod_q1)), mean(fixef(cubu_pho_mod_q4)), mean(fixef(torp_pho_mod_q1)), mean(fixef(torp_pho_mod_q2))),
-                      PAC = as.numeric(c(coef(cubu_pho_mod_q1)[1], coef(cubu_pho_mod_q4)[1], coef(torp_pho_mod_q1)[1], coef(torp_pho_mod_q2)[1])),
-                      Treat = as.numeric(c(coef(cubu_pho_mod_q1)[2], coef(cubu_pho_mod_q4)[2], coef(torp_pho_mod_q1)[2], coef(torp_pho_mod_q2)[2]))) %>%
-  mutate(DiffPAC = DiffNone + PAC,
-         DiffTreat = DiffNone + Treat) %>%
+non_foc_sig <- non_foc_mod_se %>%
+  filter(P < 0.1) %>%
+  select(Invasive, Quarter, Term) %>%
+  left_join(mod_coef_fun(cubu_pho_mods, "Cuban bulrush") %>%
+              full_join(mod_coef_fun(torp_pho_mods, "torpedograss"))) %>%
+  mutate(PACEffect = if_else(Term == "management", NA_real_, PACEffect),
+         TreatEffect = if_else(Term == "invasive PAC", NA_real_, TreatEffect),
+         Metric = "total phosphorus") %>%
   left_join(cubu_dat %>%
               group_by(CommonName, Quarter) %>%
-              summarize(PrevValue = mean(PrevValue)) %>%
+              summarize(Average = mean(PrevValue)) %>%
               ungroup() %>%
               full_join(torp_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup())) %>%
-  left_join(uninv_sum)
-
-write_csv(non_foc_sum, "output/fwc_non_focal_invasive_phosphorus_prediction.csv")
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              left_join(uninv_sum) %>%
+              mutate(Quarter = case_when(Quarter == 1 ~ "Apr-Jun", 
+                                         Quarter == 2 ~ "Jul-Sep", 
+                                         Quarter == 3 ~ "Oct-Dec", 
+                                         Quarter == 4 ~ "Jan-Mar"),
+                     CommonName = fct_recode(CommonName, 
+                                             "torpedograss" = "Torpedograss")) %>%
+              rename(Invasive = CommonName))
+  
+write_csv(non_foc_sig, "output/fwc_non_focal_invasive_phosphorus_significant.csv")

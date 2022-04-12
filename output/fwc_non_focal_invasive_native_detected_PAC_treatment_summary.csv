@@ -1,10 +1,10 @@
 CommonName,Habitat,PAC_yes_neg,PAC_yes_pos,PAC_no,Treat_yes_neg,Treat_yes_pos,Treat_no
 Cuban bulrush,floating,2,0,2,0,4,0
-Cuban bulrush,emersed,24,0,19,3,22,18
-Cuban bulrush,submersed,11,0,6,1,9,7
+Cuban bulrush,emersed,27,0,16,3,24,16
+Cuban bulrush,submersed,13,0,4,1,9,7
 para grass,floating,2,1,1,0,1,3
-para grass,emersed,24,2,14,11,7,22
-para grass,submersed,9,0,8,8,0,9
+para grass,emersed,27,3,10,15,7,18
+para grass,submersed,12,0,5,9,1,7
 torpedograss,floating,0,1,3,0,3,1
-torpedograss,emersed,9,20,14,0,19,24
-torpedograss,submersed,1,12,4,1,12,4
+torpedograss,emersed,12,22,9,1,24,18
+torpedograss,submersed,1,13,3,2,13,2

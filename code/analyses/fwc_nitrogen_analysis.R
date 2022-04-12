@@ -358,7 +358,7 @@ plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 wale_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag1AvgPercCovered + Lag1Treated, 
                                 data = filter(wale_dat, Quarter == 3), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # marginal
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
 plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
 # use annual difference without initial value and with waterbody and year fixed effects
@@ -757,6 +757,13 @@ save(wale_nit_mods, file = "output/fwc_water_lettuce_nitrogen_models.rda")
 save(cubu_nit_mods, file = "output/fwc_cuban_bulrush_nitrogen_models.rda")
 save(torp_nit_mods, file = "output/fwc_torpedograss_nitrogen_models.rda")
 
+# load models
+load("output/fwc_hydrilla_nitrogen_models.rda")
+load("output/fwc_water_hyacinth_nitrogen_models.rda")
+load("output/fwc_water_lettuce_nitrogen_models.rda")
+load("output/fwc_cuban_bulrush_nitrogen_models.rda")
+load("output/fwc_torpedograss_nitrogen_models.rda")
+
 # process model SE
 mod_se_fun <- function(models, dat, spp){
   
@@ -817,50 +824,78 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_nitrogen_model_summary.csv")
 # summarize uninvaded
 uninv_sum <- uninv2 %>%
   group_by(CommonName, Quarter) %>%
-  summarize(PrevValueUninv = mean(PrevValue),
+  summarize(UninvAvg = mean(PrevValue),
             UninvN = n()) %>%
   ungroup()
 
-# focal summaries
-foc_sum <- tibble(CommonName = c("Hydrilla", "Hydrilla","Water hyacinth", "Water lettuce", "Water lettuce"),
-                  Quarter = c(3, 4, 1, 1, 2),
-                  DiffNone = c(mean(fixef(hydr_nit_mod_q3)), mean(fixef(hydr_nit_mod_q4)), mean(fixef(wahy_nit_mod_q1)), mean(fixef(wale_nit_mod_q1)), mean(fixef(wale_nit_mod_q2))),
-                  PAC = as.numeric(c(coef(hydr_nit_mod_q3)[1], coef(hydr_nit_mod_q4)[1], coef(wahy_nit_mod_q1)[1], coef(wale_nit_mod_q1)[1], coef(wale_nit_mod_q2)[1])),
-                  Treat = as.numeric(c(coef(hydr_nit_mod_q3)[2], coef(hydr_nit_mod_q4)[2], coef(wahy_nit_mod_q1)[2], coef(wale_nit_mod_q1)[2], coef(wale_nit_mod_q2)[2]))) %>%
-  mutate(DiffPAC = DiffNone + PAC,
-         DiffTreat = DiffNone + Treat) %>%
+# translate model coefficients
+mod_coef_fun <- function(models, spp){
+  
+  dat_out <- tibble(Invasive = spp,
+                    Quarter = c("Apr-Jun", "Jul-Sep", "Oct-Dec", "Jan-Mar"),
+                    DiffAvg = sapply(models, function(x) mean(fixef(x))),
+                    PACEffect = sapply(models, function(x) coef(x)[1]),
+                    TreatEffect = DiffAvg + sapply(models, function(x) coef(x)[2]))
+  
+  return(dat_out)
+  
+}
+
+# identify significant effects
+foc_sig <- foc_mod_se %>%
+  filter(P < 0.1) %>%
+  select(Invasive, Quarter, Term) %>%
+  left_join(mod_coef_fun(hydr_nit_mods, "hydrilla") %>%
+              full_join(mod_coef_fun(wahy_nit_mods, "water hyacinth")) %>%
+              full_join(mod_coef_fun(wale_nit_mods, "water lettuce"))) %>%
+  mutate(PACEffect = if_else(Term == "management", NA_real_, PACEffect),
+         TreatEffect = if_else(Term == "invasive PAC", NA_real_, TreatEffect),
+         Metric = "total nitrogen") %>%
   left_join(hydr_dat %>%
               group_by(CommonName, Quarter) %>%
-              summarize(PrevValue = mean(PrevValue)) %>%
+              summarize(Average = mean(PrevValue)) %>%
               ungroup() %>%
               full_join(wahy_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
+                          summarize(Average = mean(PrevValue)) %>%
                           ungroup()) %>%
               full_join(wale_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup())) %>%
-  left_join(uninv_sum)
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              left_join(uninv_sum) %>%
+              mutate(Quarter = case_when(Quarter == 1 ~ "Apr-Jun", 
+                                         Quarter == 2 ~ "Jul-Sep", 
+                                         Quarter == 3 ~ "Oct-Dec", 
+                                         Quarter == 4 ~ "Jan-Mar"),
+                     CommonName = tolower(CommonName)) %>%
+              rename(Invasive = CommonName))
 
-write_csv(foc_sum, "output/fwc_focal_invasive_nitrogen_prediction.csv")
+write_csv(foc_sig, "output/fwc_focal_invasive_nitrogen_significant.csv")
 
-# non-focal summaries
-non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Cuban bulrush", "Torpedograss", "Torpedograss"),
-                      Quarter = c(1, 4, 1, 2),
-                      DiffNone = c(mean(fixef(cubu_nit_mod_q1)), mean(fixef(cubu_nit_mod_q4)), mean(fixef(torp_nit_mod_q1)), mean(fixef(torp_nit_mod_q2))),
-                      PAC = as.numeric(c(coef(cubu_nit_mod_q1)[1], coef(cubu_nit_mod_q4)[1], coef(torp_nit_mod_q1)[1], coef(torp_nit_mod_q2)[1])),
-                      Treat = as.numeric(c(coef(cubu_nit_mod_q1)[2], coef(cubu_nit_mod_q4)[2], coef(torp_nit_mod_q1)[2], coef(torp_nit_mod_q2)[2]))) %>%
-  mutate(DiffPAC = DiffNone + PAC,
-         DiffTreat = DiffNone + Treat) %>%
+non_foc_sig <- non_foc_mod_se %>%
+  filter(P < 0.1) %>%
+  select(Invasive, Quarter, Term) %>%
+  left_join(mod_coef_fun(cubu_nit_mods, "Cuban bulrush") %>%
+              full_join(mod_coef_fun(torp_nit_mods, "torpedograss"))) %>%
+  mutate(PACEffect = if_else(Term == "management", NA_real_, PACEffect),
+         TreatEffect = if_else(Term == "invasive PAC", NA_real_, TreatEffect),
+         Metric = "total nitrogen") %>%
   left_join(cubu_dat %>%
               group_by(CommonName, Quarter) %>%
-              summarize(PrevValue = mean(PrevValue)) %>%
+              summarize(Average = mean(PrevValue)) %>%
               ungroup() %>%
               full_join(torp_dat %>%
                           group_by(CommonName, Quarter) %>%
-                          summarize(PrevValue = mean(PrevValue)) %>%
-                          ungroup())) %>%
-  left_join(uninv_sum)
+                          summarize(Average = mean(PrevValue)) %>%
+                          ungroup()) %>%
+              left_join(uninv_sum) %>%
+              mutate(Quarter = case_when(Quarter == 1 ~ "Apr-Jun", 
+                                         Quarter == 2 ~ "Jul-Sep", 
+                                         Quarter == 3 ~ "Oct-Dec", 
+                                         Quarter == 4 ~ "Jan-Mar"),
+                     CommonName = fct_recode(CommonName, 
+                                             "torpedograss" = "Torpedograss")) %>%
+              rename(Invasive = CommonName))
 
-write_csv(non_foc_sum, "output/fwc_non_focal_invasive_nitrogen_prediction.csv")
+write_csv(non_foc_sig, "output/fwc_non_focal_invasive_nitrogen_significant.csv")
