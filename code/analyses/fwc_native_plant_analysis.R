@@ -6,7 +6,7 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(inspectdf) # inspect_cor
-library(broom) # glance
+library(broom) # glance, tidy
 library(pals) # color palettes
 library(patchwork)
 

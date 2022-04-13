@@ -22,7 +22,7 @@ plant_abun_format <- function(dat, taxa){
   # plant abundance dataset
   abun_out <- dat %>% 
     filter(TaxonName %in% taxa$TaxonName) %>% # select desired taxa
-    select(AreaOfInterest, AreaOfInterestID, PermanentID, ShapeArea, WaterbodyAcres, 
+    select(AreaOfInterest, AreaOfInterestID, County, PermanentID, ShapeArea, WaterbodyAcres, 
            SurveyDate, Surveyor, SurveyMonth, SurveyDay, SurveyYear, GSYear,
            TaxonName, SpeciesAcres) %>%
     mutate(Area_ha = ShapeArea * 100, # convert lake area from km-squared to hectares
@@ -58,6 +58,7 @@ plant_abun_format <- function(dat, taxa){
     unnest(newdata) %>%
     group_by(PermanentID, Area_ha, GSYear, TaxonName, CommonName) %>% # summarize for multiple AOIs in one PermanentID (i.e., waterbody)
     summarise(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
+              County = paste(sort(unique(County)), collapse = "/"),
               SurveyDate = max(SurveyDate),
               Surveyor = paste(sort(unique(Surveyor)), collapse = ", "),
               SurveyorExperience = max(SurveyorExperience, na.rm = T), # assign the more experienced surveyor's exp.
