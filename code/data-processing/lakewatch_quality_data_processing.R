@@ -23,6 +23,24 @@ gis %>%
   data.frame()
 # manually removed duplicate entry of Lake Emily (Lakewatch)
 
+# dates per year
+date_sum <- qual %>%
+  group_by(County, Lake, Year) %>%
+  summarize(Dates = n_distinct(Date)) %>%
+  ungroup() 
+
+ggplot(date_sum, aes(x = Dates)) +
+  geom_histogram(binwidth = 1)
+
+date_sum %>%
+  summarize(min = min(Dates),
+            max = max(Dates))
+
+# waterbodies
+qual %>%
+  mutate(waterbody = paste(County, Lake)) %>%
+  summarize(n = n_distinct(waterbody))
+
 # format date
 # make secchi disk data numeric
 # remove duplicate rows (none)
@@ -94,6 +112,11 @@ qual5 <- qual4 %>%
             across(.cols = c(Lake, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource), 
                    ~ unique(.x))) %>%
   ungroup() 
+
+# visualize station distribution (only part of above code was run)
+max(qual$Station) # 6 is the max per Lakewatch-defined lake
+ggplot(qual5, aes(x = StationsPerDate)) +
+  geom_histogram(binwidth = 1)
 
 # visulaize month distribution
 ggplot(qual5, aes(x = Month)) +

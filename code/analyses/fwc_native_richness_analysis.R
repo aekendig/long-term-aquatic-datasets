@@ -773,7 +773,9 @@ foc_sum <- foc_mod_se %>%
               summarize(InitPercCovered = mean(InitPercCovered)) %>%
               ungroup() %>%
               rename(Invasive = CommonName) %>%
-              mutate(Invasive = tolower(Invasive)))
+              mutate(Invasive = tolower(Invasive))) %>%
+  add_column(nat_plant %>%
+               summarize(MaxRichness = n_distinct(TaxonName)))
 
 non_foc_sum <- non_foc_mod_se %>%
   select(Invasive, Term, P) %>%
@@ -791,7 +793,9 @@ non_foc_sum <- non_foc_mod_se %>%
               rename(Invasive = CommonName) %>%
               mutate(Invasive = fct_recode(Invasive, 
                                            "para grass" = "Para grass",
-                                           "torpedograss" = "Torpedograss")))
+                                           "torpedograss" = "Torpedograss"))) %>%
+  add_column(nat_plant %>%
+               summarize(MaxRichness = n_distinct(TaxonName)))
 
 # save data table
 write_csv(foc_sum, "output/fwc_focal_invasive_native_richness_treatment_prediction.csv")

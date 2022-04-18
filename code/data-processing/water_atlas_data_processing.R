@@ -191,8 +191,23 @@ atlas <- chnep2 %>%
   full_join(tampa2) %>%
   inner_join(gis2) # selects for lakes with Permanent IDs
 
+# before joining with gis2
 # lakes included
-length(unique(atlas$PermanentID))
+n_distinct(atlas$WBodyID) # 1569
+
+# stations per waterbody
+stat_sum <- atlas %>%
+  group_by(WBodyID) %>%
+  summarize(nStat = n_distinct(StationID)) 
+
+max(stat_sum$nStat)
+
+stat_sum %>%
+  ggplot(aes(x = nStat)) +
+  geom_histogram(binwidth = 1)
+
+# lakes included after joining with gis2
+n_distinct(atlas$PermanentID)
 # 849
 
 
@@ -222,6 +237,9 @@ atlas2 <- atlas %>%
   select(-DateTime) %>%
   filter(!is.na(Result_Value)) # only 4 rows
 
+# year range
+range(atlas2$Year)
+
 # check years
 ggplot(atlas2, aes(x = Year)) +
   geom_histogram(binwidth = 1)
@@ -230,6 +248,19 @@ ggplot(atlas2, aes(x = Year)) +
 ggplot(atlas2, aes(x = Month)) +
   geom_histogram(binwidth = 1)
 # slightly more in spring/summer
+
+# samples per year
+date_sum <- atlas2 %>%
+  group_by(WBodyID, Year) %>%
+  summarize(nSamps = n_distinct(Date)) %>%
+  ungroup
+
+range(date_sum$nSamps)
+
+date_sum %>%
+  filter(nSamps <= 25) %>%
+  ggplot(aes(x = nSamps)) +
+  geom_histogram(binwidth = 1)
 
 
 #### edit QA codes ####

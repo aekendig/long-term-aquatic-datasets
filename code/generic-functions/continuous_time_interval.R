@@ -1,4 +1,4 @@
-# function to find longest time interval of a species being present with the most lakes
+# function to find longest time interval of monitoring with the most lakes
 time_int_fun <- function(year1, taxon, dat_in){
   
   # permanent ID's in dataset for each year
@@ -31,4 +31,44 @@ time_int_fun <- function(year1, taxon, dat_in){
     mutate(data_points = years_out * waterbodies) 
   
   return(dat2)
+}
+
+# function to find longest time interval of monitoring in each lake
+time_cont_fun <- function(yearT, permID, dat_in){
+  
+  # select waterbody
+  dat <- dat_in %>%
+    filter(PermanentID == permID) 
+  
+  # add NA's for missing years
+  dat2 <- dat %>%
+    full_join(tibble(GSYear = min(dat$GSYear):max(dat$GSYear)))
+
+  # identify years missing data closes to focal year
+  dat3 <- dat2 %>%
+    filter(is.na(SpeciesAcres)) %>% # select missing years
+    transmute(Year = GSYear,
+              YearsToT = yearT - Year, # years to focal year
+              YearDir = if_else(YearsToT > 0, "before", "after")) %>% # before or after focal year
+    group_by(YearDir) %>%
+    mutate(YearsMin = min(abs(YearsToT))) %>% # years with missing data closes to focal year
+    ungroup() %>%
+    filter(abs(YearsToT) == YearsMin) # select for closest years
+
+  # add min/max year if none are missing data
+  if(!("before" %in% dat3$YearDir)){
+
+    dat3 <- dat3 %>%
+      add_row(Year = min(dat$GSYear) - 1, YearDir = "before")
+
+  }
+
+  if(!("after" %in% dat3$YearDir)){
+
+    dat3 <- dat3 %>%
+      add_row(Year = max(dat$GSYear) + 1, YearDir = "after")
+
+  }
+  
+  return(dat3)
 }

@@ -417,6 +417,9 @@ fwc_plant6 <- fwc_plant5 %>%
   mutate(SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres))
 # will give warnings, but these are addressed by making -Inf into NAs
 
+# number of waterbodies
+n_distinct(fwc_plant6$AreaOfInterestID)
+
 
 #### first records/continuous surveying ####
 

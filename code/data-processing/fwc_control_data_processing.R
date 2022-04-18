@@ -200,6 +200,9 @@ ctrl4 <- ctrl3 %>%
   full_join(ctrl_old3 %>%
               mutate(TreatmentDate = as.Date(paste0(GSYear, "-01-01"))))
 
+# waterbodies
+n_distinct(ctrl4$AreaOfInterestID)
+
 # check for duplication around 2010
 ctrl4_dups <- ctrl4 %>%
   filter(TreatmentYear == 2010) %>%

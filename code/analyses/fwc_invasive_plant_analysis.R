@@ -78,7 +78,7 @@ inv_dat2 %>%
 
 # complete time intervals
 # surveys were not conducted every year on every lake for every species
-# control data is implicitly complete -- missing interpretted as no control
+# control data is implicitly complete -- missing interpreted as no control
 inv_time_int <- inv_dat2 %>%
   select(GSYear, CommonName) %>% 
   unique() %>%
