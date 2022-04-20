@@ -1,13 +1,37 @@
-Species,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,init_fix_loc_yr,diff_fix_loc_yr,init_diff_fix_loc_yr
-hydrilla,(Intercept),102.265,95.687,102.265,96.057,NA,NA,NA,NA,NA
-hydrilla,PAC,0.169,-0.131,0.169,-0.086,-0.108,-0.084,-0.052,-0.005,-0.052
-hydrilla,management,-11.297,2.707,-11.297,1.619,2.401,0.502,-1.022,-3.297,-1.022
-hydrilla,PrevValue_s,NA,NA,NA,NA,NA,NA,31.376,NA,-46.833
-water hyacinth,(Intercept),96.575,87.144,96.576,87.608,NA,NA,NA,NA,NA
-water hyacinth,PAC,-8.209,0.907,-8.209,0.872,1.681,1.5,0.216,-1.379,0.216
-water hyacinth,management,-9.829,0.927,-9.829,0.262,2.206,1.965,1.004,-0.19,1.004
-water hyacinth,PrevValue_s,NA,NA,NA,NA,NA,NA,31.978,NA,-39.74
-water lettuce,(Intercept),110.885,95.289,110.885,95.437,NA,NA,NA,NA,NA
-water lettuce,PAC,-17.357,-1.273,-17.357,-1.407,-0.232,-0.8,-0.897,-1.038,-0.897
-water lettuce,management,-21.34,-5.845,-21.34,-5.998,-2.531,-2.731,-2.517,-2.205,-2.517
-water lettuce,PrevValue_s,NA,NA,NA,NA,NA,NA,32.3,NA,-47.011
+Species,Quarter,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,diff_fix_loc_yr
+hydrilla,1,(Intercept),4.56,4.362,4.56,4.352,NA,NA,NA
+hydrilla,1,PAC,0.006,-0.002,0.006,-0.001,-0.002,-0.002,-0.025
+hydrilla,1,management,-0.227,0.161,-0.227,0.172,0.18,0.193,-0.346
+hydrilla,2,(Intercept),4.549,4.384,4.549,4.378,NA,NA,NA
+hydrilla,2,PAC,0.005,-0,0.005,0.001,-0.001,0.001,-0.014
+hydrilla,2,management,-0.221,0.089,-0.221,0.089,0.102,0.101,-0.355
+hydrilla,3,(Intercept),4.526,4.356,4.526,4.35,NA,NA,NA
+hydrilla,3,PAC,0.004,-0.004,0.004,-0.003,-0.004,-0.003,-0.011
+hydrilla,3,management,-0.186,0.168,-0.186,0.169,0.184,0.186,-0.432
+hydrilla,4,(Intercept),4.64,4.512,4.64,4.504,NA,NA,NA
+hydrilla,4,PAC,0.004,-0.006,0.004,-0.005,-0.006,-0.005,-0.021
+hydrilla,4,management,-0.175,0.129,-0.175,0.132,0.145,0.148,-0.279
+water hyacinth,1,(Intercept),4.474,4.328,4.474,4.337,NA,NA,NA
+water hyacinth,1,PAC,-0.252,-0.08,-0.252,-0.077,-0.073,-0.07,-0.062
+water hyacinth,1,management,-0.153,0.02,-0.153,0.007,0.031,0.012,-0.241
+water hyacinth,2,(Intercept),4.439,4.327,4.439,4.326,NA,NA,NA
+water hyacinth,2,PAC,-0.157,-0.01,-0.157,-0.012,-0.005,-0.009,0.001
+water hyacinth,2,management,-0.126,0.002,-0.126,0.004,0.008,0.01,-0.097
+water hyacinth,3,(Intercept),4.405,4.294,4.405,4.292,NA,NA,NA
+water hyacinth,3,PAC,-0.161,0.004,-0.161,0.002,0.01,0.007,-0.062
+water hyacinth,3,management,-0.093,0.031,-0.093,0.034,0.038,0.042,-0.084
+water hyacinth,4,(Intercept),4.614,4.44,4.614,4.439,NA,NA,NA
+water hyacinth,4,PAC,-0.199,-0.023,-0.199,-0.021,-0.015,-0.013,-0.002
+water hyacinth,4,management,-0.236,-0.022,-0.236,-0.022,-0.008,-0.009,-0.173
+water lettuce,1,(Intercept),4.446,4.373,4.446,4.375,NA,NA,NA
+water lettuce,1,PAC,-0.38,-0.149,-0.38,-0.143,-0.141,-0.133,-0.03
+water lettuce,1,management,-0.142,-0.106,-0.142,-0.109,-0.103,-0.109,-0.414
+water lettuce,2,(Intercept),4.371,4.302,4.371,4.294,NA,NA,NA
+water lettuce,2,PAC,-0.236,-0.033,-0.236,-0.028,-0.028,-0.021,0.034
+water lettuce,2,management,-0.068,-0.03,-0.068,-0.021,-0.029,-0.015,-0.174
+water lettuce,3,(Intercept),4.392,4.325,4.392,4.317,NA,NA,NA
+water lettuce,3,PAC,-0.267,-0.044,-0.267,-0.041,-0.038,-0.034,-0.012
+water lettuce,3,management,-0.079,-0.048,-0.079,-0.038,-0.047,-0.031,-0.244
+water lettuce,4,(Intercept),4.558,4.447,4.558,4.436,NA,NA,NA
+water lettuce,4,PAC,-0.319,-0.084,-0.319,-0.076,-0.075,-0.064,0.011
+water lettuce,4,management,-0.203,-0.117,-0.203,-0.104,-0.112,-0.094,-0.196

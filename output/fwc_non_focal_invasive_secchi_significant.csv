@@ -1,6 +1,5 @@
-Invasive,Quarter,Term,DiffAvg,PACEffect,TreatEffect,Metric,Average,UninvAvg,UninvN
-torpedograss,Apr-Jun,invasive PAC,-2.8390533098656117,-3.5979511741800976,NA,Secchi disk depth,122.63614162194146,39.34930786509804,17
-torpedograss,Jul-Sep,invasive PAC,-1.5670792264245463,-1.8511478961562928,NA,Secchi disk depth,105.69560115942087,43.92913546444444,18
-torpedograss,Oct-Dec,invasive PAC,-2.5524365888221334,-7.497035279800993,NA,Secchi disk depth,105.54266020569162,37.66411607843138,17
-torpedograss,Oct-Dec,management,-2.5524365888221334,NA,21.874924510317104,Secchi disk depth,105.54266020569162,37.66411607843138,17
-torpedograss,Jan-Mar,invasive PAC,-0.829733595540028,-4.476342656801242,NA,Secchi disk depth,129.57485413563387,41.902197308148146,18
+Invasive,Quarter,Term,Intercept,BetaPAC,BetaTreat,Metric,UninvAvg,UninvN
+Cuban bulrush,Oct-Dec,management,4.511421676218634,NA,0.29691861438599676,Secchi disk depth,111.9711327375,80
+torpedograss,Jul-Sep,management,4.335634522802473,NA,0.22102378567396094,Secchi disk depth,42.66124318466667,20
+torpedograss,Oct-Dec,invasive PAC,4.369867611535666,-0.02131393189662044,NA,Secchi disk depth,42.31773708825397,21
+torpedograss,Oct-Dec,management,4.369867611535666,NA,0.1778556506000596,Secchi disk depth,42.31773708825397,21

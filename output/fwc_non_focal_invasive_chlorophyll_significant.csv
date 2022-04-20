@@ -1,3 +1,2 @@
-Invasive,Quarter,Term,DiffAvg,PACEffect,TreatEffect,Metric,Average,UninvAvg,UninvN
-Cuban bulrush,Jul-Sep,invasive PAC,-1.7319977414336971,58.93694881365805,NA,chlorophyll a,25.852666485533152,39.76349631944444,80
-torpedograss,Jan-Mar,invasive PAC,-15.196700877008796,11.727627899321133,NA,chlorophyll a,51.52726038899912,11.179365079365079,14
+Invasive,Quarter,Term,Intercept,BetaPAC,BetaTreat,Metric,UninvAvg,UninvN
+torpedograss,Oct-Dec,invasive PAC,3.6017622343793962,0.20835455226530078,NA,chlorophyll a,2.545138888888889,16
