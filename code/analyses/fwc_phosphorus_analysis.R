@@ -1,5 +1,3 @@
-#### start here ####
-
 #### set-up ####
 
 # clear environment
@@ -194,7 +192,7 @@ pho_dat2 %>%
   ungroup() %>%
   filter(p_value < 0.05 & abs(corr) >= 0.4) %>%
   data.frame()
-# water lettuce: prev value is correlated with PAC
+# water lettuce & hyacinth: prev value is correlated with PAC
 
 # response distributions
 ggplot(pho_dat2, aes(x = ValueDiff)) +
@@ -254,7 +252,7 @@ ggplot(pho_dat2, aes(x = Lag3Treated, y = logQual)) +
   theme(legend.position = "none")
 # shallow slopes
 # negative for newer invasive spp
-# slightly positive for hydrilla
+# slightly positive for floating plants
 
 ggplot(pho_dat2, aes(x = Lag3Treated, y = logQual, color = PermanentID)) +
   geom_point() +
@@ -413,46 +411,45 @@ mod_comp <- hydr_mod_comp_1 %>%
 write_csv(mod_comp, "output/fwc_phosphorus_model_structure_comparison.csv")
 
 # model comparison notes:
-# Hydrilla PAC negatively affects phosphorus until location-specific intercepts
-# are included, and then the estimate becomes ~ 0, indicating that lakes with
-# more hydrilla have lower phosphorus, but the same isn't true over time
-# within a lake. The difference model suggests hydrilla PAC accelerates phosphorus
+# Hydrilla PAC negatively affects phosphorus (small est) until location-specific intercepts
+# are included, and then the estimate becomes positive, but still small.
+# The difference model suggests hydrilla PAC decreases phosphorus
 # change. Hydrilla management has an inverse pattern: more management increases
 # phosphorus unless there are location-specific intercepts, and then it decreases
 # phosphorus, indicating lakes with more management have higher phosphorus, but
 # more management within a lake decreases phosphorus (opposite of expected).
+# Quarter 2 has positive management effects regardless of intercept, though.
 # Difference model estimates large positive hydrilla management effect.
 
 # Water hyacinth and water lettuce PAC increase phosphorus. The magnitude of the
 # effect decreases with location-specific intercepts, indicating lakes with more 
 # floating plants have higher phosphorus, but temporal variation in floating
 # plant coverage is less influential (and also less variable). Water hyacinth
-# management increases phosphorus with minimal effects of location/year intercepts.
-# water lettuce management decreases phosphorus, which becomes a positive effect with
-# location-specific intercepts, indicating lakes with more management have lower
-# phosphorus, but management within a lake increases phosphorus
+# and water lettuce management follow the same patterns as PAC.
 
 # test fixed effects (seems like year isn't necessary)
 # have to refit because data need to be accessible (not "dat_fix")
 hydr_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
                                 data = filter(hydr_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
+plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(hydr_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
 wahy_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
                                 data = filter(wahy_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
+plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
 wale_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
                                 data = filter(wale_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # marginal
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-# use log quality without initial value and with waterbody and year fixed effects
+# use log quality without initial value and with waterbody fixed effects
+# decided to leave in year effects because they may matter for other lag
+# periods and all other water quality models have them
 
 
 #### model-fitting functions ####
@@ -665,9 +662,8 @@ panel_plot_non_foc_fun(cubu_mods_q4, torp_mods_q4,
                        "output/fwc_non_focal_phosphorus_quarter4_diff_model.eps")
 
 # lag/quarter notes
-# floating plants and management have stronger positive effects on phosphorus with greater lag times
-# hydrilla management has weaker negative effect on phosphorus with greater lag times
-# torpedograss has stronger positive effect on phosphorus with greater lag times
+# hydrilla management and floating plant management and PAC positive effects increase with lag
+# positive torpedograss PAC effect decreases with lag and management effect increases with lag
 
 
 #### finalize models ####
@@ -739,23 +735,23 @@ cubu_pho_mod_q4 <- update(hydr_pho_mod_q4, data = cubu_dat3_q4)
 torp_pho_mod_q4 <- update(hydr_pho_mod_q4, data = torp_dat3_q4)
 
 # SE with heteroscedasticity and autocorrelation
-coeftest(hydr_pho_mod_q1, vcov = vcovHC, type = "HC3") # -treat
-coeftest(wahy_pho_mod_q1, vcov = vcovHC, type = "HC3")
-coeftest(wale_pho_mod_q1, vcov = vcovHC, type = "HC3") # +treat
+coeftest(hydr_pho_mod_q1, vcov = vcovHC, type = "HC3")
+coeftest(wahy_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(wale_pho_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
 coeftest(cubu_pho_mod_q1, vcov = vcovHC, type = "HC3") 
 coeftest(torp_pho_mod_q1, vcov = vcovHC, type = "HC3") 
 
 coeftest(hydr_pho_mod_q2, vcov = vcovHC, type = "HC3")
 coeftest(wahy_pho_mod_q2, vcov = vcovHC, type = "HC3") # +PAC
-coeftest(wale_pho_mod_q2, vcov = vcovHC, type = "HC3") # +PAC
-coeftest(cubu_pho_mod_q2, vcov = vcovHC, type = "HC3")
+coeftest(wale_pho_mod_q2, vcov = vcovHC, type = "HC3")
+coeftest(cubu_pho_mod_q2, vcov = vcovHC, type = "HC3") # -PAC
 coeftest(torp_pho_mod_q2, vcov = vcovHC, type = "HC3") 
 
-coeftest(hydr_pho_mod_q3, vcov = vcovHC, type = "HC3") # -treat
+coeftest(hydr_pho_mod_q3, vcov = vcovHC, type = "HC3") # +PAC
 coeftest(wahy_pho_mod_q3, vcov = vcovHC, type = "HC3") 
 coeftest(wale_pho_mod_q3, vcov = vcovHC, type = "HC3") 
 coeftest(cubu_pho_mod_q3, vcov = vcovHC, type = "HC3") 
-coeftest(torp_pho_mod_q3, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(torp_pho_mod_q3, vcov = vcovHC, type = "HC3")
 
 coeftest(hydr_pho_mod_q4, vcov = vcovHC, type = "HC3")
 coeftest(wahy_pho_mod_q4, vcov = vcovHC, type = "HC3") # +PAC 

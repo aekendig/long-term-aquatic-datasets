@@ -37,6 +37,9 @@ wa_qual %>%
 # no QA codes, this extreme value shows up in time series
 # https://www.polk.wateratlas.usf.edu/waterbodies/lakes/160778/
 
+wa_qual %>%
+  filter(PermanentID == "c3aa4be1-a57b-47a6-8389-edde0c50422f" & GSYear == 2016 & QualityMetric == "TN_ug_L") %>%
+  data.frame()
 
 #### edit data ####
 

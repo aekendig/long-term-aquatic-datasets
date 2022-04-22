@@ -440,7 +440,7 @@ plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 wale_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
                                 data = filter(wale_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # marginal
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
 plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
 # use log quality without initial value and with waterbody and year fixed effects

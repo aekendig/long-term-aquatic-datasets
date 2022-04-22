@@ -144,6 +144,16 @@ nit_dat %>%
   unique() %>%
   inner_join(lwwa_nit)
 
+# look at low value
+nit_dat %>%
+  filter(QualityValue < 10) %>%
+  select(PermanentID, GSYear, QualityValue) %>%
+  unique() %>%
+  inner_join(lwwa_nit)
+# from nitrogen_data_processing, sample was analyzed, but not detected
+# consider removing if it drives results
+# looks like it only shows up in Cuban bulrush model
+
 # remove para grass (only 1-2 waterbodies)
 # use same waterbodies in all 4 quarters
 nit_dat2 <- nit_dat %>%
@@ -410,8 +420,6 @@ mod_comp <- hydr_mod_comp_1 %>%
 
 write_csv(mod_comp, "output/fwc_nitrogen_model_structure_comparison.csv")
 
-#### start here ####
-
 # model comparison notes:
 # Hydrilla PAC negatively affects nitrogen until location-specific intercepts
 # are included, and then the estimate becomes ~ 0, indicating that lakes with
@@ -427,10 +435,10 @@ write_csv(mod_comp, "output/fwc_nitrogen_model_structure_comparison.csv")
 # effect decreases with location-specific intercepts, indicating lakes with more 
 # floating plants have higher nitrogen, but temporal variation in floating
 # plant coverage is less influential (and also less variable). Water hyacinth
-# management increases nitrogen with minimal effects of location/year intercepts.
-# water lettuce management decreases nitrogen, which becomes a positive effect with
-# location-specific intercepts, indicating lakes with more management have lower
-# nitrogen, but management within a lake increases nitrogen
+# and water lettuce management generally increases nitrogen. Adding location-specific
+# intercepts makes the effect of water hyacinth management negative and 
+# the effect of water lettuce management more positive. Estimates for difference
+# model are large and positive.
 
 # test fixed effects (seems like year isn't necessary)
 # have to refit because data need to be accessible (not "dat_fix")
@@ -449,7 +457,7 @@ plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 wale_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
                                 data = filter(wale_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # marginal
+plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # sig
 plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
 # use log quality without initial value and with waterbody and year fixed effects
@@ -665,9 +673,8 @@ panel_plot_non_foc_fun(cubu_mods_q4, torp_mods_q4,
                        "output/fwc_non_focal_nitrogen_quarter4_diff_model.eps")
 
 # lag/quarter notes
-# floating plants and management have stronger positive effects on nitrogen with greater lag times
-# hydrilla management has weaker negative effect on nitrogen with greater lag times
-# torpedograss has stronger positive effect on nitrogen with greater lag times
+# positive effects of floating plants and their management increase with lag time
+# positive effects of torpedograss and management increase with lag time
 
 
 #### finalize models ####
@@ -740,28 +747,28 @@ torp_nit_mod_q4 <- update(hydr_nit_mod_q4, data = torp_dat3_q4)
 
 # SE with heteroscedasticity and autocorrelation
 coeftest(hydr_nit_mod_q1, vcov = vcovHC, type = "HC3") # -treat
-coeftest(wahy_nit_mod_q1, vcov = vcovHC, type = "HC3")
-coeftest(wale_nit_mod_q1, vcov = vcovHC, type = "HC3") # +treat
+coeftest(wahy_nit_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(wale_nit_mod_q1, vcov = vcovHC, type = "HC3") # +PAC
 coeftest(cubu_nit_mod_q1, vcov = vcovHC, type = "HC3") 
 coeftest(torp_nit_mod_q1, vcov = vcovHC, type = "HC3") 
 
 coeftest(hydr_nit_mod_q2, vcov = vcovHC, type = "HC3")
 coeftest(wahy_nit_mod_q2, vcov = vcovHC, type = "HC3") # +PAC
-coeftest(wale_nit_mod_q2, vcov = vcovHC, type = "HC3") # +PAC
+coeftest(wale_nit_mod_q2, vcov = vcovHC, type = "HC3")
 coeftest(cubu_nit_mod_q2, vcov = vcovHC, type = "HC3")
 coeftest(torp_nit_mod_q2, vcov = vcovHC, type = "HC3") 
 
 coeftest(hydr_nit_mod_q3, vcov = vcovHC, type = "HC3") # -treat
 coeftest(wahy_nit_mod_q3, vcov = vcovHC, type = "HC3") 
-coeftest(wale_nit_mod_q3, vcov = vcovHC, type = "HC3") 
+coeftest(wale_nit_mod_q3, vcov = vcovHC, type = "HC3") # +PAC
 coeftest(cubu_nit_mod_q3, vcov = vcovHC, type = "HC3") 
 coeftest(torp_nit_mod_q3, vcov = vcovHC, type = "HC3") # +PAC
 
 coeftest(hydr_nit_mod_q4, vcov = vcovHC, type = "HC3")
 coeftest(wahy_nit_mod_q4, vcov = vcovHC, type = "HC3") # +PAC 
 coeftest(wale_nit_mod_q4, vcov = vcovHC, type = "HC3") # +PAC
-coeftest(cubu_nit_mod_q4, vcov = vcovHC, type = "HC3") 
-coeftest(torp_nit_mod_q4, vcov = vcovHC, type = "HC3") 
+coeftest(cubu_nit_mod_q4, vcov = vcovHC, type = "HC3") # -treat
+coeftest(torp_nit_mod_q4, vcov = vcovHC, type = "HC3") # +PAC and treat
 
 # add fitted values to pdata.frame (important to match rows)
 # convert to regular dataframe
@@ -824,6 +831,7 @@ ggplot(torp_fit_q2, aes(x = Fitted, y = logQual)) + geom_point()
 
 ggplot(hydr_fit_q3, aes(x = Fitted, y = logQual)) + geom_point()
 ggplot(wahy_fit_q3, aes(x = Fitted, y = logQual)) + geom_point()
+
 ggplot(wale_fit_q3, aes(x = Fitted, y = logQual)) + geom_point()
 ggplot(cubu_fit_q3, aes(x = Fitted, y = logQual)) + geom_point()
 ggplot(torp_fit_q3, aes(x = Fitted, y = logQual)) + geom_point()
@@ -969,5 +977,6 @@ non_foc_sig <- non_foc_mod_se %>%
                      CommonName = fct_recode(CommonName, 
                                              "torpedograss" = "Torpedograss")) %>%
               rename(Invasive = CommonName))
+# check for sig effect of outlier point in Cuban bulrush model (Q1)
 
 write_csv(non_foc_sig, "output/fwc_non_focal_invasive_nitrogen_significant.csv")
