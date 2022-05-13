@@ -21,6 +21,7 @@ source("code/settings/figure_settings.R")
 
 # functions
 source("code/generic-functions/model_structure_comparison.R")
+source("code/generic-functions/cut_mean.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
@@ -69,6 +70,7 @@ ggplot(nat_rich, aes(x = Area_ha, y = Richness)) +
   coord_cartesian(xlim = c(0, 20000))
 # suggests that richness isn't saturated
 # not a ton of data to evaluate it
+# decided to use most common taxa to help account for this
 
 
 #### edit native plant data ####
@@ -647,88 +649,156 @@ foc_fit_dat <- hydr_fit %>%
   full_join(wahy_fit) %>%
   full_join(wale_fit) %>%
   as_tibble() %>%
-  select(CommonName, PermanentID, GSYear, Lag3Treated, RichnessDiff) %>%
+  select(CommonName, PermanentID, GSYear, Lag3AvgPercCovered, AvgPercCovered_c, Lag3Treated, RichnessDiff) %>%
   full_join(tibble(PermanentID = names(fixef(hydr_nat_rich_mod)),
                    fixef = as.numeric(fixef(hydr_nat_rich_mod)),
-                   coef = as.numeric(coef(hydr_nat_rich_mod)[2]),
+                   coefPAC = as.numeric(coef(hydr_nat_rich_mod)[1]),
+                   coefTreat = as.numeric(coef(hydr_nat_rich_mod)[2]),
                    CommonName = "Hydrilla",
-                   PanelName = "(A) hydrilla management") %>%
+                   PanelNamePAC = "(A) hydrilla",
+                   PanelNameTreat = "(A) hydrilla management") %>%
               full_join(tibble(PermanentID = names(fixef(wahy_nat_rich_mod)),
                                fixef = as.numeric(fixef(wahy_nat_rich_mod)),
-                               coef = as.numeric(coef(wahy_nat_rich_mod)[2]),
+                               coefPAC = as.numeric(coef(wahy_nat_rich_mod)[1]),
+                               coefTreat = as.numeric(coef(wahy_nat_rich_mod)[2]),
                                CommonName = "Water hyacinth",
-                               PanelName = "(B) water hyacinth management")) %>%
+                               PanelNamePAC = "(B) water hyacinth",
+                               PanelNameTreat = "(B) water hyacinth management")) %>%
               full_join(tibble(PermanentID = names(fixef(wale_nat_rich_mod)),
                                fixef = as.numeric(fixef(wale_nat_rich_mod)),
-                               coef = as.numeric(coef(wale_nat_rich_mod)[2]),
+                               coefPAC = as.numeric(coef(wale_nat_rich_mod)[1]),
+                               coefTreat = as.numeric(coef(wale_nat_rich_mod)[2]),
                                CommonName = "Water lettuce",
-                               PanelName = "(C) water lettuce management"))) %>%
-  mutate(Treated = Lag3Treated * 3,
-         Fitted = fixef + coef * Treated) # replace Fitted with treatment-only effect
+                               PanelNamePAC = "(C) water lettuce",
+                               PanelNameTreat = "(C) water lettuce management"))) %>%
+  mutate(FittedPAC = fixef + coefPAC * AvgPercCovered_c, # PAC-only effect
+         Treated = Lag3Treated * 3,
+         FittedTreat = fixef + coefTreat * Treated) %>% # treatment-only effect
+  group_by(CommonName) %>%
+  mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 4)) %>%
+  group_by(CommonName, BinPAC) %>%
+  mutate(BinPACMean = cut_mean(BinPAC)) %>%
+  ungroup()
 
 non_foc_fit_dat <- cubu_fit %>%
   full_join(pagr_fit) %>%
   full_join(torp_fit) %>%
   as_tibble() %>%
-  select(CommonName, PermanentID, GSYear, Lag3Treated, RichnessDiff) %>%
+  select(CommonName, PermanentID, GSYear, Lag3AvgPercCovered, AvgPercCovered_c, Lag3Treated, RichnessDiff) %>%
   full_join(tibble(PermanentID = names(fixef(cubu_nat_rich_mod)),
                    fixef = as.numeric(fixef(cubu_nat_rich_mod)),
-                   coef = as.numeric(coef(cubu_nat_rich_mod)[2]),
+                   coefPAC = as.numeric(coef(cubu_nat_rich_mod)[1]),
+                   coefTreat = as.numeric(coef(cubu_nat_rich_mod)[2]),
                    CommonName = "Cuban bulrush",
-                   PanelName = "(A) Cuban bulrush management") %>%
+                   PanelNamePAC = "(A) Cuban bulrush",
+                   PanelNameTreat = "(A) Cuban bulrush management") %>%
               full_join(tibble(PermanentID = names(fixef(pagr_nat_rich_mod)),
                                fixef = as.numeric(fixef(pagr_nat_rich_mod)),
-                               coef = as.numeric(coef(pagr_nat_rich_mod)[2]),
+                               coefPAC = as.numeric(coef(pagr_nat_rich_mod)[1]),
+                               coefTreat = as.numeric(coef(pagr_nat_rich_mod)[2]),
                                CommonName = "Para grass",
-                               PanelName = "(B) para grass management")) %>%
+                               PanelNamePAC = "(B) para grass",
+                               PanelNameTreat = "(B) para grass management")) %>%
               full_join(tibble(PermanentID = names(fixef(torp_nat_rich_mod)),
                                fixef = as.numeric(fixef(torp_nat_rich_mod)),
-                               coef = as.numeric(coef(torp_nat_rich_mod)[2]),
+                               coefPAC = as.numeric(coef(torp_nat_rich_mod)[1]),
+                               coefTreat = as.numeric(coef(torp_nat_rich_mod)[2]),
                                CommonName = "Torpedograss",
-                               PanelName = "(C) torpedograss management"))) %>%
-  mutate(Treated = Lag3Treated * 3,
-         Fitted = fixef + coef * Treated) # replace Fitted with treatment-only effect
+                               PanelNamePAC = "(C) torpedograss",
+                               PanelNameTreat = "(C) torpedograss management"))) %>%
+  mutate(FittedPAC = fixef + coefPAC * AvgPercCovered_c, # PAC-only effect
+         Treated = Lag3Treated * 3,
+         FittedTreat = fixef + coefTreat * Treated) %>% # treatment-only effect
+  group_by(CommonName) %>%
+  mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 4)) %>%
+  group_by(CommonName, BinPAC) %>%
+  mutate(BinPACMean = cut_mean(BinPAC)) %>%
+  ungroup()
 
 # raw data (each waterbody represented)
+ggplot(foc_fit_dat, aes(x = log(Lag3AvgPercCovered + 1), color = PermanentID)) +
+  geom_point(aes(y = RichnessDiff), alpha = 0.3) +
+  geom_line(aes(y = FittedPAC)) +
+  facet_wrap(~ PanelNamePAC, scales = "free") +
+  labs(x = "Avg PAC", y = "Annual difference in native richness") +
+  def_theme_paper +
+  theme(legend.position = "none")
+
 ggplot(foc_fit_dat, aes(x = Treated, color = PermanentID)) +
   geom_point(aes(y = RichnessDiff), alpha = 0.3) +
-  geom_line(aes(y = Fitted)) +
-  facet_wrap(~ PanelName, scales = "free") +
+  geom_line(aes(y = FittedTreat)) +
+  facet_wrap(~ PanelNameTreat, scales = "free") +
   labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
+  def_theme_paper +
+  theme(legend.position = "none")
+
+ggplot(non_foc_fit_dat, aes(x = log(Lag3AvgPercCovered + 1), color = PermanentID)) +
+  geom_point(aes(y = RichnessDiff), alpha = 0.3) +
+  geom_line(aes(y = FittedPAC)) +
+  facet_wrap(~ PanelNamePAC, scales = "free") +
+  labs(x = "Avg PAC", y = "Annual difference in native richness") +
   def_theme_paper +
   theme(legend.position = "none")
 
 ggplot(non_foc_fit_dat, aes(x = Treated, color = PermanentID)) +
   geom_point(aes(y = RichnessDiff), alpha = 0.3) +
-  geom_line(aes(y = Fitted)) +
-  facet_wrap(~ PanelName, scales = "free") +
+  geom_line(aes(y = FittedTreat)) +
+  facet_wrap(~ PanelNameTreat, scales = "free") +
   labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
   def_theme_paper +
   theme(legend.position = "none")
 
 # summarize raw data
-foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
-  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
-  geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
+foc_pred_PAC_fig <- ggplot(foc_fit_dat, aes(x = log(Lag3AvgPercCovered + 1))) +
+  geom_point(aes(y = FittedPAC, color = PermanentID), size = 0.5, alpha = 0.1) +
+  geom_line(aes(y = FittedPAC, color = PermanentID), alpha = 0.5) +
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
+               aes(x = BinPACMean, y = RichnessDiff)) +
+  stat_summary(geom = "point", fun = "mean", size = 2,
+               aes(x = BinPACMean, y = RichnessDiff)) +
+  facet_wrap(~ PanelNamePAC, scales = "free") +
+  labs(x = "3-year average PAC (log[x + 1])", y = "Annual difference in native richness") +
+  scale_color_manual(values = rep(kelly(), 9)) +
+  def_theme_paper +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+foc_pred_treat_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
+  geom_point(aes(y = FittedTreat, color = PermanentID), size = 0.5, alpha = 0.1) +
+  geom_line(aes(y = FittedTreat, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(y = RichnessDiff)) +
   stat_summary(geom = "point", fun = "mean", size = 2,
                aes(y = RichnessDiff)) +
-  facet_wrap(~ PanelName, scales = "free") +
+  facet_wrap(~ PanelNameTreat, scales = "free") +
   labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
   scale_color_manual(values = rep(kelly(), 9)) +
   def_theme_paper +
   theme(legend.position = "none",
         strip.text = element_text(size = 9, color = "black", hjust = 0))
 
-non_foc_pred_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
-  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
-  geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
+non_foc_pred_PAC_fig <- ggplot(non_foc_fit_dat, aes(x = log(Lag3AvgPercCovered + 1))) +
+  geom_point(aes(y = FittedPAC, color = PermanentID), size = 0.5, alpha = 0.1) +
+  geom_line(aes(y = FittedPAC, color = PermanentID), alpha = 0.5) +
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
+               aes(x = BinPACMean, y = RichnessDiff)) +
+  stat_summary(geom = "point", fun = "mean", size = 2,
+               aes(x = BinPACMean, y = RichnessDiff)) +
+  facet_wrap(~ PanelNamePAC, scales = "free") +
+  labs(x = "3-year average PAC (log[x + 1])", y = "Annual difference in native richness") +
+  scale_color_manual(values = rep(kelly(), 9)) +
+  def_theme_paper +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+non_foc_pred_treat_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
+  geom_point(aes(y = FittedTreat, color = PermanentID), size = 0.5, alpha = 0.1) +
+  geom_line(aes(y = FittedTreat, color = PermanentID), alpha = 0.5) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
                aes(y = RichnessDiff)) +
   stat_summary(geom = "point", fun = "mean", size = 2,
                aes(y = RichnessDiff)) +
-  facet_wrap(~ PanelName, scales = "free") +
+  facet_wrap(~ PanelNameTreat, scales = "free") +
   labs(x = "Years managed (out of 3)", y = "Annual difference in native richness") +
   scale_color_manual(values = rep(kelly(), 9)) +
   scale_x_continuous(breaks = c(0, 1, 2, 3)) +
@@ -737,10 +807,16 @@ non_foc_pred_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
         strip.text = element_text(size = 9, color = "black", hjust = 0))
 
 # save
-ggsave("output/fwc_focal_invasive_native_richness_treatment_prediction.png", foc_pred_fig,
+ggsave("output/fwc_focal_invasive_native_richness_PAC_prediction.png", foc_pred_PAC_fig,
        device = "png", width = 6.5, height = 2.5, units = "in")
 
-ggsave("output/fwc_non_focal_invasive_native_richness_treatment_prediction.png", non_foc_pred_fig,
+ggsave("output/fwc_focal_invasive_native_richness_treatment_prediction.png", foc_pred_treat_fig,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+
+ggsave("output/fwc_non_focal_invasive_native_richness_PAC_prediction.png", non_foc_pred_PAC_fig,
+       device = "png", width = 6.5, height = 2.5, units = "in")
+
+ggsave("output/fwc_non_focal_invasive_native_richness_treatment_prediction.png", non_foc_pred_treat_fig,
        device = "png", width = 6.5, height = 2.5, units = "in")
 
 
