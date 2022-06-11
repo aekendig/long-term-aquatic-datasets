@@ -9,7 +9,8 @@ library(lubridate)
 library(janitor)
 
 # import data
-gis <- read_csv("gis/intermediate-data/FAOL_Lakewatch_FWC.csv")
+gis <- read_csv("gis/intermediate-data/FAOL_Lakewatch_FWC_v2.csv") 
+# v2 replaced previous (no _v included) because some waterbodies were accidentally omitted from previous
 chnep <- read_csv("original-data/water_atlas_CHNEP_121321.csv")
 hillsborough <- read_csv("original-data/water_atlas_Hillsborough_121321.csv")
 lake <- read_csv("original-data/water_atlas_Lake_121321.csv")
@@ -208,7 +209,7 @@ stat_sum %>%
 
 # lakes included after joining with gis2
 n_distinct(atlas$PermanentID)
-# 849
+# 864
 
 
 #### edit dates ####

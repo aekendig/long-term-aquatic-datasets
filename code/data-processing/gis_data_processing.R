@@ -20,6 +20,10 @@ lw_base <- read_csv("original-data/Lakewatch_Base_File_for_Amy_2020.csv")
 unique(gis_ed$JoinNotes)
 unique(gis_man$JoinNotes)
 
+# waterbodies
+n_distinct(gis_ed$PermanentID) # 1649
+n_distinct(gis_man$PermanentID) # 59
+
 # data structure for outer boundary
 gis_ed %>%
   filter(JoinNotes == "outer boundary") %>%

@@ -150,6 +150,11 @@ inv_dat4 <- inv_dat3 %>%
 
 # export
 write_csv(inv_dat4, "intermediate-data/FWC_invasive_plant_analysis_formatted.csv")
+inv_dat4 %>%
+  select(PermanentID) %>%
+  unique() %>%
+  mutate(plant_management = 1) %>%
+  write_csv("intermediate-data/FWC_invasive_plant_analysis_waterbodies.csv")
 
 # split by species
 hydr_dat <- filter(inv_dat4, CommonName == "Hydrilla")

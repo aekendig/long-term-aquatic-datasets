@@ -23,7 +23,6 @@ source("code/generic-functions/model_structure_comparison.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
-lw_pho <- read_csv("intermediate-data/LW_phosphorus_formatted.csv")
 lwwa_pho <- read_csv("intermediate-data/LW_water_atlas_phosphorus_formatted.csv")
 uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
 
@@ -140,7 +139,7 @@ dev.off()
 # look at high values
 pho_dat %>%
   filter(QualityValue > 1000) %>%
-  select(PermanentID, GSYear, QualityValue) %>%
+  select(PermanentID, GSYear, QualityValue, AreaName) %>%
   unique() %>%
   inner_join(lwwa_pho)
 # checked data in phosphorus_data_processing.R and they seem fine
@@ -161,6 +160,9 @@ pho_dat2 %>%
             Waterbodies = n_distinct(PermanentID),
             N = Years * Waterbodies) %>%
   data.frame()
+
+# save data
+write_csv(pho_dat2, "intermediate-data/FWC_phosphorus_analysis_formatted.csv")
 
 # split by species
 hydr_dat <- filter(pho_dat2, CommonName == "Hydrilla")

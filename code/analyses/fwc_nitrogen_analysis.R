@@ -23,7 +23,6 @@ source("code/generic-functions/model_structure_comparison.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
-lw_nit <- read_csv("intermediate-data/LW_nitrogen_formatted.csv")
 lwwa_nit <- read_csv("intermediate-data/LW_water_atlas_nitrogen_formatted.csv")
 uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
 
@@ -140,9 +139,10 @@ dev.off()
 # look at high value
 nit_dat %>%
   filter(QualityValue > 1e4) %>%
-  select(PermanentID, GSYear, QualityValue) %>%
+  select(PermanentID, GSYear, QualityValue, AreaName) %>%
   unique() %>%
   inner_join(lwwa_nit)
+# Banana Lake had a spike in 2012: https://polk.wateratlas.usf.edu/waterbodies/lakes/160778/banana-lake
 
 # look at low value
 nit_dat %>%
@@ -170,6 +170,9 @@ nit_dat2 %>%
             Waterbodies = n_distinct(PermanentID),
             N = Years * Waterbodies) %>%
   data.frame()
+
+# save data
+write_csv(nit_dat2, "intermediate-data/FWC_nitrogen_analysis_formatted.csv")
 
 # split by species
 hydr_dat <- filter(nit_dat2, CommonName == "Hydrilla")

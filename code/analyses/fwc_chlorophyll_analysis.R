@@ -23,7 +23,6 @@ source("code/generic-functions/model_structure_comparison.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
-lw_chl <- read_csv("intermediate-data/LW_chlorophyll_formatted.csv")
 lwwa_chl <- read_csv("intermediate-data/LW_water_atlas_chlorophyll_formatted.csv")
 uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
 
@@ -137,6 +136,14 @@ for(i in 1:length(inv_taxa)){
 
 dev.off()
 
+# high value in first quarter
+chl_dat %>%
+  filter(QualityValue > 400) %>%
+  select(PermanentID, GSYear, QualityValue, AreaName) %>%
+  unique() %>%
+  inner_join(lwwa_chl)
+# Banana Lake had a spike in 2012: https://polk.wateratlas.usf.edu/waterbodies/lakes/160778/banana-lake
+
 # remove para grass (only 1-2 waterbodies)
 # use same waterbodies in all 4 quarters
 chl_dat2 <- chl_dat %>%
@@ -153,6 +160,9 @@ chl_dat2 %>%
             Waterbodies = n_distinct(PermanentID),
             N = Years * Waterbodies) %>%
   data.frame()
+
+# save data
+write_csv(chl_dat2, "intermediate-data/FWC_chlorophyll_analysis_formatted.csv")
 
 # split by species
 hydr_dat <- filter(chl_dat2, CommonName == "Hydrilla")

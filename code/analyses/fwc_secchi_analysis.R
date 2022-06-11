@@ -23,7 +23,6 @@ source("code/generic-functions/model_structure_comparison.R")
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
-lw_sec <- read_csv("intermediate-data/LW_secchi_formatted.csv")
 lwwa_sec <- read_csv("intermediate-data/LW_water_atlas_secchi_formatted.csv")
 uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
 
@@ -138,6 +137,8 @@ for(i in 1:length(inv_taxa)){
 
 dev.off()
 
+# no major outliers
+
 # remove para grass (only 1-2 waterbodies)
 # use same waterbodies in all 4 quarters
 sec_dat2 <- sec_dat %>%
@@ -154,6 +155,9 @@ sec_dat2 %>%
             Waterbodies = n_distinct(PermanentID),
             N = Years * Waterbodies) %>%
   data.frame()
+
+# save data
+write_csv(sec_dat2, "intermediate-data/FWC_secchi_analysis_formatted.csv")
 
 # split by species
 hydr_dat <- filter(sec_dat2, CommonName == "Hydrilla")
