@@ -138,6 +138,9 @@ for(i in 1:length(inv_taxa)){
 
 dev.off()
 
+# save data
+write_csv(nat_dat2, "intermediate-data/FWC_native_richness_analysis_formatted.csv")
+
 # split by species
 hydr_dat <- filter(nat_dat2, CommonName == "Hydrilla")
 wale_dat <- filter(nat_dat2, CommonName == "Water lettuce")
