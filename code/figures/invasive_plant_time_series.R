@@ -90,9 +90,6 @@ inv_sum <- inv_dat2 %>%
   group_by(GSYear, CommonName) %>%
   summarize(mean_cl_boot(PropCovered * 100),
             n = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = max(ymax)) %>%
   ungroup()
 
 inv_sum_nat <- inv_dat2 %>%
@@ -118,48 +115,48 @@ inv_sum_qual %>%
   select(GSYear, CommonName, n) %>%
   anti_join(inv_sum) # no
 
+# indicate native data in inv_sum
+# add mean from quality data
+inv_sum2 <- inv_sum %>%
+  left_join(inv_sum_nat %>%
+              select(GSYear, CommonName) %>%
+              mutate(Native = "invasve/native")) %>%
+  mutate(Native = replace_na(Native, "invasive")) %>%
+  left_join(inv_sum_qual %>%
+              select(GSYear, CommonName, y) %>%
+              rename(yQual = "y")) %>%
+  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/quality"),
+                        Native))
+
 # figure
-inv_fig <- ggplot(inv_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = 0, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0, size = 0.25) +
-  geom_point(size = 0.75, stroke = 0.25, color = "black") +
+inv_fig <- ggplot(inv_sum2, aes(x = GSYear, y = y, color = CommonName)) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
+                width = 0, size = 0.25) +
   geom_line(size = 0.25) +
-  geom_point(data = inv_sum_nat, size = 0.75, stroke = 0.25, shape = 21, fill = "white") +
-  geom_errorbar(data = inv_sum_qual, aes(ymin = ymin, ymax = ymax), 
-                width = 0, size = 0.25, color = "#E69F00") +
-  geom_point(data = inv_sum_qual, size = 0.5, shape = 18, color = "#E69F00") +
-  geom_text(aes(label = CommonName, x = mean(GSYear), y = ylabel), 
-            vjust = 1, size = tiny_text_size, check_overlap = T) +
-  geom_text(aes(label = paste("N = ", n), x = max(GSYear), y = ylabel), 
-            vjust = 1, hjust = 1,
-            size = tiny_text_size - 0.5, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
+  geom_point(aes(shape = Analyses), 
+             size = 0.75, stroke = 0.25, fill = "white") +
+  geom_point(aes(y = yQual), size = 0.75, stroke = 0.25) + 
+  scale_shape_manual(values = c(24, 22, 21)) +
+  scale_color_manual(values = kelly()[c(3:6, 10:11)], name = "Invasive") +
   labs(x = "Year", y = "Invasive PAC") +
-  scale_y_continuous(n.breaks = 3) +
   def_theme_tiny +
-  theme(axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.75, "pt"))
+  theme(legend.position = "none")
 
 ggsave("output/invasive_plant_time_series.png",
-       plot = inv_fig, width = 1.75, height = 2)
+       plot = inv_fig, width = 2, height = 2)
 
 
 #### management time series ####
+
+#### start here #### 
+# adjust sizes to match above 
 
 # summarize
 mgmt_sum <- inv_dat2 %>%
   group_by(GSYear, CommonName) %>%
   summarize(mean_cl_boot(Lag1Treated * 100),
             n = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = if_else(str_detect(CommonName, "Water") == T, 
-                          0, max(ymax))) %>%
-  ungroup() %>%
-  mutate(vjust = if_else(str_detect(CommonName, "Water") == T, 
-                         -0.5, 1))
+  ungroup()
 
 mgmt_sum_nat <- inv_dat2 %>%
   filter(native == 1) %>%
@@ -175,29 +172,31 @@ mgmt_sum_qual <- inv_dat2 %>%
             n = n_distinct(PermanentID)) %>%
   ungroup()
 
+# indicate native data in mgmt_sum
+# add mean from quality data
+mgmt_sum2 <- mgmt_sum %>%
+  left_join(mgmt_sum_nat %>%
+              select(GSYear, CommonName) %>%
+              mutate(Native = "invasve/native")) %>%
+  mutate(Native = replace_na(Native, "invasive")) %>%
+  left_join(mgmt_sum_qual %>%
+              select(GSYear, CommonName, y) %>%
+              rename(yQual = "y")) %>%
+  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/quality"),
+                            Native))
+
 # figure
-mgmt_fig <- ggplot(mgmt_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = 0, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0, size = 0.25) +
-  geom_point(size = 0.75, stroke = 0.25, color = "black") +
+mgmt_fig <- ggplot(mgmt_sum2, aes(x = GSYear, y = y, color = CommonName)) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
+                width = 0, size = 0.25) +
+  geom_point(aes(shape = Analyses), size = 0.5) +
   geom_line(size = 0.25) +
-  geom_point(data = mgmt_sum_nat, size = 0.75, stroke = 0.25, shape = 21, fill = "white") +
-  geom_errorbar(data = inv_sum_qual, aes(ymin = ymin, ymax = ymax), 
-                width = 0, size = 0.25, color = "#E69F00") +
-  geom_point(data = mgmt_sum_qual, size = 0.5, shape = 18, color = "#E69F00") +
-  geom_text(aes(label = CommonName, x = min(GSYear), y = ylabel, vjust = vjust), 
-            hjust = 0, size = tiny_text_size, check_overlap = T) +
-  geom_text(aes(label = paste("N = ", n), x = max(GSYear), y = 0), 
-            vjust = -0.5, hjust = 1,
-            size = tiny_text_size - 0.5, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
+  geom_point(aes(y = yQual), size = 0.5) + 
+  scale_shape_manual(values = c(2, 0, 1)) +
+  scale_color_manual(values = kelly()[c(3:6, 10:11)], name = "Invasive") +
   labs(x = "Year", y = "Waterbodies managed (%)") +
-  scale_y_continuous(n.breaks = 3) +
   def_theme_tiny +
-  theme(axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.75, "pt"))
+  theme(legend.position = "none")
 
 ggsave("output/management_time_series.png",
        plot = mgmt_fig, width = 1.75, height = 2)
@@ -205,10 +204,8 @@ ggsave("output/management_time_series.png",
 
 #### richness time series ####
 
-#### start here ####
-# need to add size adjustments from above to figures
-# too all figures below
-# common name positions may need to be adjusted
+#### next ####
+# below sections need to be simplified to match above sections
 
 # summarize
 rich_sum <- nat_dat %>%
