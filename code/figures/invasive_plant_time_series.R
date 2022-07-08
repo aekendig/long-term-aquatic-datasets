@@ -7,7 +7,8 @@ rm(list = ls())
 library(tidyverse)
 library(janitor)
 library(pals)
-# library(cowplot)
+library(cowplot)
+library(patchwork)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -18,16 +19,20 @@ nat_dat <- read_csv("intermediate-data/FWC_native_richness_analysis_formatted.cs
 pho_dat <- read_csv("intermediate-data/FWC_phosphorus_analysis_formatted.csv")
 nit_dat <- read_csv("intermediate-data/FWC_nitrogen_analysis_formatted.csv")
 chl_dat <- read_csv("intermediate-data/FWC_chlorophyll_analysis_formatted.csv")
-sec_dat <- read_csv("intermediate-data/FWC_secchi_analysis_formatted.csv")
+sec_dat <- read_csv("intermediate-data/FWC_secchi_analysis_formatted.csv", guess_max = 7000)
 
 # order of invasive species
 inv_order <- c("Hydrilla", "Water hyacinth", "Water lettuce", 
-               "Torpedograss", "Para grass", "Cuban bulrush")
+               "Cuban bulrush", "Torpedograss", "Para grass")
 
 # Quarter names
 quart_name <- tibble(Quarter = 1:4,
                      QuarterF = c("Apr-Jun", "Jul-Sep", "Oct-Dec", "Jan-Mar") %>%
                        fct_relevel("Apr-Jun", "Jul-Sep", "Oct-Dec"))
+
+# figure aesthetics
+shape_pal <- c(24, 22, 21)
+col_pal <- kelly()[c(3:6, 10:11)]
 
 
 #### invasive plant time series by waterbody ####
@@ -125,31 +130,37 @@ inv_sum2 <- inv_sum %>%
   left_join(inv_sum_qual %>%
               select(GSYear, CommonName, y) %>%
               rename(yQual = "y")) %>%
-  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/quality"),
+  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/\nquality"),
                         Native))
 
 # figure
-inv_fig <- ggplot(inv_sum2, aes(x = GSYear, y = y, color = CommonName)) +
+inv_fig_col <- ggplot(inv_sum2, aes(x = GSYear, y = y, color = CommonName)) +
   geom_errorbar(aes(ymin = ymin, ymax = ymax), 
                 width = 0, size = 0.25) +
   geom_line(size = 0.25) +
   geom_point(aes(shape = Analyses), 
-             size = 0.75, stroke = 0.25, fill = "white") +
-  geom_point(aes(y = yQual), size = 0.75, stroke = 0.25) + 
-  scale_shape_manual(values = c(24, 22, 21)) +
-  scale_color_manual(values = kelly()[c(3:6, 10:11)], name = "Invasive") +
+             size = 1, stroke = 0.25, fill = "white") +
+  geom_point(aes(y = yQual), size = 1, stroke = 0.25) + 
+  scale_shape_manual(values = shape_pal, guide = "none") +
+  scale_color_manual(values = col_pal, name = "Invasive") +
   labs(x = "Year", y = "Invasive PAC") +
-  def_theme_tiny +
-  theme(legend.position = "none")
+  def_theme_paper +
+  theme(axis.text.x = element_text(hjust = 0.8))
 
-ggsave("output/invasive_plant_time_series.png",
-       plot = inv_fig, width = 2, height = 2)
+leg_col <- get_legend(inv_fig_col)
+
+inv_fig_shape <- inv_fig_col +
+  scale_shape_manual(values = shape_pal) +
+  scale_color_manual(values = col_pal, guide = "none") +
+  guides(shape = guide_legend(override.aes = list(fill = c("white", "white", "black"))))
+
+leg_shape <- get_legend(inv_fig_shape)
+
+inv_fig <- inv_fig_shape +
+  theme(legend.position = "none")
 
 
 #### management time series ####
-
-#### start here #### 
-# adjust sizes to match above 
 
 # summarize
 mgmt_sum <- inv_dat2 %>%
@@ -182,30 +193,16 @@ mgmt_sum2 <- mgmt_sum %>%
   left_join(mgmt_sum_qual %>%
               select(GSYear, CommonName, y) %>%
               rename(yQual = "y")) %>%
-  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/quality"),
+  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/\nquality"),
                             Native))
 
 # figure
-mgmt_fig <- ggplot(mgmt_sum2, aes(x = GSYear, y = y, color = CommonName)) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
-                width = 0, size = 0.25) +
-  geom_point(aes(shape = Analyses), size = 0.5) +
-  geom_line(size = 0.25) +
-  geom_point(aes(y = yQual), size = 0.5) + 
-  scale_shape_manual(values = c(2, 0, 1)) +
-  scale_color_manual(values = kelly()[c(3:6, 10:11)], name = "Invasive") +
-  labs(x = "Year", y = "Waterbodies managed (%)") +
-  def_theme_tiny +
-  theme(legend.position = "none")
-
-ggsave("output/management_time_series.png",
-       plot = mgmt_fig, width = 1.75, height = 2)
+mgmt_fig <- inv_fig %+%
+  mgmt_sum2 +
+  labs(x = "Year", y = "Waterbodies managed (%)")
 
 
 #### richness time series ####
-
-#### next ####
-# below sections need to be simplified to match above sections
 
 # summarize
 rich_sum <- nat_dat %>%
@@ -213,33 +210,18 @@ rich_sum <- nat_dat %>%
   summarize(mean_cl_boot(Richness),
             n = n_distinct(PermanentID)) %>%
   ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = max(ymax)) %>%
-  ungroup() %>%
   mutate(CommonName = fct_relevel(CommonName, inv_order))
 
 # figure
-ggplot(rich_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = min(rich_sum$ymin) - 0.5, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0) +
-  geom_point(size = 2, color = "black") +
-  geom_line() +
-  geom_text(aes(label = CommonName, x = mean(GSYear), y = ylabel), 
-            vjust = 1.5, size = paper_text_size, check_overlap = T) +
-  geom_text(aes(label = paste(n, "waterbodies"), x = max(GSYear), y = ylabel), 
-            vjust = 1.5, hjust = 1,
-            size = paper_text_size - 1, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
+rich_fig <- ggplot(rich_sum, aes(x = GSYear, y = y, color = CommonName)) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
+                width = 0, size = 0.25) +
+  geom_line(size = 0.25) +
+  geom_point(shape = shape_pal[2], size = 1, stroke = 0.25, fill = "white") +
+  scale_color_manual(values = col_pal, guide = "none") +
   labs(x = "Year", y = "Native richness") +
   def_theme_paper +
-  theme(axis.text = element_text(size = 6, color="black"),
-        axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.5, "pt"))
-
-ggsave("output/native_richness_time_series.png",
-       plot = rich_fig, width = 1.75, height = 2)
+  theme(axis.text.x = element_text(hjust = 0.8))
 
 
 #### chlorophyll time series ####
@@ -250,160 +232,27 @@ chl_sum <- chl_dat %>%
   summarize(mean_cl_boot(QualityValue),
             n = n_distinct(PermanentID)) %>%
   ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = max(ymax)) %>%
-  ungroup() %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order[-5])) %>%
-  left_join(quart_name)
+  mutate(CommonName = fct_relevel(CommonName, inv_order[-6])) %>%
+  left_join(quart_name) %>%
+  filter(QuarterF == "Jul-Sep")
 
 # figure
-ggplot(chl_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = 10, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax, color = QuarterF), width = 0) +
-  geom_point(aes(color = QuarterF), size = 2) +
-  geom_line(aes(color = QuarterF)) +
-  geom_text(aes(label = CommonName, x = mean(GSYear), y = ylabel), 
-            vjust = 1.5, size = paper_text_size, check_overlap = T) +
-  geom_text(aes(label = paste(n, "waterbodies"), x = max(GSYear), y = ylabel), 
-            vjust = 1.5, hjust = 1,
-            size = paper_text_size - 1, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
-  labs(x = "Year", 
+chl_fig <- ggplot(chl_sum, aes(x = GSYear, y = y, color = CommonName)) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
+                width = 0, size = 0.25) +
+  geom_line(size = 0.25) +
+  geom_point(size = 1, stroke = 0.25) +
+  scale_color_manual(values = col_pal, guide = "none") +
+  labs(x = "Year",
        y = expression(paste("Chlorophyll ", italic(a), " (", mu, "g/L)", sep = ""))) +
-  scale_color_manual(values = kelly()[3:6], name = "Quarter") +
   def_theme_paper +
-  theme(axis.text = element_text(size = 6, color="black"),
-        axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.5, "pt"),
-        legend.position = c(0.23, 0.1)) +
-  guides(color = guide_legend(nrow = 2))
-
-ggsave("output/chlorophyll_time_series.png",
-       plot = chl_fig, width = 1.75, height = 2)
+  theme(axis.text.x = element_text(hjust = 0.8))
 
 
-#### nitrogen time series ####
+#### combine plots ####
 
-# summarize
-nit_sum <- nit_dat %>%
-  group_by(GSYear, CommonName, Quarter) %>%
-  summarize(mean_cl_boot(QualityValue),
-            n = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = max(ymax)) %>%
-  ungroup() %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order[-5])) %>%
-  left_join(quart_name)
+combo_fig <- inv_fig + mgmt_fig + leg_shape + rich_fig + chl_fig + leg_col +
+  plot_layout(ncol = 3, widths = c(1, 1, 0.5))
 
-# figure
-ggplot(nit_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = 700, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax, color = QuarterF), width = 0) +
-  geom_point(aes(color = QuarterF), size = 2) +
-  geom_line(aes(color = QuarterF)) +
-  geom_text(aes(label = CommonName, x = mean(GSYear), y = ylabel), 
-            vjust = 1.5, size = paper_text_size, check_overlap = T) +
-  geom_text(aes(label = paste(n, "waterbodies"), x = max(GSYear), y = ylabel), 
-            vjust = 1.5, hjust = 1,
-            size = paper_text_size - 1, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
-  labs(x = "Year", 
-       y = expression(paste("Total nitrogen (", mu, "g/L)", sep = ""))) +
-  scale_color_manual(values = kelly()[3:6], name = "Quarter") +
-  def_theme_paper +
-  theme(axis.text = element_text(size = 6, color="black"),
-        axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.5, "pt"),
-        legend.position = c(0.23, 0.1)) +
-  guides(color = guide_legend(nrow = 2))
-
-ggsave("output/nitrogen_time_series.png",
-       plot = nit_fig, width = 1.75, height = 2)
-
-#### phosphorus time series ####
-
-# summarize
-pho_sum <- pho_dat %>%
-  group_by(GSYear, CommonName, Quarter) %>%
-  summarize(mean_cl_boot(QualityValue),
-            n = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = max(ymax)) %>%
-  ungroup() %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order[-5])) %>%
-  left_join(quart_name)
-
-# figure
-ggplot(pho_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = 30, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax, color = QuarterF), width = 0) +
-  geom_point(aes(color = QuarterF), size = 2) +
-  geom_line(aes(color = QuarterF)) +
-  geom_text(aes(label = CommonName, x = mean(GSYear), y = ylabel), 
-            vjust = 1.5, size = paper_text_size, check_overlap = T) +
-  geom_text(aes(label = paste(n, "waterbodies"), x = max(GSYear), y = ylabel), 
-            vjust = 1.5, hjust = 1,
-            size = paper_text_size - 1, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
-  labs(x = "Year", 
-       y = expression(paste("Total phosphorus (", mu, "g/L)", sep = ""))) +
-  scale_color_manual(values = kelly()[3:6], name = "Quarter") +
-  def_theme_paper +
-  theme(axis.text = element_text(size = 6, color="black"),
-        axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.5, "pt"),
-        legend.position = c(0.23, 0.1)) +
-  guides(color = guide_legend(nrow = 2))
-
-ggsave("output/phosphorus_time_series.png",
-       plot = pho_fig, width = 1.75, height = 2)
-
-
-#### Secchi time series ####
-
-# summarize
-sec_sum <- sec_dat %>%
-  group_by(GSYear, CommonName, Quarter) %>%
-  summarize(mean_cl_boot(QualityValue),
-            n = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  group_by(CommonName) %>%
-  mutate(ylabel = max(ymax)) %>%
-  ungroup() %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order[-5])) %>%
-  left_join(quart_name)
-
-# figure
-ggplot(sec_sum, aes(x = GSYear, y = y)) +
-  geom_hline(yintercept = 45, size = 0.25) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax, color = QuarterF), width = 0) +
-  geom_point(aes(color = QuarterF), size = 2) +
-  geom_line(aes(color = QuarterF)) +
-  geom_text(aes(label = CommonName, x = mean(GSYear), y = ylabel), 
-            vjust = 1.5, size = paper_text_size, check_overlap = T) +
-  geom_text(aes(label = paste(n, "waterbodies"), x = max(GSYear), y = ylabel), 
-            vjust = 1.5, hjust = 1,
-            size = paper_text_size - 1, check_overlap = T) +
-  facet_wrap(~ CommonName, scales = "free_y", ncol = 1) +
-  labs(x = "Year", 
-       y = "Secchi disk depth (cm)") +
-  scale_color_manual(values = kelly()[3:6], name = "Quarter") +
-  def_theme_paper +
-  theme(axis.text = element_text(size = 6, color="black"),
-        axis.line.y = element_line(color = "black", size = 0.25),
-        strip.text = element_blank(),
-        panel.border = element_blank(),
-        panel.spacing = unit(1.5, "pt"),
-        legend.position = c(0.23, 0.1)) +
-  guides(color = guide_legend(nrow = 2))
-
-ggsave("output/secchi_time_series.png",
-       plot = sec_fig, width = 1.75, height = 2)
+ggsave("output/invasive_plant_time_series.png", combo_fig,
+       width = 6, height = 4)
