@@ -645,12 +645,12 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_native_richness_model_summary.cs
 
 #### model prediction figures ####
 
-# extract fixed effects and treatment coefficients
-# fitted values (as used in fwc_invasive_plant_analysis) include surveyor and PAC effects
 # combine data
-foc_fit_dat <- hydr_fit %>%
-  full_join(wahy_fit) %>%
-  full_join(wale_fit) %>%
+# extract fixed effects and coefficients from models
+# separate predictions for invasive-only and treatment-only
+foc_fit_dat <- hydr_dat3 %>%
+  full_join(wahy_dat3) %>%
+  full_join(wale_dat3) %>%
   as_tibble() %>%
   select(CommonName, PermanentID, GSYear, Lag3AvgPercCovered, AvgPercCovered_c, Lag3Treated, RichnessDiff) %>%
   full_join(tibble(PermanentID = names(fixef(hydr_nat_rich_mod)),
@@ -676,16 +676,16 @@ foc_fit_dat <- hydr_fit %>%
                                PanelNameTreat = "(C) water lettuce management"))) %>%
   mutate(FittedPAC = fixef + coefPAC * AvgPercCovered_c, # PAC-only effect
          Treated = Lag3Treated * 3,
-         FittedTreat = fixef + coefTreat * Treated) %>% # treatment-only effect
+         FittedTreat = fixef + coefTreat * Lag3Treated) %>% # treatment-only effect
   group_by(CommonName) %>%
   mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 4)) %>%
   group_by(CommonName, BinPAC) %>%
   mutate(BinPACMean = cut_mean(BinPAC)) %>%
   ungroup()
 
-non_foc_fit_dat <- cubu_fit %>%
-  full_join(pagr_fit) %>%
-  full_join(torp_fit) %>%
+non_foc_fit_dat <- cubu_dat3 %>%
+  full_join(pagr_dat3) %>%
+  full_join(torp_dat3) %>%
   as_tibble() %>%
   select(CommonName, PermanentID, GSYear, Lag3AvgPercCovered, AvgPercCovered_c, Lag3Treated, RichnessDiff) %>%
   full_join(tibble(PermanentID = names(fixef(cubu_nat_rich_mod)),
@@ -711,7 +711,7 @@ non_foc_fit_dat <- cubu_fit %>%
                                PanelNameTreat = "(C) torpedograss management"))) %>%
   mutate(FittedPAC = fixef + coefPAC * AvgPercCovered_c, # PAC-only effect
          Treated = Lag3Treated * 3,
-         FittedTreat = fixef + coefTreat * Treated) %>% # treatment-only effect
+         FittedTreat = fixef + coefTreat * Lag3Treated) %>% # treatment-only effect
   group_by(CommonName) %>%
   mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 4)) %>%
   group_by(CommonName, BinPAC) %>%
