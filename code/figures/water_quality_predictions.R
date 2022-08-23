@@ -42,6 +42,10 @@ quart_name <- tibble(Quarter = 1:4,
                      QuarterF = c("Apr-Jun", "Jul-Sep", "Oct-Dec", "Jan-Mar") %>%
                        fct_relevel("Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
+# quarter color palette
+quart_col_pal <- col_pal[1:4]
+names(quart_col_pal) <- levels(quart_name$QuarterF)
+
 # invasive species names
 foc_inv_names <- tibble(Invasive = c("hydrilla", "water hyacinth", "water lettuce"),
                         CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce")) %>%
@@ -51,6 +55,27 @@ foc_inv_names <- tibble(Invasive = c("hydrilla", "water hyacinth", "water lettuc
 # sig tables assume P<0.1
 # change the threshold if needed
 p_thresh <- 0.1
+
+# raw data
+chl_dat2 <- chl_dat %>%
+  left_join(quart_name) %>%
+  left_join(foc_inv_names) %>%
+  mutate(Treated = Lag3Treated * 3)
+
+sec_dat2 <- sec_dat %>%
+  left_join(quart_name) %>%
+  left_join(foc_inv_names) %>%
+  mutate(Treated = Lag3Treated * 3)
+
+nit_dat2 <- nit_dat %>%
+  left_join(quart_name) %>%
+  left_join(foc_inv_names) %>%
+  mutate(Treated = Lag3Treated * 3)
+
+pho_dat2 <- pho_dat %>%
+  left_join(quart_name) %>%
+  left_join(foc_inv_names) %>%
+  mutate(Treated = Lag3Treated * 3)
 
 # select values based on p_thresh
 # add raw data
@@ -66,11 +91,9 @@ foc_chl_sig2 <- foc_chl %>%
               select(Invasive, Quarter, Intercept, Metric) %>%
               unique()) %>%
   rename(QuarterF = Quarter) %>%
-  left_join(chl_dat %>%
-              select(Quarter, CommonName, Lag3AvgPercCovered) %>%
-              unique() %>%
-              left_join(quart_name) %>%
-              left_join(foc_inv_names))
+  left_join(chl_dat2 %>%
+              select(QuarterF, Invasive, PanelNamePAC, PanelNameTreat, Lag3AvgPercCovered) %>%
+              unique())
   
 foc_sec_sig2 <- foc_sec %>%
   filter(P < p_thresh) %>%
@@ -84,10 +107,9 @@ foc_sec_sig2 <- foc_sec %>%
               select(Invasive, Quarter, Intercept, Metric) %>%
               unique()) %>%
   rename(QuarterF = Quarter) %>%
-  left_join(sec_dat %>%
-              select(Quarter, CommonName, Lag3AvgPercCovered) %>%
-              left_join(quart_name) %>%
-              left_join(foc_inv_names))
+  left_join(sec_dat2 %>%
+              select(QuarterF, Invasive, PanelNamePAC, PanelNameTreat, Lag3AvgPercCovered) %>%
+              unique())
 
 foc_nit_sig2 <- foc_nit %>%
   filter(P < p_thresh) %>%
@@ -101,10 +123,9 @@ foc_nit_sig2 <- foc_nit %>%
               select(Invasive, Quarter, Intercept, Metric) %>%
               unique()) %>%
   rename(QuarterF = Quarter) %>%
-  left_join(nit_dat %>%
-              select(Quarter, CommonName, Lag3AvgPercCovered) %>%
-              left_join(quart_name) %>%
-              left_join(foc_inv_names))
+  left_join(nit_dat2 %>%
+              select(QuarterF, Invasive, PanelNamePAC, PanelNameTreat, Lag3AvgPercCovered) %>%
+              unique())
 
 foc_pho_sig2 <- foc_pho %>%
   filter(P < p_thresh) %>%
@@ -117,10 +138,9 @@ foc_pho_sig2 <- foc_pho %>%
               select(Invasive, Quarter, Intercept, Metric) %>%
               unique()) %>%
   rename(QuarterF = Quarter) %>%
-  left_join(pho_dat %>%
-              select(Quarter, CommonName, Lag3AvgPercCovered) %>%
-              left_join(quart_name) %>%
-              left_join(foc_inv_names))
+  left_join(pho_dat2 %>%
+              select(QuarterF, Invasive, PanelNamePAC, PanelNameTreat, Lag3AvgPercCovered) %>%
+              unique())
 
 # combine datasets
 # estimate fitted values
@@ -128,13 +148,14 @@ foc_pho_sig2 <- foc_pho %>%
 qual_sig <- foc_chl_sig2 %>%
   full_join(foc_sec_sig2) %>%
   full_join(foc_nit_sig2) %>%
-  full_join(foc_pho_sig2) 
+  full_join(foc_pho_sig2) %>%
+  mutate(QuarterF = fct_relevel(QuarterF, "Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
 qual_PAC_fit <- qual_sig %>%
   filter(!is.na(BetaPAC)) %>%
-  mutate(FittedPAC = Intercept + BetaPAC * Lag3AvgPercCovered,  # treatment-only effect
+  mutate(FittedPAC = Intercept + BetaPAC * Lag3AvgPercCovered,  # PAC-only effect
          expFittedPAC = exp(FittedPAC)) %>%
-  group_by(CommonName, Metric, QuarterF) %>%
+  group_by(Invasive, Metric, QuarterF) %>%
   mutate(FittedPACStd = (FittedPAC - mean(FittedPAC)) / sd(FittedPAC),
          AvgPAC = mean(Lag3AvgPercCovered),
          AvgPAC1SD = sd(Lag3AvgPercCovered)) %>%
@@ -150,62 +171,98 @@ qual_treat_fit <- qual_sig %>%
   mutate(Treated = Lag3Treated * 3,
          FittedTreat = Intercept + BetaTreat * Lag3Treated, # treatment-only effect
          expFittedTreat = exp(FittedTreat)) %>%
-  group_by(CommonName, Metric, QuarterF) %>%
+  group_by(Invasive, Metric, QuarterF) %>%
   mutate(FittedTreatStd = (FittedTreat - mean(FittedTreat)) / sd(FittedTreat)) %>%
   ungroup()
 
-# raw data
-foc_chl_dat <- chl_dat %>%
+# summarized chlorophyll data
+foc_chl_dat <- chl_dat2 %>%
   inner_join(foc_chl_sig2 %>%
-               select(CommonName, Quarter, BetaPAC, BetaTreat) %>%
+               select(Invasive, QuarterF, BetaPAC, BetaTreat) %>%
                unique()) %>%
-  group_by(CommonName, Quarter) %>%
-  mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 3)) %>%
-  group_by(CommonName, Quarter, BinPAC) %>%
-  mutate(BinPACMean = cut_mean(BinPAC)) %>%
-  ungroup() %>%
-  left_join(quart_name) %>%
-  left_join(foc_inv_names) %>%
-  mutate(Treated = Lag3Treated * 3)
+  mutate(QuarterF = fct_relevel(QuarterF, "Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
-foc_sec_dat <- sec_dat %>%
+foc_chl_dat_PAC <- foc_chl_dat %>%
+  filter(!is.na(BetaPAC)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF) %>%
+  mutate(BinPAC = cut_interval(Lag3AvgPercCovered, n = 3)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF, BinPAC) %>%
+  summarize(BinPACMid = cut_mean(BinPAC),
+            BinPACMean = mean(Lag3AvgPercCovered),
+            BinN = length(Lag3AvgPercCovered),
+            BinPACSE = sd(Lag3AvgPercCovered) / sqrt(BinN),
+            QualityMean = mean(QualityValue),
+            QualitySE = sd(QualityValue) / sqrt(length(QualityValue))) %>%
+  ungroup()
+
+foc_chl_dat_Treat <- foc_chl_dat %>%
+  filter(!is.na(BetaTreat))
+
+# summarized Secchi data
+foc_sec_dat <- sec_dat2 %>%
   inner_join(foc_sec_sig2 %>%
-               select(CommonName, Quarter, BetaPAC, BetaTreat) %>%
+               select(Invasive, QuarterF, BetaPAC, BetaTreat) %>%
                unique()) %>%
-  group_by(CommonName, Quarter) %>%
-  mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 3)) %>%
-  group_by(CommonName, Quarter, BinPAC) %>%
-  mutate(BinPACMean = cut_mean(BinPAC)) %>%
-  ungroup() %>%
-  left_join(quart_name) %>%
-  left_join(foc_inv_names) %>%
-  mutate(Treated = Lag3Treated * 3)
+  mutate(QuarterF = fct_relevel(QuarterF, "Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
-foc_nit_dat <- nit_dat %>%
+foc_sec_dat_PAC <- foc_sec_dat %>%
+  filter(!is.na(BetaPAC)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF) %>%
+  mutate(BinPAC = cut_interval(Lag3AvgPercCovered, n = 3)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF, BinPAC) %>%
+  summarize(BinPACMid = cut_mean(BinPAC),
+            BinPACMean = mean(Lag3AvgPercCovered),
+            BinN = length(Lag3AvgPercCovered),
+            BinPACSE = sd(Lag3AvgPercCovered) / sqrt(BinN),
+            QualityMean = mean(QualityValue),
+            QualitySE = sd(QualityValue) / sqrt(length(QualityValue))) %>%
+  ungroup()
+
+foc_sec_dat_Treat <- foc_sec_dat %>%
+  filter(!is.na(BetaTreat))
+
+# summarized nitrogen data
+foc_nit_dat <- nit_dat2 %>%
   inner_join(foc_nit_sig2 %>%
-               select(CommonName, Quarter, BetaPAC, BetaTreat) %>%
+               select(Invasive, QuarterF, BetaPAC, BetaTreat) %>%
                unique()) %>%
-  group_by(CommonName, Quarter) %>%
-  mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 3)) %>%
-  group_by(CommonName, Quarter, BinPAC) %>%
-  mutate(BinPACMean = cut_mean(BinPAC)) %>%
-  ungroup() %>%
-  left_join(quart_name) %>%
-  left_join(foc_inv_names) %>%
-  mutate(Treated = Lag3Treated * 3)
+  mutate(QuarterF = fct_relevel(QuarterF, "Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
-foc_pho_dat <- pho_dat %>%
+foc_nit_dat_PAC <- foc_nit_dat %>%
+  filter(!is.na(BetaPAC)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF) %>%
+  mutate(BinPAC = cut_interval(Lag3AvgPercCovered, n = 3)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF, BinPAC) %>%
+  summarize(BinPACMid = cut_mean(BinPAC),
+            BinPACMean = mean(Lag3AvgPercCovered),
+            BinN = length(Lag3AvgPercCovered),
+            BinPACSE = sd(Lag3AvgPercCovered) / sqrt(BinN),
+            QualityMean = mean(QualityValue),
+            QualitySE = sd(QualityValue) / sqrt(length(QualityValue))) %>%
+  ungroup()
+
+foc_nit_dat_Treat <- foc_nit_dat %>%
+  filter(!is.na(BetaTreat))
+
+# summarized phosphorus data
+foc_pho_dat <- pho_dat2 %>%
   inner_join(foc_pho_sig2 %>%
-               select(CommonName, Quarter, BetaPAC) %>%
+               select(Invasive, QuarterF, BetaPAC) %>%
                unique()) %>%
-  group_by(CommonName, Quarter) %>%
-  mutate(BinPAC = cut_number(log(Lag3AvgPercCovered + 1), n = 3)) %>%
-  group_by(CommonName, Quarter, BinPAC) %>%
-  mutate(BinPACMean = cut_mean(BinPAC)) %>%
-  ungroup() %>%
-  left_join(quart_name) %>%
-  left_join(foc_inv_names) %>%
-  mutate(Treated = Lag3Treated * 3)
+  mutate(QuarterF = fct_relevel(QuarterF, "Apr-Jun", "Jul-Sep", "Oct-Dec"))
+
+foc_pho_dat_PAC <- foc_pho_dat %>%
+  filter(!is.na(BetaPAC)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF) %>%
+  mutate(BinPAC = cut_interval(Lag3AvgPercCovered, n = 3)) %>%
+  group_by(Invasive, PanelNamePAC, QuarterF, BinPAC) %>%
+  summarize(BinPACMid = cut_mean(BinPAC),
+            BinPACMean = mean(Lag3AvgPercCovered),
+            BinN = length(Lag3AvgPercCovered),
+            BinPACSE = sd(Lag3AvgPercCovered) / sqrt(BinN),
+            QualityMean = mean(QualityValue),
+            QualitySE = sd(QualityValue) / sqrt(length(QualityValue))) %>%
+  ungroup()
 
 
 #### all-metric figures ####
@@ -232,54 +289,170 @@ qual_treat_fit %>%
   theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
 
 
-#### figures by metric ####
+#### PAC figures by metric ####
 
-#### start here ####
-# apply below to all metrics and make treatment figures
-
-# PAC figures
-qual_PAC_fit %>%
+foc_chl_PAC_fig <- qual_PAC_fit %>%
   filter(Metric == "chlorophyll a") %>%
   ggplot(aes(color = QuarterF)) +
-  geom_line(aes(x = log(Lag3AvgPercCovered + 1), y = expFittedPAC), alpha = 0.5) +
-  geom_point(data = filter(foc_chl_dat, !is.na(BetaPAC)),
-             aes(x = log(Lag3AvgPercCovered + 1), y = QualityValue),
-             alpha = 0.5) +
-  # stat_summary(data = filter(foc_chl_dat, !is.na(BetaPAC)),
-  #              aes(x = log(BinPACMean + 1), y = QualityValue),
-  #              geom = "errorbar", fun.data = "mean_se", width = 0) +
-  # stat_summary(data = filter(foc_chl_dat, !is.na(BetaPAC)),
-  #              aes(x = log(BinPACMean + 1), y = QualityValue),
-  #              geom = "point", fun = "mean", size = 2) +
+  geom_line(aes(x = Lag3AvgPercCovered, y = expFittedPAC), alpha = 0.5) +
+  geom_errorbar(data = foc_chl_dat_PAC,
+                aes(x = BinPACMean, y = QualityMean,
+                    ymin = QualityMean - QualitySE, ymax = QualityMean + QualitySE),
+                width = 0) +
+  geom_errorbarh(data = foc_chl_dat_PAC,
+                 aes(y = QualityMean,
+                     xmin = BinPACMean - BinPACSE, xmax = BinPACMean + BinPACSE),
+                 height = 0) +
+  geom_point(data = foc_chl_dat_PAC,
+             aes(x = BinPACMean, y = QualityMean),
+             size = 1) +
   facet_wrap(~ PanelNamePAC, scales = "free",
              labeller =  labeller(PanelNamePAC = c("(B) water hyacinth" = "(A) water hyacinth",
                                                    "(C) water lettuce" = "(B) water lettuce"))) +
-  labs(x = "3-year average PAC)",
+  labs(x = "3-year average PAC",
        y = expression(paste("Chlorophyll ", italic(a), " (", mu, "g/L)", sep = ""))) +
-  scale_color_manual(values = col_pal, name = "Quarter") +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
   def_theme_paper +
   theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
 
-qual_PAC_fit %>%
+foc_sec_PAC_fig <- qual_PAC_fit %>%
   filter(Metric == "Secchi disk depth") %>%
   ggplot(aes(color = QuarterF)) +
   geom_line(aes(x = Lag3AvgPercCovered, y = expFittedPAC), alpha = 0.5) +
-  stat_summary(data = filter(foc_sec_dat, !is.na(BetaPAC)),
-               aes(x = BinPACMean, y = QualityValue),
-               geom = "errorbar", fun.data = "mean_se", width = 0) +
-  stat_summary(data = filter(foc_sec_dat, !is.na(BetaPAC)),
-               aes(x = BinPACMean, y = QualityValue),
-               geom = "point", fun = "mean", size = 2) +
-  facet_wrap(~ PanelNamePAC, scales = "free") +
-  labs(x = "3-year average PAC)",
+  geom_errorbar(data = foc_sec_dat_PAC,
+                aes(x = BinPACMean, y = QualityMean,
+                    ymin = QualityMean - QualitySE, ymax = QualityMean + QualitySE),
+                width = 0) +
+  geom_errorbarh(data = foc_sec_dat_PAC,
+                 aes(y = QualityMean,
+                     xmin = BinPACMean - BinPACSE, xmax = BinPACMean + BinPACSE),
+                 height = 0) +
+  geom_point(data = foc_sec_dat_PAC,
+             aes(x = BinPACMean, y = QualityMean),
+             size = 1) +
+  facet_wrap(~ PanelNamePAC, scales = "free",
+             labeller =  labeller(PanelNamePAC = c("(A) hydrilla" = "(A) hydrilla",
+                                                   "(C) water lettuce" = "(B) water lettuce"))) +
+  labs(x = "3-year average PAC",
        y = "Secchi disk depth (ft)") +
-  scale_color_manual(values = col_pal, name = "Quarter") +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
   def_theme_paper +
   theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
   
 
-qual_PAC_fit %>%
-  filter(Metric == "total nitrogen")
+foc_nit_PAC_fig <- qual_PAC_fit %>%
+  filter(Metric == "total nitrogen") %>%
+  ggplot(aes(color = QuarterF)) +
+  geom_line(aes(x = Lag3AvgPercCovered, y = expFittedPAC), alpha = 0.5) +
+  geom_errorbar(data = foc_nit_dat_PAC,
+                aes(x = BinPACMean, y = QualityMean,
+                    ymin = QualityMean - QualitySE, ymax = QualityMean + QualitySE),
+                width = 0) +
+  geom_errorbarh(data = foc_nit_dat_PAC,
+                 aes(y = QualityMean,
+                     xmin = BinPACMean - BinPACSE, xmax = BinPACMean + BinPACSE),
+                 height = 0) +
+  geom_point(data = foc_nit_dat_PAC,
+             aes(x = BinPACMean, y = QualityMean),
+             size = 1) +
+  facet_wrap(~ PanelNamePAC, scales = "free",
+             labeller =  labeller(PanelNamePAC = c("(B) water hyacinth" = "(A) water hyacinth",
+                                                   "(C) water lettuce" = "(B) water lettuce"))) +
+  labs(x = "3-year average PAC",
+       y = expression(paste("Total nitrogen (", mu, "g/L)", sep = ""))) +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
 
-qual_PAC_fit %>%
-  filter(Metric == "total phosphorus")
+foc_pho_PAC_fig <- qual_PAC_fit %>%
+  filter(Metric == "total phosphorus") %>%
+  ggplot(aes(color = QuarterF)) +
+  geom_line(aes(x = Lag3AvgPercCovered, y = expFittedPAC), alpha = 0.5) +
+  geom_errorbar(data = foc_pho_dat_PAC,
+                aes(x = BinPACMean, y = QualityMean,
+                    ymin = QualityMean - QualitySE, ymax = QualityMean + QualitySE),
+                width = 0) +
+  geom_errorbarh(data = foc_pho_dat_PAC,
+                 aes(y = QualityMean,
+                     xmin = BinPACMean - BinPACSE, xmax = BinPACMean + BinPACSE),
+                 height = 0) +
+  geom_point(data = foc_pho_dat_PAC,
+             aes(x = BinPACMean, y = QualityMean),
+             size = 1) +
+  facet_wrap(~ PanelNamePAC, scales = "free") +
+  labs(x = "3-year average PAC",
+       y = expression(paste("Total phosphorus (", mu, "g/L)", sep = ""))) +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+
+#### treatment figures by metric ####
+
+foc_chl_treat_fig <- qual_treat_fit %>%
+  filter(Metric == "chlorophyll a") %>%
+  ggplot(aes(color = QuarterF)) +
+  geom_line(aes(x = Treated, y = expFittedTreat), alpha = 0.5) +
+  stat_summary(data = foc_chl_dat_Treat, aes(x = Treated, y = QualityValue),
+               geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(data = foc_chl_dat_Treat, aes(x = Treated, y = QualityValue),
+               geom = "point", fun = "mean", size = 1) +
+  facet_wrap(~ PanelNameTreat, scales = "free",
+             labeller =  labeller(PanelNameTreat = c("(A) hydrilla management" = "(A) hydrilla management",
+                                                   "(C) water lettuce management" = "(B) water lettuce management"))) +
+  labs(x = "Years managed (out of 3)",
+       y = expression(paste("Chlorophyll ", italic(a), " (", mu, "g/L)", sep = ""))) +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+foc_sec_treat_fig <- qual_treat_fit %>%
+  filter(Metric == "Secchi disk depth") %>%
+  ggplot(aes(color = QuarterF)) +
+  geom_line(aes(x = Treated, y = expFittedTreat), alpha = 0.5) +
+  stat_summary(data = foc_sec_dat_Treat, aes(x = Treated, y = QualityValue),
+               geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(data = foc_sec_dat_Treat, aes(x = Treated, y = QualityValue),
+               geom = "point", fun = "mean", size = 1) +
+  facet_wrap(~ PanelNameTreat, scales = "free",
+             labeller =  labeller(PanelNameTreat = c("(A) hydrilla management" = "hydrilla management"))) +
+  labs(x = "Years managed (out of 3)",
+       y = "Secchi disk depth (ft)") +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+foc_nit_treat_fig <- qual_treat_fit %>%
+  filter(Metric == "total nitrogen") %>%
+  ggplot(aes(color = QuarterF)) +
+  geom_line(aes(x = Treated, y = expFittedTreat), alpha = 0.5) +
+  stat_summary(data = foc_nit_dat_Treat, aes(x = Treated, y = QualityValue),
+               geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(data = foc_nit_dat_Treat, aes(x = Treated, y = QualityValue),
+               geom = "point", fun = "mean", size = 1) +
+  facet_wrap(~ PanelNameTreat, scales = "free",
+             labeller =  labeller(PanelNameTreat = c("(A) hydrilla management" = "hydrilla management"))) +
+  labs(x = "Years managed (out of 3)",
+       y = expression(paste("Total nitrogen (", mu, "g/L)", sep = ""))) +
+  scale_color_manual(values = quart_col_pal, name = "Quarter", limits = force) +
+  def_theme_paper +
+  theme(strip.text = element_text(size = 9, color = "black", hjust = 0))
+
+
+#### save figures ####
+
+ggsave("output/fwc_focal_invasive_chlorophyll_PAC_prediction.png", foc_chl_PAC_fig,
+       device = "png", width = 5, height = 2.5, units = "in")
+ggsave("output/fwc_focal_invasive_secchi_PAC_prediction.png", foc_sec_PAC_fig,
+       device = "png", width = 5, height = 2.5, units = "in")
+ggsave("output/fwc_focal_invasive_nitrogen_PAC_prediction.png", foc_nit_PAC_fig,
+       device = "png", width = 5, height = 2.5, units = "in")
+ggsave("output/fwc_focal_invasive_phosphorus_PAC_prediction.png", foc_pho_PAC_fig,
+       device = "png", width = 7, height = 2.5, units = "in")
+
+ggsave("output/fwc_focal_invasive_chlorophyll_treatment_prediction.png", foc_chl_treat_fig,
+       device = "png", width = 5, height = 2.5, units = "in")
+ggsave("output/fwc_focal_invasive_secchi_treatment_prediction.png", foc_sec_treat_fig,
+       device = "png", width = 3, height = 2.5, units = "in")
+ggsave("output/fwc_focal_invasive_nitrogen_treatment_prediction.png", foc_nit_treat_fig,
+       device = "png", width = 3, height = 2.5, units = "in")
