@@ -292,7 +292,8 @@ all_ctrl <- ctrl5 %>%
   summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
             AllAreaTreated_ha = sum(AreaTreated_ha)) %>% # add all treatments within a year
   ungroup() %>%
-  mutate(AllPropTreated = AllAreaTreated_ha / Area_ha)
+  mutate(AllPropTreated = AllAreaTreated_ha / Area_ha,
+         AllTreated = if_else(AllAreaTreated_ha > 0, 1, 0))
 
 # focal species
 # fill in missing years
@@ -312,7 +313,8 @@ foc_ctrl <- ctrl5 %>%
                                       TRUE ~ 0),
             TreatmentDate = if_else(AreaTreated_ha > 0, max(TreatmentDate), NA_real_)) %>%
   ungroup() %>%
-  mutate(PropTreated = AreaTreated_ha / Area_ha)
+  mutate(PropTreated = AreaTreated_ha / Area_ha,
+         Treated = ifelse(AreaTreated_ha > 0, 1, 0))
 
 # combine
 inv_ctrl <- all_ctrl %>%
@@ -346,8 +348,6 @@ ctrl_lag_fun <- function(GSYear, Lag){
   
   # summarize
   outdat <- subdat %>%
-    mutate(AllTreated = if_else(AllAreaTreated_ha > 0, 1, 0),
-           Treated = ifelse(AreaTreated_ha > 0, 1, 0)) %>%
     group_by(PermanentID, TaxonName, Species) %>% # summarize over lag years
     summarise(AllPropTreated = mean(AllPropTreated), # average proportion treated per year 
               PropTreated = mean(PropTreated),
@@ -400,5 +400,52 @@ filter(inv_ctrl2, TaxonName == "Urochloa mutica" & PropTreated > 0.06) %>% data.
 # high for this species, but not an unreasonable area
 # leave in
 
+#### years since treatment ####
+
+# max lag
+max_lag <- max(inv_ctrl2$GSYear) - min(inv_ctrl2$GSYear)
+
+# add column for last treatment
+inv_ctrl3 <- inv_ctrl2 %>%
+  arrange(PermanentID, TaxonName, GSYear) %>%
+  group_by(PermanentID, TaxonName) %>%
+  mutate(LastTreatment = if_else(lag(Treated, n = max_lag) > 0,
+                                 max_lag,
+                                 NA_real_))
+
+# cycle through lags
+for(i in (max_lag - 1):0) {
+  
+  inv_ctrl3 <- inv_ctrl3 %>%
+    mutate(LastTreatment = if_else(lag(Treated, n = i) > 0,
+                                   as.numeric(i),
+                                   LastTreatment))
+    
+}
+
+# ungroup
+inv_ctrl4 <- inv_ctrl3 %>%
+  ungroup()
+
+# check that it worked (use hydrilla because it's managed the most)
+perm_ids <- unique(inv_ctrl4$PermanentID)
+
+for(i in perm_ids) {
+  
+  print(inv_ctrl4 %>%
+          filter(TaxonName == "Hydrilla verticillata" & PermanentID == i) %>%
+          ggplot(aes(x = GSYear, color = PermanentID)) +
+          geom_line(aes(y = Treated)) +
+          geom_point(aes(y = LastTreatment)) +
+          theme_bw() +
+          theme(legend.position = "none"))
+  
+}
+
+ggplot(inv_ctrl4, aes(x = LastTreatment)) +
+  geom_histogram() +
+  facet_wrap(~ TaxonName)
+
+
 #### inv ctrl output ####
-write_csv(inv_ctrl2, "intermediate-data/FWC_invasive_control_formatted.csv")
+write_csv(inv_ctrl4, "intermediate-data/FWC_invasive_control_formatted.csv")
