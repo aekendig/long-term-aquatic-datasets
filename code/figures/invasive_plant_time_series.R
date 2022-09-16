@@ -22,8 +22,8 @@ chl_dat <- read_csv("intermediate-data/FWC_chlorophyll_analysis_formatted.csv")
 sec_dat <- read_csv("intermediate-data/FWC_secchi_analysis_formatted.csv", guess_max = 7000)
 
 # order of invasive species
-inv_order <- c("Hydrilla", "Water hyacinth", "Water lettuce", 
-               "Cuban bulrush", "Torpedograss", "Para grass")
+inv_order <- c("hydrilla", "water hyacinth", "water lettuce", 
+               "Cuban bulrush", "torpedograss", "para grass")
 
 # Quarter names
 quart_name <- tibble(Quarter = 1:4,
@@ -31,7 +31,7 @@ quart_name <- tibble(Quarter = 1:4,
                        fct_relevel("Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
 # figure aesthetics
-shape_pal <- c(24, 22, 21)
+shape_pal <- c(24, 22, 19)
 col_pal <- kelly()[c(3:6, 10:11)]
 
 
@@ -77,18 +77,20 @@ inv_dat2 <- inv_dat %>%
               select(PermanentID, CommonName, GSYear) %>%
               mutate(native = 1)) %>%
   left_join(chl_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(chlorophyll = 1)) %>%
   left_join(nit_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(nitrogen = 1)) %>%
   left_join(pho_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(phosphorus = 1)) %>%
   left_join(sec_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(secchi = 1)) %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order))
+  mutate(CommonName = if_else(CommonName == "Cuban bulrush", CommonName,
+                             tolower(CommonName)) %>%
+           fct_relevel(inv_order))
 
 # summarize
 inv_sum <- inv_dat2 %>%
@@ -125,7 +127,7 @@ inv_sum_qual %>%
 inv_sum2 <- inv_sum %>%
   left_join(inv_sum_nat %>%
               select(GSYear, CommonName) %>%
-              mutate(Native = "invasve/native")) %>%
+              mutate(Native = "invasive/native")) %>%
   mutate(Native = replace_na(Native, "invasive")) %>%
   left_join(inv_sum_qual %>%
               select(GSYear, CommonName, y) %>%
@@ -139,8 +141,8 @@ inv_fig_col <- ggplot(inv_sum2, aes(x = GSYear, y = y, color = CommonName)) +
                 width = 0, size = 0.25) +
   geom_line(size = 0.25) +
   geom_point(aes(shape = Analyses), 
-             size = 1, stroke = 0.25, fill = "white") +
-  geom_point(aes(y = yQual), size = 1, stroke = 0.25) + 
+             size = 1, stroke = 0.25) +
+  # geom_point(aes(y = yQual), size = 1, stroke = 0.25) + # quality subset means differ
   scale_shape_manual(values = shape_pal, guide = "none") +
   scale_color_manual(values = col_pal, name = "Invasive") +
   labs(x = "Year", y = "Invasive PAC") +
@@ -188,7 +190,7 @@ mgmt_sum_qual <- inv_dat2 %>%
 mgmt_sum2 <- mgmt_sum %>%
   left_join(mgmt_sum_nat %>%
               select(GSYear, CommonName) %>%
-              mutate(Native = "invasve/native")) %>%
+              mutate(Native = "invasive/native")) %>%
   mutate(Native = replace_na(Native, "invasive")) %>%
   left_join(mgmt_sum_qual %>%
               select(GSYear, CommonName, y) %>%

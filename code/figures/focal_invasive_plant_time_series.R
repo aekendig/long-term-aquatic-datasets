@@ -22,7 +22,7 @@ chl_dat <- read_csv("intermediate-data/FWC_chlorophyll_analysis_formatted.csv")
 sec_dat <- read_csv("intermediate-data/FWC_secchi_analysis_formatted.csv", guess_max = 7000)
 
 # order of invasive species
-inv_order <- c("Hydrilla", "Water hyacinth", "Water lettuce")
+inv_order <- c("hydrilla", "water hyacinth", "water lettuce")
 
 # Quarter names
 quart_name <- tibble(Quarter = 1:4,
@@ -30,7 +30,7 @@ quart_name <- tibble(Quarter = 1:4,
                        fct_relevel("Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
 # figure aesthetics
-shape_pal <- c(24, 22, 21)
+shape_pal <- c(24, 22, 19)
 col_pal <- kelly()[3:5]
 
 
@@ -76,19 +76,20 @@ inv_dat2 <- inv_dat %>%
               select(PermanentID, CommonName, GSYear) %>%
               mutate(native = 1)) %>%
   left_join(chl_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(chlorophyll = 1)) %>%
   left_join(nit_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(nitrogen = 1)) %>%
   left_join(pho_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(phosphorus = 1)) %>%
   left_join(sec_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              distinct(PermanentID, CommonName, GSYear) %>%
               mutate(secchi = 1)) %>%
-  filter(CommonName %in% inv_order) %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order))
+  mutate(CommonName = tolower(CommonName) %>%
+           fct_relevel(inv_order)) %>%
+  filter(CommonName %in% inv_order)
 
 # summarize
 inv_sum <- inv_dat2 %>%
@@ -140,7 +141,7 @@ inv_fig_col <- ggplot(inv_sum2, aes(x = GSYear, y = y, color = CommonName)) +
   geom_line(size = 0.25) +
   geom_point(aes(shape = Analyses), 
              size = 1, stroke = 0.25, fill = "white") +
-  geom_point(aes(y = yQual), size = 1, stroke = 0.25) + 
+  # geom_point(aes(y = yQual), size = 1, stroke = 0.25) + 
   scale_shape_manual(values = shape_pal, guide = "none") +
   scale_color_manual(values = col_pal, name = "Invasive") +
   labs(x = "Year", y = "Invasive PAC") +
@@ -210,8 +211,9 @@ rich_sum <- nat_dat %>%
   summarize(mean_cl_boot(Richness),
             n = n_distinct(PermanentID)) %>%
   ungroup() %>%
-  filter(CommonName %in% inv_order) %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order))
+  mutate(CommonName = tolower(CommonName) %>%
+           fct_relevel(inv_order)) %>%
+  filter(CommonName %in% inv_order)
 
 # figure
 rich_fig <- ggplot(rich_sum, aes(x = GSYear, y = y, color = CommonName)) +
@@ -233,8 +235,9 @@ chl_sum <- chl_dat %>%
   summarize(mean_cl_boot(QualityValue),
             n = n_distinct(PermanentID)) %>%
   ungroup() %>%
+  mutate(CommonName = tolower(CommonName) %>%
+           fct_relevel(inv_order)) %>%
   filter(CommonName %in% inv_order) %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order[-6])) %>%
   left_join(quart_name) %>%
   filter(QuarterF == "Jul-Sep")
 
