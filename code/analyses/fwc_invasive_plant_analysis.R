@@ -249,6 +249,30 @@ ggplot(inv_dat4, aes(x = Lag6Treated, y = PercDiffCovered)) +
   stat_summary(geom = "point", fun = "mean", size = 2) +
   facet_wrap(~ CommonName, scales = "free")
 
+# years since treatment
+ggplot(inv_dat4, aes(x = LastTreatment, y = PropCoveredLogit)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
+  stat_summary(geom = "point", fun = "mean", size = 2) +
+  facet_wrap(~ CommonName, scales = "free")
+# negative relationships - higher abundance = more recently treated
+
+ggplot(inv_dat4, aes(x = LastTreatment, y = PercDiffCovered)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
+  stat_summary(geom = "point", fun = "mean", size = 2) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_dat4, aes(x = LastTreatment, y = PropCoveredLogit, color = PermanentID)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F, size = 0.5) +
+  facet_wrap(~ CommonName, scales = "free") +
+  theme(legend.position = "none")
+
+ggplot(inv_dat4, aes(x = LastTreatment, y = PercDiffCovered, color = PermanentID)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F, size = 0.5) +
+  facet_wrap(~ CommonName, scales = "free") +
+  theme(legend.position = "none")
+
 
 #### evaluate model structure ####
 
@@ -290,6 +314,15 @@ mod_structure_fits <- function(dat_in){
   mod_init_diff_fix_loc_yr <- plm(PercDiffCovered ~ InitPercCovered_c * Lag1Treated, data = dat_fix,
                                   index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
   
+  # format data for "years since treatment"
+  dat_last <- dat_in %>%
+    filter(!is.na(LastTreatment)) %>%
+    pdata.frame(index = c("PermanentID", "GSYear"))
+  
+  # fit last treatment model
+  mod_last_treatment <- plm(PropCoveredLogit ~ LastTreatment, data = dat_last,
+                            index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+  
   # return list of models
   return(list(lm = mod_lm, 
               ran_loc = mod_ran_loc, 
@@ -300,7 +333,8 @@ mod_structure_fits <- function(dat_in){
               fix_loc_yr = mod_fix_loc_yr, 
               init_fix_loc_yr = mod_init_fix_loc_yr,
               diff_fix_loc_yr = mod_diff_fix_loc_yr, 
-              init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr))
+              init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr,
+              last_treatment = mod_last_treatment))
 
 }
 
@@ -315,13 +349,13 @@ wale_mod_struc <- mod_structure_fits(wale_dat) # convergence error
 # compare model estimates
 hydr_mod_comp <- mod_structure_comp(simp_mods = hydr_mod_struc[1], 
                                     ran_mods = hydr_mod_struc[2:5],
-                                    fix_mods = hydr_mod_struc[6:10])
+                                    fix_mods = hydr_mod_struc[6:11])
 wahy_mod_comp <- mod_structure_comp(simp_mods = wahy_mod_struc[1], 
                                     ran_mods = wahy_mod_struc[2:5],
-                                    fix_mods = wahy_mod_struc[6:10]) 
+                                    fix_mods = wahy_mod_struc[6:11]) 
 wale_mod_comp <- mod_structure_comp(simp_mods = wale_mod_struc[1], 
                                     ran_mods = wale_mod_struc[2:5],
-                                    fix_mods = wale_mod_struc[6:10]) 
+                                    fix_mods = wale_mod_struc[6:11]) 
 
 # combine species
 mod_comp <- hydr_mod_comp %>%
@@ -757,3 +791,52 @@ non_foc_sum <- non_foc_fit_dat %>%
 # save data table
 write_csv(foc_sum, "output/fwc_focal_invasive_PAC_change_treatment_prediction.csv")
 write_csv(non_foc_sum, "output/fwc_non_focal_invasive_PAC_change_treatment_prediction.csv")
+
+
+#### last treatment models ####
+
+# only using lag 3
+hydr_last_dat <- hydr_dat %>% filter(!is.na(LastTreatment)) %>%
+  mutate(PercCovered = 100 * PropCovered) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+wahy_last_dat <- wahy_dat %>% filter(!is.na(LastTreatment)) %>%
+  mutate(PercCovered = 100 * PropCovered) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+wale_last_dat <- wale_dat %>% filter(!is.na(LastTreatment)) %>%
+  mutate(PercCovered = 100 * PropCovered) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+cubu_last_dat <- cubu_dat %>% filter(!is.na(LastTreatment)) %>%
+  mutate(PercCovered = 100 * PropCovered) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+torp_last_dat <- torp_dat %>% filter(!is.na(LastTreatment)) %>%
+  mutate(PercCovered = 100 * PropCovered) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+pagr_last_dat <- pagr_dat %>% filter(!is.na(LastTreatment)) %>%
+  mutate(PercCovered = 100 * PropCovered) %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+
+# fit models
+hydr_last_mod <- plm(LastTreatment ~ PercCovered, data = hydr_last_dat,
+                index = c("PermanentID", "GSYear"), model = "within")
+wahy_last_mod <- update(hydr_last_mod, data = wahy_last_dat)
+wale_last_mod <- update(hydr_last_mod, data = wale_last_dat)
+cubu_last_mod <- update(hydr_last_mod, data = cubu_last_dat)
+torp_last_mod <- update(hydr_last_mod, data = torp_last_dat)
+pagr_last_mod <- update(hydr_last_mod, data = pagr_last_dat)
+
+# check fits
+summary(hydr_last_mod)
+summary(wahy_last_mod)
+summary(wale_last_mod)
+summary(cubu_last_mod)
+summary(torp_last_mod)
+summary(pagr_last_mod)
+# all are balanced
+
+# SE with heteroskedasticity and autocorrelation
+(hydr_last_mod_se <- coeftest(hydr_last_mod, vcov = vcovHC, type = "HC3")) # sig negative
+(wahy_last_mod_se <- coeftest(wahy_last_mod, vcov = vcovHC, type = "HC3")) # not
+(wale_last_mod_se <- coeftest(wale_last_mod, vcov = vcovHC, type = "HC3")) # not
+(cubu_last_mod_se <- coeftest(cubu_last_mod, vcov = vcovHC, type = "HC3")) # not
+(pagr_last_mod_se <- coeftest(pagr_last_mod, vcov = vcovHC, type = "HC3")) # sig positive
+(torp_last_mod_se <- coeftest(torp_last_mod, vcov = vcovHC, type = "HC3")) # not
