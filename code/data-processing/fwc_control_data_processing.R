@@ -279,9 +279,9 @@ inv_taxa <- tibble(Species = c("Hydrilla verticillata", rep("Floating Plants (Ei
                    TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes",
                                  "Panicum repens", "Urochloa mutica", "Cyperus blepharoleptos"))
 
-# all treatments
+# all treatments (for plant analyses)
 # fill in missing years
-# summarize by permanent ID
+# summarize by permanent ID and GS year
 all_ctrl <- ctrl5 %>%
   full_join(ctrl5 %>%
               select(PermanentID, AreaOfInterest, Area_ha) %>%
@@ -295,9 +295,9 @@ all_ctrl <- ctrl5 %>%
   mutate(AllPropTreated = AllAreaTreated_ha / Area_ha,
          AllTreated = if_else(AllAreaTreated_ha > 0, 1, 0))
 
-# focal species
+# focal species (for plant analyses)
 # fill in missing years
-# summarize by permanent ID
+# summarize by permanent ID and GSYear
 foc_ctrl <- ctrl5 %>%
   filter(Species %in% inv_taxa$Species) %>%
   full_join(ctrl5 %>%
@@ -319,32 +319,86 @@ foc_ctrl <- ctrl5 %>%
 # combine
 inv_ctrl <- all_ctrl %>%
   full_join(foc_ctrl) %>%
-  left_join(inv_taxa)
+  left_join(inv_taxa) %>%
+  mutate(Year = GSYear)
 
 # check for redundancy
 inv_ctrl %>%
-  select(PermanentID, GSYear, Species) %>%
+  select(PermanentID, Year, Species) %>%
   get_dupes() %>%
   select(Species, dupe_count) %>%
   unique()
 
 inv_ctrl %>%
-  select(PermanentID, GSYear, TaxonName) %>%
+  select(PermanentID, Year, TaxonName) %>%
+  get_dupes()
+
+# all treatments (for quality analyses)
+# fill in missing years
+# summarize by permanent ID and actual year
+qual_all_ctrl <- ctrl5 %>%
+  full_join(ctrl5 %>%
+              select(PermanentID, AreaOfInterest, Area_ha) %>%
+              unique() %>%
+              expand_grid(TreatmentYear = min(ctrl5$TreatmentYear):max(ctrl5$TreatmentYear))) %>% # could add +1 to max, but don't want to include last year anyway (likely incomplete)
+  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) %>% # add zeros for missing years (did not treat)
+  group_by(PermanentID, TreatmentYear, Area_ha) %>%
+  summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
+            AllAreaTreated_ha = sum(AreaTreated_ha)) %>% # add all treatments within a year
+  ungroup() %>%
+  mutate(AllPropTreated = AllAreaTreated_ha / Area_ha,
+         AllTreated = if_else(AllAreaTreated_ha > 0, 1, 0))
+
+# focal treatments (for quality analyses)
+# fill in missing years
+# summarize by permanent ID and actual year
+qual_foc_ctrl <- ctrl5 %>%
+  filter(Species %in% inv_taxa$Species) %>%
+  full_join(ctrl5 %>%
+              select(PermanentID, AreaOfInterest, Area_ha) %>%
+              unique() %>%
+              expand_grid(TreatmentYear = min(ctrl5$TreatmentYear):max(ctrl5$TreatmentYear)) %>% # could add +1 to max, but don't want to include last year anyway (likely incomplete)
+              expand_grid(Species = unique(inv_taxa$Species))) %>% 
+  mutate(AreaTreated_ha = replace_na(AreaTreated_ha, 0)) %>% # add zeros for missing years
+  group_by(PermanentID, TreatmentYear, Area_ha, Species) %>%
+  summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
+            AreaTreated_ha = sum(AreaTreated_ha),  # add all treatments within a year
+            TreatmentDays = case_when(AreaTreated_ha > 0 ~ as.numeric(n_distinct(TreatmentDate)),
+                                      TRUE ~ 0),
+            TreatmentDate = if_else(AreaTreated_ha > 0, max(TreatmentDate), NA_real_)) %>%
+  ungroup() %>%
+  mutate(PropTreated = AreaTreated_ha / Area_ha,
+         Treated = ifelse(AreaTreated_ha > 0, 1, 0)) 
+
+# combine
+qual_ctrl <- qual_all_ctrl %>%
+  full_join(qual_foc_ctrl) %>%
+  left_join(inv_taxa) %>%
+  mutate(Year = TreatmentYear)
+
+# check for redundancy
+qual_ctrl %>%
+  select(PermanentID, Year, Species) %>%
+  get_dupes() %>%
+  select(Species, dupe_count) %>%
+  unique()
+
+qual_ctrl %>%
+  select(PermanentID, Year, TaxonName) %>%
   get_dupes()
 
 
 #### lag intervals ####
 
 # function for cumulative treatment
-ctrl_lag_fun <- function(GSYear, Lag){
+ctrl_lag_fun <- function(Year, Lag){
   
   # change name
-  year1 <- GSYear
+  year1 <- Year
   
   # filter dataset
   subdat <- inv_ctrl %>%
-    filter(GSYear <= year1 & GSYear > (year1 - Lag)) # %>% # average frequency over preceeding years up to lag years
-    # filter(GSYear <= ((year1 - Lag) + 1) & GSYear >= ((year1 - Lag) - 1)) # average frequency over three years lag years ago
+    filter(Year <= year1 & Year > (year1 - Lag)) # average frequency over preceeding years up to lag years
   
   # summarize
   outdat <- subdat %>%
@@ -353,9 +407,9 @@ ctrl_lag_fun <- function(GSYear, Lag){
               PropTreated = mean(PropTreated),
               AllTreated = mean(AllTreated), # proportion of years with treatment
               Treated = mean(Treated),
-              NYears = n_distinct(GSYear)) %>%
+              NYears = n_distinct(Year)) %>%
     ungroup() %>%
-    mutate(GSYear = year1,
+    mutate(Year = year1,
            Lag = Lag)
   
   # return
@@ -364,13 +418,12 @@ ctrl_lag_fun <- function(GSYear, Lag){
 
 # treatments by year and lag
 inv_ctrl2 <- inv_ctrl %>%
-  select(GSYear) %>%
+  select(Year) %>%
   unique() %>%
   expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
   pmap(ctrl_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
   bind_rows() %>%
   filter(NYears == Lag) %>% # all years for a lag must be available
-  # filter(NYears == 3) %>% # all years for a lag must be available
   select(-NYears) %>%
   pivot_wider(names_from = Lag,
               values_from = c(AllPropTreated, PropTreated, AllTreated, Treated),
@@ -400,21 +453,44 @@ filter(inv_ctrl2, TaxonName == "Urochloa mutica" & PropTreated > 0.06) %>% data.
 # high for this species, but not an unreasonable area
 # leave in
 
+# treatments by year and lag
+qual_ctrl2 <- qual_ctrl %>%
+  select(Year) %>%
+  unique() %>%
+  expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
+  pmap(ctrl_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
+  bind_rows() %>%
+  filter(NYears == Lag) %>% # all years for a lag must be available
+  select(-NYears) %>%
+  pivot_wider(names_from = Lag,
+              values_from = c(AllPropTreated, PropTreated, AllTreated, Treated),
+              names_glue = "Lag{Lag}{.value}") %>% # make treatments wide by lag
+  full_join(qual_ctrl)
+
+
 #### years since treatment ####
 
 # max lag
-max_lag <- max(inv_ctrl2$GSYear) - min(inv_ctrl2$GSYear)
+inv_max_lag <- max(inv_ctrl2$Year) - min(inv_ctrl2$Year)
+qual_max_lag <- max(qual_ctrl2$Year) - min(qual_ctrl2$Year)
 
 # add column for last treatment
 inv_ctrl3 <- inv_ctrl2 %>%
-  arrange(PermanentID, TaxonName, GSYear) %>%
+  arrange(PermanentID, TaxonName, Year) %>%
   group_by(PermanentID, TaxonName) %>%
-  mutate(LastTreatment = if_else(lag(Treated, n = max_lag) > 0,
-                                 max_lag,
+  mutate(LastTreatment = if_else(lag(Treated, n = inv_max_lag) > 0,
+                                 inv_max_lag,
+                                 NA_real_))
+
+qual_ctrl3 <- qual_ctrl2 %>%
+  arrange(PermanentID, TaxonName, Year) %>%
+  group_by(PermanentID, TaxonName) %>%
+  mutate(LastTreatment = if_else(lag(Treated, n = qual_max_lag) > 0,
+                                 qual_max_lag,
                                  NA_real_))
 
 # cycle through lags
-for(i in (max_lag - 1):0) {
+for(i in (inv_max_lag - 1):0) {
   
   inv_ctrl3 <- inv_ctrl3 %>%
     mutate(LastTreatment = if_else(lag(Treated, n = i) > 0,
@@ -423,9 +499,23 @@ for(i in (max_lag - 1):0) {
     
 }
 
+for(i in (qual_max_lag - 1):0) {
+  
+  qual_ctrl3 <- qual_ctrl3 %>%
+    mutate(LastTreatment = if_else(lag(Treated, n = i) > 0,
+                                   as.numeric(i),
+                                   LastTreatment))
+  
+}
+
 # ungroup
 inv_ctrl4 <- inv_ctrl3 %>%
-  ungroup()
+  ungroup() %>%
+  mutate(RecentTreatment = 1 / (LastTreatment + 1))
+
+qual_ctrl4 <- qual_ctrl3 %>%
+  ungroup() %>%
+  mutate(RecentTreatment = 1 / (LastTreatment + 1))
 
 # check that it worked (use hydrilla because it's managed the most)
 perm_ids <- unique(inv_ctrl4$PermanentID)
@@ -449,3 +539,4 @@ ggplot(inv_ctrl4, aes(x = LastTreatment)) +
 
 #### inv ctrl output ####
 write_csv(inv_ctrl4, "intermediate-data/FWC_invasive_control_formatted.csv")
+write_csv(qual_ctrl4, "intermediate-data/FWC_quality_control_formatted.csv")

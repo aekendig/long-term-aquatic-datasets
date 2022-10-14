@@ -816,7 +816,7 @@ pagr_last_dat <- pagr_dat %>% filter(!is.na(LastTreatment)) %>%
   pdata.frame(index = c("PermanentID", "GSYear"))
 
 # fit models
-hydr_last_mod <- plm(LastTreatment ~ PercCovered, data = hydr_last_dat,
+hydr_last_mod <- plm(PercCovered ~ LastTreatment, data = hydr_last_dat,
                 index = c("PermanentID", "GSYear"), model = "within")
 wahy_last_mod <- update(hydr_last_mod, data = wahy_last_dat)
 wale_last_mod <- update(hydr_last_mod, data = wale_last_dat)
@@ -835,8 +835,8 @@ summary(pagr_last_mod)
 
 # SE with heteroskedasticity and autocorrelation
 (hydr_last_mod_se <- coeftest(hydr_last_mod, vcov = vcovHC, type = "HC3")) # sig negative
-(wahy_last_mod_se <- coeftest(wahy_last_mod, vcov = vcovHC, type = "HC3")) # not
+(wahy_last_mod_se <- coeftest(wahy_last_mod, vcov = vcovHC, type = "HC3")) # sig negative
 (wale_last_mod_se <- coeftest(wale_last_mod, vcov = vcovHC, type = "HC3")) # not
 (cubu_last_mod_se <- coeftest(cubu_last_mod, vcov = vcovHC, type = "HC3")) # not
-(pagr_last_mod_se <- coeftest(pagr_last_mod, vcov = vcovHC, type = "HC3")) # sig positive
+(pagr_last_mod_se <- coeftest(pagr_last_mod, vcov = vcovHC, type = "HC3")) # not
 (torp_last_mod_se <- coeftest(torp_last_mod, vcov = vcovHC, type = "HC3")) # not

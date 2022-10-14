@@ -53,11 +53,25 @@ ggplot(lwwa_pho, aes(x = GSYear)) +
   facet_wrap(~ Quarter)
 # some are low for 2019
 
+# combine water hyacinth and lettuce initial percent covered
+floating_cover <- inv_plant2 %>%
+  filter(CommonName %in% c("Water hyacinth", "Water lettuce")) %>%
+  group_by(PermanentID, GSYear, LastTreatment,
+           Lag1Treated, Lag2Treated, Lag3Treated, Lag4Treated, Lag5Treated, Lag6Treated) %>%
+  summarize(across(.cols = ends_with ("AvgPropCovered"), sum)) %>%
+  ungroup() %>%
+  mutate(across(.cols = ends_with ("AvgPropCovered"), ~ if_else(.x > 1, 1, .x)),
+         CommonName = "floating plants")
+
+# add floating cover
+inv_plant3 <- inv_plant2 %>%
+  full_join(floating_cover)
+
 # combine phosphorus, invasive, control
 # select waterbodies sampled throughout
 pho_dat <- lwwa_pho %>%
   # filter(!is.na(PrevValue)) %>%
-  inner_join(inv_plant2 %>%
+  inner_join(inv_plant3 %>%
                filter(GSYear >= 2005 & GSYear < 2019) %>% # year cut-offs from data exploration below
                group_by(CommonName) %>%
                mutate(maxYears = n_distinct(GSYear)) %>% # recalculate max years
@@ -68,7 +82,8 @@ pho_dat <- lwwa_pho %>%
   filter(nYears == maxYears) %>%
   mutate(ValueDiff = QualityValue - PrevValue,  # change over time
          across(ends_with("AvgPropCovered"), ~ .x * 100),
-         logQual = log(QualityValue)) %>%
+         logQual = log(QualityValue),
+         Lag3APCsq = Lag3AvgPropCovered^2) %>% # square perc covered
   rename_with(str_replace, pattern = "AvgPropCovered", replacement = "AvgPercCovered")
 
 # sample sizes
@@ -85,7 +100,7 @@ pho_dat <- lwwa_pho %>%
 # para grass only has one or two waterbodies, but it only has 10 total
 
 # why are there no data matching with torpedograss?
-inv_plant2 %>%
+inv_plant3 %>%
   filter(CommonName == "Torpedograss") %>%
   select(PermanentID, GSYear) %>%
   unique() %>%
@@ -95,7 +110,7 @@ inv_plant2 %>%
   group_by(GSYear) %>%
   count() # a lot of waterbodies each year
 
-inv_plant2 %>%
+inv_plant3 %>%
   filter(CommonName == "Torpedograss") %>%
   select(PermanentID, GSYear) %>%
   unique() %>%
@@ -170,12 +185,25 @@ wale_dat <- filter(pho_dat2, CommonName == "Water lettuce")
 wahy_dat <- filter(pho_dat2, CommonName == "Water hyacinth")
 torp_dat <- filter(pho_dat2, CommonName == "Torpedograss")
 cubu_dat <- filter(pho_dat2, CommonName == "Cuban bulrush")
+flpl_dat <- filter(pho_dat2, CommonName == "floating plants")
+
+# floating uninv
+uninv_float <- uninv %>%
+  filter(CommonName %in% c("Water hyacinth", "Water lettuce")) %>%
+  group_by(PermanentID, Treatments) %>%
+  summarize(nUninv = n()) %>%
+  ungroup() %>%
+  filter(nUninv == 2) %>%
+  select(-nUninv) %>%
+  mutate(CommonName = "floating plants",
+         Established = 0)
 
 # add water quality to uninvaded dataset
 # select years to match invasion dataset
 uninv2 <- lwwa_pho %>%
   # filter(!is.na(PrevValue)) %>%
-  inner_join(uninv) %>%
+  inner_join(uninv %>%
+               full_join(uninv_float)) %>%
   left_join(pho_samp_sum %>%
               select(CommonName, minYear, maxYear) %>%
               unique()) %>%
@@ -232,7 +260,7 @@ ggplot(pho_dat2, aes(x = Lag3AvgPercCovered, y = logQual, color = PermanentID)) 
   geom_smooth(method = "lm", se = F, size = 0.25) +
   facet_grid(Quarter ~ CommonName, scales = "free") +
   theme(legend.position = "none")
-# all the high floating plant values are teh same lake, which has high phosphorus
+# all the high floating plant values are the same lake, which has high phosphorus
 # hydrilla values are more spread out over lakes
 
 ggplot(pho_dat2, aes(x = Lag3AvgPercCovered, y = logQual, color = as.factor(round(Lag3Treated, 1)))) +
@@ -274,6 +302,12 @@ ggplot(pho_dat2, aes(x = PrevValue, y = logQual)) +
   facet_grid(CommonName ~ Quarter, scales = "free")
 # consistently positive
 
+ggplot(pho_dat2, aes(x = LastTreatment, y = logQual)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  geom_smooth(method = "lm") +
+  facet_grid(CommonName ~ Quarter, scales = "free")
+
 
 #### evaluate model structure ####
 
@@ -308,6 +342,20 @@ mod_structure_fits <- function(dat_in, quarter){
   mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, data = dat_fix,
                              index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
   
+  # add quadratic term to account for multiple processes
+  mod_fix_quad <- plm(logQual ~ Lag3AvgPercCovered + Lag3APCsq + Lag3Treated, data = dat_fix,
+                      model = "within", effect = "twoways")
+  
+  # use last treatment
+  mod_fix_last <- plm(logQual ~ Lag3AvgPercCovered + LastTreatment, data = dat_fix,
+                      model = "within", effect = "twoways")
+  
+  # treatment-plant interactions
+  mod_fix_int <- plm(logQual ~ Lag3AvgPercCovered * Lag3Treated, data = dat_fix,
+                      model = "within", effect = "twoways")
+  mod_fix_last_int <- plm(logQual ~ Lag3AvgPercCovered * LastTreatment, data = dat_fix,
+                     model = "within", effect = "twoways")
+  
   # return list of models
   return(list(lm = mod_lm,
               ran_loc = mod_ran_loc,
@@ -315,7 +363,11 @@ mod_structure_fits <- function(dat_in, quarter){
               ran_loc_yr = mod_ran_loc_yr,
               fix_loc = mod_fix_loc,
               fix_loc_yr = mod_fix_loc_yr,
-              diff_fix_loc_yr = mod_diff_fix_loc_yr))
+              diff_fix_loc_yr = mod_diff_fix_loc_yr,
+              quad = mod_fix_quad,
+              last = mod_fix_last,
+              int = mod_fix_int,
+              last_int = mod_fix_last_int))
   
 }
 
@@ -323,59 +375,75 @@ mod_structure_fits <- function(dat_in, quarter){
 hydr_mod_struc_1 <- mod_structure_fits(hydr_dat, 1)
 wahy_mod_struc_1 <- mod_structure_fits(wahy_dat, 1)
 wale_mod_struc_1 <- mod_structure_fits(wale_dat, 1)
+flpl_mod_struc_1 <- mod_structure_fits(flpl_dat, 1)
 
 hydr_mod_struc_2 <- mod_structure_fits(hydr_dat, 2)
 wahy_mod_struc_2 <- mod_structure_fits(wahy_dat, 2)
 wale_mod_struc_2 <- mod_structure_fits(wale_dat, 2)
+flpl_mod_struc_2 <- mod_structure_fits(flpl_dat, 2)
 
 hydr_mod_struc_3 <- mod_structure_fits(hydr_dat, 3)
 wahy_mod_struc_3 <- mod_structure_fits(wahy_dat, 3)
 wale_mod_struc_3 <- mod_structure_fits(wale_dat, 3)
+flpl_mod_struc_3 <- mod_structure_fits(flpl_dat, 3)
 
 hydr_mod_struc_4 <- mod_structure_fits(hydr_dat, 4)
 wahy_mod_struc_4 <- mod_structure_fits(wahy_dat, 4)
 wale_mod_struc_4 <- mod_structure_fits(wale_dat, 4)
+flpl_mod_struc_4 <- mod_structure_fits(flpl_dat, 4)
 
 # compare model estimates
 hydr_mod_comp_1 <- mod_structure_comp(simp_mods = hydr_mod_struc_1[1], 
                                       ran_mods = hydr_mod_struc_1[2:4],
-                                      fix_mods = hydr_mod_struc_1[5:7])
+                                      fix_mods = hydr_mod_struc_1[5:11])
 wahy_mod_comp_1 <- mod_structure_comp(simp_mods = wahy_mod_struc_1[1], 
                                       ran_mods = wahy_mod_struc_1[2:4],
-                                      fix_mods = wahy_mod_struc_1[5:7]) 
+                                      fix_mods = wahy_mod_struc_1[5:11]) 
 wale_mod_comp_1 <- mod_structure_comp(simp_mods = wale_mod_struc_1[1], 
                                       ran_mods = wale_mod_struc_1[2:4],
-                                      fix_mods = wale_mod_struc_1[5:7]) 
+                                      fix_mods = wale_mod_struc_1[5:11]) 
+flpl_mod_comp_1 <- mod_structure_comp(simp_mods = flpl_mod_struc_1[1], 
+                                      ran_mods = flpl_mod_struc_1[2:4],
+                                      fix_mods = flpl_mod_struc_1[5:11]) 
 
 hydr_mod_comp_2 <- mod_structure_comp(simp_mods = hydr_mod_struc_2[1], 
                                       ran_mods = hydr_mod_struc_2[2:4],
-                                      fix_mods = hydr_mod_struc_2[5:7])
+                                      fix_mods = hydr_mod_struc_2[5:11])
 wahy_mod_comp_2 <- mod_structure_comp(simp_mods = wahy_mod_struc_2[1], 
                                       ran_mods = wahy_mod_struc_2[2:4],
-                                      fix_mods = wahy_mod_struc_2[5:7]) 
+                                      fix_mods = wahy_mod_struc_2[5:11]) 
 wale_mod_comp_2 <- mod_structure_comp(simp_mods = wale_mod_struc_2[1], 
                                       ran_mods = wale_mod_struc_2[2:4],
-                                      fix_mods = wale_mod_struc_2[5:7]) 
+                                      fix_mods = wale_mod_struc_2[5:11]) 
+flpl_mod_comp_2 <- mod_structure_comp(simp_mods = flpl_mod_struc_2[1], 
+                                      ran_mods = flpl_mod_struc_2[2:4],
+                                      fix_mods = flpl_mod_struc_2[5:11]) 
 
 hydr_mod_comp_3 <- mod_structure_comp(simp_mods = hydr_mod_struc_3[1], 
                                       ran_mods = hydr_mod_struc_3[2:4],
-                                      fix_mods = hydr_mod_struc_3[5:7])
+                                      fix_mods = hydr_mod_struc_3[5:11])
 wahy_mod_comp_3 <- mod_structure_comp(simp_mods = wahy_mod_struc_3[1], 
                                       ran_mods = wahy_mod_struc_3[2:4],
-                                      fix_mods = wahy_mod_struc_3[5:7]) 
+                                      fix_mods = wahy_mod_struc_3[5:11]) 
 wale_mod_comp_3 <- mod_structure_comp(simp_mods = wale_mod_struc_3[1], 
                                       ran_mods = wale_mod_struc_3[2:4],
-                                      fix_mods = wale_mod_struc_3[5:7]) 
+                                      fix_mods = wale_mod_struc_3[5:11]) 
+flpl_mod_comp_3 <- mod_structure_comp(simp_mods = flpl_mod_struc_3[1], 
+                                      ran_mods = flpl_mod_struc_3[2:4],
+                                      fix_mods = flpl_mod_struc_3[5:11]) 
 
 hydr_mod_comp_4 <- mod_structure_comp(simp_mods = hydr_mod_struc_4[1], 
                                       ran_mods = hydr_mod_struc_4[2:4],
-                                      fix_mods = hydr_mod_struc_4[5:7])
+                                      fix_mods = hydr_mod_struc_4[5:11])
 wahy_mod_comp_4 <- mod_structure_comp(simp_mods = wahy_mod_struc_4[1], 
                                       ran_mods = wahy_mod_struc_4[2:4],
-                                      fix_mods = wahy_mod_struc_4[5:7]) 
+                                      fix_mods = wahy_mod_struc_4[5:11]) 
 wale_mod_comp_4 <- mod_structure_comp(simp_mods = wale_mod_struc_4[1], 
                                       ran_mods = wale_mod_struc_4[2:4],
-                                      fix_mods = wale_mod_struc_4[5:7]) 
+                                      fix_mods = wale_mod_struc_4[5:11]) 
+flpl_mod_comp_4 <- mod_structure_comp(simp_mods = flpl_mod_struc_4[1], 
+                                      ran_mods = flpl_mod_struc_4[2:4],
+                                      fix_mods = flpl_mod_struc_4[5:11]) 
 
 # combine species
 mod_comp <- hydr_mod_comp_1 %>%
@@ -405,8 +473,18 @@ mod_comp <- hydr_mod_comp_1 %>%
               full_join(wale_mod_comp_4 %>%
                           mutate(Quarter = 4)) %>%
               mutate(Species = "water lettuce")) %>%
-  mutate(coefficients = str_replace(coefficients, "Lag3Treated", "management"),
-         coefficients = str_replace(coefficients, "Lag3AvgPercCovered", "PAC"),
+  full_join(flpl_mod_comp_1 %>%
+              mutate(Quarter = 1) %>%
+              full_join(flpl_mod_comp_2 %>%
+                          mutate(Quarter = 2)) %>%
+              full_join(flpl_mod_comp_3 %>%
+                          mutate(Quarter = 3)) %>%
+              full_join(flpl_mod_comp_4 %>%
+                          mutate(Quarter = 4)) %>%
+              mutate(Species = "floating plants")) %>%
+  mutate(coefficients = str_replace_all(coefficients, "Lag3Treated", "management"),
+         coefficients = str_replace_all(coefficients, "Lag3AvgPercCovered", "PAC"),
+         coefficients = str_replace_all(coefficients, "Lag3APCsq", "PAC^2"),
          across(!c(coefficients, Species), ~ round(.x, digits = 3))) %>%
   relocate(Species, Quarter)
 
@@ -422,32 +500,33 @@ write_csv(mod_comp, "output/fwc_phosphorus_model_structure_comparison.csv")
 # more management within a lake decreases phosphorus (opposite of expected).
 # Quarter 2 has positive management effects regardless of intercept, though.
 # Difference model estimates large positive hydrilla management effect.
+# quadratic terms around zero
+# effect sizes in interaction models very small
 
 # Water hyacinth and water lettuce PAC increase phosphorus. The magnitude of the
 # effect decreases with location-specific intercepts, indicating lakes with more 
 # floating plants have higher phosphorus, but temporal variation in floating
 # plant coverage is less influential (and also less variable). Water hyacinth
 # and water lettuce management follow the same patterns as PAC.
+# quadratic terms small and positive (not expected)
+# interactions capture more intuitive results: PAC increases P when treatment is high (decomp)
+# decreases P when treatment is low (stabilization)
+# interactions are all negative for floating combined and water hyacinth, but not water
+# lettuce - use combined
 
 # test fixed effects (seems like year isn't necessary)
 # have to refit because data need to be accessible (not "dat_fix")
-hydr_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
+hydr_mod_diff_fix_loc_yr <- plm(logQual ~ Lag3AvgPercCovered * LastTreatment, 
                                 data = filter(hydr_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(hydr_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-wahy_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
-                                data = filter(wahy_dat, Quarter == 1), 
+flpl_mod_diff_fix_loc_yr <- plm(logQual ~ Lag3AvgPercCovered * LastTreatment, 
+                                data = filter(flpl_dat, Quarter == 1), 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
-
-wale_mod_diff_fix_loc_yr <- plm(ValueDiff ~ Lag3AvgPercCovered + Lag3Treated, 
-                                data = filter(wale_dat, Quarter == 1), 
-                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
+plmtest(flpl_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
+plmtest(flpl_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
 # use log quality without initial value and with waterbody fixed effects
 # decided to leave in year effects because they may matter for other lag
@@ -474,17 +553,17 @@ mod_fit <- function(dat_in){
   foc_sp <- unique(dat_in$CommonName)
   
   # subset data
-  dat_mod1 <- dat_mod_filt("Lag1Treated", "Lag1AvgPercCovered", dat_in)
-  dat_mod2 <- dat_mod_filt("Lag2Treated", "Lag2AvgPercCovered", dat_in)
-  dat_mod3 <- dat_mod_filt("Lag3Treated", "Lag3AvgPercCovered", dat_in)
-  dat_mod4 <- dat_mod_filt("Lag4Treated", "Lag4AvgPercCovered", dat_in)
-  dat_mod5 <- dat_mod_filt("Lag5Treated", "Lag5AvgPercCovered", dat_in)
-  dat_mod6 <- dat_mod_filt("Lag6Treated", "Lag6AvgPercCovered", dat_in)
+  dat_mod1 <- dat_mod_filt("LastTreatment", "Lag1AvgPercCovered", dat_in)
+  dat_mod2 <- dat_mod_filt("LastTreatment", "Lag2AvgPercCovered", dat_in)
+  dat_mod3 <- dat_mod_filt("LastTreatment", "Lag3AvgPercCovered", dat_in)
+  dat_mod4 <- dat_mod_filt("LastTreatment", "Lag4AvgPercCovered", dat_in)
+  dat_mod5 <- dat_mod_filt("LastTreatment", "Lag5AvgPercCovered", dat_in)
+  dat_mod6 <- dat_mod_filt("LastTreatment", "Lag6AvgPercCovered", dat_in)
   
   # fit models
   if(foc_sp == "Cuban bulrush") {
     
-    mod1 <- plm(logQual ~ AvgPercCovered + Treated, data = dat_mod1,
+    mod1 <- plm(logQual ~ AvgPercCovered * Treated, data = dat_mod1,
                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
     mod2 <- update(mod1, data = dat_mod2)
     mod3 <- update(mod1, data = dat_mod3)
@@ -493,7 +572,7 @@ mod_fit <- function(dat_in){
     
   } else {
     
-    mod1 <- plm(logQual ~ AvgPercCovered + Treated, data = dat_mod1,
+    mod1 <- plm(logQual ~ AvgPercCovered * Treated, data = dat_mod1,
                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
     mod2 <- update(mod1, data = dat_mod2)
     mod3 <- update(mod1, data = dat_mod3)
@@ -515,31 +594,27 @@ mod_fit <- function(dat_in){
 
 # fit models with all lags
 hydr_mods_q1 <- mod_fit(filter(hydr_dat, Quarter == 1))
-wahy_mods_q1 <- mod_fit(filter(wahy_dat, Quarter == 1))
-wale_mods_q1 <- mod_fit(filter(wale_dat, Quarter == 1))
+flpl_mods_q1 <- mod_fit(filter(flpl_dat, Quarter == 1))
 torp_mods_q1 <- mod_fit(filter(torp_dat, Quarter == 1))
 cubu_mods_q1 <- mod_fit(filter(cubu_dat, Quarter == 1))
 
 hydr_mods_q2 <- mod_fit(filter(hydr_dat, Quarter == 2))
-wahy_mods_q2 <- mod_fit(filter(wahy_dat, Quarter == 2))
-wale_mods_q2 <- mod_fit(filter(wale_dat, Quarter == 2))
+flpl_mods_q2 <- mod_fit(filter(flpl_dat, Quarter == 2))
 torp_mods_q2 <- mod_fit(filter(torp_dat, Quarter == 2))
 cubu_mods_q2 <- mod_fit(filter(cubu_dat, Quarter == 2))
 
 hydr_mods_q3 <- mod_fit(filter(hydr_dat, Quarter == 3))
-wahy_mods_q3 <- mod_fit(filter(wahy_dat, Quarter == 3))
-wale_mods_q3 <- mod_fit(filter(wale_dat, Quarter == 3))
+flpl_mods_q3 <- mod_fit(filter(flpl_dat, Quarter == 3))
 torp_mods_q3 <- mod_fit(filter(torp_dat, Quarter == 3))
 cubu_mods_q3 <- mod_fit(filter(cubu_dat, Quarter == 3))
 
 hydr_mods_q4 <- mod_fit(filter(hydr_dat, Quarter == 4))
-wahy_mods_q4 <- mod_fit(filter(wahy_dat, Quarter == 4))
-wale_mods_q4 <- mod_fit(filter(wale_dat, Quarter == 4))
+flpl_mods_q4 <- mod_fit(filter(flpl_dat, Quarter == 4))
 torp_mods_q4 <- mod_fit(filter(torp_dat, Quarter == 4))
 cubu_mods_q4 <- mod_fit(filter(cubu_dat, Quarter == 4))
 
 # name models
-names(hydr_mods_q1) <- names(wahy_mods_q1) <- names(wale_mods_q1) <- names(torp_mods_q1) <- names(hydr_mods_q2) <- names(wahy_mods_q2) <- names(wale_mods_q2) <- names(torp_mods_q2) <- names(hydr_mods_q3) <- names(wahy_mods_q3) <- names(wale_mods_q3) <- names(torp_mods_q3) <- names(hydr_mods_q4) <- names(wahy_mods_q4) <- names(wale_mods_q4) <- names(torp_mods_q4) <- c("1", "2", "3", "4", "5", "6")
+names(hydr_mods_q1) <- names(flpl_mods_q1) <- names(torp_mods_q1) <- names(hydr_mods_q2) <- names(flpl_mods_q2) <- names(torp_mods_q2) <- names(hydr_mods_q3) <- names(flpl_mods_q3) <- names(torp_mods_q3) <- names(hydr_mods_q4) <- names(flpl_mods_q4) <- names(torp_mods_q4) <- c("1", "2", "3", "4", "5", "6")
   
 names(cubu_mods_q1) <- names(cubu_mods_q2) <- names(cubu_mods_q3) <- names(cubu_mods_q4) <- c("1", "2", "3")
 
@@ -548,7 +623,8 @@ names(cubu_mods_q1) <- names(cubu_mods_q2) <- names(cubu_mods_q3) <- names(cubu_
 
 # rename coefficients
 coef_names <- c("Treated" = "Management", 
-                "AvgPercCovered" = "Invasive PAC")
+                "AvgPercCovered" = "Invasive PAC",
+                "AvgPercCovered:Treated" = "interaction")
 
 # ggplot function
 plot_fun <- function(models){
@@ -567,42 +643,7 @@ plot_fun <- function(models){
 }
 
 # panel plot function
-panel_plot_fun <- function(mods1, mods2, mods3, 
-                           spp1, spp2, spp3,
-                           filename){
-  
-  # focal panels
-  fig1 <- plot_fun(mods1) +
-    labs(x = "",
-         title = paste("(A)", spp1)) +
-    def_theme_paper +
-    theme(legend.position = "none")
-  
-  fig2 <- plot_fun(mods2) +
-    labs(x = expression(paste("Estimate"%+-%" 95% CI", sep = "")),
-         title = paste("(B)", spp2)) +
-    theme(legend.position = "none",
-          axis.text.y = element_blank())
-  
-  fig3 <- plot_fun(mods3) +
-    labs(x = "",
-         title = paste("(C)", spp3)) +
-    theme(axis.text.y = element_blank(),
-          legend.box.margin = margin(-10, 0, -10, -10)) +
-    scale_color_viridis_d(direction = -1, name = "Lag\n(years)") +
-    guides(color = guide_legend(reverse = TRUE))
-  
-  comb_fig <- fig1 + fig2 + fig3 + plot_annotation(
-    theme = theme(plot.margin = margin(5, -5, 0, -10),
-                  plot.title = element_text(size = 10, hjust = 0.5)),
-    title = "Effects on total phosphorus")
-  
-  ggsave(filename, comb_fig,
-         device = "eps", width = 6.5, height = 3, units = "in")
-  
-}
-
-panel_plot_non_foc_fun <- function(mods1, mods2,
+panel_plot_fun <- function(mods1, mods2,
                                    spp1, spp2,
                                    filename){
   
@@ -621,8 +662,6 @@ panel_plot_non_foc_fun <- function(mods1, mods2,
     guides(color = guide_legend(reverse = TRUE))
   
   comb_fig <- (fig1 + fig2) + 
-    # labs(x = expression(paste("Estimate"%+-%" 95% CI", sep = ""))) +
-    # xlab(label = "Estimate2") +
     plot_annotation(
       caption = expression(paste("Estimate"%+-%" 95% CI", sep = "")),
       theme = theme(plot.caption = element_text(size = 9, color="black", hjust = 0.6, vjust = 10),
@@ -636,32 +675,38 @@ panel_plot_non_foc_fun <- function(mods1, mods2,
 }
 
 # figures
-panel_plot_fun(hydr_mods_q1, wahy_mods_q1, wale_mods_q1,
-               "Hydrilla", "Water hyacinth", "Water lettuce",
+panel_plot_fun(hydr_mods_q1, flpl_mods_q1,
+               "Hydrilla", "floating plants",
                "output/fwc_focal_phosphorus_quarter1_diff_model.eps")
-panel_plot_fun(hydr_mods_q2, wahy_mods_q2, wale_mods_q2,
-               "Hydrilla", "Water hyacinth", "Water lettuce",
+panel_plot_fun(hydr_mods_q2, flpl_mods_q2,
+               "Hydrilla", "floating plants",
                "output/fwc_focal_phosphorus_quarter2_diff_model.eps")
-panel_plot_fun(hydr_mods_q3, wahy_mods_q3, wale_mods_q3,
-               "Hydrilla", "Water hyacinth", "Water lettuce",
+panel_plot_fun(hydr_mods_q3, flpl_mods_q3,
+               "Hydrilla", "floating plants",
                "output/fwc_focal_phosphorus_quarter3_diff_model.eps")
-panel_plot_fun(hydr_mods_q4, wahy_mods_q4, wale_mods_q4,
-               "Hydrilla", "Water hyacinth", "Water lettuce",
+panel_plot_fun(hydr_mods_q4, flpl_mods_q4,
+               "Hydrilla", "floating plants",
                "output/fwc_focal_phosphorus_quarter4_diff_model.eps")
 
-panel_plot_non_foc_fun(cubu_mods_q1, torp_mods_q1,
+panel_plot_fun(cubu_mods_q1, torp_mods_q1,
                        "Cuban bulrush", "Torpedograss",
                        "output/fwc_non_focal_phosphorus_quarter1_diff_model.eps")
 
-panel_plot_non_foc_fun(cubu_mods_q2, torp_mods_q2,
+panel_plot_fun(cubu_mods_q2, torp_mods_q2,
                        "Cuban bulrush", "Torpedograss",
                        "output/fwc_non_focal_phosphorus_quarter2_diff_model.eps")
-panel_plot_non_foc_fun(cubu_mods_q3, torp_mods_q3,
+panel_plot_fun(cubu_mods_q3, torp_mods_q3,
                        "Cuban bulrush", "Torpedograss",
                        "output/fwc_non_focal_phosphorus_quarter3_diff_model.eps")
-panel_plot_non_foc_fun(cubu_mods_q4, torp_mods_q4,
+panel_plot_fun(cubu_mods_q4, torp_mods_q4,
                        "Cuban bulrush", "Torpedograss",
                        "output/fwc_non_focal_phosphorus_quarter4_diff_model.eps")
+
+#### START HERE ####
+# review figures
+# does LastTreatment need to be modified so that intercept = no treatment?
+# are the positive effects of floating plants on PAC driven by the single lake?
+# in other quality scripts, update: wahy and wale -> floating plants, LastTreatment, interaction
 
 # lag/quarter notes
 # hydrilla management and floating plant management and PAC positive effects increase with lag

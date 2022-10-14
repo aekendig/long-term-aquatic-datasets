@@ -528,29 +528,27 @@ sum(is.na(atlas4$Result_Value))
 # remove duplicate values (within and across data sources)
 # summarize by permanent ID and month
 atlas5 <- atlas4 %>%
-  mutate(GSYear = case_when(Month >= 4 ~ Year,
-                            Month < 4 ~ Year - 1)) %>%
   group_by(PermanentID, WBodyID, WaterBodyName, 
          StationID, StationName, Actual_StationID, 
-         GSYear, Month, Date, Parameter, Result_Value) %>%  # remove duplicate result values (same value)
+         Year, Month, Date, Parameter, Result_Value) %>%  # remove duplicate result values (same value)
   summarize(QACode = paste(unique(QACode), collapse = "; "),
             QAMeaning = paste(unique(QAMeaning), collapse = "; ")) %>%
   ungroup() %>%
   group_by(PermanentID, WBodyID, WaterBodyName, 
            StationID, StationName, Actual_StationID, 
-           GSYear, Month, Date, Parameter) %>%
+           Year, Month, Date, Parameter) %>%
   summarize(Result_Value = mean(Result_Value), # average multiple result values
             QACode = paste(unique(QACode), collapse = "; "),
             QAMeaning = paste(unique(QAMeaning), collapse = "; ")) %>%
   ungroup() %>%
-  group_by(PermanentID, GSYear, Month, Date, Parameter) %>%
+  group_by(PermanentID, Year, Month, Date, Parameter) %>%
   summarize(Result_Value = mean(Result_Value), # average across stations
             QACode = paste(unique(QACode), collapse = "; "),
             QAMeaning = paste(unique(QAMeaning), collapse = "; "),
             WaterBodyName = paste(unique(WaterBodyName, collapse = "/")),
             StationsPerDate = n()) %>%
   ungroup() %>%
-  group_by(PermanentID, WaterBodyName, GSYear, Month, Parameter) %>%
+  group_by(PermanentID, WaterBodyName, Year, Month, Parameter) %>%
   summarize(Result_Value = mean(Result_Value), # average across dates within a month
             QACode = paste(unique(QACode), collapse = "; "),
             QAMeaning = paste(unique(QAMeaning), collapse = "; "),
@@ -571,7 +569,7 @@ quarts <- tibble(Month = 1:12,
 # summarize by permanent ID and quarter
 atlas6 <- atlas5 %>%
   left_join(quarts) %>%
-  group_by(PermanentID, WaterBodyName, GSYear, Quarter, Parameter) %>%
+  group_by(PermanentID, WaterBodyName, Year, Quarter, Parameter) %>%
   summarize(Result_Value = mean(Result_Value), # average across months within a GS year
             QACode = paste(unique(QACode), collapse = "; "),
             QAMeaning = paste(unique(QAMeaning), collapse = "; "),

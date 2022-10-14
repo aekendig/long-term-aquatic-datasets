@@ -93,19 +93,17 @@ qual4 <- qual3 %>%
 
 # summarize quality data by month
 qual5 <- qual4 %>%
-  mutate(GSYear = case_when(Month >= 4 ~ Year,
-                            Month < 4 ~ Year - 1)) %>%
   group_by(PermanentID) %>%
   mutate(across(.cols = c(JoinNotes, ShapeSource, Lake),
                 ~ paste(unique(.x), collapse = "/"))) %>% # combine all text info for Perm ID
   ungroup() %>%
-  group_by(PermanentID, GSYear, Month, Date, QualityMetric) %>% # average across stations
+  group_by(PermanentID, Year, Month, Date, QualityMetric) %>% # average across stations
   summarise(QualityValue = mean(QualityValue, na.rm = TRUE),
             StationsPerDate = n(),
             across(.cols = c(Lake, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource), 
                    ~ unique(.x))) %>% # take unique values
   ungroup() %>%
-  group_by(PermanentID, GSYear, Month, QualityMetric) %>% # average across dates within a month (some months are highly sampled)
+  group_by(PermanentID, Year, Month, QualityMetric) %>% # average across dates within a month (some months are highly sampled)
   summarise(QualityValue = mean(QualityValue, na.rm = TRUE),
             AvgStationsPerDate = mean(StationsPerDate),
             DatesSampled = n(),
@@ -131,7 +129,7 @@ quarts <- tibble(Month = 1:12,
 # summarize quality data by quarter
 qual6 <- qual5 %>%
   left_join(quarts) %>%
-  group_by(PermanentID, GSYear, Quarter, QualityMetric) %>% # average across months in a quarter
+  group_by(PermanentID, Year, Quarter, QualityMetric) %>% # average across months in a quarter
   summarize(QualityValue = mean(QualityValue, na.rm = TRUE),
             AvgStationsPerDate = mean(AvgStationsPerDate),
             AvgDatesPerMonth = mean(DatesSampled),
@@ -150,10 +148,8 @@ qual6 %>%
 # some have a ton of dates (used to change summarizing above)
 # (many_dates <- qual6 %>%
 #   filter(DatesSampled > 24) %>%
-#   select(PermanentID, GSYear, QualityMetric, DatesSampled) %>%
-#   left_join(qual4 %>%
-#               mutate(GSYear = case_when(Month >= 4 ~ Year,
-#                                         Month < 4 ~ Year - 1))))
+#   select(PermanentID, Year, QualityMetric, DatesSampled) %>%
+#   left_join(qual4)
 # some months just have intense sampling
 
 

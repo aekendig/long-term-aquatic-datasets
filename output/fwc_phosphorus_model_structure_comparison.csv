@@ -1,37 +1,113 @@
-Species,Quarter,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,diff_fix_loc_yr
-hydrilla,1,(Intercept),3.774,3.815,3.774,3.818,NA,NA,NA
-hydrilla,1,PAC,-0.008,0.002,-0.008,0.002,0.003,0.002,0.039
-hydrilla,1,management,0.085,-0.06,0.085,-0.059,-0.065,-0.064,8.543
-hydrilla,2,(Intercept),3.672,3.63,3.672,3.626,NA,NA,NA
-hydrilla,2,PAC,-0.005,0.003,-0.005,0.002,0.003,0.002,-0.078
-hydrilla,2,management,0.034,0.038,0.034,0.048,0.038,0.049,9.115
-hydrilla,3,(Intercept),3.737,3.718,3.738,3.721,NA,NA,NA
-hydrilla,3,PAC,-0.007,0.003,-0.007,0.003,0.004,0.003,-0.117
-hydrilla,3,management,0.039,-0.015,0.038,-0.019,-0.017,-0.022,7.561
-hydrilla,4,(Intercept),3.744,3.757,3.745,3.769,NA,NA,NA
-hydrilla,4,PAC,-0.007,0.003,-0.008,0.003,0.004,0.003,-0.086
-hydrilla,4,management,0.084,-0.022,0.083,-0.036,-0.027,-0.043,5.529
-water hyacinth,1,(Intercept),3.546,3.802,3.546,3.829,NA,NA,NA
-water hyacinth,1,PAC,0.5,0.117,0.5,0.124,0.106,0.117,21.65
-water hyacinth,1,management,0.395,0.105,0.395,0.062,0.092,0.04,-1.736
-water hyacinth,2,(Intercept),3.422,3.692,3.422,3.728,NA,NA,NA
-water hyacinth,2,PAC,0.438,0.044,0.438,0.057,0.034,0.051,3.8
-water hyacinth,2,management,0.401,0.092,0.401,0.037,0.08,0.013,-1.849
-water hyacinth,3,(Intercept),3.512,3.747,3.512,3.785,NA,NA,NA
-water hyacinth,3,PAC,0.429,0.025,0.429,0.034,0.014,0.026,19.638
-water hyacinth,3,management,0.356,0.102,0.356,0.043,0.091,0.02,0.543
-water hyacinth,4,(Intercept),3.569,3.789,3.569,3.812,NA,NA,NA
-water hyacinth,4,PAC,0.447,0.1,0.447,0.106,0.089,0.097,16.421
-water hyacinth,4,management,0.314,0.068,0.314,0.033,0.056,0.012,0.744
-water lettuce,1,(Intercept),3.836,3.964,3.836,3.976,NA,NA,NA
-water lettuce,1,PAC,0.728,0.144,0.728,0.148,0.126,0.134,23.616
-water lettuce,1,management,0.163,0.142,0.163,0.125,0.14,0.108,-2.148
-water lettuce,2,(Intercept),3.715,3.908,3.715,3.929,NA,NA,NA
-water lettuce,2,PAC,0.676,0.032,0.676,0.041,0.013,0.028,2.469
-water lettuce,2,management,0.152,0.062,0.152,0.032,0.058,0.009,-2.589
-water lettuce,3,(Intercept),3.728,3.9,3.728,3.923,NA,NA,NA
-water lettuce,3,PAC,0.667,0.013,0.667,0.02,-0.006,0.007,19.036
-water lettuce,3,management,0.165,0.105,0.165,0.073,0.102,0.055,1.318
-water lettuce,4,(Intercept),3.818,3.923,3.818,3.939,NA,NA,NA
-water lettuce,4,PAC,0.701,0.148,0.701,0.147,0.127,0.128,14.894
-water lettuce,4,management,0.095,0.095,0.095,0.074,0.094,0.058,0.67
+Species,Quarter,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,diff_fix_loc_yr,quad,last,int,last_int
+hydrilla,1,(Intercept),3.774,3.815,3.774,3.818,NA,NA,NA,NA,NA,NA,NA
+hydrilla,1,PAC,-0.008,0.002,-0.008,0.002,0.003,0.002,0.039,-0.001,0.002,-0.003,0.002
+hydrilla,1,management,0.085,-0.06,0.085,-0.059,-0.065,-0.064,8.543,-0.064,NA,-0.086,NA
+hydrilla,1,PAC^2,NA,NA,NA,NA,NA,NA,NA,0,NA,NA,NA
+hydrilla,1,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0,NA,-0.001
+hydrilla,1,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.006,NA
+hydrilla,1,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.001
+hydrilla,2,(Intercept),3.672,3.63,3.672,3.626,NA,NA,NA,NA,NA,NA,NA
+hydrilla,2,PAC,-0.005,0.003,-0.005,0.002,0.003,0.002,-0.078,0.003,0.002,0.004,0.003
+hydrilla,2,management,0.034,0.038,0.034,0.048,0.038,0.049,9.115,0.049,NA,0.058,NA
+hydrilla,2,PAC^2,NA,NA,NA,NA,NA,NA,NA,-0,NA,NA,NA
+hydrilla,2,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.003,NA,-0.003
+hydrilla,2,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.003,NA
+hydrilla,2,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.001
+hydrilla,3,(Intercept),3.737,3.718,3.738,3.721,NA,NA,NA,NA,NA,NA,NA
+hydrilla,3,PAC,-0.007,0.003,-0.007,0.003,0.004,0.003,-0.117,-0.002,0.003,0.006,0.003
+hydrilla,3,management,0.039,-0.015,0.038,-0.019,-0.017,-0.022,7.561,-0.02,NA,-0.008,NA
+hydrilla,3,PAC^2,NA,NA,NA,NA,NA,NA,NA,0,NA,NA,NA
+hydrilla,3,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,0.01,NA,0.009
+hydrilla,3,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.004,NA
+hydrilla,3,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.001
+hydrilla,4,(Intercept),3.744,3.757,3.745,3.769,NA,NA,NA,NA,NA,NA,NA
+hydrilla,4,PAC,-0.007,0.003,-0.008,0.003,0.004,0.003,-0.086,-0,0.002,0.005,0.002
+hydrilla,4,management,0.084,-0.022,0.083,-0.036,-0.027,-0.043,5.529,-0.042,NA,-0.035,NA
+hydrilla,4,PAC^2,NA,NA,NA,NA,NA,NA,NA,0,NA,NA,NA
+hydrilla,4,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,0.006,NA,0.005
+hydrilla,4,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.002,NA
+hydrilla,4,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.001
+water hyacinth,1,(Intercept),3.546,3.802,3.546,3.829,NA,NA,NA,NA,NA,NA,NA
+water hyacinth,1,PAC,0.5,0.117,0.5,0.124,0.106,0.117,21.65,-0.031,0.117,0.028,0.118
+water hyacinth,1,management,0.395,0.105,0.395,0.062,0.092,0.04,-1.736,0.042,NA,0.033,NA
+water hyacinth,1,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.024,NA,NA,NA
+water hyacinth,1,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.01,NA,-0.008
+water hyacinth,1,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.092,NA
+water hyacinth,1,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.096
+water hyacinth,2,(Intercept),3.422,3.692,3.422,3.728,NA,NA,NA,NA,NA,NA,NA
+water hyacinth,2,PAC,0.438,0.044,0.438,0.057,0.034,0.051,3.8,0.049,0.047,0.098,0.048
+water hyacinth,2,management,0.401,0.092,0.401,0.037,0.08,0.013,-1.849,0.013,NA,0.017,NA
+water hyacinth,2,PAC^2,NA,NA,NA,NA,NA,NA,NA,0,NA,NA,NA
+water hyacinth,2,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.005,NA,-0.002
+water hyacinth,2,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.049,NA
+water hyacinth,2,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.181
+water hyacinth,3,(Intercept),3.512,3.747,3.512,3.785,NA,NA,NA,NA,NA,NA,NA
+water hyacinth,3,PAC,0.429,0.025,0.429,0.034,0.014,0.026,19.638,-0.084,0.02,0.1,0.021
+water hyacinth,3,management,0.356,0.102,0.356,0.043,0.091,0.02,0.543,0.021,NA,0.026,NA
+water hyacinth,3,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.018,NA,NA,NA
+water hyacinth,3,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.008,NA,-0.004
+water hyacinth,3,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.077,NA
+water hyacinth,3,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.209
+water hyacinth,4,(Intercept),3.569,3.789,3.569,3.812,NA,NA,NA,NA,NA,NA,NA
+water hyacinth,4,PAC,0.447,0.1,0.447,0.106,0.089,0.097,16.421,0.035,0.098,0.026,0.099
+water hyacinth,4,management,0.314,0.068,0.314,0.033,0.056,0.012,0.744,0.012,NA,0.006,NA
+water hyacinth,4,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.01,NA,NA,NA
+water hyacinth,4,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.005,NA,-0.002
+water hyacinth,4,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.074,NA
+water hyacinth,4,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.137
+water lettuce,1,(Intercept),3.836,3.964,3.836,3.976,NA,NA,NA,NA,NA,NA,NA
+water lettuce,1,PAC,0.728,0.144,0.728,0.148,0.126,0.134,23.616,-0.292,0.142,-0.15,0.142
+water lettuce,1,management,0.163,0.142,0.163,0.125,0.14,0.108,-2.148,0.114,NA,0.081,NA
+water lettuce,1,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.079,NA,NA,NA
+water lettuce,1,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.017,NA,-0.019
+water lettuce,1,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.292,NA
+water lettuce,1,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.03
+water lettuce,2,(Intercept),3.715,3.908,3.715,3.929,NA,NA,NA,NA,NA,NA,NA
+water lettuce,2,PAC,0.676,0.032,0.676,0.041,0.013,0.028,2.469,-0.08,0.03,0.003,0.03
+water lettuce,2,management,0.152,0.062,0.152,0.032,0.058,0.009,-2.589,0.011,NA,0.007,NA
+water lettuce,2,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.02,NA,NA,NA
+water lettuce,2,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.01,NA,-0.012
+water lettuce,2,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.026,NA
+water lettuce,2,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.034
+water lettuce,3,(Intercept),3.728,3.9,3.728,3.923,NA,NA,NA,NA,NA,NA,NA
+water lettuce,3,PAC,0.667,0.013,0.667,0.02,-0.006,0.007,19.036,-0.456,0.008,-0.097,0.008
+water lettuce,3,management,0.165,0.105,0.165,0.073,0.102,0.055,1.318,0.061,NA,0.045,NA
+water lettuce,3,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.086,NA,NA,NA
+water lettuce,3,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.023,NA,-0.028
+water lettuce,3,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.106,NA
+water lettuce,3,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.071
+water lettuce,4,(Intercept),3.818,3.923,3.818,3.939,NA,NA,NA,NA,NA,NA,NA
+water lettuce,4,PAC,0.701,0.148,0.701,0.147,0.127,0.128,14.894,0.103,0.132,-0.099,0.132
+water lettuce,4,management,0.095,0.095,0.095,0.074,0.094,0.058,0.67,0.058,NA,0.036,NA
+water lettuce,4,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.005,NA,NA,NA
+water lettuce,4,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.018,NA,-0.019
+water lettuce,4,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.232,NA
+water lettuce,4,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.014
+floating plants,1,(Intercept),3.535,3.789,3.537,3.816,NA,NA,NA,NA,NA,NA,NA
+floating plants,1,PAC,0.352,0.07,0.352,0.073,0.061,0.066,12.01,-0.06,0.068,-0.035,0.068
+floating plants,1,management,0.362,0.103,0.359,0.06,0.09,0.04,-1.966,0.043,NA,0.026,NA
+floating plants,1,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.011,NA,NA,NA
+floating plants,1,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.01,NA,-0.009
+floating plants,1,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.105,NA
+floating plants,1,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.016
+floating plants,2,(Intercept),3.413,3.684,3.414,3.718,NA,NA,NA,NA,NA,NA,NA
+floating plants,2,PAC,0.318,0.022,0.319,0.028,0.014,0.022,1.801,0.004,0.022,0.032,0.022
+floating plants,2,management,0.366,0.086,0.364,0.034,0.074,0.012,-1.974,0.012,NA,0.013,NA
+floating plants,2,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.002,NA,NA,NA
+floating plants,2,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.005,NA,-0.004
+floating plants,2,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.01,NA
+floating plants,2,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.021
+floating plants,3,(Intercept),3.5,3.735,3.503,3.772,NA,NA,NA,NA,NA,NA,NA
+floating plants,3,PAC,0.311,0.012,0.312,0.017,0.003,0.01,10.428,-0.117,0.008,0.013,0.008
+floating plants,3,management,0.322,0.097,0.317,0.04,0.086,0.019,0.533,0.022,NA,0.019,NA
+floating plants,3,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.011,NA,NA,NA
+floating plants,3,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.008,NA,-0.007
+floating plants,3,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.003,NA
+floating plants,3,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.028
+floating plants,4,(Intercept),3.554,3.77,3.555,3.793,NA,NA,NA,NA,NA,NA,NA
+floating plants,4,PAC,0.326,0.065,0.326,0.067,0.055,0.059,8.493,0.037,0.061,-0.02,0.061
+floating plants,4,management,0.281,0.07,0.279,0.035,0.058,0.015,0.873,0.015,NA,0.004,NA
+floating plants,4,PAC^2,NA,NA,NA,NA,NA,NA,NA,0.002,NA,NA,NA
+floating plants,4,LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,-0.005,NA,-0.003
+floating plants,4,PAC:management,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.081,NA
+floating plants,4,PAC:LastTreatment,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,-0.039
