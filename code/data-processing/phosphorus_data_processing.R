@@ -111,34 +111,33 @@ qual3 <- qual2 %>%
   inner_join(qual_ctrl2) %>%
   inner_join(perm_plant_ctrl) # select waterbodies that have had species and at least one year of management
 
-# invasive plant data for complete time intervales
-inv_qual <- qual3 %>%
-  select(CommonName, PermanentID, GSYear, SpeciesAcres) %>%
-  unique() # remove redundancy from Quarter
-
-#### start here ####
-
-# may want to use time_int_qual_fun, but then datasets are severely limited
-# is this right?
-# is this necessary to get a balanced (waterbody x year) dataset?
+# sample sizes
+qual3 %>%
+  group_by(CommonName, PermanentID) %>%
+  summarize(Years = n_distinct(Year),
+            Quarters = n_distinct(Quarter)) %>%
+  ungroup() %>%
+  ggplot(aes(x = Years)) +
+  geom_histogram(binwidth = 1) +
+  facet_grid(CommonName ~ Quarters, scales = "free")
+# most have four quarters sampled
   
 # complete time intervals
 # surveys were not conducted every year on every lake for every species
 # water quality was not measured every year on every lake for every metric
 # control data is implicitly complete -- missing interpreted as no control
-qual_time_int <- inv_qual %>%
-  select(GSYear, CommonName) %>% 
-  unique() %>%
+qual_time_int <- qual3 %>%
+  distinct(GSYear, CommonName) %>% 
   mutate(out = pmap(., function(GSYear, CommonName) 
-    time_int_fun(year1 = GSYear, taxon = CommonName, dat_in = inv_qual))) %>%
+    time_int_qual_fun(year1 = GSYear, taxon = CommonName, dat_in = qual3))) %>%
   unnest(cols = out)
 
 qual_time_int %>%
-  select(CommonName, years_out, data_points) %>%
-  unique() %>%
-  ggplot(aes(x = data_points)) +
-  geom_histogram() +
+  distinct(CommonName, years_out, waterbodies) %>%
+  ggplot(aes(x = years_out, y = waterbodies)) +
+  geom_point() +
   facet_wrap(~ CommonName, scales = "free")
+# low sample sizes
 
 # select largest number of datapoints
 qual_time_int2 <- qual_time_int %>%

@@ -74,26 +74,28 @@ time_cont_fun <- function(yearT, permID, dat_in){
 }
 
 # function to find longest time interval of monitoring with the most lakes
-time_int_qual_fun <- function(year1, taxon, quarter, dat_in){
+time_int_qual_fun <- function(year1, taxon, dat_in){
+  
+  # filter for species
+  dat_tax <- dat_in %>%
+    filter(CommonName == taxon)
   
   # permanent ID's in dataset for each year
-  perm_yr <- dat_in %>%
-    select(PermanentID) %>%
-    unique() %>%
+  perm_yr <- dat_tax %>%
+    distinct(PermanentID) %>%
     expand_grid(Year = min(dat_in$Year):max(dat_in$Year))
   
-  # filter for taxon & quarter
+  # filter for taxon
   # add NA's for missing years
   # count quality values per year and waterbody
-  dat <- dat_in %>%
-    filter(CommonName == taxon) %>%
+  dat <- dat_tax %>%
     full_join(perm_yr) %>%
-    group_by(PermanentID, Year, PercCovered) %>%
+    group_by(PermanentID, Year, SpeciesAcres) %>%
     summarize(QualityValues = sum(!is.na(Quarter))) %>%
     ungroup()
   
   dat2 <- dat %>%
-    filter(Year >= year1 & (is.na(PercCovered) | QualityValues < 4)) %>% # select missing years
+    filter(Year >= year1 & (is.na(SpeciesAcres) | QualityValues < 4)) %>% # select missing years
     group_by(PermanentID) %>%
     summarise(year2 = min(Year)) %>% # identify first year missing data
     ungroup() %>%
