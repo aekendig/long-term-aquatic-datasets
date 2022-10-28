@@ -74,11 +74,11 @@ time_cont_fun <- function(yearT, permID, dat_in){
 }
 
 # function to find longest time interval of monitoring with the most lakes
-time_int_qual_fun <- function(year1, taxon, dat_in){
+time_int_qual_fun <- function(year1, taxon, quarter, dat_in){
   
-  # filter for species
+  # filter for species and quarter
   dat_tax <- dat_in %>%
-    filter(CommonName == taxon)
+    filter(CommonName == taxon & Quarter == quarter)
   
   # permanent ID's in dataset for each year
   perm_yr <- dat_tax %>%
@@ -87,15 +87,11 @@ time_int_qual_fun <- function(year1, taxon, dat_in){
   
   # filter for taxon
   # add NA's for missing years
-  # count quality values per year and waterbody
   dat <- dat_tax %>%
-    full_join(perm_yr) %>%
-    group_by(PermanentID, Year, SpeciesAcres) %>%
-    summarize(QualityValues = sum(!is.na(Quarter))) %>%
-    ungroup()
+    full_join(perm_yr)
   
   dat2 <- dat %>%
-    filter(Year >= year1 & (is.na(SpeciesAcres) | QualityValues < 4)) %>% # select missing years
+    filter(Year >= year1 & (is.na(SpeciesAcres) | is.na(QualityValue))) %>% # select missing years
     group_by(PermanentID) %>%
     summarise(year2 = min(Year)) %>% # identify first year missing data
     ungroup() %>%
@@ -114,3 +110,39 @@ time_int_qual_fun <- function(year1, taxon, dat_in){
   return(dat2)
 }
 
+# function to find longest time interval of monitoring with the most lakes
+time_int_qual_recent_fun <- function(year1, taxon, quarter, dat_in){
+  
+  # filter for species and quarter
+  dat_tax <- dat_in %>%
+    filter(CommonName == taxon & Quarter == quarter)
+  
+  # permanent ID's in dataset for each year
+  perm_yr <- dat_tax %>%
+    distinct(PermanentID) %>%
+    expand_grid(Year = min(dat_in$Year):max(dat_in$Year))
+  
+  # filter for taxon
+  # add NA's for missing years
+  dat <- dat_tax %>%
+    full_join(perm_yr)
+  
+  dat2 <- dat %>%
+    filter(Year >= year1 & (is.na(SpeciesAcres) | is.na(QualityValue) | is.na(RecentTreatment))) %>% # select missing years
+    group_by(PermanentID) %>%
+    summarise(year2 = min(Year)) %>% # identify first year missing data
+    ungroup() %>%
+    full_join(dat %>%
+                select(PermanentID) %>%
+                unique()) %>% # add all lakes (in case some had no missing data)
+    mutate(year2 = replace_na(year2, max(dat$Year) + 1),   # assign last year (add one to count that year)
+           years = year2 - year1) %>%
+    expand_grid(tibble(years_out = 0:(max(dat$Year) + 1 - year1))) %>% # expand for every years_out value
+    filter(years >= years_out) %>%
+    group_by(years_out) %>%
+    mutate(waterbodies = n_distinct(PermanentID)) %>%
+    ungroup() %>%
+    mutate(data_points = years_out * waterbodies) 
+  
+  return(dat2)
+}

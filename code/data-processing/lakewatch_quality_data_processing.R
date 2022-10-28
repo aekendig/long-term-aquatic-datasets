@@ -113,7 +113,7 @@ qual5 <- qual4 %>%
 
 # visualize station distribution (only part of above code was run)
 max(qual$Station) # 6 is the max per Lakewatch-defined lake
-ggplot(qual5, aes(x = StationsPerDate)) +
+ggplot(qual5, aes(x = AvgStationsPerDate)) +
   geom_histogram(binwidth = 1)
 
 # visulaize month distribution
@@ -121,6 +121,16 @@ ggplot(qual5, aes(x = Month)) +
   geom_histogram(binwidth = 1) +
   facet_wrap(~ QualityMetric)
 # grouping samples by quarters includes at least one highly sampled month
+
+# visualize month values
+(monthly_qual_fig <- qual5 %>%
+  filter(QualityMetric %in% c("CHL_ug_L", "Secchi_ft", "TN_ug_L", "TP_ug_L")) %>%
+  ggplot(aes(x = Month, y = QualityValue)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  facet_wrap(~ QualityMetric, scales = "free_y"))
+
+ggsave("output/lakewatch_monthly_quality.png", monthly_qual_fig, device = "png", width = 6, height = 5)
 
 # year quarters
 quarts <- tibble(Month = 1:12,

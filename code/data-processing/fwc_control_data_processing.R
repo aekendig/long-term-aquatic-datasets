@@ -391,13 +391,13 @@ qual_ctrl %>%
 #### lag intervals ####
 
 # function for cumulative treatment
-ctrl_lag_fun <- function(Year, Lag){
+ctrl_lag_fun <- function(Year, Lag, dat_in){
   
   # change name
   year1 <- Year
   
   # filter dataset
-  subdat <- inv_ctrl %>%
+  subdat <- dat_in %>%
     filter(Year <= year1 & Year > (year1 - Lag)) # average frequency over preceeding years up to lag years
   
   # summarize
@@ -408,9 +408,7 @@ ctrl_lag_fun <- function(Year, Lag){
               AllTreated = mean(AllTreated), # proportion of years with treatment
               Treated = mean(Treated),
               NYears = n_distinct(Year)) %>%
-    ungroup() %>%
-    mutate(Year = year1,
-           Lag = Lag)
+    ungroup()
   
   # return
   return(outdat)
@@ -420,9 +418,10 @@ ctrl_lag_fun <- function(Year, Lag){
 inv_ctrl2 <- inv_ctrl %>%
   select(Year) %>%
   unique() %>%
-  expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
-  pmap(ctrl_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
-  bind_rows() %>%
+  expand_grid(tibble(Lag = 2:6)) %>% # remove repeat row for each species
+  mutate(out = pmap(., function(Year, Lag)  # summarizes for each GS, Lag, PermID, and Sp
+    ctrl_lag_fun(Year = Year, Lag = Lag, dat_in = inv_ctrl))) %>%
+  unnest(cols = out) %>%
   filter(NYears == Lag) %>% # all years for a lag must be available
   select(-NYears) %>%
   pivot_wider(names_from = Lag,
@@ -457,9 +456,10 @@ filter(inv_ctrl2, TaxonName == "Urochloa mutica" & PropTreated > 0.06) %>% data.
 qual_ctrl2 <- qual_ctrl %>%
   select(Year) %>%
   unique() %>%
-  expand_grid(tibble(Lag = 1:6)) %>% # remove repeat row for each species
-  pmap(ctrl_lag_fun) %>% # summarizes for each GS, Lag, PermID, and Sp
-  bind_rows() %>%
+  expand_grid(tibble(Lag = 2:6)) %>% # remove repeat row for each species
+  mutate(out = pmap(., function(Year, Lag)  # summarizes for each GS, Lag, PermID, and Sp
+    ctrl_lag_fun(Year = Year, Lag = Lag, dat_in = qual_ctrl))) %>%
+  unnest(cols = out) %>%
   filter(NYears == Lag) %>% # all years for a lag must be available
   select(-NYears) %>%
   pivot_wider(names_from = Lag,
@@ -533,7 +533,7 @@ for(i in perm_ids) {
 }
 
 ggplot(inv_ctrl4, aes(x = LastTreatment)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 1) +
   facet_wrap(~ TaxonName)
 
 

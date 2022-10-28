@@ -56,7 +56,7 @@ perm_plant <- inv_plant2 %>%
 # has the plant ever been treated?
 perm_ctrl <- qual_ctrl2 %>%
   group_by(PermanentID, Species) %>%
-  summarize(Treatments = as.numeric(sum(Lag1Treated, na.rm = T) > 0)) %>%
+  summarize(Treatments = as.numeric(sum(Treated, na.rm = T) > 0)) %>%
   ungroup() %>%
   filter(Treatments > 0) %>%
   left_join(inv_taxa)
