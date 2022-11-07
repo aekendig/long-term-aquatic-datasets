@@ -105,6 +105,7 @@ source("code/data-processing/invasive_plant_control_data_processing_for_quality_
 source("code/generic-functions/continuous_time_interval.R")
 
 # add invasive plant 
+## added below to lakewatch/water atlas data processing
 qual3 <- qual2 %>%
   mutate(GSYear = if_else(Quarter == 4, Year - 1, Year), # match quality in Jan-Apr with surveys from prev year (through April)
          TreatmentYear = Year - 1) %>% # match with treatment from previous year

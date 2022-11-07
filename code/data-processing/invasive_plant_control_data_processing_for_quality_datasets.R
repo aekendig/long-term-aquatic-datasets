@@ -34,10 +34,8 @@ inv_plant2 <- inv_plant %>%
 inv_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)", "Panicum repens", "Urochloa mutica", "Cyperus blepharoleptos"),
                    CommonName = c("Hydrilla", "floating plants", "Torpedograss", "Para grass", "Cuban bulrush"))
 
-# make treatment year prior year (because we don't know actual dates pre-2010)
 # use "Species" and "unique" to get floating plants combined
 qual_ctrl2 <- qual_ctrl %>%
-  mutate(TreatmentYear = Year - 1) %>%
   select(Species, PermanentID, TreatmentYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
   unique() %>%
   left_join(inv_taxa)

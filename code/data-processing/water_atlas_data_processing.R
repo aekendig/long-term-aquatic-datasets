@@ -24,6 +24,9 @@ seminole <- read_csv("original-data/water_atlas_Seminole_121321.csv")
 tampa <- read_csv("original-data/water_atlas_Tampa_Bay_Estuary_121321.csv") # manually cleaned to remove running rows
 qa <- read_csv("original-data/water_atlas_qa_codes.csv")
 
+# source invasion/control data
+source("code/data-processing/invasive_plant_control_data_processing_for_quality_datasets.R")
+
 
 #### edit GIS ####
 
@@ -561,6 +564,9 @@ ggplot(atlas5, aes(x = Month)) +
   geom_histogram(binwidth = 1) +
   facet_wrap(~ Parameter)
 # grouping samples by quarters includes at least one highly sampled month
+
+#### start here ####
+# add in part from lakewatch that matches dataset with invasion/control data
 
 # year quarters
 quarts <- tibble(Month = 1:12,

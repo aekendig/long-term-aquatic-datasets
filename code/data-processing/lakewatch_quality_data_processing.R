@@ -14,6 +14,9 @@ gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
                                  AOI = col_character(),
                                  Lake = col_character()))
 
+# source invasion/control data
+source("code/data-processing/invasive_plant_control_data_processing_for_quality_datasets.R")
+
 
 #### edit data ####
 
@@ -65,7 +68,7 @@ qual2 <- qual %>%
 # multiple values per station
 qual2_dupes <- get_dupes(qual2, County, Lake, Date, Station)
 data.frame(qual2_dupes)
-# 6 -- NA rows can be deleted
+# 6 -- NA rows in this set can be deleted
 
 # make long by water quality metric
 # remove NA values
@@ -131,6 +134,40 @@ ggplot(qual5, aes(x = Month)) +
   facet_wrap(~ QualityMetric, scales = "free_y"))
 
 ggsave("output/lakewatch_monthly_quality.png", monthly_qual_fig, device = "png", width = 6, height = 5)
+
+#### start here ####
+# trying to figure out how to identify number of lakes and years that can be included if metrics are averaged annually
+# add GS Year and Treatment year
+# add invasive plant 
+qual6 <- qual5 %>%
+  mutate(GSYear = case_when(Month >= 4 ~ Year, # match to plant survey data from the same growing season
+                            Month < 4 ~ Year - 1),
+         TreatmentYear = Year - 1) %>% # match with treatment from previous year
+  inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
+  inner_join(qual_ctrl2) %>%
+  inner_join(perm_plant_ctrl) %>% # select waterbodies that have had species and at least one year of management
+  distinct(GSYear, CommonName, Quarter) %>% 
+  mutate(out = pmap(., function(GSYear, CommonName, Quarter) 
+    time_int_qual_fun(year1 = GSYear, taxon = CommonName, quarter = Quarter,
+                      dat_in = qual3))) %>%
+  unnest(cols = out)
+
+
+qual6 %>%
+  group_by(Species, QualityMetric, PermanentID, Year) %>%
+  summarize(Months = n_distinct(Month)) %>%
+  ungroup() %>%
+  group_by(Species, QualityMetric, Months) %>%
+  summarize(Waterbodies = n_distinct(PermanentID),
+            Years = n_distinct(Year))
+
+# months for lakes in invasion/control dataset
+qual6 %>%
+  group_by(PermanentID, Year) %>%
+  summarize(months = n_distinct(Month)) %>%
+  ggplot(aes(x = months)) +
+  geom_histogram(binwidth = 1)
+
 
 # year quarters
 quarts <- tibble(Month = 1:12,
