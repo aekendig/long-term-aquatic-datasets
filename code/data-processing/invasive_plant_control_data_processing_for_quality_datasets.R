@@ -4,7 +4,9 @@
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
-qual_ctrl <- read_csv("intermediate-data/FWC_quality_control_formatted.csv")
+# qual_ctrl <- read_csv("intermediate-data/FWC_quality_control_formatted.csv")
+qual_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv") # this one is summarized by GS year instead of treatment year
+# using the GS year one because summarizing quality values by year led to a max of 9 months, I think because GS year of the invasive species data were mismatched with treatment year of the control data
 
 
 #### edit data ####
@@ -35,10 +37,16 @@ inv_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichho
                    CommonName = c("Hydrilla", "floating plants", "Torpedograss", "Para grass", "Cuban bulrush"))
 
 # use "Species" and "unique" to get floating plants combined
+# qual_ctrl2 <- qual_ctrl %>%
+#   select(Species, PermanentID, TreatmentYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
+#   unique() %>%
+#   left_join(inv_taxa)
+
 qual_ctrl2 <- qual_ctrl %>%
-  select(Species, PermanentID, TreatmentYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
+  select(Species, PermanentID, GSYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
   unique() %>%
-  left_join(inv_taxa)
+  left_join(inv_taxa) %>%
+  mutate(GSYear = GSYear - 1) # match previous year's control with quality data
 
 
 #### identify waterbodies to use ####

@@ -16,6 +16,7 @@ gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
 
 # source invasion/control data
 source("code/data-processing/invasive_plant_control_data_processing_for_quality_datasets.R")
+source("code/generic-functions/continuous_time_interval.R")
 
 
 #### edit data ####
@@ -135,22 +136,43 @@ ggplot(qual5, aes(x = Month)) +
 
 ggsave("output/lakewatch_monthly_quality.png", monthly_qual_fig, device = "png", width = 6, height = 5)
 
-#### start here ####
-# trying to figure out how to identify number of lakes and years that can be included if metrics are averaged annually
 # add GS Year and Treatment year
-# add invasive plant 
 qual6 <- qual5 %>%
   mutate(GSYear = case_when(Month >= 4 ~ Year, # match to plant survey data from the same growing season
-                            Month < 4 ~ Year - 1),
-         TreatmentYear = Year - 1) %>% # match with treatment from previous year
+                            Month < 4 ~ Year - 1)) # match with treatment from previous year
+
+# average by year
+# add invasive plant and control
+qual_annual <- qual6 %>%
+  group_by(PermanentID, GSYear, QualityMetric) %>%
+  summarize(QualityValue = mean(QualityValue),
+            MonthsSampled = n_distinct(Month)) %>%
+  ungroup() %>%
   inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
   inner_join(qual_ctrl2) %>%
-  inner_join(perm_plant_ctrl) %>% # select waterbodies that have had species and at least one year of management
-  distinct(GSYear, CommonName, Quarter) %>% 
-  mutate(out = pmap(., function(GSYear, CommonName, Quarter) 
-    time_int_qual_fun(year1 = GSYear, taxon = CommonName, quarter = Quarter,
-                      dat_in = qual3))) %>%
-  unnest(cols = out)
+  inner_join(perm_plant_ctrl) # select waterbodies that have had species and at least one year of management
+
+# save sampled months
+months_sampled <- sort(unique(qual_annual$MonthsSampled))
+  
+# determine number of waterbodies and years for each month threshold
+#### start here ####
+# write a new time_int_qual function that doesn't have Quarter and that has GSYear
+for(i in months_sampled) {
+  
+  qual_annual_sub <- qual_annual %>%
+    filter(MonthsSampled >= i)
+  
+  qual_annual_sub2 <- qual_annual_sub %>%
+    distinct(GSYear, CommonName) %>% 
+    mutate(out = pmap(., function(GSYear, CommonName) 
+      time_int_qual_fun(year1 = GSYear, taxon = CommonName,
+                        dat_in = qual_annual_sub))) %>%
+    unnest(cols = out)
+    
+  
+}
+
 
 
 qual6 %>%
