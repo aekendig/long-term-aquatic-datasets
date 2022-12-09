@@ -74,16 +74,17 @@ time_cont_fun <- function(yearT, permID, dat_in){
 }
 
 # function to find longest time interval of monitoring with the most lakes
-time_int_qual_fun <- function(year1, taxon, quarter, dat_in){
+# currently the same as time_int_fun, but keep separate in case need to make tweaks to quality
+time_int_qual_fun <- function(year1, taxon, dat_in){
   
   # filter for species and quarter
   dat_tax <- dat_in %>%
-    filter(CommonName == taxon & Quarter == quarter)
+    filter(CommonName == taxon)
   
   # permanent ID's in dataset for each year
   perm_yr <- dat_tax %>%
     distinct(PermanentID) %>%
-    expand_grid(Year = min(dat_in$Year):max(dat_in$Year))
+    expand_grid(GSYear = min(dat_in$GSYear):max(dat_in$GSYear))
   
   # filter for taxon
   # add NA's for missing years
@@ -91,16 +92,52 @@ time_int_qual_fun <- function(year1, taxon, quarter, dat_in){
     full_join(perm_yr)
   
   dat2 <- dat %>%
-    filter(Year >= year1 & (is.na(SpeciesAcres) | is.na(QualityValue))) %>% # select missing years
+    filter(GSYear >= year1 & is.na(SpeciesAcres)) %>% # select missing years
     group_by(PermanentID) %>%
-    summarise(year2 = min(Year)) %>% # identify first year missing data
+    summarise(year2 = min(GSYear)) %>% # identify first year missing data
+    ungroup() %>%
+    full_join(dat %>%
+                distinct(PermanentID)) %>% # add all lakes (in case some had no missing data)
+    mutate(year2 = replace_na(year2, max(dat$GSYear) + 1),   # assign last year (add one to count that year)
+           years = year2 - year1) %>%
+    expand_grid(tibble(years_out = 0:(max(dat$GSYear) + 1 - year1))) %>% # expand for every years_out value
+    filter(years >= years_out) %>%
+    group_by(years_out) %>%
+    mutate(waterbodies = n_distinct(PermanentID)) %>%
+    ungroup() %>%
+    mutate(data_points = years_out * waterbodies) 
+  
+  return(dat2)
+}
+
+# function to find longest time interval of monitoring with the most lakes
+time_qual_fun <- function(year1, taxon, dat_in, metric){
+  
+  # filter for species
+  dat_tax <- dat_in %>%
+    filter(CommonName == taxon & QualityMetric == metric)
+  
+  # permanent ID's in dataset for each year
+  perm_yr <- dat_tax %>%
+    distinct(PermanentID) %>%
+    expand_grid(GSYear = min(dat_in$GSYear):max(dat_in$GSYear))
+  
+  # filter for taxon
+  # add NA's for missing years
+  dat <- dat_tax %>%
+    full_join(perm_yr)
+  
+  dat2 <- dat %>%
+    filter(GSYear >= year1 & (is.na(SpeciesAcres) | is.na(QualityValue))) %>% # select missing years
+    group_by(PermanentID) %>%
+    summarise(year2 = min(GSYear)) %>% # identify first year missing data
     ungroup() %>%
     full_join(dat %>%
                 select(PermanentID) %>%
                 unique()) %>% # add all lakes (in case some had no missing data)
-    mutate(year2 = replace_na(year2, max(dat$Year) + 1),   # assign last year (add one to count that year)
+    mutate(year2 = replace_na(year2, max(dat$GSYear) + 1),   # assign last year (add one to count that year)
            years = year2 - year1) %>%
-    expand_grid(tibble(years_out = 0:(max(dat$Year) + 1 - year1))) %>% # expand for every years_out value
+    expand_grid(tibble(years_out = 0:(max(dat$GSYear) + 1 - year1))) %>% # expand for every years_out value
     filter(years >= years_out) %>%
     group_by(years_out) %>%
     mutate(waterbodies = n_distinct(PermanentID)) %>%

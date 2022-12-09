@@ -565,33 +565,5 @@ ggplot(atlas5, aes(x = Month)) +
   facet_wrap(~ Parameter)
 # grouping samples by quarters includes at least one highly sampled month
 
-#### start here ####
-# add in part from lakewatch that matches dataset with invasion/control data
-
-# year quarters
-quarts <- tibble(Month = 1:12,
-                 Quarter = rep(c(4, 1:3), each = 3))
-
-# summarize by permanent ID and quarter
-atlas6 <- atlas5 %>%
-  left_join(quarts) %>%
-  group_by(PermanentID, WaterBodyName, Year, Quarter, Parameter) %>%
-  summarize(Result_Value = mean(Result_Value), # average across months within a GS year
-            QACode = paste(unique(QACode), collapse = "; "),
-            QAMeaning = paste(unique(QAMeaning), collapse = "; "),
-            AvgStationsPerDate = mean(AvgStationsPerDate),
-            AvgDatesPerMonth = mean(DatesSampled),
-            MonthsSampled = n_distinct(Month)) %>%
-  ungroup() %>%
-  mutate(Parameter = fct_recode(Parameter,
-                                "TN_ug_L" = "tn_ugl",
-                                "Secchi_ft" = "secchi_ft",
-                                "CHL_ug_L" = "chla_ugl",
-                                "TP_ug_L" = "tp_ugl"),
-         QACode = if_else(QACode == "NA", NA_character_, QACode),
-         QAMeaning = if_else(QAMeaning == "NA", NA_character_, QAMeaning)) %>%
-  rename("QualityMetric" = "Parameter",
-         "QualityValue" = "Result_Value")
-
 # save data
-write_csv(atlas6, "intermediate-data/water_atlas_quality_formatted.csv")
+write_csv(atlas5, "intermediate-data/water_atlas_quality_formatted.csv")
