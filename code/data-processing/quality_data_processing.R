@@ -123,6 +123,19 @@ qual %>%
 quarters <- tibble(Month = 1:12,
                    Quarter = rep(1:4, each = 3))
 
+# quarter distribution
+qual %>%
+  left_join(quarters) %>%
+  distinct(QualityMetric, GSYear, Quarter, PermanentID) %>%
+  group_by(QualityMetric, GSYear, Quarter) %>%
+  summarize(WB = n_distinct(PermanentID)) %>%
+  ungroup() %>%
+  ggplot(aes(x = Quarter, y = WB, color = as.factor(GSYear))) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ QualityMetric) +
+  theme(legend.position = "none")
+
 # annual metrics
 qual_ann <- qual %>%
   left_join(quarters) %>%
@@ -148,11 +161,25 @@ qual_ann <- qual %>%
 
 #### combine data and select waterbodies/years ####
 
+# check recent treatment values (to modify missing values below)
+ctrl2 %>%
+  filter(is.na(RecentTreatment)) %>%
+  distinct(LastTreatment)
+# no last treatment values 
+# (because dataset started with no treatment and continued without treatment until one was applied)
+
+range(ctrl2$RecentTreatment, na.rm = T)
+
 # add invasive plant and control data
 qual_ann2 <- qual_ann %>%
   inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
   inner_join(ctrl2) %>%
-  inner_join(perm_plant_ctrl) # select waterbodies that have had species and at least one year of management
+  inner_join(perm_plant_ctrl) %>% # select waterbodies that have had species and at least one year of management
+  mutate(LogQualityMean = log(QualityMean),
+         LogQualityMax = log(QualityMax),
+         LogQualityMin = log(QualityMin),
+         LogQualityCV = log(QualityCV),
+         RecentTreatment = replace_na(RecentTreatment, 0))
 
 # list of lakes, years, and SpeciesAcres (to detect NAs)
 qual_perm_year <- qual_ann2 %>%
