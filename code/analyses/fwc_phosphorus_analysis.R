@@ -61,10 +61,14 @@ dev.off()
 write_csv(dat, "intermediate-data/FWC_phosphorus_analysis_formatted.csv")
 
 # split by species (para grass doesn't have enough data)
-hydr_dat <- filter(dat, CommonName == "Hydrilla")
-torp_dat <- filter(dat, CommonName == "Torpedograss")
-cubu_dat <- filter(dat, CommonName == "Cuban bulrush")
-flpl_dat <- filter(dat, CommonName == "floating plants")
+hydr_dat <- filter(dat, CommonName == "Hydrilla") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+torp_dat <- filter(dat, CommonName == "Torpedograss") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+cubu_dat <- filter(dat, CommonName == "Cuban bulrush") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+flpl_dat <- filter(dat, CommonName == "floating plants") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
 
 
 #### initial visualizations ####
@@ -174,32 +178,32 @@ mod_structure_fits <- function(dat_in){
     pdata.frame(index = c("PermanentID", "GSYear"))
   
   # simple lm
-  mod_lm <- lm(LogQualityMean ~ PercCovered + Treated, data = dat_fix)
+  mod_lm <- lm(LogQualityMean ~ PercCovered_c + Treated, data = dat_fix)
   
   # random effects
-  mod_ran_loc <- glmmTMB(LogQualityMean ~ PercCovered + Treated + (1|PermanentID), data = dat_fix)
-  mod_ran_yr <- glmmTMB(LogQualityMean ~ PercCovered + Treated + (1|GSYear), data = dat_fix)
-  mod_ran_loc_yr <- glmmTMB(LogQualityMean ~ PercCovered + Treated + (1|PermanentID) + (1|GSYear), data = dat_fix)
+  mod_ran_loc <- glmmTMB(LogQualityMean ~ PercCovered_c + Treated + (1|PermanentID), data = dat_fix)
+  mod_ran_yr <- glmmTMB(LogQualityMean ~ PercCovered_c + Treated + (1|GSYear), data = dat_fix)
+  mod_ran_loc_yr <- glmmTMB(LogQualityMean ~ PercCovered_c + Treated + (1|PermanentID) + (1|GSYear), data = dat_fix)
   
   # fixed effects
-  mod_fix_loc <- plm(LogQualityMean ~ PercCovered + Treated, data = dat_fix,
+  mod_fix_loc <- plm(LogQualityMean ~ PercCovered_c + Treated, data = dat_fix,
                       model = "within")
-  mod_fix_loc_yr <- plm(LogQualityMean ~ PercCovered + Treated, data = dat_fix,
+  mod_fix_loc_yr <- plm(LogQualityMean ~ PercCovered_c + Treated, data = dat_fix,
                          model = "within", effect = "twoways")
   
   # add quadratic term to account for multiple processes
-  # mod_fix_quad <- plm(LogQualityMean ~ PercCovered + Lag3APCsq + Lag3Treated, data = dat_fix,
+  # mod_fix_quad <- plm(LogQualityMean ~ PercCovered_c + Lag3APCsq + Lag3Treated, data = dat_fix,
   #                     model = "within", effect = "twoways")
   # tried this, need more years to do a squared term
   
   # use last treatment
-  mod_fix_rec <- plm(LogQualityMean ~ PercCovered + RecentTreatment, data = dat_fix,
+  mod_fix_rec <- plm(LogQualityMean ~ PercCovered_c + RecentTreatment, data = dat_fix,
                       model = "within", effect = "twoways")
   
   # treatment-plant interactions
-  mod_fix_int <- plm(LogQualityMean ~ PercCovered * Treated, data = dat_fix,
+  mod_fix_int <- plm(LogQualityMean ~ PercCovered_c * Treated, data = dat_fix,
                       model = "within", effect = "twoways")
-  mod_fix_rec_int <- plm(LogQualityMean ~ PercCovered * RecentTreatment, data = dat_fix,
+  mod_fix_rec_int <- plm(LogQualityMean ~ PercCovered_c * RecentTreatment, data = dat_fix,
                      model = "within", effect = "twoways")
   
   # return list of models
@@ -266,30 +270,30 @@ write_csv(mod_comp, "output/fwc_phosphorus_model_structure_comparison.csv")
 
 # accounting for location reduces the effects
 # both reduce P
-# rectn similar to treated
+# recent similar to treated
 # interaction accounts for most of the treated effects
 
 # test fixed effects (seems like year isn't necessary)
 # have to refit because data need to be accessible (not "dat_fix")
-hydr_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered * RecentTreatment, 
+hydr_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered_c * RecentTreatment, 
                                 data = hydr_dat, 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(hydr_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-flpl_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered * RecentTreatment, 
+flpl_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered_c * RecentTreatment, 
                                 data = flpl_dat, 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 plmtest(flpl_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(flpl_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-cubu_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered * RecentTreatment, 
+cubu_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered_c * RecentTreatment, 
                                 data = cubu_dat, 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 plmtest(cubu_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
 plmtest(cubu_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
 
-torp_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered * RecentTreatment, 
+torp_mod_diff_fix_loc_yr <- plm(LogQualityMean ~ PercCovered_c * RecentTreatment, 
                                 data = torp_dat, 
                                 index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 plmtest(torp_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
@@ -481,25 +485,25 @@ torp_dat_fix <- torp_dat %>%
   pdata.frame(index = c("PermanentID", "GSYear"))
 
 # fit models
-hydr_mean_mod <- plm(LogQualityMean ~ PercCovered * RecentTreatment, data = hydr_dat_fix,
+hydr_mean_mod <- plm(LogQualityMean ~ PercCovered_c * RecentTreatment, data = hydr_dat_fix,
                        index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 flpl_mean_mod <- update(hydr_mean_mod, data = flpl_dat_fix)
 cubu_mean_mod <- update(hydr_mean_mod, data = cubu_dat_fix)
 torp_mean_mod <- update(hydr_mean_mod, data = torp_dat_fix)
 
-hydr_max_mod <- plm(LogQualityMax ~ PercCovered * RecentTreatment, data = hydr_dat_fix,
+hydr_max_mod <- plm(LogQualityMax ~ PercCovered_c * RecentTreatment, data = hydr_dat_fix,
                      index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 flpl_max_mod <- update(hydr_max_mod, data = flpl_dat_fix)
 cubu_max_mod <- update(hydr_max_mod, data = cubu_dat_fix)
 torp_max_mod <- update(hydr_max_mod, data = torp_dat_fix)
 
-hydr_min_mod <- plm(LogQualityMin ~ PercCovered * RecentTreatment, data = hydr_dat_fix,
+hydr_min_mod <- plm(LogQualityMin ~ PercCovered_c * RecentTreatment, data = hydr_dat_fix,
                      index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 flpl_min_mod <- update(hydr_min_mod, data = flpl_dat_fix)
 cubu_min_mod <- update(hydr_min_mod, data = cubu_dat_fix)
 torp_min_mod <- update(hydr_min_mod, data = torp_dat_fix)
 
-hydr_cv_mod <- plm(LogQualityCV ~ PercCovered * RecentTreatment, data = hydr_dat_fix,
+hydr_cv_mod <- plm(LogQualityCV ~ PercCovered_c * RecentTreatment, data = hydr_dat_fix,
                      index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
 flpl_cv_mod <- update(hydr_cv_mod, data = flpl_dat_fix)
 cubu_cv_mod <- update(hydr_cv_mod, data = cubu_dat_fix)
@@ -618,9 +622,9 @@ foc_mod_se <- mod_se_fun(hydr_mean_mod, hydr_dat, "hydrilla") %>%
   full_join(mod_se_fun(flpl_cv_mod, flpl_dat, "floating plant") %>%
               mutate(Response = "cv")) %>%
   mutate(term = fct_recode(term,
-                           "invasive PAC" = "PercCovered",
+                           "invasive PAC" = "PercCovered_c",
                            "management" = "RecentTreatment",
-                           "invasive PAC:management" = "PercCovered:RecentTreatment")) %>%
+                           "invasive PAC:management" = "PercCovered_c:RecentTreatment")) %>%
   rename(Term = term,
          Estimate = estimate,
          SE = std.error,
@@ -645,9 +649,9 @@ non_foc_mod_se <- mod_se_fun(cubu_mean_mod, cubu_dat, "Cuban bulrush") %>%
   full_join(mod_se_fun(torp_cv_mod, torp_dat, "torpedograss") %>%
               mutate(Response = "cv")) %>%
   mutate(term = fct_recode(term,
-                           "invasive PAC" = "PercCovered",
+                           "invasive PAC" = "PercCovered_c",
                            "management" = "RecentTreatment",
-                           "invasive PAC:management" = "PercCovered:RecentTreatment")) %>%
+                           "invasive PAC:management" = "PercCovered_c:RecentTreatment")) %>%
   rename(Term = term,
          Estimate = estimate,
          SE = std.error,
@@ -661,7 +665,7 @@ write_csv(non_foc_mod_se, "output/fwc_non_focal_phosphorus_model_summary.csv")
 
 
 
-#### values for text ####
+#### not yet updated: values for text ####
 
 # summarize uninvaded
 uninv_sum <- uninv2 %>%
