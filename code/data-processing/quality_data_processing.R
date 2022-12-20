@@ -181,44 +181,26 @@ qual_ann2 <- qual_ann %>%
          LogQualityCV = log(QualityCV),
          RecentTreatment = replace_na(RecentTreatment, 0))
 
-# list of lakes, years, and SpeciesAcres (to detect NAs)
-qual_perm_year <- qual_ann2 %>%
-  distinct(PermanentID, GSYear, CommonName, SpeciesAcres)
+# check for issues with log-transformation
+filter(qual_ann2, is.na(LogQualityMean) | LogQualityMean == -Inf)
+filter(qual_ann2, is.na(LogQualityMax) | LogQualityMax == -Inf)
+filter(qual_ann2, is.na(LogQualityMin) | LogQualityMin == -Inf) # all chlorophyll
+filter(qual_ann2, is.na(LogQualityCV) | LogQualityCV == -Inf)
 
-# # complete time intervals
-# # surveys were not conducted every year on every lake for every species
-# # water quality was not measured every year on every lake for every metric
-# # control data is implicitly complete -- missing interpreted as no control
-# qual_time_int <- qual_perm_year %>%
-#   distinct(GSYear, CommonName) %>% 
-#   mutate(out = pmap(., function(GSYear, CommonName) 
-#     time_int_qual_fun(year1 = GSYear, taxon = CommonName, dat_in = qual_perm_year))) %>%
-#   unnest(cols = out)
-# 
-# qual_time_int %>%
-#   distinct(CommonName, years_out, waterbodies) %>%
-#   ggplot(aes(x = years_out, y = waterbodies)) +
-#   geom_point() +
-#   facet_wrap(~ CommonName, scales = "free")
-# 
-# # select largest number of datapoints
-# qual_time_int2 <- qual_time_int %>%
-#   group_by(CommonName) %>%
-#   mutate(max_data_points = max(data_points)) %>%
-#   ungroup() %>%
-#   filter(data_points == max_data_points) %>%
-#   group_by(CommonName) %>%
-#   mutate(max_waterbodies = max(waterbodies)) %>%
-#   ungroup() %>%
-#   filter(waterbodies == max_waterbodies)
-# 
-# # summary
-# qual_time_int2 %>%
-#   distinct(CommonName, GSYear, years_out, waterbodies, data_points) %>%
-#   arrange(CommonName) %>%
-#   data.frame()
-# # limited datasets
-# # don't need to be continuous in time
+# look at minimum chlorophyll
+min_chl <- qual_ann2 %>%
+  filter(QualityMetric == "CHL_ug_L" & QualityMin > 0) %>%
+  pull(QualityMin) %>%
+  min()
+
+# update QualityMin
+qual_ann3 <- qual_ann2 %>%
+  mutate(LogQualityMin = if_else(QualityMetric == "CHL_ug_L", log(QualityMin + min_chl),
+                                 log(QualityMin)))
+
+# list of lakes, years, and SpeciesAcres (to detect NAs)
+qual_perm_year <- qual_ann3 %>%
+  distinct(PermanentID, GSYear, CommonName, SpeciesAcres)
 
 # lake/year coverage
 qual_perm_year2 <- qual_perm_year %>%
@@ -270,27 +252,25 @@ ggplot(qual_perm_year2, aes(x = GSYear, y = PermanentID)) +
         axis.text.y = element_blank())
 
 # look at months omitted
-sort(unique(qual_ann2$MonthsOmitted))
+sort(unique(qual_ann3$MonthsOmitted))
 
 
 #### check values ####
 
 # check for duplicates
-qual_ann2 %>%
+qual_ann3 %>%
   get_dupes(GSYear, PermanentID, QualityMetric, CommonName)
 
 # check for outliers
-qual_ann2 %>%
+qual_ann3 %>%
   distinct(GSYear, PermanentID, QualityMetric, QualityMean) %>% # remove duplication by inv taxa
   ggplot(aes(x = GSYear, y = QualityMean, color = PermanentID)) +
   geom_line() +
   facet_wrap(~ QualityMetric, scales = "free_y") +
   theme(legend.position = "none")
-# some weirdly high P values
-# probably won't stay in dataset because time series are incomplete
 
 # select only quality data and make wide
-qual_ann_wide <- qual_ann2 %>%
+qual_ann_wide <- qual_ann3 %>%
   distinct(GSYear, PermanentID, QualityMetric, QualityMean) %>%
   mutate(LogQualityMean = log(QualityMean)) %>%
   select(-QualityMean) %>%
@@ -306,7 +286,7 @@ qual_ann_wide %>%
 #### save data ####
 
 # save data
-write_csv(qual_ann2, "intermediate-data/water_quality_data_formatted.csv")
+write_csv(qual_ann3, "intermediate-data/water_quality_data_formatted.csv")
 
 
 #### uninvaded waterbodies ####
@@ -334,87 +314,3 @@ uninv2 <- qual_ann %>%
 
 # save
 write_csv(uninv2, "intermediate-data/water_quality_fwc_uninvaded_permID.csv")
-
-
-#### older code ####
-
-# # save sampled months
-# months_sampled <- sort(unique(qual_annual2$MonthsSampled))
-# 
-# # empty list
-# annual_datasets <- vector("list", length = length(months_sampled))
-# 
-# # determine number of waterbodies and years for each month threshold
-# for(i in months_sampled) {
-#   
-#   qual_annual_sub <- qual_annual %>%
-#     filter(MonthsSampled >= i)
-#   
-#   qual_annual_sub2 <- qual_annual_sub %>%
-#     distinct(GSYear, CommonName, QualityMetric) %>% 
-#     mutate(out = pmap(., function(GSYear, CommonName, QualityMetric) 
-#       time_qual_fun(year1 = GSYear, taxon = CommonName, metric = QualityMetric,
-#                     dat_in = qual_annual_sub))) %>%
-#     unnest(cols = out)
-#   
-#   qual_annual_sub3 <- qual_annual_sub2 %>%
-#     group_by(CommonName) %>%
-#     mutate(max_data_points = max(data_points)) %>%
-#     ungroup() %>%
-#     filter(data_points == max_data_points) %>%
-#     group_by(CommonName) %>%
-#     mutate(max_waterbodies = max(waterbodies)) %>%
-#     ungroup() %>%
-#     filter(waterbodies == max_waterbodies)
-#   
-#   annual_datasets[[i]] <- qual_annual_sub3 %>%
-#     mutate(year_range = paste(GSYear, GSYear + years_out, sep = "-"),
-#            months_sampled = i) %>%
-#     distinct(CommonName, years_out, waterbodies, year_range, months_sampled)
-# }
-# 
-# # convert list to dataframe
-# annual_datasets2 <- annual_datasets %>%
-#   bind_rows()
-# 
-# ggplot(annual_datasets2, aes(x = months_sampled, y = waterbodies, color = CommonName)) +
-#   geom_line()
-# 
-# ggplot(annual_datasets2, aes(x = months_sampled, y = years_out, color = CommonName)) +
-#   geom_line()
-# 
-# qual6 %>%
-#   group_by(Species, QualityMetric, PermanentID, Year) %>%
-#   summarize(Months = n_distinct(Month)) %>%
-#   ungroup() %>%
-#   group_by(Species, QualityMetric, Months) %>%
-#   summarize(Waterbodies = n_distinct(PermanentID),
-#             Years = n_distinct(Year))
-# 
-# # months for lakes in invasion/control dataset
-# qual6 %>%
-#   group_by(PermanentID, Year) %>%
-#   summarize(months = n_distinct(Month)) %>%
-#   ggplot(aes(x = months)) +
-#   geom_histogram(binwidth = 1)
-# 
-# # summarize by permanent ID and quarter
-# atlas6 <- atlas5 %>%
-#   left_join(quarts) %>%
-#   group_by(PermanentID, WaterBodyName, Year, Quarter, Parameter) %>%
-#   summarize(Result_Value = mean(Result_Value), # average across months within a GS year
-#             QACode = paste(unique(QACode), collapse = "; "),
-#             QAMeaning = paste(unique(QAMeaning), collapse = "; "),
-#             AvgStationsPerDate = mean(AvgStationsPerDate),
-#             AvgDatesPerMonth = mean(DatesSampled),
-#             MonthsSampled = n_distinct(Month)) %>%
-#   ungroup() %>%
-#   mutate(Parameter = fct_recode(Parameter,
-#                                 "TN_ug_L" = "tn_ugl",
-#                                 "Secchi_ft" = "secchi_ft",
-#                                 "CHL_ug_L" = "chla_ugl",
-#                                 "TP_ug_L" = "tp_ugl"),
-#          QACode = if_else(QACode == "NA", NA_character_, QACode),
-#          QAMeaning = if_else(QAMeaning == "NA", NA_character_, QAMeaning)) %>%
-#   rename("QualityMetric" = "Parameter",
-#          "QualityValue" = "Result_Value")

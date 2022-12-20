@@ -1,37 +1,17 @@
-Species,Quarter,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,diff_fix_loc_yr
-hydrilla,1,(Intercept),7.016,7.18,7.02,7.211,NA,NA,NA
-hydrilla,1,PAC,-0.013,0,-0.013,-0,0.001,0,0.608
-hydrilla,1,management,0.295,-0.055,0.291,-0.098,-0.071,-0.119,89.964
-hydrilla,2,(Intercept),6.993,7.126,6.996,7.147,NA,NA,NA
-hydrilla,2,PAC,-0.012,0.001,-0.012,-0,0.001,0,0.113
-hydrilla,2,management,0.274,-0.024,0.272,-0.051,-0.037,-0.066,110.526
-hydrilla,3,(Intercept),7.015,7.158,7.016,7.178,NA,NA,NA
-hydrilla,3,PAC,-0.013,0.001,-0.013,0.001,0.002,0.001,-0.977
-hydrilla,3,management,0.266,-0.058,0.264,-0.085,-0.072,-0.102,73.23
-hydrilla,4,(Intercept),6.978,7.094,6.981,7.119,NA,NA,NA
-hydrilla,4,PAC,-0.012,0.002,-0.012,0.001,0.003,0.002,-0.383
-hydrilla,4,management,0.256,-0.025,0.252,-0.057,-0.038,-0.075,135.643
-water hyacinth,1,(Intercept),7.162,7.215,7.162,7.205,NA,NA,NA
-water hyacinth,1,PAC,0.249,0.103,0.248,0.094,0.097,0.086,110.938
-water hyacinth,1,management,0.025,-0.023,0.026,-0.005,-0.026,-0.003,-8.133
-water hyacinth,2,(Intercept),7.141,7.175,7.14,7.17,NA,NA,NA
-water hyacinth,2,PAC,0.146,0.031,0.145,0.025,0.027,0.02,-13.127
-water hyacinth,2,management,0.023,-0.004,0.024,0.005,-0.006,0.006,-3.487
-water hyacinth,3,(Intercept),7.18,7.208,7.18,7.204,NA,NA,NA
-water hyacinth,3,PAC,0.147,0.031,0.147,0.027,0.028,0.022,11.006
-water hyacinth,3,management,-0.019,-0.035,-0.019,-0.029,-0.037,-0.028,21.957
-water hyacinth,4,(Intercept),7.1,7.143,7.1,7.141,NA,NA,NA
-water hyacinth,4,PAC,0.189,0.069,0.188,0.063,0.064,0.057,21.476
-water hyacinth,4,management,0.044,0.005,0.044,0.009,0.002,0.008,21.201
-water lettuce,1,(Intercept),7.214,7.199,7.214,7.204,NA,NA,NA
-water lettuce,1,PAC,0.302,0.15,0.302,0.134,0.145,0.125,126.399
-water lettuce,1,management,0.017,0.066,0.017,0.063,0.068,0.064,24.289
-water lettuce,2,(Intercept),7.207,7.187,7.207,7.196,NA,NA,NA
-water lettuce,2,PAC,0.15,0.031,0.15,0.013,0.029,0.007,-23.173
-water lettuce,2,management,-0.015,0.035,-0.015,0.026,0.037,0.025,11.165
-water lettuce,3,(Intercept),7.203,7.185,7.203,7.2,NA,NA,NA
-water lettuce,3,PAC,0.177,0.055,0.177,0.044,0.052,0.038,28.573
-water lettuce,3,management,-0.023,0.024,-0.023,0.006,0.025,0.001,52.976
-water lettuce,4,(Intercept),7.134,7.12,7.134,7.138,NA,NA,NA
-water lettuce,4,PAC,0.224,0.1,0.224,0.087,0.096,0.079,1.686
-water lettuce,4,management,0.049,0.092,0.049,0.07,0.094,0.065,25.807
+Species,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,rec,int,rec_int
+hydrilla,(Intercept),6.859,6.867,6.885,6.882,NA,NA,NA,NA,NA
+hydrilla,PAC_c,-0.002,-0.001,-0.002,-0.001,-0.001,-0.001,-0.001,-0.003,-0.003
+hydrilla,Treated,0.286,-0.019,0.265,-0.039,-0.025,-0.046,-0.038,-0.043,-0.031
+hydrilla,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.002,0.002
+floating plants,(Intercept),6.879,6.858,6.9,6.871,NA,NA,NA,NA,NA
+floating plants,PAC_c,0.024,-0.006,0.02,-0.006,-0.008,-0.008,-0.007,0.01,0.013
+floating plants,Treated,0.206,0.056,0.203,0.052,0.051,0.045,0.055,0.044,0.053
+floating plants,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,-0.021,-0.023
+Cuban bulrush,(Intercept),6.909,6.817,6.926,6.828,NA,NA,NA,NA,NA
+Cuban bulrush,PAC_c,-0.005,-0.006,-0.004,-0.024,-0.011,-0.035,-0.037,-0.037,-0.039
+Cuban bulrush,Treated,-0.119,-0.078,-0.141,-0.083,-0.077,-0.072,-0.095,-0.072,-0.094
+Cuban bulrush,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.002,0.003
+torpedograss,(Intercept),6.846,6.772,6.888,6.782,NA,NA,NA,NA,NA
+torpedograss,PAC_c,-0.038,0.011,-0.041,0.007,0.013,0.008,0.008,0.009,0.011
+torpedograss,Treated,0.057,0.004,-0.002,-0.024,0.002,-0.035,-0.023,-0.035,-0.024
+torpedograss,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,-0.011,-0.022
