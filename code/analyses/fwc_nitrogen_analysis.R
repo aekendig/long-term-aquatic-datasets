@@ -6,15 +6,12 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(inspectdf) # inspect_cor
-library(modelsummary) # modelplot
-library(patchwork) # combining figures
 library(plm) # panel data models
-library(pglm) # panel data models
 library(sandwich) # vcovHC
 library(lmtest) # coeftest
-library(glmmTMB) # random effects
-library(pals) # color palettes         
 library(car) # logit
+library(glmmTMB) # glmmTMB
+library(broom) # tidy
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -23,14 +20,15 @@ source("code/settings/figure_settings.R")
 source("code/generic-functions/model_structure_comparison.R")
 
 # import data
-qual <- read_csv("intermediate-data/water_quality_data_formatted.csv")
-uninv <- read_csv("intermediate-data/water_quality_fwc_uninvaded_permID.csv")
+qual <- read_csv("intermediate-data/water_quality_invaded_data_formatted.csv")
+qual_full <- read_csv("intermediate-data/water_quality_data_formatted.csv")
 
 
 #### edit data ####
 
 # focal water quality
 dat <- filter(qual, QualityMetric == "TN_ug_L")
+dat_full <- filter(qual_full, QualityMetric == "TN_ug_L")
 
 # taxa
 inv_taxa <- sort(unique(dat$CommonName))
@@ -68,6 +66,15 @@ torp_dat <- filter(dat, CommonName == "Torpedograss") %>%
 cubu_dat <- filter(dat, CommonName == "Cuban bulrush") %>%
   mutate(PercCovered_c = PercCovered - mean(PercCovered))
 flpl_dat <- filter(dat, CommonName == "floating plants") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+
+hydr_dat_full <- filter(dat_full, CommonName == "Hydrilla") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+torp_dat_full <- filter(dat_full, CommonName == "Torpedograss") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+cubu_dat_full <- filter(dat_full, CommonName == "Cuban bulrush") %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered))
+flpl_dat_full <- filter(dat_full, CommonName == "floating plants") %>%
   mutate(PercCovered_c = PercCovered - mean(PercCovered))
 
 
@@ -164,6 +171,12 @@ ggplot(dat, aes(x = RecentTreatment, y = LogQualityMean, color = PermanentID)) +
   facet_wrap(~ CommonName, scales = "free") +
   theme(legend.position = "none")
 # floating plant trend may be driven by lake/treatment confounding
+
+# established
+ggplot(dat_full, aes(x = as.factor(Established), y = LogQualityMean)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  facet_wrap(~ CommonName, scales = "free")
 
 
 #### evaluate model structure ####
@@ -422,9 +435,9 @@ save(cubu_cv_mod, file = "output/fwc_cuban_bulrush_cv_nitrogen_model.rda")
 save(torp_cv_mod, file = "output/fwc_torpedograss_cv_nitrogen_model.rda")
 
 # process model SE
-mod_se_fun <- function(model, dat, spp){
+mod_se_fun <- function(model, dat, spp, var_type = "HC3"){
   
-  dat_out <- tidy(coeftest(model, vcov = vcovHC, type = "HC3")) %>%
+  dat_out <- tidy(coeftest(model, vcov = vcovHC, type = var_type)) %>%
     mutate(R2 = r.squared(model),
            Invasive = spp,
            Waterbodies = n_distinct(dat$PermanentID),
@@ -444,13 +457,13 @@ foc_mod_se <- mod_se_fun(hydr_mean_mod, hydr_dat, "hydrilla") %>%
               mutate(Response = "min")) %>%
   full_join(mod_se_fun(hydr_cv_mod, hydr_dat, "hydrilla") %>%
               mutate(Response = "cv")) %>%
-  full_join(mod_se_fun(flpl_mean_mod, flpl_dat, "floating plant") %>%
+  full_join(mod_se_fun(flpl_mean_mod, flpl_dat, "floating plants") %>%
               mutate(Response = "mean")) %>%
-  full_join(mod_se_fun(flpl_max_mod, flpl_dat, "floating plant") %>%
+  full_join(mod_se_fun(flpl_max_mod, flpl_dat, "floating plants") %>%
               mutate(Response = "max")) %>%
-  full_join(mod_se_fun(flpl_min_mod, flpl_dat, "floating plant") %>%
+  full_join(mod_se_fun(flpl_min_mod, flpl_dat, "floating plants") %>%
               mutate(Response = "min")) %>%
-  full_join(mod_se_fun(flpl_cv_mod, flpl_dat, "floating plant") %>%
+  full_join(mod_se_fun(flpl_cv_mod, flpl_dat, "floating plants") %>%
               mutate(Response = "cv")) %>%
   mutate(term = fct_recode(term,
                            "invasive PAC" = "PercCovered_c",
@@ -490,6 +503,257 @@ non_foc_mod_se <- mod_se_fun(cubu_mean_mod, cubu_dat, "Cuban bulrush") %>%
          P = p.value) %>%
   relocate(Invasive, Response)
 
-# export
-write_csv(foc_mod_se, "output/fwc_focal_nitrogen_model_summary.csv")
-write_csv(non_foc_mod_se, "output/fwc_non_focal_nitrogen_model_summary.csv")
+
+#### binary models ####
+
+# format data
+hydr_dat_full_fix <- hydr_dat_full %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+flpl_dat_full_fix <- flpl_dat_full %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+cubu_dat_full_fix <- cubu_dat_full %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+torp_dat_full_fix <- torp_dat_full %>%
+  pdata.frame(index = c("PermanentID", "GSYear"))
+
+# fit models
+hydr_mean_mod_full <- plm(LogQualityMean ~ Established, data = hydr_dat_full_fix, 
+                          model = "random", random.method="walhus")
+flpl_mean_mod_full <- update(hydr_mean_mod_full, data = flpl_dat_full)
+cubu_mean_mod_full <- update(hydr_mean_mod_full, data = cubu_dat_full)
+torp_mean_mod_full <- update(hydr_mean_mod_full, data = torp_dat_full)
+
+hydr_max_mod_full <- plm(LogQualityMax ~ Established, data = hydr_dat_full_fix, 
+                         model = "random", random.method="walhus")
+flpl_max_mod_full <- update(hydr_max_mod_full, data = flpl_dat_full)
+cubu_max_mod_full <- update(hydr_max_mod_full, data = cubu_dat_full)
+torp_max_mod_full <- update(hydr_max_mod_full, data = torp_dat_full)
+
+hydr_min_mod_full <- plm(LogQualityMin ~ Established, data = hydr_dat_full_fix, 
+                         model = "random", random.method="walhus")
+flpl_min_mod_full <- update(hydr_min_mod_full, data = flpl_dat_full)
+cubu_min_mod_full <- update(hydr_min_mod_full, data = cubu_dat_full)
+torp_min_mod_full <- update(hydr_min_mod_full, data = torp_dat_full)
+
+hydr_cv_mod_full <- plm(LogQualityCV ~ Established, data = hydr_dat_full_fix, 
+                        model = "random", random.method="walhus")
+flpl_cv_mod_full <- update(hydr_cv_mod_full, data = flpl_dat_full)
+cubu_cv_mod_full <- update(hydr_cv_mod_full, data = cubu_dat_full)
+torp_cv_mod_full <- update(hydr_cv_mod_full, data = torp_dat_full)
+
+# add fitted values to pdata.frame (important to match rows)
+# convert to regular dataframe
+hydr_mean_fit_full <- mutate(hydr_dat_full_fix, Fitted = as.numeric(hydr_dat_full_fix$LogQualityMean - hydr_mean_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+flpl_mean_fit_full <- mutate(flpl_dat_full_fix, Fitted = as.numeric(flpl_dat_full_fix$LogQualityMean - flpl_mean_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_mean_fit_full <- mutate(cubu_dat_full_fix, Fitted = as.numeric(cubu_dat_full_fix$LogQualityMean - cubu_mean_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_mean_fit_full <- mutate(torp_dat_full_fix, Fitted = as.numeric(torp_dat_full_fix$LogQualityMean - torp_mean_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+
+hydr_max_fit_full <- mutate(hydr_dat_full_fix, Fitted = as.numeric(hydr_dat_full_fix$LogQualityMax - hydr_max_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+flpl_max_fit_full <- mutate(flpl_dat_full_fix, Fitted = as.numeric(flpl_dat_full_fix$LogQualityMax - flpl_max_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_max_fit_full <- mutate(cubu_dat_full_fix, Fitted = as.numeric(cubu_dat_full_fix$LogQualityMax - cubu_max_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_max_fit_full <- mutate(torp_dat_full_fix, Fitted = as.numeric(torp_dat_full_fix$LogQualityMax - torp_max_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+
+hydr_min_fit_full <- mutate(hydr_dat_full_fix, Fitted = as.numeric(hydr_dat_full_fix$LogQualityMin - hydr_min_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+flpl_min_fit_full <- mutate(flpl_dat_full_fix, Fitted = as.numeric(flpl_dat_full_fix$LogQualityMin - flpl_min_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_min_fit_full <- mutate(cubu_dat_full_fix, Fitted = as.numeric(cubu_dat_full_fix$LogQualityMin - cubu_min_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_min_fit_full <- mutate(torp_dat_full_fix, Fitted = as.numeric(torp_dat_full_fix$LogQualityMin - torp_min_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+
+hydr_cv_fit_full <- mutate(hydr_dat_full_fix, Fitted = as.numeric(hydr_dat_full_fix$LogQualityCV - hydr_cv_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+flpl_cv_fit_full <- mutate(flpl_dat_full_fix, Fitted = as.numeric(flpl_dat_full_fix$LogQualityCV - flpl_cv_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+cubu_cv_fit_full <- mutate(cubu_dat_full_fix, Fitted = as.numeric(cubu_dat_full_fix$LogQualityCV - cubu_cv_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+torp_cv_fit_full <- mutate(torp_dat_full_fix, Fitted = as.numeric(torp_dat_full_fix$LogQualityCV - torp_cv_mod_full$residuals)) %>%
+  as.data.frame(keep.attributes = F)
+
+# fitted vs. observed
+ggplot(hydr_mean_fit_full, aes(x = Fitted, y = LogQualityMean)) + geom_point()
+ggplot(flpl_mean_fit_full, aes(x = Fitted, y = LogQualityMean)) + geom_point()
+ggplot(cubu_mean_fit_full, aes(x = Fitted, y = LogQualityMean)) + geom_point()
+ggplot(torp_mean_fit_full, aes(x = Fitted, y = LogQualityMean)) + geom_point()
+
+ggplot(hydr_max_fit_full, aes(x = Fitted, y = LogQualityMax)) + geom_point()
+ggplot(flpl_max_fit_full, aes(x = Fitted, y = LogQualityMax)) + geom_point()
+ggplot(cubu_max_fit_full, aes(x = Fitted, y = LogQualityMax)) + geom_point()
+ggplot(torp_max_fit_full, aes(x = Fitted, y = LogQualityMax)) + geom_point()
+
+ggplot(hydr_min_fit_full, aes(x = Fitted, y = LogQualityMin)) + geom_point()
+ggplot(flpl_min_fit_full, aes(x = Fitted, y = LogQualityMin)) + geom_point()
+ggplot(cubu_min_fit_full, aes(x = Fitted, y = LogQualityMin)) + geom_point()
+ggplot(torp_min_fit_full, aes(x = Fitted, y = LogQualityMin)) + geom_point()
+
+ggplot(hydr_cv_fit_full, aes(x = Fitted, y = LogQualityCV)) + geom_point()
+ggplot(flpl_cv_fit_full, aes(x = Fitted, y = LogQualityCV)) + geom_point()
+ggplot(cubu_cv_fit_full, aes(x = Fitted, y = LogQualityCV)) + geom_point()
+ggplot(torp_cv_fit_full, aes(x = Fitted, y = LogQualityCV)) + geom_point()
+# much weaker relationships with CV
+
+# export models
+save(hydr_mean_mod_full, file = "output/fwc_hydrilla_mean_nitrogen_binary_model.rda")
+save(flpl_mean_mod_full, file = "output/fwc_floating_plant_mean_nitrogen_binary_model.rda")
+save(cubu_mean_mod_full, file = "output/fwc_cuban_bulrush_mean_nitrogen_binary_model.rda")
+save(torp_mean_mod_full, file = "output/fwc_torpedograss_mean_nitrogen_binary_model.rda")
+
+save(hydr_max_mod_full, file = "output/fwc_hydrilla_max_nitrogen_binary_model.rda")
+save(flpl_max_mod_full, file = "output/fwc_floating_plant_max_nitrogen_binary_model.rda")
+save(cubu_max_mod_full, file = "output/fwc_cuban_bulrush_max_nitrogen_binary_model.rda")
+save(torp_max_mod_full, file = "output/fwc_torpedograss_max_nitrogen_binary_model.rda")
+
+save(hydr_min_mod_full, file = "output/fwc_hydrilla_min_nitrogen_binary_model.rda")
+save(flpl_min_mod_full, file = "output/fwc_floating_plant_min_nitrogen_binary_model.rda")
+save(cubu_min_mod_full, file = "output/fwc_cuban_bulrush_min_nitrogen_binary_model.rda")
+save(torp_min_mod_full, file = "output/fwc_torpedograss_min_nitrogen_binary_model.rda")
+
+save(hydr_cv_mod_full, file = "output/fwc_hydrilla_cv_nitrogen_binary_model.rda")
+save(flpl_cv_mod_full, file = "output/fwc_floating_plant_cv_nitrogen_binary_model.rda")
+save(cubu_cv_mod_full, file = "output/fwc_cuban_bulrush_cv_nitrogen_binary_model.rda")
+save(torp_cv_mod_full, file = "output/fwc_torpedograss_cv_nitrogen_binary_model.rda")
+
+# combine SE tables
+foc_mod_full_se <- mod_se_fun(hydr_mean_mod_full, hydr_dat_full, "hydrilla") %>%
+  mutate(Response = "mean") %>%
+  full_join(mod_se_fun(hydr_max_mod_full, hydr_dat_full, "hydrilla") %>%
+              mutate(Response = "max")) %>%
+  full_join(mod_se_fun(hydr_min_mod_full, hydr_dat_full, "hydrilla") %>%
+              mutate(Response = "min")) %>%
+  full_join(mod_se_fun(hydr_cv_mod_full, hydr_dat_full, "hydrilla") %>%
+              mutate(Response = "cv")) %>%
+  full_join(mod_se_fun(flpl_mean_mod_full, flpl_dat_full, "floating plants") %>%
+              mutate(Response = "mean")) %>%
+  full_join(mod_se_fun(flpl_max_mod_full, flpl_dat_full, "floating plants") %>%
+              mutate(Response = "max")) %>%
+  full_join(mod_se_fun(flpl_min_mod_full, flpl_dat_full, "floating plants") %>%
+              mutate(Response = "min")) %>%
+  full_join(mod_se_fun(flpl_cv_mod_full, flpl_dat_full, "floating plants") %>%
+              mutate(Response = "cv")) %>%
+  mutate(term = fct_recode(term,
+                           "established" = "Established",
+                           "intercept" = "(Intercept)")) %>%
+  rename(Term = term,
+         Estimate = estimate,
+         SE = std.error,
+         t = statistic,
+         P = p.value) %>%
+  relocate(Invasive, Response)
+
+non_foc_mod_full_se <- mod_se_fun(cubu_mean_mod_full, cubu_dat_full, "Cuban bulrush") %>%
+  mutate(Response = "mean") %>%
+  full_join(mod_se_fun(cubu_max_mod_full, cubu_dat_full, "Cuban bulrush") %>%
+              mutate(Response = "max")) %>%
+  full_join(mod_se_fun(cubu_min_mod_full, cubu_dat_full, "Cuban bulrush") %>%
+              mutate(Response = "min")) %>%
+  full_join(mod_se_fun(cubu_cv_mod_full, cubu_dat_full, "Cuban bulrush") %>%
+              mutate(Response = "cv")) %>%
+  full_join(mod_se_fun(torp_mean_mod_full, torp_dat_full, "torpedograss") %>%
+              mutate(Response = "mean")) %>%
+  full_join(mod_se_fun(torp_max_mod_full, torp_dat_full, "torpedograss", var_type = "HC2") %>%
+              mutate(Response = "max")) %>%
+  full_join(mod_se_fun(torp_min_mod_full, torp_dat_full, "torpedograss") %>%
+              mutate(Response = "min")) %>%
+  full_join(mod_se_fun(torp_cv_mod_full, torp_dat_full, "torpedograss") %>%
+              mutate(Response = "cv")) %>%
+  mutate(term = fct_recode(term,
+                           "established" = "Established",
+                           "intercept" = "(Intercept)")) %>%
+  rename(Term = term,
+         Estimate = estimate,
+         SE = std.error,
+         t = statistic,
+         P = p.value) %>%
+  relocate(Invasive, Response)
+
+# save
+write_csv(foc_mod_full_se, "output/fwc_focal_nitrogen_binary_model_summary.csv")
+write_csv(non_foc_mod_full_se, "output/fwc_non_focal_nitrogen_binary_model_summary.csv")
+
+
+#### values for text ####
+
+# extract intercept from fixed effects models
+intercept_fun <- function(models, spp){
+  
+  dat_out <- tibble(Invasive = spp,
+                    Response = c("mean", "max", "min", "cv"),
+                    Intercept = sapply(models, function(x) mean(fixef(x)))) %>%
+    mutate(Intercept = exp(Intercept))
+  
+  return(dat_out)
+  
+}
+
+# combine model summary info
+foc_mod_sum <- foc_mod_se %>%
+  left_join(intercept_fun(list(hydr_mean_mod, hydr_max_mod, hydr_min_mod, hydr_cv_mod), "hydrilla") %>%
+              full_join(intercept_fun(list(flpl_mean_mod, flpl_max_mod, flpl_min_mod, flpl_cv_mod), "floating plants"))) %>%
+  mutate(Metric = "nitrogen") %>%
+  relocate(Metric) %>%
+  relocate(Intercept, .before = "R2")
+
+write_csv(foc_mod_sum, "output/fwc_focal_nitrogen_model_summary.csv")
+
+non_foc_mod_sum <- non_foc_mod_se %>%
+  left_join(intercept_fun(list(cubu_mean_mod, cubu_max_mod, cubu_min_mod, cubu_cv_mod), "Cuban bulrush") %>%
+              full_join(intercept_fun(list(torp_mean_mod, torp_max_mod, torp_min_mod, torp_cv_mod), "torpedograss"))) %>%
+  mutate(Metric = "nitrogen") %>%
+  relocate(Metric) %>%
+  relocate(Intercept, .before = "R2")
+
+write_csv(non_foc_mod_sum, "output/fwc_non_focal_nitrogen_model_summary.csv")
+
+# combine binary and continuous models
+foc_mean_summary <- foc_mod_full_se %>%
+  select(Invasive, Response, Term, Estimate) %>%
+  pivot_wider(names_from = Term,
+              values_from = Estimate) %>%
+  rename(Intercept = intercept,
+         Estimate = established) %>%
+  mutate(Term = "established",
+         Model = "binary",
+         Metric = "nitrogen",
+         Intercept = exp(Intercept)) %>%
+  left_join(foc_mod_full_se) %>%
+  full_join(foc_mod_sum %>%
+              mutate(Model = "continuous")) %>%
+  filter(Response == "mean") %>%
+  select(-Response) %>%
+  relocate(Metric) %>%
+  relocate(c(Model, Term), .after = "Invasive") %>%
+  relocate(Intercept, .before = "R2") %>%
+  arrange(Invasive, Model, Term)
+
+non_foc_mean_summary <- non_foc_mod_full_se %>%
+  select(Invasive, Response, Term, Estimate) %>%
+  pivot_wider(names_from = Term,
+              values_from = Estimate) %>%
+  rename(Intercept = intercept,
+         Estimate = established) %>%
+  mutate(Term = "established",
+         Model = "binary",
+         Metric = "nitrogen",
+         Intercept = exp(Intercept)) %>%
+  left_join(non_foc_mod_full_se) %>%
+  full_join(non_foc_mod_sum %>%
+              mutate(Model = "continuous")) %>%
+  filter(Response == "mean") %>%
+  select(-Response) %>%
+  relocate(Metric) %>%
+  relocate(c(Model, Term), .after = "Invasive") %>%
+  relocate(Intercept, .before = "R2") %>%
+  arrange(Invasive, Model, Term)
+
+# save
+write_csv(foc_mean_summary, "output/fwc_focal_nitrogen_mean_models.csv")
+write_csv(non_foc_mean_summary, "output/fwc_non_focal_nitrogen_mean_models.csv")

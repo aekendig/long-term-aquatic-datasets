@@ -174,17 +174,22 @@ range(ctrl2$RecentTreatment, na.rm = T)
 qual_ann2 <- qual_ann %>%
   inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
   inner_join(ctrl2) %>%
-  inner_join(perm_plant_ctrl) %>% # select waterbodies that have had species and at least one year of management
+  left_join(perm_plant) %>%
   mutate(LogQualityMean = log(QualityMean),
          LogQualityMax = log(QualityMax),
          LogQualityMin = log(QualityMin),
          LogQualityCV = log(QualityCV),
-         RecentTreatment = replace_na(RecentTreatment, 0))
+         RecentTreatment = replace_na(RecentTreatment, 0),
+         Established = replace_na(Established, 0))
+
+# select waterbodies that have had species and at least one year of management
+qual_inv <- qual_ann2 %>%
+  inner_join(perm_plant_ctrl)
 
 # check for issues with log-transformation
 filter(qual_ann2, is.na(LogQualityMean) | LogQualityMean == -Inf)
 filter(qual_ann2, is.na(LogQualityMax) | LogQualityMax == -Inf)
-filter(qual_ann2, is.na(LogQualityMin) | LogQualityMin == -Inf) # all chlorophyll
+filter(qual_ann2, is.na(LogQualityMin) | LogQualityMin == -Inf) %>% distinct(QualityMetric) # all chlorophyll
 filter(qual_ann2, is.na(LogQualityCV) | LogQualityCV == -Inf)
 
 # look at minimum chlorophyll
@@ -195,6 +200,10 @@ min_chl <- qual_ann2 %>%
 
 # update QualityMin
 qual_ann3 <- qual_ann2 %>%
+  mutate(LogQualityMin = if_else(QualityMetric == "CHL_ug_L", log(QualityMin + min_chl),
+                                 log(QualityMin)))
+
+qual_inv2 <- qual_inv %>%
   mutate(LogQualityMin = if_else(QualityMetric == "CHL_ug_L", log(QualityMin + min_chl),
                                  log(QualityMin)))
 
@@ -287,30 +296,22 @@ qual_ann_wide %>%
 
 # save data
 write_csv(qual_ann3, "intermediate-data/water_quality_data_formatted.csv")
+write_csv(qual_inv2, "intermediate-data/water_quality_invaded_data_formatted.csv")
 
 
-#### uninvaded waterbodies ####
-
-# import data
-uninv <- read_csv("output/fwc_uninvaded_permID.csv") # lakes with no recorded invasion
-
-# floating uninv
-uninv_float <- uninv %>%
-  filter(CommonName %in% c("Water hyacinth", "Water lettuce")) %>%
-  group_by(PermanentID, Treatments) %>%
-  summarize(nUninv = n()) %>%
+#### waterbody counts ####
+qual_ann3 %>%
+  group_by(CommonName, Established) %>%
+  summarize(waterbodies = n_distinct(PermanentID)) %>%
   ungroup() %>%
-  filter(nUninv == 2) %>%
-  select(-nUninv) %>%
-  mutate(CommonName = "floating plants",
-         Established = 0)
+  mutate(Established = fct_recode(as.factor(Established),
+                                  "Invaded" = "1",
+                                  "Uninvaded" = "0"),
+         CommonName = tolower(CommonName)) %>%
+  pivot_wider(names_from = Established,
+              values_from = waterbodies) %>%
+  write_csv("intermediate-data/water_quality_invaded_uninvaded_counts.csv")
 
-# add water quality to uninvaded dataset
-# select years to match invasion dataset
-uninv2 <- qual_ann %>%
-  inner_join(uninv %>%
-               full_join(uninv_float) %>%
-               filter(!(CommonName %in% c("Water hyacinth", "Water lettuce"))))
-
-# save
-write_csv(uninv2, "intermediate-data/water_quality_fwc_uninvaded_permID.csv")
+# previously had uninvaded waterbodies, but these included waterbodies
+# that weren't in the plant survey dataset, so it's not actually
+# certain that they were uninvaded

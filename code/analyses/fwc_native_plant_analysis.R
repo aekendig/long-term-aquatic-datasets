@@ -17,18 +17,17 @@ source("code/settings/figure_settings.R")
 source("code/generic-functions/proportion_transformations.R")
 
 # import data
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv") # plant and control data, continuous data
-nat_plant <- read_csv("intermediate-data/FWC_common_native_plants_formatted.csv")
+dat <- read_csv("intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
+dat_full <- read_csv("intermediate-data/FWC_common_native_plants_invasive_species_data_formatted.csv")
 
 
 #### edit data ####
 
-# select relevant invasive plant columns
-# join with native plant data
+#### start here ####
+# need to summarize by lake?
+
 # summarize
-comb_dat <- inv_plant %>%
-  select(PermanentID, GSYear, CommonName, PropCovered, Lag1Treated) %>%
-  inner_join(nat_plant) %>%
+dat2 <- dat %>%
   group_by(CommonName, PermanentID, TaxonName, Habitat) %>%
   summarize(AvgPAC = mean(PropCovered * 100),
             TreatFreq = mean(Lag1Treated),

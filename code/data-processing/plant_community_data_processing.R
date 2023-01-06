@@ -18,7 +18,8 @@ plant_fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
                                         YearF = col_character()))
 key_all_acre <- read_csv("original-data/FWC_plant_survey_key_all_acreage.csv")
 key_all_pres <- read_csv("original-data/FWC_plant_survey_key_all_presence.csv")
-
+inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
+ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv") 
 
 #### edit plant community data ####
 
@@ -251,6 +252,102 @@ nat_fwc2 <- nat_fwc %>%
 
 # save
 write_csv(nat_fwc2, "intermediate-data/FWC_common_native_plants_formatted.csv")
+
+
+#### invasive plant data ####
+
+# combine water hyacinth and lettuce percent covered
+floating_cover <- inv_plant %>%
+  filter(CommonName %in% c("Water hyacinth", "Water lettuce")) %>%
+  group_by(PermanentID, GSYear) %>%
+  summarize(across(.cols = ends_with ("PropCovered"), sum),
+            InitPercCovered = sum(InitPercCovered),
+            SpeciesAcres = sum(SpeciesAcres),
+            EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
+  ungroup() %>%
+  mutate(across(.cols = ends_with ("PropCovered"), ~ if_else(.x > 1, 1, .x)),
+         InitPercCovered = if_else(InitPercCovered > 1, 1, InitPercCovered),
+         CommonName = "floating plants")
+
+# add floating cover
+inv_plant2 <- inv_plant %>%
+  full_join(floating_cover) %>%
+  mutate(across(ends_with("PropCovered"), ~ .x * 100), # change proportion to percent
+         Lag2APCsq = Lag2AvgPropCovered^2) %>% # square perc covered
+  rename_with(str_replace, pattern = "PropCovered", replacement = "PercCovered") %>%
+  select(CommonName, PermanentID, GSYear, ends_with("PercCovered"), Lag2APCsq, SpeciesAcres, EstAreaCoveredRaw_ha)
+
+# Species names
+inv_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)", "Panicum repens", "Urochloa mutica", "Cyperus blepharoleptos"),
+                   CommonName = c("Hydrilla", "floating plants", "Torpedograss", "Para grass", "Cuban bulrush"))
+
+
+#### management data ####
+
+# use "Species" and "unique" to get floating plants combined
+# unlike water quality, use match control to native plants by GSYear (rather than GSYear - 1)
+# becaue GSYear has already been calibrated to precede the plant survey
+ctrl2 <- ctrl %>%
+  select(Species, PermanentID, GSYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
+  unique() %>%
+  left_join(inv_taxa) 
+
+
+#### identify waterbodies to use ####
+
+# has the plant ever been established?
+# by using EstAreaCoveredRaw_ha, there had to be more than one year per permanentID
+perm_plant <- inv_plant2 %>%
+  group_by(PermanentID, CommonName) %>%
+  summarize(Established = as.numeric(sum(EstAreaCoveredRaw_ha) > 0)) %>%
+  ungroup() %>%
+  filter(Established > 0)
+
+# has the plant ever been treated?
+perm_ctrl <- ctrl2 %>%
+  group_by(PermanentID, Species) %>%
+  summarize(Treatments = as.numeric(sum(Treated, na.rm = T) > 0)) %>%
+  ungroup() %>%
+  filter(Treatments > 0) %>%
+  left_join(inv_taxa) %>%
+  select(-Species)
+
+# waterbodies that have the species present and been managed at least once
+perm_plant_ctrl <- inner_join(perm_plant, perm_ctrl) %>%
+  select(PermanentID, CommonName)
+
+
+#### combine data and select waterbodies/years ####
+
+# add invasive plant and control data
+nat_fwc3 <- nat_fwc2 %>%
+  inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
+  inner_join(ctrl2) %>%
+  left_join(perm_plant) %>%
+  mutate(RecentTreatment = replace_na(RecentTreatment, 0),
+         Established = replace_na(Established, 0))
+
+# select waterbodies that have had species and at least one year of management
+nat_inv <- nat_fwc3 %>%
+  inner_join(perm_plant_ctrl)
+
+# save data
+write_csv(nat_fwc3, "intermediate-data/FWC_common_native_plants_invasive_species_data_formatted.csv")
+write_csv(nat_inv, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
+
+
+#### waterbody counts ####
+nat_fwc3 %>%
+  group_by(CommonName, Established) %>%
+  summarize(waterbodies = n_distinct(PermanentID)) %>%
+  ungroup() %>%
+  mutate(Established = fct_recode(as.factor(Established),
+                                  "Invaded" = "1",
+                                  "Uninvaded" = "0"),
+         CommonName = tolower(CommonName)) %>%
+  pivot_wider(names_from = Established,
+              values_from = waterbodies) %>%
+  write_csv("intermediate-data/native_plants_invaded_uninvaded_counts.csv")
 
 
 #### FWRI data ####
