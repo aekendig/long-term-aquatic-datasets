@@ -53,9 +53,7 @@ inv_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichho
 ctrl2 <- ctrl %>%
   select(Species, PermanentID, GSYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
   unique() %>%
-  left_join(inv_taxa) %>%
-  mutate(GSYear = GSYear - 1) # match previous year's control with quality data
-
+  left_join(inv_taxa)
 
 #### identify waterbodies to use ####
 

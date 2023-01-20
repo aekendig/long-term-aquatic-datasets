@@ -1,17 +1,17 @@
 Species,coefficients,lm,ran_loc,ran_yr,ran_loc_yr,fix_loc,fix_loc_yr,rec,int,rec_int
-hydrilla,(Intercept),2.782,2.744,2.782,2.735,NA,NA,NA,NA,NA
-hydrilla,PAC_c,-0.003,-0.006,-0.003,-0.006,-0.006,-0.006,-0.006,-0.007,-0.009
-hydrilla,Treated,0.326,-0.009,0.326,-0.01,-0.016,-0.014,0.026,-0.011,0.034
-hydrilla,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.002,0.003
-floating plants,(Intercept),2.645,2.635,2.651,2.638,NA,NA,NA,NA,NA
-floating plants,PAC_c,-0.017,-0.036,-0.017,-0.034,-0.037,-0.035,-0.035,-0.036,-0.037
-floating plants,Treated,0.329,0.088,0.329,0.069,0.082,0.045,0.081,0.045,0.082
-floating plants,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.001,0.002
-Cuban bulrush,(Intercept),2.57,2.416,2.57,2.421,NA,NA,NA,NA,NA
-Cuban bulrush,PAC_c,0.035,0.061,0.035,0.064,0.066,0.075,0.073,0.069,0.094
-Cuban bulrush,Treated,-0.107,-0.11,-0.107,-0.112,-0.11,-0.094,-0.09,-0.094,-0.093
-Cuban bulrush,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.009,-0.028
-torpedograss,(Intercept),2.649,2.465,2.696,2.461,NA,NA,NA,NA,NA
-torpedograss,PAC_c,-0.098,-0.003,-0.102,-0.004,0.002,0,0,0.002,0.006
-torpedograss,Treated,-0.01,0.019,-0.074,0.016,0.014,0.012,0.016,0.012,0.014
-torpedograss,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,-0.032,-0.033
+hydrilla,(Intercept),2.775,2.74,2.778,2.722,NA,NA,NA,NA,NA
+hydrilla,PAC_c,-0.003,-0.006,-0.003,-0.006,-0.006,-0.006,-0.006,-0.01,-0.011
+hydrilla,Treated,0.342,-0.003,0.341,0.011,-0.012,0.013,0.051,0.023,0.063
+hydrilla,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.004,0.005
+floating plants,(Intercept),2.647,2.651,2.654,2.649,NA,NA,NA,NA,NA
+floating plants,PAC_c,-0.012,-0.034,-0.012,-0.034,-0.037,-0.036,-0.035,-0.026,-0.027
+floating plants,Treated,0.335,0.057,0.332,0.044,0.047,0.023,0.079,0.023,0.079
+floating plants,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,-0.015,-0.012
+Cuban bulrush,(Intercept),2.578,2.411,2.582,2.417,NA,NA,NA,NA,NA
+Cuban bulrush,PAC_c,0.033,0.053,0.034,0.056,0.057,0.066,0.068,0.064,0.096
+Cuban bulrush,Treated,-0.138,-0.094,-0.142,-0.099,-0.09,-0.087,-0.086,-0.087,-0.091
+Cuban bulrush,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.003,-0.058
+torpedograss,(Intercept),2.64,2.465,2.683,2.462,NA,NA,NA,NA,NA
+torpedograss,PAC_c,-0.098,-0.003,-0.102,-0.004,0.002,0,0,-0,0.002
+torpedograss,Treated,0.077,0.025,0.019,0.021,0.02,0.015,-0.017,0.017,-0.02
+torpedograss,PAC_c:Treated,NA,NA,NA,NA,NA,NA,NA,0.008,-0.012

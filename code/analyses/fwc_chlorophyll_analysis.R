@@ -89,7 +89,6 @@ dat %>%
   ungroup() %>%
   filter(p_value < 0.05 & abs(corr) >= 0.4) %>%
   data.frame()
-# hydrilla: PropTreated and PercCovered 0.45
 
 # response distributions
 ggplot(dat, aes(x = QualityMean)) +

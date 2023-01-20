@@ -25,6 +25,7 @@ dat_full <- read_csv("intermediate-data/FWC_common_native_plants_invasive_specie
 
 #### start here ####
 # need to summarize by lake?
+# come back to this after trying out joint species modeling
 
 # summarize
 dat2 <- dat %>%

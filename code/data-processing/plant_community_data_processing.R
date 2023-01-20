@@ -327,13 +327,31 @@ nat_fwc3 <- nat_fwc2 %>%
   mutate(RecentTreatment = replace_na(RecentTreatment, 0),
          Established = replace_na(Established, 0))
 
+# summarize for richness and add invasive plant and control data
+rich <- nat_fwc2 %>%
+  group_by(PermanentID, GSYear, Area_ha) %>%
+  summarize(Richness = sum(Detected)) %>%
+  ungroup() %>%
+  mutate(LogRichness = log(Richness + 1)) %>%
+  inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
+  inner_join(ctrl2) %>%
+  left_join(perm_plant) %>%
+  mutate(RecentTreatment = replace_na(RecentTreatment, 0),
+         Established = replace_na(Established, 0))
+
 # select waterbodies that have had species and at least one year of management
 nat_inv <- nat_fwc3 %>%
+  inner_join(perm_plant_ctrl)
+
+rich_inv <- rich %>%
   inner_join(perm_plant_ctrl)
 
 # save data
 write_csv(nat_fwc3, "intermediate-data/FWC_common_native_plants_invasive_species_data_formatted.csv")
 write_csv(nat_inv, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
+
+write_csv(rich, "intermediate-data/FWC_common_native_richness_invasive_species_data_formatted.csv")
+write_csv(rich_inv, "intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
 
 
 #### waterbody counts ####

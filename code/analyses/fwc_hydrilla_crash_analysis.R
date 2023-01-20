@@ -144,7 +144,7 @@ hydr_dat5 <- hydr_dat4 %>%
 
 #### initial visualizations ####
 
-ggplot(hydr_dat5, aes(x = Lag1PercTreated, y = PercDiffCovered,
+ggplot(hydr_dat5, aes(x = PercTreated, y = PercDiffCovered,
                       color = PermanentID)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", se = F) +
@@ -158,10 +158,10 @@ ggplot(hydr_dat5, aes(x = Lag1PercTreated, y = PercDiffCovered,
 # fit model to each lake
 crash_mods <- hydr_dat5 %>%
   select(PermanentID, AreaCountyID, GSYear, PercDiffCovered, 
-         Lag1PercTreated, Lag2PercTreated, Lag3PercTreated) %>%
+         PercTreated, Lag2PercTreated, Lag3PercTreated) %>%
   nest(data = c(GSYear, PercDiffCovered, 
-                Lag1PercTreated, Lag2PercTreated, Lag3PercTreated)) %>%
-  mutate(fit1 = map(data, ~lm(PercDiffCovered ~ Lag1PercTreated, data = .)),
+                PercTreated, Lag2PercTreated, Lag3PercTreated)) %>%
+  mutate(fit1 = map(data, ~lm(PercDiffCovered ~ PercTreated, data = .)),
          fit2 = map(data, ~lm(PercDiffCovered ~ Lag2PercTreated, data = .)),
          fit3 = map(data, ~lm(PercDiffCovered ~ Lag3PercTreated, data = .))) %>%
   arrange(AreaCountyID)
@@ -255,9 +255,9 @@ get_dupes(crash_auto_sig, AreaCountyID) # only 1 lag is ever sig
 
 # refit models with autocorrelated errors
 crash_mods3 <- crash_mods2 %>%
-  mutate(fit1b = map(data, ~gls(PercDiffCovered ~ Lag1PercTreated, data = .,
+  mutate(fit1b = map(data, ~gls(PercDiffCovered ~ PercTreated, data = .,
                                correlation = NULL, method = "ML")),
-         fit1c = map(data, ~gls(PercDiffCovered ~ Lag1PercTreated, data = .,
+         fit1c = map(data, ~gls(PercDiffCovered ~ PercTreated, data = .,
                                correlation = corAR1(), method = "ML")),
          CorComp = map2(fit1b, fit1c, ~anova(.x, .y)),
          DeltaAIC = map(CorComp, ~.x$AIC[2] - .x$AIC[1]),
@@ -295,8 +295,8 @@ crash_coef4 <- crash_coef3 %>%
                                                                  "\\'" = "")), 
                                                "^{", corAR, "}"))) %>%
   add_column(hydr_dat6 %>%
-              transmute(maxTreat = max(Lag1PercTreated, na.rm = T),
-                        minTreat = min(Lag1PercTreated, na.rm = T),
+              transmute(maxTreat = max(PercTreated, na.rm = T),
+                        minTreat = min(PercTreated, na.rm = T),
                         maxDiff = max(PercDiffCovered, na.rm = T),
                         minDiff = min(PercDiffCovered, na.rm = T)) %>%
                unique()) %>%
@@ -351,7 +351,7 @@ ts_fig_b <- ggplot(ts_dat_2, aes(x = GSYear, y = PercCovered,
         panel.spacing = unit(0, "pt"))
 
 # model fit fig
-mf_fig_a <- ggplot(ts_dat_3, aes(x = Lag1PercTreated, y = PercDiffCovered,
+mf_fig_a <- ggplot(ts_dat_3, aes(x = PercTreated, y = PercDiffCovered,
                       color = AreaCountyID)) +
   geom_hline(yintercept = 0, size = 0.1, linetype = "dashed") +
   geom_smooth(method = "lm", formula = "y ~ x", size = 0.5) +
@@ -375,7 +375,7 @@ mf_fig_a <- ggplot(ts_dat_3, aes(x = Lag1PercTreated, y = PercDiffCovered,
         panel.border = element_blank(),
         panel.spacing = unit(0, "pt"))
 
-mf_fig_b <- ggplot(ts_dat_4, aes(x = Lag1PercTreated, y = PercDiffCovered,
+mf_fig_b <- ggplot(ts_dat_4, aes(x = PercTreated, y = PercDiffCovered,
                                     color = AreaCountyID)) +
   geom_hline(yintercept = 0, size = 0.1, linetype = "dashed") +
   geom_smooth(method = "lm", formula = "y ~ x", size = 0.5) +
@@ -410,10 +410,10 @@ ggsave("output/fwc_hydrilla_crash_time_series_prediction.png", comb_fig,
 #### values for text ####
 
 crash_sum <- crash_coef3 %>%
-  mutate(summ = case_when(estimate < 0 & p.value < 0.1 ~ "sig neg",
-                          estimate > 0 & p.value < 0.1 ~ "sig pos",
-                          estimate < 0 & p.value >= 0.1 ~ "n.s. neg",
-                          estimate > 0 & p.value >= 0.1 ~ "n.s. pos")) %>%
+  mutate(summ = case_when(estimate < 0 & p.value < 0.05 ~ "sig neg",
+                          estimate > 0 & p.value < 0.05 ~ "sig pos",
+                          estimate < 0 & p.value >= 0.05 ~ "n.s. neg",
+                          estimate > 0 & p.value >= 0.05 ~ "n.s. pos")) %>%
   count(summ)
 
 write_csv(crash_sum, "output/fwc_hydrilla_crash_prediction_summary.csv")
