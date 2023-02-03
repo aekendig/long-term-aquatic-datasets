@@ -638,15 +638,15 @@ non_foc_pred_treat_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
         strip.text = element_text(size = 9, color = "black", hjust = 0))
 
 # save
-ggsave("output/fwc_focal_invasive_native_richness_PAC_prediction.png", foc_pred_PAC_fig,
-       device = "png", width = 6.5, height = 2.5, units = "in")
-
-ggsave("output/fwc_focal_invasive_native_richness_treatment_prediction.png", foc_pred_treat_fig,
-       device = "png", width = 6.5, height = 2.5, units = "in")
-
-ggsave("output/fwc_non_focal_invasive_native_richness_PAC_prediction.png", non_foc_pred_PAC_fig,
-       device = "png", width = 6.5, height = 2.5, units = "in")
-
-ggsave("output/fwc_non_focal_invasive_native_richness_treatment_prediction.png", non_foc_pred_treat_fig,
-       device = "png", width = 6.5, height = 2.5, units = "in")
+# ggsave("output/fwc_focal_invasive_native_richness_PAC_prediction.png", foc_pred_PAC_fig,
+#        device = "png", width = 6.5, height = 2.5, units = "in")
+# 
+# ggsave("output/fwc_focal_invasive_native_richness_treatment_prediction.png", foc_pred_treat_fig,
+#        device = "png", width = 6.5, height = 2.5, units = "in")
+# 
+# ggsave("output/fwc_non_focal_invasive_native_richness_PAC_prediction.png", non_foc_pred_PAC_fig,
+#        device = "png", width = 6.5, height = 2.5, units = "in")
+# 
+# ggsave("output/fwc_non_focal_invasive_native_richness_treatment_prediction.png", non_foc_pred_treat_fig,
+#        device = "png", width = 6.5, height = 2.5, units = "in")
 

@@ -9,6 +9,7 @@ library(inspectdf) # inspect_cor
 library(broom) # glance, tidy
 library(pals) # color palettes
 library(patchwork)
+library(gllvm)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -23,41 +24,189 @@ dat_full <- read_csv("intermediate-data/FWC_common_native_plants_invasive_specie
 
 #### edit data ####
 
-#### start here ####
-# need to summarize by lake?
-# come back to this after trying out joint species modeling
+# split data by invasive species
+hydr_dat <- filter(dat, CommonName == "Hydrilla") %>%
+  arrange(PermanentID, GSYear, TaxonName)
+flpl_dat <- filter(dat, CommonName == "floating plants") %>%
+  arrange(PermanentID, GSYear, TaxonName)
+cubu_dat <- filter(dat, CommonName == "Cuban bulrush") %>%
+  arrange(PermanentID, GSYear, TaxonName)
+pagr_dat <- filter(dat, CommonName == "Para grass") %>%
+  arrange(PermanentID, GSYear, TaxonName)
+torp_dat <- filter(dat, CommonName == "Torpedograss") %>%
+  arrange(PermanentID, GSYear, TaxonName)
 
-# summarize
-dat2 <- dat %>%
-  group_by(CommonName, PermanentID, TaxonName, Habitat) %>%
-  summarize(AvgPAC = mean(PropCovered * 100),
-            TreatFreq = mean(Lag1Treated),
-            YearsDetected = sum(Detected),
-            YearsSurveyed = n_distinct(GSYear)) %>%
-  ungroup() %>%
-  group_by(CommonName, TaxonName) %>%
-  mutate(AvgPAC_c = AvgPAC - mean(AvgPAC)) %>%
-  ungroup() %>%
-  mutate(YearsUndetected = YearsSurveyed - YearsDetected,
-         Habitat = tolower(Habitat))
+# site-by-species matrices
+# remove taxa with no presences
+hydr_mat <- hydr_dat %>%
+  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  pivot_wider(names_from = TaxonName,
+              values_from = Detected) %>%
+  select(-c(PermanentID, GSYear)) %>%
+  select(where(~ sum(.) != 0)) %>% 
+  as.matrix()
+flpl_mat <- flpl_dat %>%
+  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  pivot_wider(names_from = TaxonName,
+              values_from = Detected) %>%
+  select(-c(PermanentID, GSYear)) %>%
+  select(where(~ sum(.) != 0)) %>% 
+  as.matrix()
+cubu_mat <- cubu_dat %>%
+  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  pivot_wider(names_from = TaxonName,
+              values_from = Detected) %>%
+  select(-c(PermanentID, GSYear)) %>%
+  select(where(~ sum(.) != 0)) %>% 
+  as.matrix()
+pagr_mat <- pagr_dat %>%
+  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  pivot_wider(names_from = TaxonName,
+              values_from = Detected) %>%
+  select(-c(PermanentID, GSYear)) %>%
+  select(where(~ sum(.) != 0)) %>% 
+  as.matrix()
+torp_mat <- torp_dat %>%
+  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  pivot_wider(names_from = TaxonName,
+              values_from = Detected) %>%
+  select(-c(PermanentID, GSYear)) %>%
+  select(where(~ sum(.) != 0)) %>% 
+  as.matrix()
 
-# check that invasive plant values are repeated by permanentID
-comb_dat %>%
-  group_by(CommonName, PermanentID) %>%
-  summarize(nPAC = n_distinct(AvgPAC),
-            nTreat = n_distinct(TreatFreq)) %>%
-  ungroup() %>%
-  filter(nPAC > 1 | nTreat > 1)
-# yes
+# covariates
+hydr_cov <- hydr_dat %>%
+  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
+  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  data.frame()
+flpl_cov <- flpl_dat %>%
+  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
+  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  data.frame()
+cubu_cov <- cubu_dat %>%
+  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
+  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  data.frame()
+pagr_cov <- pagr_dat %>%
+  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
+  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  data.frame()
+torp_cov <- torp_dat %>%
+  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
+  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  data.frame()
 
-# check that all lakes were surveyed the same number of times
-comb_dat %>%
-  group_by(CommonName) %>%
-  summarize(nYears = n_distinct(YearsSurveyed)) %>%
-  ungroup() %>%
-  filter(nYears > 1)
-# yes
-  
+# study design
+hydr_stud <- hydr_dat %>%
+  distinct(PermanentID, GSYear) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PermanentID = as.factor(PermanentID),
+         GSYear = as.factor(GSYear)) %>%
+  data.frame()
+flpl_stud <- flpl_dat %>%
+  distinct(PermanentID, GSYear) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PermanentID = as.factor(PermanentID),
+         GSYear = as.factor(GSYear)) %>%
+  data.frame()
+cubu_stud <- cubu_dat %>%
+  distinct(PermanentID, GSYear) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PermanentID = as.factor(PermanentID),
+         GSYear = as.factor(GSYear)) %>%
+  data.frame()
+pagr_stud <- pagr_dat %>%
+  distinct(PermanentID, GSYear) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PermanentID = as.factor(PermanentID),
+         GSYear = as.factor(GSYear)) %>%
+  data.frame()
+torp_stud <- torp_dat %>%
+  distinct(PermanentID, GSYear) %>%
+  arrange(PermanentID, GSYear) %>%
+  mutate(PermanentID = as.factor(PermanentID),
+         GSYear = as.factor(GSYear)) %>%
+  data.frame()
+
+# correlations
+cor.test(~ PercCovered_c + RecentTreatment, data = hydr_cov) # sig, 0.2
+cor.test(~ PercCovered_c + RecentTreatment, data = flpl_cov) # not sig
+cor.test(~ PercCovered_c + RecentTreatment, data = cubu_cov) # not sig
+cor.test(~ PercCovered_c + RecentTreatment, data = pagr_cov) # not sig
+cor.test(~ PercCovered_c + RecentTreatment, data = torp_cov) # not sig
+
+
+#### fit models ####
+
+# select random rows to speed up model fitting
+# for selecting parameters
+hydr_rows <- sample(nrow(hydr_mat), 50)
+
+# start with 2 latent variables
+hydr_mod1 <- gllvm(y = hydr_mat[hydr_rows, ], 
+                  X = hydr_cov[hydr_rows, ],
+                  formula = ~ PercCovered_c * RecentTreatment,
+                  family = binomial(),
+                  num.lv = 2,
+                  studyDesign = hydr_stud[hydr_rows, ],
+                  row_eff = ~(1|PermanentID) + (1|GSYear))
+
+plot(hydr_mod1) # look good
+
+# add another latent variable
+hydr_mod2 <- gllvm(y = hydr_mat[hydr_rows, ], 
+                   X = hydr_cov[hydr_rows, ],
+                   formula = ~ PercCovered_c * RecentTreatment,
+                   family = binomial(),
+                   num.lv = 3,
+                   studyDesign = hydr_stud[hydr_rows, ],
+                   row_eff = ~(1|PermanentID) + (1|GSYear))
+
+# which is better?
+AIC(hydr_mod1) # 3084.241
+AIC(hydr_mod2) # 3148.28
+
+# fit full model
+hydr_mod <- gllvm(y = hydr_mat, 
+                  X = hydr_cov,
+                  formula = ~ PercCovered_c * RecentTreatment,
+                  family = binomial(),
+                  num.lv = 2,
+                  studyDesign = hydr_stud,
+                  row_eff = ~(1|PermanentID) + (1|GSYear))
+# error about optim
+
+flpl_mod <- gllvm(y = flpl_mat,
+                  X = flpl_cov,
+                  formula = ~ PercCovered_c * RecentTreatment,
+                  family = binomial(),
+                  num.lv = 2,
+                  studyDesign = flpl_stud,
+                  row_eff = ~(1|PermanentID) + (1|GSYear),
+                  control.start = list(starting.val = "zero"))
+# didn't converge, reached max computation time
+
+cubu_mod <- gllvm(y = cubu_mat,
+                  family = "binomial") # converged, but slow
+
+# diagnostics
+plot(hydr_mod, var.colors = 1)
+plot(cubu_mod, var.colors = 1)
+
+
+
+
+
 
 #### initial visualizations ####
 
