@@ -285,7 +285,6 @@ inv_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichho
 #### management data ####
 
 # use "Species" and "unique" to get floating plants combined
-# unlike water quality, use match control to native plants by GSYear (rather than GSYear - 1)
 # becaue GSYear has already been calibrated to precede the plant survey
 ctrl2 <- ctrl %>%
   select(Species, PermanentID, GSYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%

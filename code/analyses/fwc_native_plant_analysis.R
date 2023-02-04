@@ -10,6 +10,8 @@ library(broom) # glance, tidy
 library(pals) # color palettes
 library(patchwork)
 library(gllvm)
+library(Hmsc)
+library(corrplot)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -23,6 +25,107 @@ dat_full <- read_csv("intermediate-data/FWC_common_native_plants_invasive_specie
 
 
 #### edit data ####
+
+# # summarize
+# dat2 <- dat %>%
+#   group_by(CommonName, PermanentID, TaxonName, Habitat) %>%
+#   summarize(AvgPAC = mean(PercCovered * 100),
+#             TreatFreq = mean(Treated),
+#             YearsDetected = sum(Detected),
+#             YearsSurveyed = n_distinct(GSYear),
+#             LogYearsSurveyed = log(YearsSurveyed)) %>%
+#   ungroup() %>%
+#   group_by(CommonName, TaxonName) %>%
+#   mutate(AvgPAC_c = AvgPAC - mean(AvgPAC),
+#          TreatFreq_c = TreatFreq - mean(TreatFreq),
+#          AvgPAC_s = AvgPAC_c / sd(AvgPAC),
+#          TreatFreq_s = TreatFreq_c / sd(TreatFreq)) %>%
+#   ungroup() %>%
+#   mutate(Habitat = tolower(Habitat))
+#
+# # split data by invasive species
+# hydr_dat <- filter(dat2, CommonName == "Hydrilla") %>%
+#   arrange(PermanentID, TaxonName)
+# flpl_dat <- filter(dat2, CommonName == "floating plants") %>%
+#   arrange(PermanentID, TaxonName)
+# cubu_dat <- filter(dat2, CommonName == "Cuban bulrush") %>%
+#   arrange(PermanentID, TaxonName)
+# pagr_dat <- filter(dat2, CommonName == "Para grass") %>%
+#   arrange(PermanentID, TaxonName)
+# torp_dat <- filter(dat2, CommonName == "Torpedograss") %>%
+#   arrange(PermanentID, TaxonName)
+# 
+# # site-by-species matrices
+# # remove taxa with no presences
+# hydr_mat <- hydr_dat %>%
+#   select(PermanentID, TaxonName, YearsDetected) %>%
+#   pivot_wider(names_from = TaxonName,
+#               values_from = YearsDetected) %>%
+#   select(-PermanentID) %>%
+#   select(where(~ sum(.) != 0)) %>% 
+#   as.matrix()
+# flpl_mat <- flpl_dat %>%
+#   select(PermanentID, TaxonName, YearsDetected) %>%
+#   pivot_wider(names_from = TaxonName,
+#               values_from = YearsDetected) %>%
+#   select(-PermanentID) %>%
+#   select(where(~ sum(.) != 0)) %>% 
+#   as.matrix()
+# cubu_mat <- cubu_dat %>%
+#   select(PermanentID, TaxonName, YearsDetected) %>%
+#   pivot_wider(names_from = TaxonName,
+#               values_from = YearsDetected) %>%
+#   select(-PermanentID) %>%
+#   select(where(~ sum(.) != 0)) %>% 
+#   as.matrix()
+# pagr_mat <- pagr_dat %>%
+#   select(PermanentID, TaxonName, YearsDetected) %>%
+#   pivot_wider(names_from = TaxonName,
+#               values_from = YearsDetected) %>%
+#   select(-PermanentID) %>%
+#   select(where(~ sum(.) != 0)) %>% 
+#   as.matrix()
+# torp_mat <- torp_dat %>%
+#   select(PermanentID, TaxonName, YearsDetected) %>%
+#   pivot_wider(names_from = TaxonName,
+#               values_from = YearsDetected) %>%
+#   select(-PermanentID) %>%
+#   select(where(~ sum(.) != 0)) %>% 
+#   as.matrix()
+# 
+# # covariates
+# hydr_cov <- hydr_dat %>%
+#   distinct(PermanentID, AvgPAC_s, TreatFreq_s, LogYearsSurveyed) %>%
+#   arrange(PermanentID) %>%
+#   select(-PermanentID) %>%
+#   data.frame()
+# flpl_cov <- flpl_dat %>%
+#   distinct(PermanentID, AvgPAC_s, TreatFreq_s, LogYearsSurveyed) %>%
+#   arrange(PermanentID) %>%
+#   select(-PermanentID) %>%
+#   data.frame()
+# cubu_cov <- cubu_dat %>%
+#   distinct(PermanentID, AvgPAC_s, TreatFreq_s, LogYearsSurveyed) %>%
+#   arrange(PermanentID) %>%
+#   select(-PermanentID) %>%
+#   data.frame()
+# pagr_cov <- pagr_dat %>%
+#   distinct(PermanentID, AvgPAC_s, TreatFreq_s, LogYearsSurveyed) %>%
+#   arrange(PermanentID) %>%
+#   select(-PermanentID) %>%
+#   data.frame()
+# torp_cov <- torp_dat %>%
+#   distinct(PermanentID, AvgPAC_s, TreatFreq_s, LogYearsSurveyed) %>%
+#   arrange(PermanentID) %>%
+#   select(-PermanentID) %>%
+#   data.frame()
+# 
+# # correlations
+# cor.test(~ AvgPAC_s + TreatFreq_s, data = hydr_cov) # sig, 0.3
+# cor.test(~ AvgPAC_s + TreatFreq_s, data = flpl_cov) # not sig
+# cor.test(~ AvgPAC_s + TreatFreq_s, data = cubu_cov) # sig, 0.2
+# cor.test(~ AvgPAC_s + TreatFreq_s, data = pagr_cov) # not sig
+# cor.test(~ AvgPAC_s + TreatFreq_s, data = torp_cov) # not sig
 
 # split data by invasive species
 hydr_dat <- filter(dat, CommonName == "Hydrilla") %>%
@@ -78,32 +181,27 @@ torp_mat <- torp_dat %>%
 hydr_cov <- hydr_dat %>%
   distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
   arrange(PermanentID, GSYear) %>%
-  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
-  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  select(-c(PermanentID, GSYear)) %>%
   data.frame()
 flpl_cov <- flpl_dat %>%
   distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
   arrange(PermanentID, GSYear) %>%
-  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
-  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  select(-c(PermanentID, GSYear)) %>%
   data.frame()
 cubu_cov <- cubu_dat %>%
   distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
   arrange(PermanentID, GSYear) %>%
-  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
-  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  select(-c(PermanentID, GSYear)) %>%
   data.frame()
 pagr_cov <- pagr_dat %>%
   distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
   arrange(PermanentID, GSYear) %>%
-  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
-  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  select(-c(PermanentID, GSYear)) %>%
   data.frame()
 torp_cov <- torp_dat %>%
   distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
   arrange(PermanentID, GSYear) %>%
-  mutate(PercCovered_c = PercCovered - mean(PercCovered)) %>%
-  select(-c(PermanentID, GSYear, PercCovered)) %>%
+  select(-c(PermanentID, GSYear)) %>%
   data.frame()
 
 # study design
@@ -138,74 +236,331 @@ torp_stud <- torp_dat %>%
          GSYear = as.factor(GSYear)) %>%
   data.frame()
 
-# correlations
-cor.test(~ PercCovered_c + RecentTreatment, data = hydr_cov) # sig, 0.2
-cor.test(~ PercCovered_c + RecentTreatment, data = flpl_cov) # not sig
-cor.test(~ PercCovered_c + RecentTreatment, data = cubu_cov) # not sig
-cor.test(~ PercCovered_c + RecentTreatment, data = pagr_cov) # not sig
-cor.test(~ PercCovered_c + RecentTreatment, data = torp_cov) # not sig
+# traits
+hydr_hab <- hydr_dat %>%
+  distinct(TaxonName, Habitat) %>%
+  arrange(TaxonName) %>%
+  data.frame()
+rownames(hydr_hab) <- hydr_hab$TaxonName
+hydr_trait <- select(hydr_hab, -TaxonName)
+flpl_hab <- flpl_dat %>%
+  distinct(TaxonName, Habitat) %>%
+  arrange(TaxonName) %>%
+  data.frame()
+rownames(flpl_hab) <- flpl_hab$TaxonName
+flpl_trait <- select(flpl_hab, -TaxonName)
+cubu_hab <- cubu_dat %>%
+  distinct(TaxonName, Habitat) %>%
+  arrange(TaxonName) %>%
+  data.frame()
+rownames(cubu_hab) <- cubu_hab$TaxonName
+cubu_trait <- select(cubu_hab, -TaxonName)
+pagr_hab <- pagr_dat %>%
+  distinct(TaxonName, Habitat) %>%
+  arrange(TaxonName) %>%
+  data.frame()
+rownames(pagr_hab) <- pagr_hab$TaxonName
+pagr_trait <- select(pagr_hab, -TaxonName)
+torp_hab <- torp_dat %>%
+  distinct(TaxonName, Habitat) %>%
+  arrange(TaxonName) %>%
+  data.frame()
+rownames(torp_hab) <- torp_hab$TaxonName
+torp_trait <- select(torp_hab, -TaxonName)
 
 
-#### fit models ####
+#### fit models with gllvm ####
 
-# select random rows to speed up model fitting
-# for selecting parameters
-hydr_rows <- sample(nrow(hydr_mat), 50)
+# # fit Poisson with 2 LVs
+# hydr_pois <- gllvm(y = hydr_mat, 
+#                    # X = hydr_cov,
+#                    # formula = ~ AvgPAC_c * TreatFreq,
+#                    family = poisson(),
+#                    num.lv = 2,
+#                    row_eff = "random",
+#                    offset = hydr_cov$LogYearsSurveyed)
+# plot(hydr_pois, var.colors = 1)
+# # got error with formula included: In nlminb(objr$par, objr$fn, objr$gr, control = list(rel.tol = reltol,  :
+# # NA/NaN function evaluation
+# # unusual shape in residuals plot, Normal Q-Q has high deviations at ends
+# 
+# hydr_nb <- gllvm(y = hydr_mat, 
+#                    family = "negative.binomial",
+#                    num.lv = 2,
+#                    row_eff = "random",
+#                    offset = hydr_cov$LogYearsSurveyed)
+# plot(hydr_nb, var.colors = 1)
+# # Normal Q-Q has high deviations at ends still
+# # try normal distribution with log-transformed values
+# 
+# hydr_zip <- gllvm(y = hydr_mat, 
+#                    family = "ZIP",
+#                    num.lv = 2,
+#                    row_eff = "random",
+#                    offset = hydr_cov$LogYearsSurveyed)
+# plot(hydr_zip, var.colors = 1)
+# # same normality issues as poisson
+# 
+# # compare AIC
+# AIC(hydr_pois)
+# AIC(hydr_nb) # lowest
+# AIC(hydr_zip)
+# 
+# # try more LVs
+# hydr_nb2 <- gllvm(y = hydr_mat, 
+#                  family = "negative.binomial",
+#                  num.lv = 3,
+#                  row_eff = "random",
+#                  offset = hydr_cov$LogYearsSurveyed)
+# par(mfrow = c(3, 2))
+# plot(hydr_nb, var.colors = 1)
+# par(mfrow = c(3, 2))
+# plot(hydr_nb2, var.colors = 1)
+# # better normal QQ
+# 
+# AIC(hydr_nb)
+# AIC(hydr_nb2) # lower
+# 
+# hydr_nb3 <- gllvm(y = hydr_mat, 
+#                   family = "negative.binomial",
+#                   num.lv = 4,
+#                   row_eff = "random",
+#                   offset = hydr_cov$LogYearsSurveyed)
+# par(mfrow = c(3, 2))
+# plot(hydr_nb2, var.colors = 1)
+# par(mfrow = c(3, 2))
+# plot(hydr_nb3, var.colors = 1)
+# # similar plots
+# 
+# AIC(hydr_nb2) # lower
+# AIC(hydr_nb3)
+# 
+# # add predictors
+# # tried with Avg_c/TreatFreq, Avg_s/Treat_s
+# # all had unusually small SE for at least one var
+# # and a ton of significant effects (doesn't seem realistic)
+# hydr_nb4 <- gllvm(y = hydr_mat, 
+#                   X = hydr_cov,
+#                   formula = ~ AvgPAC_c * TreatFreq_c,
+#                   family = "negative.binomial",
+#                   num.lv = 3,
+#                   row_eff = "random",
+#                   offset = hydr_cov$LogYearsSurveyed)
+# par(mfrow = c(3, 2))
+# plot(hydr_nb4)
+# summary(hydr_nb4)
+# par(mfrow = c(1, 1))
+# coefplot(hydr_nb4, which.Xcoef = "AvgPAC_s")
+# coefplot(hydr_nb4, which.Xcoef = "TreatFreq_s")
+# coefplot(hydr_nb4, which.Xcoef = "AvgPAC_s:TreatFreq_s")
 
-# start with 2 latent variables
-hydr_mod1 <- gllvm(y = hydr_mat[hydr_rows, ], 
-                  X = hydr_cov[hydr_rows, ],
-                  formula = ~ PercCovered_c * RecentTreatment,
-                  family = binomial(),
-                  num.lv = 2,
-                  studyDesign = hydr_stud[hydr_rows, ],
-                  row_eff = ~(1|PermanentID) + (1|GSYear))
 
-plot(hydr_mod1) # look good
+#### fit site-summarized models with Hmsc ####
+# 
+# # hydrilla data, lognormal poisson
+# hydr_lpois = Hmsc(Y = hydr_mat,
+#                   XData = hydr_cov, 
+#                   XFormula = ~LogYearsSurveyed + AvgPAC_s * TreatFreq_s, # no offset option, include years surveyed
+#                   XScale = F, # already scaled
+#                   distr = "lognormal poisson")
+# 
+# # MCMC settings
+# nChains = 2
+# thin = 5
+# samples = 100
+# transient = 50*thin
+# verbose = 50*thin
+# 
+# # fit model
+# hydr_lpois_fit = sampleMcmc(hydr_lpois,
+#                             thin = thin,
+#                             samples = samples,
+#                             transient = transient,
+#                             nChains = nChains,
+#                             nParallel = nChains,
+#                             verbose = verbose)
+# 
+# # posterior samples
+# hydr_lpois_post = convertToCodaObject(hydr_lpois_fit)
+# 
+# # effective sample sizes
+# # total samples = samples * chains
+# # and Gelman diagnostics (potential scale reduction factors)
+# # one indicates better convergence among chains
+# hist(effectiveSize(hydr_lpois_post$Beta), main="ess(beta)")
+# hist(gelman.diag(hydr_lpois_post$Beta, multivariate=FALSE)$psrf, main="psrf(beta)")
+# 
+# # explanatory power, compares posterior distribution to observed values
+# hydr_lpois_preds = computePredictedValues(hydr_lpois_fit)
+# hydr_lpois_eval = evaluateModelFit(hM = hydr_lpois_fit, predY = hydr_lpois_preds)
+# hist(hydr_lpois_eval$RMSE,
+#      main = paste0("Mean = ", round(mean(hydr_lpois_eval$RMSE),2)),
+#      xlab = "root-mean-square error")
+# hist(hydr_lpois_eval$SR2,
+#      main = paste0("Mean = ", round(mean(hydr_lpois_eval$SR2),2)),
+#      xlab = "pseudo R2")
+# hist(hydr_lpois_eval$O.AUC,
+#      main = paste0("Mean = ", round(mean(hydr_lpois_eval$O.AUC, na.rm = T),2)),
+#      xlab = "prese/abs area under curve")
+# 
+# # design matrix
+# head(hydr_lpois_fit$X)
+# 
+# # variance partitioning
+# hydr_lpois_vp = computeVariancePartitioning(hydr_lpois_fit)
+# plotVariancePartitioning(hydr_lpois_fit, VP = hydr_lpois_vp) # manually construct plot, legend blocks image
+# 
+# # estimates - back-transform these to original scale?
+# hydr_lpois_post_beta = getPostEstimate(hydr_lpois_fit, parName="Beta")
+# hist(hydr_lpois_post_beta$mean[3,],
+#      main = paste0("Mean = ", round(mean(hydr_lpois_post_beta$mean[3,]),2)),
+#      xlab = "PAC")
+# hist(hydr_lpois_post_beta$mean[4,],
+#      main = paste0("Mean = ", round(mean(hydr_lpois_post_beta$mean[4,]),2)),
+#      xlab = "Treatment")
+# hist(hydr_lpois_post_beta$mean[5,],
+#      main = paste0("Mean = ", round(mean(hydr_lpois_post_beta$mean[5,]),2)),
+#      xlab = "Interaction")
+# plotBeta(hydr_lpois_fit, post = hydr_lpois_post_beta, param = "Support", supportLevel = 0.95)
+# plotBeta(hydr_lpois_fit, post = hydr_lpois_post_beta, param = "Mean", supportLevel = 0.95)
+# 
+# # residual associations among species - need random effects?
+# hydr_lpois_omega_cor = computeAssociations(hydr_lpois_fit)
+# support_level = 0.95
+# hydr_lpois_omega_cor2 = ((hydr_lpois_omega_cor[[1]]$support > support_level) +
+#                 (hydr_lpois_omega_cor[[1]]$support < (1-support_level)) > 0) *
+#   hydr_lpois_omega_cor[[1]]$mean
+# corrplot(hydr_lpois_omega_cor2, method = "color",
+#          col = colorRampPalette(c("blue","white","red"))(200),
+#          tl.cex = 0.6, tl.col = "black",
+#          title = paste("random effect level:", m_fit$rLNames[1]), # not sure what this does
+#          mar = c(0,0,1,0))
+# # correlated responses to missing covariates or
+# # species interactions
+# 
+# # species richness change over time
+# hydr_lpois_pac_gradient = constructGradient(hydr_lpois_fit, focalVariable = "AvgPAC_s")
+# hydr_lpois_pac_pred_grad = predict(hydr_lpois_fit, 
+#                                    XData = hydr_lpois_pac_gradient$XDataNew,
+#                     studyDesign = hydr_lpois_pac_gradient$studyDesignNew,
+#                     ranLevels = hydr_lpois_pac_gradient$rLNew)
+# plotGradient(hydr_lpois_fit, hydr_lpois_pac_gradient, pred = hydr_lpois_pac_pred_grad, measure = "S",
+#              showData = TRUE, jigger = 0.2)
+# 
+# # estimates and 95% CI
+# summary(hydr_lpois_post$Beta)
+#
+# something seems off about not having omega values
+# could include growth form as a trait
+# is there a way to include years surveyed as an offset?
+# prediction gradient seems off, should all points be on one line
+# very high error at end
 
-# add another latent variable
-hydr_mod2 <- gllvm(y = hydr_mat[hydr_rows, ], 
-                   X = hydr_cov[hydr_rows, ],
-                   formula = ~ PercCovered_c * RecentTreatment,
-                   family = binomial(),
-                   num.lv = 3,
-                   studyDesign = hydr_stud[hydr_rows, ],
-                   row_eff = ~(1|PermanentID) + (1|GSYear))
+#### fit site-by-year models with Hmsc ####
 
-# which is better?
-AIC(hydr_mod1) # 3084.241
-AIC(hydr_mod2) # 3148.28
+# model structure
+hydr_mod = Hmsc(Y = hydr_mat,
+                XData = hydr_cov, 
+                XFormula = ~PercCovered * RecentTreatment,
+                TrData = hydr_trait,
+                TrFormula = ~Habitat,
+                distr = "probit",
+                studyDesign = hydr_stud,
+                ranLevels = list(GSYear = HmscRandomLevel(units = hydr_stud$GSYear), 
+                                 PermanentID = HmscRandomLevel(units = hydr_stud$PermanentID)))
 
-# fit full model
-hydr_mod <- gllvm(y = hydr_mat, 
-                  X = hydr_cov,
-                  formula = ~ PercCovered_c * RecentTreatment,
-                  family = binomial(),
-                  num.lv = 2,
-                  studyDesign = hydr_stud,
-                  row_eff = ~(1|PermanentID) + (1|GSYear))
-# error about optim
+# MCMC settings
+nChains = 2
+thin = 10
+samples = 100
+transient = 10*thin
+verbose = 10*thin
 
-flpl_mod <- gllvm(y = flpl_mat,
-                  X = flpl_cov,
-                  formula = ~ PercCovered_c * RecentTreatment,
-                  family = binomial(),
-                  num.lv = 2,
-                  studyDesign = flpl_stud,
-                  row_eff = ~(1|PermanentID) + (1|GSYear),
-                  control.start = list(starting.val = "zero"))
-# didn't converge, reached max computation time
+# fit model
+hydr_fit = sampleMcmc(hydr_mod,
+                      thin = thin,
+                      samples = samples,
+                      transient = transient,
+                      nChains = nChains,
+                      nParallel = nChains,
+                      verbose = verbose)
 
-cubu_mod <- gllvm(y = cubu_mat,
-                  family = "binomial") # converged, but slow
+# posterior samples
+hydr_post = convertToCodaObject(hydr_fit)
 
-# diagnostics
-plot(hydr_mod, var.colors = 1)
-plot(cubu_mod, var.colors = 1)
+# effective sample sizes
+# total samples = samples * chains
+# and Gelman diagnostics (potential scale reduction factors)
+# one indicates better convergence among chains
+hist(effectiveSize(hydr_post$Beta), main="ess(beta)")
+hist(gelman.diag(hydr_post$Beta, multivariate=FALSE)$psrf, main="psrf(beta)")
+hist(effectiveSize(hydr_post$Omega[[1]]), main="ess(omega)")
+hist(gelman.diag(hydr_post$Omega[[1]], multivariate=FALSE)$psrf, main="psrf(omega)") # slow
 
+# explanatory power, compares posterior distribution to observed values
+hydr_preds = computePredictedValues(hydr_fit)
+hydr_eval = evaluateModelFit(hM = hydr_fit, predY = hydr_preds)
+hist(hydr_eval$RMSE,
+     main = paste0("Mean = ", round(mean(hydr_eval$RMSE),2)),
+     xlab = "root-mean-square error")
+hist(hydr_eval$TjurR2,
+     main = paste0("Mean = ", round(mean(hydr_eval$TjurR2),2)),
+     xlab = "R2")
+hist(hydr_eval$AUC,
+     main = paste0("Mean = ", round(mean(hydr_eval$AUC),2)),
+     xlab = "prese/abs area under curve")
 
+# design matrix
+head(hydr_fit$X)
 
+# variance partitioning
+hydr_vp = computeVariancePartitioning(hydr_fit)
+plotVariancePartitioning(hydr_fit, VP = hydr_vp)
 
+# estimates - back-transform these to original scale?
+post_beta = getPostEstimate(hydr_fit, parName="Beta")
+hist(post_beta$mean[2,],
+     main = paste0("Mean = ", round(mean(post_beta$mean[2,]),2)),
+     xlab = "PAC")
+hist(post_beta$mean[3,],
+     main = paste0("Mean = ", round(mean(post_beta$mean[3,]),2)),
+     xlab = "Treatment")
+hist(post_beta$mean[4,],
+     main = paste0("Mean = ", round(mean(post_beta$mean[4,]),2)),
+     xlab = "Interaction")
+plotBeta(hydr_fit, post = post_beta, param = "Support", supportLevel = 0.95)
+plotBeta(hydr_fit, post = post_beta, param = "Mean", supportLevel = 0.95) # magnitudes are very different, show estimates separately
+
+# residual associations among species
+hydr_omega_cor = computeAssociations(hydr_fit)
+support_level = 0.95
+hydr_omega_cor2 = ((hydr_omega_cor[[1]]$support > support_level) +
+                     (hydr_omega_cor[[1]]$support < (1-support_level)) > 0) *
+  hydr_omega_cor[[1]]$mean
+corrplot(hydr_omega_cor2, method = "color",
+         col = colorRampPalette(c("blue","white","red"))(200),
+         tl.cex = 0.6, tl.col = "black",
+         title = paste("random effect level:", hydr_fit$rLNames[1]), # not sure what this does
+         mar = c(0,0,1,0))
+# correlated responses to missing covariates or
+# species interactions
+
+# species richness change over PAC (can do treatment too)
+hydr_pac_gradient = constructGradient(hydr_fit, focalVariable = "PercCovered")
+hydr_pac_pred = predict(hydr_fit, XData = hydr_pac_gradient$XDataNew,
+                        studyDesign = hydr_pac_gradient$studyDesignNew,
+                        ranLevels = hydr_pac_gradient$rLNew)
+plotGradient(hydr_fit, hydr_pac_gradient, pred = hydr_pac_pred, measure = "S",
+             showData = TRUE, jigger = 0.2)
+
+# trait association
+hydr_postGamma = getPostEstimate(hydr_fit, parName = "Gamma")
+plotGamma(hydr_fit, post = hydr_postGamma, 
+          param = "Support", 
+          supportLevel = 0.95)
+
+# estimates and 95% CI
+summary(hydr_post$Beta)
 
 
 #### initial visualizations ####
