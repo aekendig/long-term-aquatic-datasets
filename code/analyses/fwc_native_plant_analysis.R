@@ -9,6 +9,7 @@ library(pals) # color palettes
 library(patchwork)
 library(Hmsc)
 library(corrplot)
+library(tidybayes)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -267,6 +268,15 @@ torp_fit = sampleMcmc(torp_mod,
 save(torp_fit, file = "output/fwc_native_plant_torpedograss_hmsc.rda")
 
 
+#### reload models ####
+
+load("output/fwc_native_plant_hydrilla_hmsc.rda")
+load("output/fwc_native_plant_floating_plants_hmsc.rda")
+load("output/fwc_native_plant_Cuban_bulrush_hmsc.rda")
+load("output/fwc_native_plant_paragrass_hmsc.rda")
+load("output/fwc_native_plant_torpedograss_hmsc.rda")
+
+
 #### evaluate fit ####
 
 # posterior samples
@@ -325,15 +335,6 @@ torp_eval = evaluateModelFit(hM = torp_fit, predY = torp_preds)
 hist(torp_eval$RMSE)
 hist(torp_eval$TjurR2)
 hist(torp_eval$AUC)
-
-
-#### reload models ####
-
-load("output/fwc_native_plant_hydrilla_hmsc.rda")
-load("output/fwc_native_plant_floating_plants_hmsc.rda")
-load("output/fwc_native_plant_Cuban_bulrush_hmsc.rda")
-load("output/fwc_native_plant_paragrass_hmsc.rda")
-load("output/fwc_native_plant_torpedograss_hmsc.rda")
 
 
 #### coefficient figures ####
@@ -457,6 +458,42 @@ foc_coef_fig <- foc_coef_sum %>%
         axis.text.y = element_text(size = 6.5, face = "italic"),
         axis.title.y = element_blank())
 
+hydr_coef_fig <- foc_coef_sum %>%
+  filter(covariate != "intercept" & invader == "hydrilla") %>%
+  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
+  geom_vline(xintercept = 0) +
+  geom_errorbarh(aes(xmin = quant_2_5,
+                     xmax = quant_97_5),
+                 height = 0) +
+  geom_point() +
+  facet_grid(~ covariate, scales = "free") +
+  scale_color_manual(values = brewer.set2(n = 3)) +
+  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
+  labs(x = "Hydrilla model estimate ± 95% CI") +
+  def_theme_paper +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        axis.text.y = element_text(size = 6.5, face = "italic"),
+        axis.title.y = element_blank())
+
+flpl_coef_fig <- foc_coef_sum %>%
+  filter(covariate != "intercept" & invader == "floating plants") %>%
+  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
+  geom_vline(xintercept = 0) +
+  geom_errorbarh(aes(xmin = quant_2_5,
+                     xmax = quant_97_5),
+                 height = 0) +
+  geom_point() +
+  facet_grid(~ covariate, scales = "free") +
+  scale_color_manual(values = brewer.set2(n = 3)) +
+  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
+  labs(x = "Floating plant model estimate ± 95% CI") +
+  def_theme_paper +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        axis.text.y = element_text(size = 6.5, face = "italic"),
+        axis.title.y = element_blank())
+
 cubu_coef_fig <- non_foc_coef_sum %>%
   filter(covariate != "intercept" & invader == "Cuban bulrush") %>%
   ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
@@ -468,7 +505,7 @@ cubu_coef_fig <- non_foc_coef_sum %>%
   facet_grid(~ cov2, scales = "free") +
   scale_color_manual(values = brewer.set2(n = 3)) +
   scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Model estimate ± 95% CI") +
+  labs(x = "Cuban bulrush model estimate ± 95% CI") +
   def_theme_paper +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
@@ -486,7 +523,7 @@ pagr_coef_fig <- non_foc_coef_sum %>%
   facet_grid(~ cov2, scales = "free") +
   scale_color_manual(values = brewer.set2(n = 3)) +
   scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Model estimate ± 95% CI") +
+  labs(x = "Paragrass model estimate ± 95% CI") +
   def_theme_paper +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
@@ -504,7 +541,7 @@ torp_coef_fig <- non_foc_coef_sum %>%
   facet_grid(~ cov2, scales = "free") +
   scale_color_manual(values = brewer.set2(n = 3)) +
   scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Model estimate ± 95% CI") +
+  labs(x = "Torpedograss model estimate ± 95% CI") +
   def_theme_paper +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
@@ -513,6 +550,10 @@ torp_coef_fig <- non_foc_coef_sum %>%
 
 ggsave("output/fwc_native_plant_coefficients_focal_invaders.png", foc_coef_fig,
        device = "png", width = 6.5, height = 10, units = "in")
+ggsave("output/fwc_native_plant_coefficients_hydrilla.png", hydr_coef_fig,
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_coefficients_floating_plants.png", flpl_coef_fig,
+       device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_coefficients_cuban_bulrush.png", cubu_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_coefficients_paragrass.png", pagr_coef_fig,
@@ -520,57 +561,151 @@ ggsave("output/fwc_native_plant_coefficients_paragrass.png", pagr_coef_fig,
 ggsave("output/fwc_native_plant_coefficients_torpedograss.png", torp_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
 
+write_csv(foc_coef_sum, "output/fwc_native_plant_coefficients_focal_invaders.csv")
+write_csv(non_foc_coef_sum, "output/fwc_native_plant_coefficients_non_focal_invaders.csv")
+
 
 #### species richness figures ####
 
-# species richness change over PAC (can do treatment too)
-hydr_pac_gradient = constructGradient(hydr_fit, focalVariable = "PercCovered")
-hydr_pac_pred = predict(hydr_fit, XData = hydr_pac_gradient$XDataNew,
-                        studyDesign = hydr_pac_gradient$studyDesignNew,
-                        ranLevels = hydr_pac_gradient$rLNew)
-plotGradient(hydr_fit, hydr_pac_gradient, pred = hydr_pac_pred, measure = "S",
-             showData = TRUE, jigger = 0.2)
+# code from: https://github.com/hmsc-r/HMSC/issues/48
 
+# Percentiles used in calculation
+p <- c(.025,.5,.975)
+p_names <- paste0(p*100)
+p_funs <- map(p, ~partial(quantile, probs = .x, na.rm = TRUE)) %>%
+  set_names(nm = p_names)
 
+# ggplot of gradient
+plot_grad_fun <- function(mod, raw_dat, plot_title){
+  
+  # variables
+  v_expV <- mod$covNames %>% .[-1] # remove intercept
+  df_CIs <-NULL
+  df_raw <-NULL
+  schange <- NULL
+  npoints <- 20
+  
+  # loop over all exp vars
+  for (i in 1:2){
+    
+    # gradients
+    grad <- constructGradient(mod, focalVariable = v_expV[i],
+                              ngrid = npoints,
+                              non.focalVariables = 2) # (2 = net effect)
+    
+    # use gradient to make predictions
+    pred <- predict(mod, Gradient = grad, expected = T) # (probit: expected = T)
+    
+    # dataframe with 1500 pred * npoints units of exp vars
+    predGrad <- pred %>%
+      lapply(rowSums) %>% # richness of all pred values (see line 53 in plotGradient function for CWM)
+      rlist::list.rbind() %>% as_tibble() # merge list elements to rows
+    
+    # dataframe with quantiles as cols
+    CIs <- predGrad %>%
+      pivot_longer(everything(), names_to = "grad", values_to = "pred") %>%
+      mutate(across(everything(), type.convert, as.is = T)) %>%
+      group_by(grad) %>%
+      # mean_hdi() %>% # tried this too, similar results
+      summarise(across(everything(), p_funs)) %>%
+      select(-1) %>%
+      rename_with(~c("Qua_low","Qua_mid","Qua_high"))
+    
+    # change in richness
+    schange <- predGrad %>%
+      rename(unit0 = "1",
+             unit1 = as.character(npoints)) %>%
+      mutate(change = unit1 - unit0) %>%
+      median_qi(change) %>%
+      add_column(covNames = v_expV[i], .before = 1) %>%
+      bind_rows(schange)
+    
+    # dataframe with all exp vars
+    df_CIs <- CIs %>% 
+      add_column(gradient = grad$XDataNew[, v_expV[i]], .before = 1) %>%
+      add_column(covNames = v_expV[i], .before = 1) %>%
+      bind_rows(df_CIs)
+    
+    # summarize raw data
+    rich_dat <- raw_dat %>%
+      group_by(across(all_of(c("PermanentID", "GSYear", v_expV[i])))) %>%
+      summarize(Qua_mid = sum(Detected)) %>%
+      ungroup() %>%
+      rename(gradient = !!v_expV[i])
+    
+    # combine raw data 
+    df_raw <- rich_dat %>%
+      add_column(covNames = v_expV[i], .before = 1) %>%
+      bind_rows(df_raw)
+    
+  }
+  
+  # change variable names
+  df_CIs2 <- df_CIs %>%
+    mutate(covNames = fct_recode(covNames,
+                                 "invasive plant PAC" = "PercCovered",
+                                 "management" = "RecentTreatment"))
+  
+  df_raw2 <- df_raw %>%
+    mutate(covNames = fct_recode(covNames,
+                                 "invasive plant PAC" = "PercCovered",
+                                 "management" = "RecentTreatment"))
+  
+  fig_out <- ggplot(df_raw2, aes(x = gradient, y = Qua_mid)) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    geom_ribbon(data = df_CIs2,
+                aes(ymin = Qua_low, ymax = Qua_high), alpha = 0.5) +
+    geom_line(data = df_CIs2) +
+    facet_wrap(~ covNames, scales = "free_x",
+               strip.position = "bottom") +
+    labs(y = "Native richness",
+         title = plot_title) +
+    def_theme_paper +
+    theme(axis.title.x = element_blank(),
+          strip.placement = "outside")
+  
+  # return
+  return(list(fig_out, schange))
+  
+}
 
-# older Hmsc code
+# run function
+hydr_rich_out <- plot_grad_fun(hydr_fit, hydr_dat, "(A) hydrilla")
+flpl_rich_out <- plot_grad_fun(flpl_fit, flpl_dat, "(B) floating plants")
+cubu_rich_out <- plot_grad_fun(cubu_fit, cubu_dat, "(A) Cuban bulrush")
+pagr_rich_out <- plot_grad_fun(pagr_fit, pagr_dat, "(B) paragrass")
+torp_rich_out <- plot_grad_fun(torp_fit, torp_dat, "(C) torpedograss")
 
-# estimates - back-transform these to original scale?
-post_beta = getPostEstimate(hydr_fit, parName="Beta")
-hist(post_beta$mean[2,],
-     main = paste0("Mean = ", round(mean(post_beta$mean[2,]),2)),
-     xlab = "PAC")
-hist(post_beta$mean[3,],
-     main = paste0("Mean = ", round(mean(post_beta$mean[3,]),2)),
-     xlab = "Treatment")
-hist(post_beta$mean[4,],
-     main = paste0("Mean = ", round(mean(post_beta$mean[4,]),2)),
-     xlab = "Interaction")
-plotBeta(hydr_fit, post = post_beta, param = "Support", supportLevel = 0.95)
-plotBeta(hydr_fit, post = post_beta, param = "Mean", supportLevel = 0.95) # magnitudes are very different, show estimates separately
+# focal figure
+hydr_rich_fig <- hydr_rich_out[[1]]
+flpl_rich_fig <- flpl_rich_out[[1]]
+foc_rich_fig <- hydr_rich_fig / flpl_rich_fig
 
-# residual associations among species
-hydr_omega_cor = computeAssociations(hydr_fit)
-support_level = 0.95
-hydr_omega_cor2 = ((hydr_omega_cor[[1]]$support > support_level) +
-                     (hydr_omega_cor[[1]]$support < (1-support_level)) > 0) *
-  hydr_omega_cor[[1]]$mean
-corrplot(hydr_omega_cor2, method = "color",
-         col = colorRampPalette(c("blue","white","red"))(200),
-         tl.cex = 0.6, tl.col = "black",
-         title = paste("random effect level:", hydr_fit$rLNames[1]), # not sure what this does
-         mar = c(0,0,1,0))
-# correlated responses to missing covariates or
-# species interactions
+ggsave("output/fwc_native_plant_richness_focal_invaders.png", foc_rich_fig,
+       device = "png", width = 5, height = 5, units = "in")
 
+# non-focal figure
+cubu_rich_fig <- cubu_rich_out[[1]]
+pagr_rich_fig <- pagr_rich_out[[1]]
+torp_rich_fig <- torp_rich_out[[1]]
+non_foc_rich_fig <- cubu_rich_fig / pagr_rich_fig / torp_rich_fig
 
+ggsave("output/fwc_native_plant_richness_non_focal_invaders.png", non_foc_rich_fig,
+       device = "png", width = 5, height = 7.5, units = "in")
 
-# trait association
-hydr_postGamma = getPostEstimate(hydr_fit, parName = "Gamma")
-plotGamma(hydr_fit, post = hydr_postGamma, 
-          param = "Support", 
-          supportLevel = 0.95)
+# focal table of richness effects
+foc_rich_tab <- hydr_rich_out[[2]] %>%
+  mutate(Invasive = "hydrilla") %>%
+  full_join(flpl_rich_out[[2]] %>%
+              mutate(Invasive = "floating plants"))
 
-# estimates and 95% CI
+write_csv(foc_rich_tab, "output/fwc_native_plant_richness_focal_invaders.csv")
 
+non_foc_rich_tab <- cubu_rich_out[[2]] %>%
+  mutate(Invasive = "Cuban bulrush") %>%
+  full_join(pagr_rich_out[[2]] %>%
+              mutate(Invasive = "paragrass")) %>%
+  full_join(torp_rich_out[[2]] %>%
+              mutate(Invasive = "torpedograss"))
 
+write_csv(non_foc_rich_tab, "output/fwc_native_plant_richness_non_focal_invaders.csv")
