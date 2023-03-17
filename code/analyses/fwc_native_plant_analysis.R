@@ -405,13 +405,18 @@ foc_coef_sum <- full_join(hydr_sum, flpl_sum) %>%
               rename(species = TaxonName)) %>%
   mutate(covariate = fct_relevel(covariate,
                                  "intercept", "invasive plant PAC", "management"),
+         cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
+                          covariate == "management" ~ paste(invader, "management"),
+                          TRUE ~ as.character(covariate)) %>%
+           fct_relevel("intercept", "hydrilla PAC", "floating plants PAC"),
          invader = fct_relevel(invader, "hydrilla"),
          habitat_num = as.numeric(as.factor(Habitat)),
          sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
          species = fct_reorder(species, sp_num, .desc = T),
-         sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "sig",
-                         quant_2_5 < 0 & quant_97_5 < 0 ~ "sig",
-                         TRUE ~ "not sig"))
+         sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "yes",
+                         quant_2_5 < 0 & quant_97_5 < 0 ~ "yes",
+                         TRUE ~ "no"),
+         Habitat = tolower(Habitat))
 
 non_foc_coef_sum <- full_join(cubu_sum, pagr_sum) %>%
   full_join(torp_sum) %>%
@@ -428,36 +433,24 @@ non_foc_coef_sum <- full_join(cubu_sum, pagr_sum) %>%
               rename(species = TaxonName)) %>%
   mutate(covariate = fct_relevel(covariate,
                                  "intercept", "invasive plant PAC", "management"),
-         cov2 = if_else(covariate == "invasive plant PAC",
-                        paste(invader, "PAC"),
-                        as.character(covariate)) %>%
-           fct_relevel("intercept", "Cuban bulrush PAC", "paragrass PAC",
-                       "torpedograss PAC", "management"),
+         cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
+                          covariate == "management" ~ paste(invader, "management"),
+                        TRUE ~ as.character(covariate)) %>%
+           fct_relevel("intercept", "Cuban bulrush PAC", 
+                       "paragrass PAC",
+                       "torpedograss PAC", 
+                       "Cuban bulrush management", 
+                       "paragrass management",
+                       "torpedograss management"),
          habitat_num = as.numeric(as.factor(Habitat)),
          sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
          species = fct_reorder(species, sp_num, .desc = T),
-         sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "sig",
-                         quant_2_5 < 0 & quant_97_5 < 0 ~ "sig",
-                         TRUE ~ "not sig"))
+         sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "yes",
+                         quant_2_5 < 0 & quant_97_5 < 0 ~ "yes",
+                         TRUE ~ "no"),
+         Habitat = tolower(Habitat))
 
 # coefficient plots
-foc_coef_fig <- foc_coef_sum %>%
-  filter(covariate != "intercept") %>%
-  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
-  geom_vline(xintercept = 0) +
-  geom_errorbarh(aes(xmin = quant_2_5,
-                     xmax = quant_97_5),
-                 height = 0) +
-  geom_point() +
-  facet_grid(invader ~ covariate, scales = "free") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Model estimate ± 95% CI") +
-  def_theme_paper +
-  theme(legend.position = c(0.8, 0.95),
-        axis.text.y = element_text(size = 6.5, face = "italic"),
-        axis.title.y = element_blank())
-
 hydr_coef_fig <- foc_coef_sum %>%
   filter(covariate != "intercept" & invader == "hydrilla") %>%
   ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
@@ -466,90 +459,35 @@ hydr_coef_fig <- foc_coef_sum %>%
                      xmax = quant_97_5),
                  height = 0) +
   geom_point() +
-  facet_grid(~ covariate, scales = "free") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Hydrilla model estimate ± 95% CI") +
-  def_theme_paper +
-  theme(legend.position = "bottom",
-        legend.direction = "horizontal",
-        axis.text.y = element_text(size = 6.5, face = "italic"),
-        axis.title.y = element_blank())
-
-flpl_coef_fig <- foc_coef_sum %>%
-  filter(covariate != "intercept" & invader == "floating plants") %>%
-  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
-  geom_vline(xintercept = 0) +
-  geom_errorbarh(aes(xmin = quant_2_5,
-                     xmax = quant_97_5),
-                 height = 0) +
-  geom_point() +
-  facet_grid(~ covariate, scales = "free") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Floating plant model estimate ± 95% CI") +
-  def_theme_paper +
-  theme(legend.position = "bottom",
-        legend.direction = "horizontal",
-        axis.text.y = element_text(size = 6.5, face = "italic"),
-        axis.title.y = element_blank())
-
-cubu_coef_fig <- non_foc_coef_sum %>%
-  filter(covariate != "intercept" & invader == "Cuban bulrush") %>%
-  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
-  geom_vline(xintercept = 0) +
-  geom_errorbarh(aes(xmin = quant_2_5,
-                     xmax = quant_97_5),
-                 height = 0) +
-  geom_point() +
   facet_grid(~ cov2, scales = "free") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Cuban bulrush model estimate ± 95% CI") +
+  scale_color_manual(values = brewer.set2(n = 3), name = "Growth form") +
+  scale_alpha_manual(values = c(0.2, 1), name = "CI omits zero") +
+  labs(x = "Change in detection z-score ± 95% CI") +
   def_theme_paper +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
+        legend.box = "vertical",
+        legend.spacing.y = unit(-0.4, "cm"),
         axis.text.y = element_text(size = 6.5, face = "italic"),
         axis.title.y = element_blank())
 
-pagr_coef_fig <- non_foc_coef_sum %>%
-  filter(covariate != "intercept" & invader == "paragrass") %>%
-  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
-  geom_vline(xintercept = 0) +
-  geom_errorbarh(aes(xmin = quant_2_5,
-                     xmax = quant_97_5),
-                 height = 0) +
-  geom_point() +
-  facet_grid(~ cov2, scales = "free") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Paragrass model estimate ± 95% CI") +
-  def_theme_paper +
-  theme(legend.position = "bottom",
-        legend.direction = "horizontal",
-        axis.text.y = element_text(size = 6.5, face = "italic"),
-        axis.title.y = element_blank())
+flpl_coef_fig <- hydr_coef_fig %+%
+  filter(foc_coef_sum,
+         covariate != "intercept" & invader == "floating plants")
 
-torp_coef_fig <- non_foc_coef_sum %>%
-  filter(covariate != "intercept" & invader == "torpedograss") %>%
-  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
-  geom_vline(xintercept = 0) +
-  geom_errorbarh(aes(xmin = quant_2_5,
-                     xmax = quant_97_5),
-                 height = 0) +
-  geom_point() +
-  facet_grid(~ cov2, scales = "free") +
-  scale_color_manual(values = brewer.set2(n = 3)) +
-  scale_alpha_manual(values = c(0.2, 1), guide = "none") +
-  labs(x = "Torpedograss model estimate ± 95% CI") +
-  def_theme_paper +
-  theme(legend.position = "bottom",
-        legend.direction = "horizontal",
-        axis.text.y = element_text(size = 6.5, face = "italic"),
-        axis.title.y = element_blank())
+cubu_coef_fig <- hydr_coef_fig %+%
+  filter(non_foc_coef_sum,
+         covariate != "intercept" & invader == "Cuban bulrush") +
+  theme(strip.text = element_text(size = 8))
 
-ggsave("output/fwc_native_plant_coefficients_focal_invaders.png", foc_coef_fig,
-       device = "png", width = 6.5, height = 10, units = "in")
+pagr_coef_fig <- hydr_coef_fig %+%
+  filter(non_foc_coef_sum,
+         covariate != "intercept" & invader == "paragrass")
+
+torp_coef_fig <- hydr_coef_fig %+%
+  filter(non_foc_coef_sum,
+         covariate != "intercept" & invader == "torpedograss")
+
 ggsave("output/fwc_native_plant_coefficients_hydrilla.png", hydr_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_coefficients_floating_plants.png", flpl_coef_fig,
@@ -563,6 +501,119 @@ ggsave("output/fwc_native_plant_coefficients_torpedograss.png", torp_coef_fig,
 
 write_csv(foc_coef_sum, "output/fwc_native_plant_coefficients_focal_invaders.csv")
 write_csv(non_foc_coef_sum, "output/fwc_native_plant_coefficients_non_focal_invaders.csv")
+
+
+#### probability figures ####
+
+# function to calculate probability changes and make figure
+plot_prob_fun <- function(mod, inv_tax){
+  
+  # variables
+  v_expV <- mod$covNames %>% .[-1] # remove intercept
+  pred_sum <-NULL
+  
+  # loop over all exp vars
+  for (i in 1:2){
+    
+    # gradients
+    if(v_expV[i] == "PercCovered") {
+      
+      grad <- constructGradient(mod, focalVariable = "PercCovered",
+                                ngrid = 100,
+                                non.focalVariables = list("RecentTreatment" = list(3, 0)))
+      
+      var_name <- paste(inv_tax, "PAC")
+      
+    } else {
+      
+      grad <- constructGradient(mod, focalVariable = "RecentTreatment",
+                                ngrid = 2,
+                                non.focalVariables = list("PercCovered" = list(3, 0)))
+      
+      var_name <- paste(inv_tax, "management")
+      
+    }
+    
+    
+    # use gradient to make predictions
+    pred <- predict(mod, Gradient = grad, expected = T) # (probit: expected = T)
+    
+    # summarize predictions
+    pred_sum <- pred %>%
+      lapply(function(x) as_tibble(x) %>% # make long by species
+               mutate(grad = row_number()) %>% 
+               relocate(grad) %>% 
+               pivot_longer(cols = -grad, names_to = "species", values_to = "prob") %>%
+               filter(grad %in% c(1, 2))) %>%
+      bind_rows(.id = "iteration") %>%
+      mutate(grad = if_else(grad == 1, "baseline", "increase")) %>%
+      pivot_wider(names_from = grad, values_from = prob) %>%
+      mutate(diff = 100 * (increase - baseline)/baseline) %>%
+      group_by(species) %>%
+      mean_hdci(diff) %>%
+      mutate(covariate = var_name) %>%
+      bind_rows(pred_sum)
+    
+  }
+  
+  # add habitat info and format data
+  fig_dat <- pred_sum %>%
+    left_join(dat %>%
+                distinct(TaxonName, Habitat) %>%
+                rename(species = TaxonName)) %>%
+    mutate(covariate = fct_relevel(covariate,
+                                   paste(inv_tax, "PAC"),
+                                   paste(inv_tax, "management")),
+           habitat_num = as.numeric(as.factor(Habitat)),
+           sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
+           species = fct_reorder(species, sp_num, .desc = T),
+           sig = case_when(.lower > 0 & .upper > 0 ~ "yes",
+                           .lower < 0 & .upper < 0 ~ "yes",
+                           TRUE ~ "no"),
+           Habitat = tolower(Habitat))
+  
+  fig_out <- ggplot(fig_dat, 
+                    aes(x = diff, y = species, color = Habitat, alpha = sig)) +
+    geom_vline(xintercept = 0) +
+    geom_errorbarh(aes(xmin = .lower,
+                       xmax = .upper),
+                   height = 0) +
+    geom_point() +
+    facet_grid(~ covariate, scales = "free") +
+    scale_color_manual(values = brewer.set2(n = 3), name = "Growth form") +
+    scale_alpha_manual(values = c(0.2, 1), name = "CI omits zero") +
+    labs(x = "Percent change in probability of detection ± 95% CI") +
+    def_theme_paper +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal",
+          legend.box = "vertical",
+          legend.spacing.y = unit(-0.4, "cm"),
+          axis.text.y = element_text(size = 6.5, face = "italic"),
+          axis.title.y = element_blank())
+  
+  # return
+  return(list(fig_out, fig_dat))
+  
+}
+
+# apply to each species
+hydr_prob <- plot_prob_fun(hydr_fit, "hydrilla")
+flpl_prob <- plot_prob_fun(flpl_fit, "floating plants")
+cubu_prob <- plot_prob_fun(cubu_fit, "Cuban bulrush")
+pagr_prob <- plot_prob_fun(pagr_fit, "paragrass")
+torp_prob <- plot_prob_fun(torp_fit, "torpedograss")
+
+# save figure
+ggsave("output/fwc_native_plant_probabilities_hydrilla.png", hydr_prob[[1]],
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_probabilities_floating_plants.png", flpl_prob[[1]],
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_probabilities_cuban_bulrush.png", cubu_prob[[1]],
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_probabilities_paragrass.png", pagr_prob[[1]],
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_probabilities_torpedograss.png", torp_prob[[1]],
+       device = "png", width = 6.5, height = 6.5, units = "in")
 
 
 #### species richness figures ####
@@ -589,9 +640,19 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
   for (i in 1:2){
     
     # gradients
-    grad <- constructGradient(mod, focalVariable = v_expV[i],
-                              ngrid = npoints,
-                              non.focalVariables = 2) # (2 = net effect)
+    if(v_expV[i] == "PercCovered") {
+      
+      grad <- constructGradient(mod, focalVariable = "PercCovered",
+                                ngrid = npoints,
+                                non.focalVariables = list("RecentTreatment" = list(3, 0)))
+      
+    } else {
+      
+      grad <- constructGradient(mod, focalVariable = "RecentTreatment",
+                                ngrid = npoints,
+                                non.focalVariables = list("PercCovered" = list(3, 0)))
+      
+    }
     
     # use gradient to make predictions
     pred <- predict(mod, Gradient = grad, expected = T) # (probit: expected = T)
@@ -642,16 +703,22 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
   
   # change variable names
   df_CIs2 <- df_CIs %>%
-    mutate(covNames = fct_recode(covNames,
-                                 "invasive plant PAC" = "PercCovered",
+    mutate(grad_transf = if_else(covNames == "PercCovered",
+                                 car::logit(gradient, adjust = 0.001),
+                                 gradient),
+           covNames = fct_recode(covNames,
+                                 "invasive plant PAC (logit-transformed)" = "PercCovered",
                                  "management" = "RecentTreatment"))
   
   df_raw2 <- df_raw %>%
-    mutate(covNames = fct_recode(covNames,
-                                 "invasive plant PAC" = "PercCovered",
+    mutate(grad_transf = if_else(covNames == "PercCovered",
+                                 car::logit(gradient, adjust = 0.001),
+                                 gradient),
+           covNames = fct_recode(covNames,
+                                 "invasive plant PAC (logit-transformed)" = "PercCovered",
                                  "management" = "RecentTreatment"))
   
-  fig_out <- ggplot(df_raw2, aes(x = gradient, y = Qua_mid)) +
+  fig_out <- ggplot(df_raw2, aes(x = grad_transf, y = Qua_mid)) +
     geom_point(alpha = 0.5, size = 0.5) +
     geom_ribbon(data = df_CIs2,
                 aes(ymin = Qua_low, ymax = Qua_high), alpha = 0.5) +
