@@ -621,10 +621,10 @@ ggsave("output/fwc_native_plant_probabilities_torpedograss.png", torp_prob[[1]],
 # code from: https://github.com/hmsc-r/HMSC/issues/48
 
 # Percentiles used in calculation
-p <- c(.025,.5,.975)
-p_names <- paste0(p*100)
-p_funs <- map(p, ~partial(quantile, probs = .x, na.rm = TRUE)) %>%
-  set_names(nm = p_names)
+# p <- c(.025,.5,.975)
+# p_names <- paste0(p*100)
+# p_funs <- map(p, ~partial(quantile, probs = .x, na.rm = TRUE)) %>%
+#   set_names(nm = p_names)
 
 # ggplot of gradient
 plot_grad_fun <- function(mod, raw_dat, plot_title){
@@ -664,20 +664,21 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
     
     # dataframe with quantiles as cols
     CIs <- predGrad %>%
-      pivot_longer(everything(), names_to = "grad", values_to = "pred") %>%
-      mutate(across(everything(), type.convert, as.is = T)) %>%
+      mutate(iteration = 1:n()) %>%
+      pivot_longer(-iteration, names_to = "grad", values_to = "pred") %>%
+      # mutate(across(everything(), type.convert, as.is = T)) %>%
       group_by(grad) %>%
-      # mean_hdi() %>% # tried this too, similar results
-      summarise(across(everything(), p_funs)) %>%
-      select(-1) %>%
-      rename_with(~c("Qua_low","Qua_mid","Qua_high"))
+      mean_hdci(pred)
+      # summarise(across(everything(), p_funs)) %>%  # tried this too, similar results
+      # select(-1) %>%
+      # rename_with(~c("Qua_low","Qua_mid","Qua_high"))
     
     # change in richness
     schange <- predGrad %>%
       rename(unit0 = "1",
              unit1 = as.character(npoints)) %>%
       mutate(change = unit1 - unit0) %>%
-      median_qi(change) %>%
+      mean_hdci(change) %>%
       add_column(covNames = v_expV[i], .before = 1) %>%
       bind_rows(schange)
     
@@ -690,7 +691,7 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
     # summarize raw data
     rich_dat <- raw_dat %>%
       group_by(across(all_of(c("PermanentID", "GSYear", v_expV[i])))) %>%
-      summarize(Qua_mid = sum(Detected)) %>%
+      summarize(pred = sum(Detected)) %>%
       ungroup() %>%
       rename(gradient = !!v_expV[i])
     
@@ -718,10 +719,10 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
                                  "invasive plant PAC (logit-transformed)" = "PercCovered",
                                  "management" = "RecentTreatment"))
   
-  fig_out <- ggplot(df_raw2, aes(x = grad_transf, y = Qua_mid)) +
+  fig_out <- ggplot(df_raw2, aes(x = grad_transf, y = pred)) +
     geom_point(alpha = 0.5, size = 0.5) +
     geom_ribbon(data = df_CIs2,
-                aes(ymin = Qua_low, ymax = Qua_high), alpha = 0.5) +
+                aes(ymin = .lower, ymax = .upper), alpha = 0.5) +
     geom_line(data = df_CIs2) +
     facet_wrap(~ covNames, scales = "free_x",
                strip.position = "bottom") +
