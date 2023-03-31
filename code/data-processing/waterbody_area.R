@@ -9,7 +9,7 @@ library(janitor)
 dat <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
 
 
-#### exmine waterbody area relationships ####
+#### examine waterbody area relationships ####
 
 # isolate waterbodies
 wbs <- dat %>%

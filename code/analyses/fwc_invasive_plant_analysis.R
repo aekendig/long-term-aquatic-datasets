@@ -1,3 +1,8 @@
+#### start here ####
+
+# does the dataset need to be balanced?
+# if not, take out that step to include more data pieces
+
 #### set-up ####
 
 # clear environment
@@ -25,7 +30,7 @@ source("code/generic-functions/continuous_time_interval.R")
 source("code/generic-functions/model_structure_comparison.R")
 
 # import data
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
+inv_plant <- read_csv("intermediate-data/FWC_only_invasive_plant_formatted.csv")
 inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
 
