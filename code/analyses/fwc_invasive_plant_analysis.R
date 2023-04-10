@@ -2,6 +2,11 @@
 
 # does the dataset need to be balanced?
 # if not, take out that step to include more data pieces
+# resource: vignette("A_plmPackage", "plm")
+# data can be balanced or unbalanced
+# two-ways effects (individual and time) weren't originally
+# in plm for unbalanced datasets, but are now
+# unsure if all assumptions are met for fitting plm
 
 #### set-up ####
 
@@ -11,10 +16,10 @@ rm(list = ls())
 # load packages
 library(plotly)
 library(tidyverse)
-library(inspectdf) # inspect_cor
+library(inspectdf) # inspect_cor - might not need
 library(modelsummary) # modelplot
 library(patchwork) # combining figures
-library(car) # logit
+library(car) # logit - might not need
 library(plm) # panel data models
 library(glmmTMB) # random effects
 library(sandwich) # vcovHC
@@ -25,9 +30,8 @@ library(pals) # color palettes
 source("code/settings/figure_settings.R")
 
 # functions
-source("code/generic-functions/proportion_transformations.R")
-source("code/generic-functions/continuous_time_interval.R")
-source("code/generic-functions/model_structure_comparison.R")
+# source("code/generic-functions/proportion_transformations.R") - remove if unused
+# source("code/generic-functions/continuous_time_interval.R") - remove if unused
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_only_invasive_plant_formatted.csv")
@@ -36,44 +40,44 @@ inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
 #### edit data ####
 
+# match ctrl species to invasion taxon
+tax_spp <- tibble(TaxonName = c("Cyperus blepharoleptos", "Eichhornia crassipes", "Hydrilla verticillata", "Panicum repens", "Pistia stratiotes", "Urochloa mutica"),
+                  Species = c("Cyperus blepharoleptos", "Floating Plants (Eichhornia and Pistia)", "Hydrilla verticillata", "Panicum repens", "Floating Plants (Eichhornia and Pistia)", "Urochloa mutica"))
+
+
 # combine datasets
 inv_dat <- inv_plant %>%
-  filter(!is.na(InitPercCovered)) %>% 
+  filter(!is.na(PrevPercCovered)) %>% # remove first year of measurement
+  left_join(tax_spp) %>%
   inner_join(inv_ctrl) %>%
-  mutate(PercDiffCovered = PropCovered * 100 - InitPercCovered,
-         PropCoveredLogit = logit(PropCovered, adjust = 0.001))
+  mutate(PropCoveredLogit = logit(PercCovered/100, adjust = 0.001))
 
 # species presence and management
-# by using EstAreaCoveredRaw_ha, there had to be more than one year per permanentID
 perm_tax <- inv_dat %>%
-  group_by(PermanentID, CommonName) %>%
-  summarize(Treatments = as.numeric(sum(Lag1Treated, na.rm = T) > 0),
-            Established = as.numeric(sum(EstAreaCoveredRaw_ha) > 0)) %>%
+  group_by(AreaOfInterestID, TaxonName) %>%
+  summarize(Treatments = sum(Treated > 0),
+            Present = sum(EstAreaCoveredRaw_ha > 0)) %>%
   ungroup() 
 
-# lakes that have the species present and been managed at least once
+# lakes that have the species detected and been managed at least once
 perm_tax_inv <- perm_tax %>%
-  filter(Treatments > 0 & Established > 0)
+  filter(Treatments > 0 & Present > 0)
 
 # uninvaded lakes
 perm_tax_uninv <- perm_tax %>%
-  filter(Established == 0)
+  filter(Present == 0)
 
 write_csv(perm_tax_uninv, "output/fwc_uninvaded_permID.csv")
 
 # filter for lakes
 inv_dat2 <- inv_dat %>%
   inner_join(perm_tax_inv %>%
-               select(PermanentID, CommonName))
-
-# will need surveyor experience
-filter(inv_dat2, is.na(MinSurveyorExperience))
-# none missing
+               select(AreaOfInterestID, TaxonName))
 
 # check data availability
 inv_dat2 %>%
-  filter(PropCovered > 0) %>%
-  ggplot(aes(x = GSYear, y = PropCovered, color = PermanentID)) +
+  filter(PercCovered > 0) %>%
+  ggplot(aes(x = GSYear, y = PercCovered, color = PermanentID)) +
   geom_vline(xintercept = 2013) +
   geom_point() +
   facet_wrap(~ CommonName, scales = "free_y") +
@@ -81,52 +85,53 @@ inv_dat2 %>%
 # Cuban bulrush is missing a lot of data before 2013
 # Para grass and torpedograss start in 1999
 
-# complete time intervals
-# surveys were not conducted every year on every lake for every species
-# control data is implicitly complete -- missing interpreted as no control
-inv_time_int <- inv_dat2 %>%
-  select(GSYear, CommonName) %>% 
-  unique() %>%
-  mutate(out = pmap(., function(GSYear, CommonName) 
-                    time_int_fun(year1 = GSYear, taxon = CommonName, dat_in = inv_dat2))) %>%
-  unnest(cols = out)
-
-inv_time_int %>%
-  select(CommonName, years_out, data_points) %>%
-  unique() %>%
-  ggplot(aes(x = data_points)) +
-  geom_histogram() +
-  facet_wrap(~ CommonName, scales = "free")
-
-# select largest number of datapoints
-inv_time_int2 <- inv_time_int %>%
-  group_by(CommonName) %>%
-  mutate(max_data_points = max(data_points)) %>%
-  ungroup() %>%
-  filter(data_points == max_data_points)
-
-# filter dataset for lakes with complete surveys
-inv_dat3 <- inv_dat2 %>%
-  inner_join(inv_time_int2 %>%
-               mutate(MinGSYear = GSYear,
-                      MaxGSYear = GSYear + years_out - 1) %>% # 1 year added to years_out to count initial year
-               select(CommonName, PermanentID, MinGSYear, MaxGSYear)) %>%
-  filter(GSYear >= MinGSYear & GSYear <= MaxGSYear & !is.na(Lag1Treated))
+# # complete time intervals
+# # surveys were not conducted every year on every lake for every species
+# # control data is implicitly complete -- missing interpreted as no control
+# inv_time_int <- inv_dat2 %>%
+#   select(GSYear, CommonName) %>% 
+#   unique() %>%
+#   mutate(out = pmap(., function(GSYear, CommonName) 
+#                     time_int_fun(year1 = GSYear, taxon = CommonName, dat_in = inv_dat2))) %>%
+#   unnest(cols = out)
+# 
+# inv_time_int %>%
+#   select(CommonName, years_out, data_points) %>%
+#   unique() %>%
+#   ggplot(aes(x = data_points)) +
+#   geom_histogram() +
+#   facet_wrap(~ CommonName, scales = "free")
+# 
+# # select largest number of datapoints
+# inv_time_int2 <- inv_time_int %>%
+#   group_by(CommonName) %>%
+#   mutate(max_data_points = max(data_points)) %>%
+#   ungroup() %>%
+#   filter(data_points == max_data_points)
+# 
+# # filter dataset for lakes with complete surveys
+# inv_dat3 <- inv_dat2 %>%
+#   inner_join(inv_time_int2 %>%
+#                mutate(MinGSYear = GSYear,
+#                       MaxGSYear = GSYear + years_out - 1) %>% # 1 year added to years_out to count initial year
+#                select(CommonName, PermanentID, MinGSYear, MaxGSYear)) %>%
+#   filter(GSYear >= MinGSYear & GSYear <= MaxGSYear & !is.na(Lag1Treated))
 
 # taxa
-inv_taxa <- sort(unique(inv_dat3$CommonName))
+inv_taxa <- sort(unique(inv_dat2$CommonName))
 
 # loop through taxa
-pdf("output/invasive_plant_continuous_time_series_by_taxon.pdf")
+pdf("output/invasive_plant_time_series_by_taxon.pdf")
 
 for(i in 1:length(inv_taxa)){
   
   # subset data
-  subdat <- inv_dat3 %>% filter(CommonName == inv_taxa[i])
-  subdat_ctrl <- subdat %>% filter(Lag1Treated > 0)
+  subdat <- inv_dat2 %>% filter(CommonName == inv_taxa[i])
+  subdat_ctrl <- subdat %>% filter(Treated > 0)
   
   # make figure
-  print(ggplot(subdat, aes(x = GSYear, y = PropCovered * 100, color = PermanentID)) +
+  print(ggplot(subdat, aes(x = GSYear, y = PercCovered, 
+                           color = as.factor(AreaOfInterestID))) +
           geom_line() +
           geom_point(data = subdat_ctrl) + 
           labs(x = "Year", y = "Percent area covered", title = inv_taxa[i]) +
@@ -139,48 +144,24 @@ for(i in 1:length(inv_taxa)){
 
 dev.off()
 
-# combine water hyacinth and lettuce initial percent covered
-floating_cover <- inv_dat %>%
-  filter(CommonName %in% c("Water hyacinth", "Water lettuce")) %>%
-  group_by(PermanentID, GSYear) %>%
-  summarize(InitPercCovered = sum(InitPercCovered)) %>%
-  ungroup() %>%
-  mutate(InitPercCoveredFloat = if_else(InitPercCovered > 100, 100, InitPercCovered)) %>%
-  expand_grid(CommonName = c("Water hyacinth", "Water lettuce")) %>%
-  select(PermanentID, GSYear, InitPercCoveredFloat, CommonName)
-
-# add floating cover
-inv_dat4 <- inv_dat3 %>%
-  left_join(floating_cover)
-
 # export
-write_csv(inv_dat4, "intermediate-data/FWC_invasive_plant_analysis_formatted.csv")
-inv_dat4 %>%
-  select(PermanentID) %>%
-  unique() %>%
+write_csv(inv_dat2, "intermediate-data/FWC_invasive_plant_analysis_formatted.csv")
+
+inv_dat2 %>%
+  distinct(AreaOfInterestID, PermanentID) %>%
   mutate(plant_management = 1) %>%
   write_csv("intermediate-data/FWC_invasive_plant_analysis_waterbodies.csv")
 
 # split by species
-hydr_dat <- filter(inv_dat4, CommonName == "Hydrilla")
-wale_dat <- filter(inv_dat4, CommonName == "Water lettuce")
-wahy_dat <- filter(inv_dat4, CommonName == "Water hyacinth")
-torp_dat <- filter(inv_dat4, CommonName == "Torpedograss")
-cubu_dat <- filter(inv_dat4, CommonName == "Cuban bulrush")
-pagr_dat <- filter(inv_dat4, CommonName == "Para grass")
+hydr_dat <- filter(inv_dat2, CommonName == "Hydrilla")
+wale_dat <- filter(inv_dat2, CommonName == "Water lettuce")
+wahy_dat <- filter(inv_dat2, CommonName == "Water hyacinth")
+torp_dat <- filter(inv_dat2, CommonName == "Torpedograss")
+cubu_dat <- filter(inv_dat2, CommonName == "Cuban bulrush")
+pagr_dat <- filter(inv_dat2, CommonName == "Para grass")
 
 
-#### initial visualizations ####
-
-# all and species-specific control correlated?
-inv_dat4 %>%
-  select(CommonName, Lag1Treated, Lag1AllTreated, MinSurveyorExperience, InitPercCovered) %>%
-  group_by(CommonName) %>%
-  inspect_cor() %>% 
-  ungroup() %>%
-  filter(p_value < 0.05 & abs(corr) >= 0.4) %>%
-  data.frame()
-# treated and all treated correlated for focal invasive species (expected)
+#### start here: initial visualizations ####
 
 # response distributions
 ggplot(inv_dat4, aes(x = PercDiffCovered)) +
@@ -350,6 +331,64 @@ inv_dat4 %>% filter(is.na(Lag1Treated)) # none are missing
 hydr_mod_struc <- mod_structure_fits(hydr_dat)
 wahy_mod_struc <- mod_structure_fits(wahy_dat)
 wale_mod_struc <- mod_structure_fits(wale_dat) # convergence error
+
+# function to compare models with different intercept structures
+mod_structure_comp <- function(simp_mods, ran_mods, fix_mods) {
+  
+  # empty lists
+  simp_sum <- vector(mode = "list", length = length(simp_mods))
+  ran_sum <- vector(mode = "list", length = length(ran_mods))
+  fix_sum <- vector(mode = "list", length = length(fix_mods))
+  
+  # models with one intercept
+  for(i in 1:length(simp_mods)){
+    
+    simp_sum[[i]] <- tibble(coef(simp_mods[[i]])) # extract model coefficients
+    colnames(simp_sum[[i]]) <- names(simp_mods)[i] # rename column to model name
+    simp_sum[[i]] <- simp_sum[[i]] %>%
+      mutate(coefficients = names(coef(simp_mods[[i]])) %>%
+               str_replace_all("PercCovered", "PAC") %>%
+               str_replace_all("RecentTreatment", "Treated") %>%
+               str_replace_all("PAC:Treated", "Interaction")) # add coefficient names
+    
+  }
+  
+  # mixed-effects models
+  for(i in 1:length(ran_mods)){
+    
+    ran_sum[[i]] <- tibble(fixef(ran_mods[[i]])$cond) # extract model coefficients
+    colnames(ran_sum[[i]]) <- names(ran_mods)[i] # rename column to model name
+    ran_sum[[i]] <- ran_sum[[i]] %>%
+      mutate(coefficients = names(fixef(ran_mods[[i]])$cond) %>%
+               str_replace_all("PercCovered", "PAC") %>%
+               str_replace_all("RecentTreatment", "Treated") %>%
+               str_replace_all("PAC:Treated", "Interaction")) # add coefficient names
+    
+  }
+  
+  # panel data models
+  for(i in 1:length(fix_mods)){
+    
+    fix_sum[[i]] <- tibble(coef(fix_mods[[i]])) # extract model coefficients
+    colnames(fix_sum[[i]]) <- names(fix_mods)[i] # rename column to model name
+    fix_sum[[i]] <- fix_sum[[i]] %>%
+      mutate(coefficients = names(coef(fix_mods[[i]])) %>%
+               str_replace_all("PercCovered", "PAC") %>%
+               str_replace_all("RecentTreatment", "Treated") %>%
+               str_replace_all("PAC:Treated", "Interaction")) # add coefficient names
+    
+  }
+  
+  # combine dataframes
+  mod_comp <- reduce(simp_sum, full_join) %>%
+    full_join(reduce(ran_sum, full_join)) %>%
+    full_join(reduce(fix_sum, full_join)) %>%
+    relocate(coefficients)
+  
+  # output
+  return(mod_comp)
+  
+}
 
 # compare model estimates
 hydr_mod_comp <- mod_structure_comp(simp_mods = hydr_mod_struc[1], 
