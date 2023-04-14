@@ -1,37 +1,20 @@
-#### start here ####
-
-# does the dataset need to be balanced?
-# if not, take out that step to include more data pieces
-# resource: vignette("A_plmPackage", "plm")
-# data can be balanced or unbalanced
-# two-ways effects (individual and time) weren't originally
-# in plm for unbalanced datasets, but are now
-# unsure if all assumptions are met for fitting plm
-
 #### set-up ####
 
 # clear environment
 rm(list = ls())
 
 # load packages
-library(plotly)
 library(tidyverse)
-library(inspectdf) # inspect_cor - might not need
 library(modelsummary) # modelplot
 library(patchwork) # combining figures
-library(car) # logit - might not need
 library(plm) # panel data models
-library(glmmTMB) # random effects
 library(sandwich) # vcovHC
 library(lmtest) # coeftest
 library(pals) # color palettes
+library(janitor)
 
 # figure settings
 source("code/settings/figure_settings.R")
-
-# functions
-# source("code/generic-functions/proportion_transformations.R") - remove if unused
-# source("code/generic-functions/continuous_time_interval.R") - remove if unused
 
 # import data
 inv_plant <- read_csv("intermediate-data/FWC_only_invasive_plant_formatted.csv")
@@ -47,37 +30,37 @@ tax_spp <- tibble(TaxonName = c("Cyperus blepharoleptos", "Eichhornia crassipes"
 
 # combine datasets
 inv_dat <- inv_plant %>%
-  filter(!is.na(PrevPercCovered)) %>% # remove first year of measurement
+  filter(!is.na(PrevPercCovered)) %>% # require two consecutive yeras
   left_join(tax_spp) %>%
-  inner_join(inv_ctrl) %>%
-  mutate(PropCoveredLogit = logit(PercCovered/100, adjust = 0.001))
+  inner_join(inv_ctrl)
 
-# species presence and management
-perm_tax <- inv_dat %>%
+# species presence
+pres_tax <- inv_dat %>%
   group_by(AreaOfInterestID, TaxonName) %>%
-  summarize(Treatments = sum(Treated > 0),
-            Present = sum(EstAreaCoveredRaw_ha > 0)) %>%
+  summarize(Present = sum(EstAreaCoveredRaw_ha > 0)) %>%
   ungroup() 
 
-# lakes that have the species detected and been managed at least once
-perm_tax_inv <- perm_tax %>%
-  filter(Treatments > 0 & Present > 0)
+# lakes that have the species detecte
+pres_tax_inv <- pres_tax %>%
+  filter(Present > 0)
 
 # uninvaded lakes
-perm_tax_uninv <- perm_tax %>%
+pres_tax_uninv <- pres_tax %>%
   filter(Present == 0)
 
-write_csv(perm_tax_uninv, "output/fwc_uninvaded_permID.csv")
+write_csv(pres_tax_uninv, "output/fwc_uninvaded_AOI.csv")
 
 # filter for lakes
 inv_dat2 <- inv_dat %>%
-  inner_join(perm_tax_inv %>%
-               select(AreaOfInterestID, TaxonName))
+  inner_join(pres_tax_inv %>%
+               select(AreaOfInterestID, TaxonName)) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
+         Treatment = if_else(Treated == 0, "Not treated", "Treated"))
 
 # check data availability
 inv_dat2 %>%
   filter(PercCovered > 0) %>%
-  ggplot(aes(x = GSYear, y = PercCovered, color = PermanentID)) +
+  ggplot(aes(x = GSYear, y = PercCovered, color = AreaOfInterestID)) +
   geom_vline(xintercept = 2013) +
   geom_point() +
   facet_wrap(~ CommonName, scales = "free_y") +
@@ -85,56 +68,21 @@ inv_dat2 %>%
 # Cuban bulrush is missing a lot of data before 2013
 # Para grass and torpedograss start in 1999
 
-# # complete time intervals
-# # surveys were not conducted every year on every lake for every species
-# # control data is implicitly complete -- missing interpreted as no control
-# inv_time_int <- inv_dat2 %>%
-#   select(GSYear, CommonName) %>% 
-#   unique() %>%
-#   mutate(out = pmap(., function(GSYear, CommonName) 
-#                     time_int_fun(year1 = GSYear, taxon = CommonName, dat_in = inv_dat2))) %>%
-#   unnest(cols = out)
-# 
-# inv_time_int %>%
-#   select(CommonName, years_out, data_points) %>%
-#   unique() %>%
-#   ggplot(aes(x = data_points)) +
-#   geom_histogram() +
-#   facet_wrap(~ CommonName, scales = "free")
-# 
-# # select largest number of datapoints
-# inv_time_int2 <- inv_time_int %>%
-#   group_by(CommonName) %>%
-#   mutate(max_data_points = max(data_points)) %>%
-#   ungroup() %>%
-#   filter(data_points == max_data_points)
-# 
-# # filter dataset for lakes with complete surveys
-# inv_dat3 <- inv_dat2 %>%
-#   inner_join(inv_time_int2 %>%
-#                mutate(MinGSYear = GSYear,
-#                       MaxGSYear = GSYear + years_out - 1) %>% # 1 year added to years_out to count initial year
-#                select(CommonName, PermanentID, MinGSYear, MaxGSYear)) %>%
-#   filter(GSYear >= MinGSYear & GSYear <= MaxGSYear & !is.na(Lag1Treated))
-
-# taxa
-inv_taxa <- sort(unique(inv_dat2$CommonName))
-
 # loop through taxa
 pdf("output/invasive_plant_time_series_by_taxon.pdf")
 
-for(i in 1:length(inv_taxa)){
+for(i in 1:nrow(tax_spp)){
   
   # subset data
-  subdat <- inv_dat2 %>% filter(CommonName == inv_taxa[i])
+  subdat <- inv_dat2 %>% filter(TaxonName == tax_spp$TaxonName[i])
   subdat_ctrl <- subdat %>% filter(Treated > 0)
   
   # make figure
   print(ggplot(subdat, aes(x = GSYear, y = PercCovered, 
-                           color = as.factor(AreaOfInterestID))) +
+                           color = AreaOfInterestID)) +
           geom_line() +
           geom_point(data = subdat_ctrl) + 
-          labs(x = "Year", y = "Percent area covered", title = inv_taxa[i]) +
+          labs(x = "Year", y = "Percent area covered", title = tax_spp$TaxonName[i]) +
           def_theme_paper +
           theme(strip.text = element_blank(),
                 plot.title = element_text(hjust = 0.5, size = 8),
@@ -154,733 +102,419 @@ inv_dat2 %>%
 
 # split by species
 hydr_dat <- filter(inv_dat2, CommonName == "Hydrilla")
-wale_dat <- filter(inv_dat2, CommonName == "Water lettuce")
 wahy_dat <- filter(inv_dat2, CommonName == "Water hyacinth")
+wale_dat <- filter(inv_dat2, CommonName == "Water lettuce")
 torp_dat <- filter(inv_dat2, CommonName == "Torpedograss")
 cubu_dat <- filter(inv_dat2, CommonName == "Cuban bulrush")
 pagr_dat <- filter(inv_dat2, CommonName == "Para grass")
 
 
-#### start here: initial visualizations ####
+#### initial visualizations ####
 
-# response distributions
-ggplot(inv_dat4, aes(x = PercDiffCovered)) +
+# distributions
+ggplot(inv_dat2, aes(x = PercCovLogRatio)) +
   geom_histogram() +
   facet_wrap(~ CommonName, scales = "free")
 
-ggplot(inv_dat4, aes(x = PropCoveredLogit)) +
+ggplot(inv_dat2, aes(x = RecentTreatment)) +
   geom_histogram() +
   facet_wrap(~ CommonName, scales = "free")
-
-# initial and responses
-ggplot(inv_dat4, aes(x = InitPercCovered, y = PropCoveredLogit,
-                    color = as.factor(Lag1Treated))) +
-  geom_point() +
-  facet_wrap(~ CommonName, scales = "free") +
-  geom_smooth()
-# positive, saturating
-# paragrass has very few treatments
-
-ggplot(inv_dat4, aes(x = InitPercCovered, y = PercDiffCovered,
-                     color = as.factor(Lag1Treated))) +
-  geom_point() +
-  facet_wrap(~ CommonName, scales = "free") +
-  geom_smooth()
-# negative, linear
+# many points have never been treated
 
 # treated and change in prop
-ggplot(inv_dat4, aes(x = Lag6Treated, y = PropCoveredLogit)) +
+ggplot(inv_dat2, aes(x = Treated, y = PercCovLogRatio)) +
   stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
   stat_summary(geom = "point", fun = "mean") +
   facet_wrap(~ CommonName, scales = "free") 
-# all are positive with lag1
-# hydrilla and water hyacinth are very positive with lag6
+# all decline with treatment
+
+ggplot(inv_dat2, aes(x = Lag6Treated, y = PercCovLogRatio)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  facet_wrap(~ CommonName, scales = "free") 
+# less clear
+
+ggplot(inv_dat2, aes(x = RecentTreatment, y = PercCovLogRatio)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ CommonName, scales = "free") 
+# barely perceptible
 
 # higher treatment with higher initial cover?
-ggplot(inv_dat4, aes(x = InitPercCovered, y = Lag1Treated)) +
+ggplot(inv_dat2, aes(x = PrevPercCovered, y = Treated)) +
   geom_point() +
   stat_smooth(method = "glm") +
   facet_wrap(~ CommonName, scales = "free") 
-# yes for hydrilla and cuban bulrush (weaker with higher lag)
-# no for water hyacinth and lettuce -- need to be combined?
-
-ggplot(inv_dat4, aes(x = InitPercCoveredFloat, y = Lag1Treated)) +
-  geom_point() +
-  stat_smooth(method = "glm") +
-  facet_wrap(~ CommonName, scales = "free") 
-# helps water hyacinth, not water lettuce
+# yes 
 
 # data availability for lags
-inv_dat4 %>%
-  select(PermanentID, GSYear, CommonName,
+inv_dat2 %>%
+  rename(Lag1Treated = Treated) %>%
+  select(AreaOfInterestID, GSYear, CommonName,
          Lag1Treated, Lag2Treated, Lag3Treated, Lag4Treated, Lag5Treated, Lag6Treated) %>%
   pivot_longer(cols = starts_with("Lag"),
                names_to = "Lag",
-               values_to = "Treated") %>%
+               values_to = "Treated",
+               names_pattern = "Lag(.)Treated") %>%
   filter(!is.na(Treated)) %>%
   ggplot(aes(x = Lag)) +
   geom_bar() +
   facet_wrap(~ CommonName, scales = "free") 
 
-# before/after comparison
-ggplot(inv_dat4, aes(x = Lag1Treated, y = PercDiffCovered)) +
-  geom_hline(yintercept = 0, size = 0.25) +
-  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  facet_wrap(~ CommonName, scales = "free")
-
-ggplot(inv_dat4, aes(x = Lag6Treated, y = PercDiffCovered)) +
-  geom_hline(yintercept = 0, size = 0.25) +
-  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  facet_wrap(~ CommonName, scales = "free")
-
-# years since treatment
-ggplot(inv_dat4, aes(x = LastTreatment, y = PropCoveredLogit)) +
-  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  facet_wrap(~ CommonName, scales = "free")
-# negative relationships - higher abundance = more recently treated
-
-ggplot(inv_dat4, aes(x = LastTreatment, y = PercDiffCovered)) +
-  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0) +
-  stat_summary(geom = "point", fun = "mean", size = 2) +
-  facet_wrap(~ CommonName, scales = "free")
-
-ggplot(inv_dat4, aes(x = LastTreatment, y = PropCoveredLogit, color = PermanentID)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = F, size = 0.5) +
+# variation in growth rate
+ggplot(inv_dat2, aes(x = AreaOfInterestID, y = PercCovLogRatio)) +
+  stat_summary(geom = "point", fun = "mean") +
   facet_wrap(~ CommonName, scales = "free") +
-  theme(legend.position = "none")
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+# include in supplement
 
-ggplot(inv_dat4, aes(x = LastTreatment, y = PercDiffCovered, color = PermanentID)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = F, size = 0.5) +
-  facet_wrap(~ CommonName, scales = "free") +
-  theme(legend.position = "none")
+# years per waterbody
+inv_dat2 %>%
+  group_by(CommonName, AreaOfInterestID) %>%
+  summarize(years = n_distinct(GSYear)) %>%
+  ungroup() %>%
+  ggplot(aes(x = years)) +
+  geom_histogram() +
+  facet_wrap(~ CommonName, scales = "free")
+# include in supplement
 
 
 #### evaluate model structure ####
 
-# function to fit models for each species
-mod_structure_fits <- function(dat_in){
-  
-  # create fixed effects data frame
-  dat_fix <- dat_in %>%
-    mutate(InitPercCovered_c = InitPercCovered - mean(InitPercCovered))  %>%
-    ungroup() %>%
-    pdata.frame(index = c("PermanentID", "GSYear"))
-  # each waterbody is an individual
-  
-  # simple lm
-  mod_lm <- lm(PropCoveredLogit ~ Lag1Treated, data = dat_in)
-  
-  # random effects
-  mod_ran_loc <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|PermanentID), data = dat_in)
-  mod_ran_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|GSYear), data = dat_in)
-  mod_ran_loc_yr <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1|PermanentID) + (1|GSYear), data = dat_in)
-  mod_ran_slope_loc <- glmmTMB(PropCoveredLogit ~ Lag1Treated + (1 + Lag1Treated|PermanentID), data = dat_in)
-  
-  # fixed effects
-  mod_fix_loc <- plm(PropCoveredLogit ~ Lag1Treated, data = dat_fix, 
-                     index = c("PermanentID", "GSYear"), model = "within")
-  mod_fix_loc_yr <- plm(PropCoveredLogit ~ Lag1Treated, data = dat_fix, 
-                        index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-  
-  # use initial cover to account for reverse causality
-  mod_init_fix_loc_yr <- plm(PropCoveredLogit ~ InitPercCovered_c * Lag1Treated, data = dat_fix,
-                             index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+# sources: vignette("A_plmPackage"), https://www.princeton.edu/~otorres/Panel101R.pdf
 
-  # use cover difference to account for reverse causality
-  mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, data = dat_fix, 
-                             index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
+# pooling model: same intercept and coefficients for all units and time
+# within model: different fixed intercepts for each unit, same coefficients
+# random effects model: different random intercepts for each unit, same coefficients
+# variable coefficients model: different fixed or random intercept and coefficients for each
 
-  # initial cover increases treatment frequency and decreases difference
-  # how does including change estimate?
-  mod_init_diff_fix_loc_yr <- plm(PercDiffCovered ~ InitPercCovered_c * Lag1Treated, data = dat_fix,
-                                  index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-  
-  # format data for "years since treatment"
-  dat_last <- dat_in %>%
-    filter(!is.na(LastTreatment)) %>%
-    pdata.frame(index = c("PermanentID", "GSYear"))
-  
-  # fit last treatment model
-  mod_last_treatment <- plm(PropCoveredLogit ~ LastTreatment, data = dat_last,
-                            index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-  
-  # return list of models
-  return(list(lm = mod_lm, 
-              ran_loc = mod_ran_loc, 
-              ran_yr = mod_ran_yr, 
-              ran_loc_yr = mod_ran_loc_yr,
-              ran_slope_loc = mod_ran_slope_loc,
-              fix_loc = mod_fix_loc, 
-              fix_loc_yr = mod_fix_loc_yr, 
-              init_fix_loc_yr = mod_init_fix_loc_yr,
-              diff_fix_loc_yr = mod_diff_fix_loc_yr, 
-              init_diff_fix_loc_yr = mod_init_diff_fix_loc_yr,
-              last_treatment = mod_last_treatment))
+# same coefficients for each unit?
+pooltest(PercCovLogRatio ~ Treated, data = hydr_dat, 
+         index = c("AreaOfInterestID", "GSYear"), model = "within") # error
+hydrw <- plm(PercCovLogRatio ~ Treated, data = hydr_dat, 
+             index = c("AreaOfInterestID", "GSYear"), model = "within")
+hydrv <- pvcm(PercCovLogRatio ~ Treated, data = hydr_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "within")
+# fails here, some units don't have enough data to estimate coefficients
 
-}
+# variable intercept?
+hydrp <- plm(PercCovLogRatio ~ Treated, data = hydr_dat, 
+             index = c("AreaOfInterestID", "GSYear"), model = "pooling")
+hydrl <- lm(PercCovLogRatio ~ Treated, data = hydr_dat)
+summary(hydrw)
+summary(hydrp)
+summary(hydrl) # same as above
+# need to account for variation among units in growth rate (see viz fig)
 
-# filter for data with Lag1Treated
-inv_dat4 %>% filter(is.na(Lag1Treated)) # none are missing
+# random or fixed effects
+# null hyp is that unit-level errors are uncorrelated with regressors
+# not sig: use random effects, sig: use fixed effects
+phtest(PercCovLogRatio ~ Treated, data = hydr_dat, 
+       index = c("AreaOfInterestID", "GSYear")) # fixed
+phtest(PercCovLogRatio ~ Treated, data = wahy_dat, 
+       index = c("AreaOfInterestID", "GSYear")) # fixed
+phtest(PercCovLogRatio ~ Treated, data = wale_dat, 
+       index = c("AreaOfInterestID", "GSYear")) # random
+phtest(PercCovLogRatio ~ Treated, data = cubu_dat, 
+       index = c("AreaOfInterestID", "GSYear")) # fixed
+phtest(PercCovLogRatio ~ Treated, data = pagr_dat, 
+       index = c("AreaOfInterestID", "GSYear")) # random
+phtest(PercCovLogRatio ~ Treated, data = torp_dat, 
+       index = c("AreaOfInterestID", "GSYear")) # random
 
-# fit models for each species
-hydr_mod_struc <- mod_structure_fits(hydr_dat)
-wahy_mod_struc <- mod_structure_fits(wahy_dat)
-wale_mod_struc <- mod_structure_fits(wale_dat) # convergence error
+# individual and time effects for within?
+plmtest(PercCovLogRatio ~ Treated, data = hydr_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(PercCovLogRatio ~ Treated, data = wahy_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(PercCovLogRatio ~ Treated, data = cubu_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
 
-# function to compare models with different intercept structures
-mod_structure_comp <- function(simp_mods, ran_mods, fix_mods) {
-  
-  # empty lists
-  simp_sum <- vector(mode = "list", length = length(simp_mods))
-  ran_sum <- vector(mode = "list", length = length(ran_mods))
-  fix_sum <- vector(mode = "list", length = length(fix_mods))
-  
-  # models with one intercept
-  for(i in 1:length(simp_mods)){
-    
-    simp_sum[[i]] <- tibble(coef(simp_mods[[i]])) # extract model coefficients
-    colnames(simp_sum[[i]]) <- names(simp_mods)[i] # rename column to model name
-    simp_sum[[i]] <- simp_sum[[i]] %>%
-      mutate(coefficients = names(coef(simp_mods[[i]])) %>%
-               str_replace_all("PercCovered", "PAC") %>%
-               str_replace_all("RecentTreatment", "Treated") %>%
-               str_replace_all("PAC:Treated", "Interaction")) # add coefficient names
-    
-  }
-  
-  # mixed-effects models
-  for(i in 1:length(ran_mods)){
-    
-    ran_sum[[i]] <- tibble(fixef(ran_mods[[i]])$cond) # extract model coefficients
-    colnames(ran_sum[[i]]) <- names(ran_mods)[i] # rename column to model name
-    ran_sum[[i]] <- ran_sum[[i]] %>%
-      mutate(coefficients = names(fixef(ran_mods[[i]])$cond) %>%
-               str_replace_all("PercCovered", "PAC") %>%
-               str_replace_all("RecentTreatment", "Treated") %>%
-               str_replace_all("PAC:Treated", "Interaction")) # add coefficient names
-    
-  }
-  
-  # panel data models
-  for(i in 1:length(fix_mods)){
-    
-    fix_sum[[i]] <- tibble(coef(fix_mods[[i]])) # extract model coefficients
-    colnames(fix_sum[[i]]) <- names(fix_mods)[i] # rename column to model name
-    fix_sum[[i]] <- fix_sum[[i]] %>%
-      mutate(coefficients = names(coef(fix_mods[[i]])) %>%
-               str_replace_all("PercCovered", "PAC") %>%
-               str_replace_all("RecentTreatment", "Treated") %>%
-               str_replace_all("PAC:Treated", "Interaction")) # add coefficient names
-    
-  }
-  
-  # combine dataframes
-  mod_comp <- reduce(simp_sum, full_join) %>%
-    full_join(reduce(ran_sum, full_join)) %>%
-    full_join(reduce(fix_sum, full_join)) %>%
-    relocate(coefficients)
-  
-  # output
-  return(mod_comp)
-  
-}
+# individual and time effects for random?
+waler1 <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "twoways")
+waler2 <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "individual")
+waler3 <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "time")
+waler4 <- lme4::lmer(PercCovLogRatio ~ Treated + (1|AreaOfInterestID), data = wale_dat)
+summary(waler1)
+summary(waler2)
+summary(waler3)
+summary(waler4) # same as 2, singular boundary error
+# no variance among individuals, but there is some variance among years
 
-# compare model estimates
-hydr_mod_comp <- mod_structure_comp(simp_mods = hydr_mod_struc[1], 
-                                    ran_mods = hydr_mod_struc[2:5],
-                                    fix_mods = hydr_mod_struc[6:11])
-wahy_mod_comp <- mod_structure_comp(simp_mods = wahy_mod_struc[1], 
-                                    ran_mods = wahy_mod_struc[2:5],
-                                    fix_mods = wahy_mod_struc[6:11]) 
-wale_mod_comp <- mod_structure_comp(simp_mods = wale_mod_struc[1], 
-                                    ran_mods = wale_mod_struc[2:5],
-                                    fix_mods = wale_mod_struc[6:11]) 
+pagrr1 <- plm(PercCovLogRatio ~ Treated, data = pagr_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "twoways")
+pagrr2 <- plm(PercCovLogRatio ~ Treated, data = pagr_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "individual")
+pagrr3 <- plm(PercCovLogRatio ~ Treated, data = pagr_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "time")
+summary(pagrr1)
+summary(pagrr2)
+summary(pagrr3) # no individual variance, small time variance
 
-# combine species
-mod_comp <- hydr_mod_comp %>%
-  mutate(Species = "hydrilla") %>%
-  full_join(wahy_mod_comp %>%
-              mutate(Species = "water hyacinth")) %>%
-  full_join(wale_mod_comp %>%
-              mutate(Species = "water lettuce")) %>%
-  mutate(coefficients = str_replace(coefficients, "Lag1Treated", "management"),
-         across(!c(coefficients, Species), ~ round(.x, digits = 3))) %>%
-  relocate(Species)
-  
-write_csv(mod_comp, "output/fwc_invasive_plant_model_structure_comparison.csv")
-
-# model comparison notes:
-# simple model -> positive effect of treatment on hydrilla, negligible/slightly positive for others
-# random effect of location -> slight changes, but qualitatively similar
-# random effect of year -> very small changes
-# random slope of location -> very small changes
-# fixed effect of location -> reduces treatment effect, but all still positive
-# fixed effect of year -> very small changes
-# add initial PAC -> reduces hydrilla treatment effect more, but all still positive
-  # initial PAC/hydrilla treatment interaction negative, but others aren't
-# make response variable annual difference -> all treatment effects negative
-# make response variable annual difference and add initial PAC -> treatment
-  # effects become positive again for hydrilla and water lettuce
-  # initial PAC/hydrilla treatment interaction negative, but others aren't
-
-# test fixed effects (seems like year isn't necessary)
-# have to refit because data need to be accessible (not "dat_fix")
-hydr_mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, 
-                                data = hydr_dat, 
-                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(hydr_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(hydr_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
-
-wahy_mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, 
-                                data = wahy_dat, 
-                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wahy_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(wahy_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
-
-wale_mod_diff_fix_loc_yr <- plm(PercDiffCovered ~ Lag1Treated, 
-                                data = wale_dat, 
-                                index = c("PermanentID", "GSYear"), model = "within", effect = "twoways")
-plmtest(wale_mod_diff_fix_loc_yr, effect = "time", type = "bp") # not sig
-plmtest(wale_mod_diff_fix_loc_yr, effect = "individual", type = "bp") # sig
-
-# use annual difference without initial PAC and year fixed effects
-
-# save linear model
-mod_lm_sum <- tidy(summary(hydr_mod_struc[[1]])) %>%
-  mutate(Species = "hydrilla") %>%
-  full_join(tidy(summary(wahy_mod_struc[[1]])) %>%
-              mutate(Species = "water hyacinth")) %>%
-  full_join(tidy(summary(wale_mod_struc[[1]])) %>%
-              mutate(Species = "water lettuce")) %>%
-  rename(Term = term,
-         Estimate = estimate,
-         SE = std.error,
-         "t value" = statistic,
-         "Pr(>|t|)" = p.value) %>%
-  mutate(Term = str_replace(Term, "Lag1Treated", "management")) %>%
-  relocate(Species)
-
-write_csv(mod_lm_sum, "output/fwc_invasive_plant_lm_summary.csv")
-
-
-#### model-fitting functions ####
-
-# data filter function
-dat_mod_filt <- function(treat_col, dat_in){
-  
-  dat_mod <- dat_in %>% 
-    filter(!is.na(InitPercCovered)) %>%
-    filter(!is.na(Lag1Treated) & !is.na(Lag2Treated) & !is.na(Lag3Treated) & !is.na(Lag4Treated) & !is.na(Lag5Treated) & !is.na(Lag6Treated)) %>%
-    mutate(SurveyorExperience_s = (MinSurveyorExperience - mean(MinSurveyorExperience)) / sd(MinSurveyorExperience),
-           Treated = !!sym(treat_col))
-  
-  return(dat_mod)
-  
-}
-
-# function to fit models
-mod_fit <- function(dat_in){
-  
-  # subset data
-  dat_mod1 <- dat_mod_filt("Lag1Treated", dat_in)
-  dat_mod2 <- dat_mod_filt("Lag2Treated", dat_in)
-  dat_mod3 <- dat_mod_filt("Lag3Treated", dat_in)
-  dat_mod4 <- dat_mod_filt("Lag4Treated", dat_in)
-  dat_mod5 <- dat_mod_filt("Lag5Treated", dat_in)
-  dat_mod6 <- dat_mod_filt("Lag6Treated", dat_in)
-  
-  # models with different lags
-  mod1 <- plm(PercDiffCovered ~ Treated + SurveyorExperience_s, data = dat_mod1,
-              index = c("PermanentID", "GSYear"), model = "within")
-  mod2 <- update(mod1, data = dat_mod2)
-  mod3 <- update(mod1, data = dat_mod3)
-  mod4 <- update(mod1, data = dat_mod4)
-  mod5 <- update(mod1, data = dat_mod5)
-  mod6 <- update(mod1, data = dat_mod6)
-
-  # output
-  return(list(mod1, mod2, mod3, mod4, mod5, mod6))
-
-}
+torpr1 <- plm(PercCovLogRatio ~ Treated, data = torp_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "twoways")
+torpr2 <- plm(PercCovLogRatio ~ Treated, data = torp_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "individual")
+torpr3 <- plm(PercCovLogRatio ~ Treated, data = torp_dat, 
+              index = c("AreaOfInterestID", "GSYear"), model = "random",
+              effect = "time")
+summary(torpr1)
+summary(torpr2)
+summary(torpr3) # no individual variance, small time variance
 
 
 #### fit models ####
 
-# fit models with all lags
-hydr_mods <- mod_fit(hydr_dat)
-wahy_mods <- mod_fit(wahy_dat)
-wale_mods <- mod_fit(wale_dat)
-cubu_mods <- mod_fit(cubu_dat)
-torp_mods <- mod_fit(torp_dat)
-pagr_mods <- mod_fit(pagr_dat)
-
-# name models
-names(hydr_mods) <- names(wahy_mods) <- names(wale_mods) <- names(torp_mods) <- names(cubu_mods) <- names(pagr_mods) <- c("1", "2", "3", "4", "5", "6")
-
-
-#### coefficient figures and tables ####
-
-# rename coefficients
-coef_names <- c("SurveyorExperience_s" = "Surveyor experience",
-                "Treated" = "Management")
-
-# ggplot function
-plot_fun <- function(models){
-  
-  plot_out <- modelplot(models,
-                        coef_map = coef_names,
-                        vcov = function(x) plm::vcovHC(x, type = "HC3"),
-                        background = list(geom_vline(xintercept = 0, color = "black",
-                                                     size = 0.5, linetype = "dashed"))) +
-    scale_color_viridis_d(direction = -1) +
-    scale_x_continuous(labels = scale_fun_1) +
-    def_theme_paper +
-    theme(plot.title = element_text(size = 9))
-  
-  return(plot_out)
-  
-}
-
-# panel plot function
-panel_plot_fun <- function(mods1, mods2, mods3, 
-                           spp1, spp2, spp3,
-                           filename, plotname){
-  
-  # focal panels
-  fig1 <- plot_fun(mods1) +
-    labs(x = "",
-         title = paste("(A)", spp1)) +
-    def_theme_paper +
-    theme(legend.position = "none")
-  
-  fig2 <- plot_fun(mods2) +
-    labs(x = expression(paste("Estimate"%+-%" 95% CI", sep = "")),
-         title = paste("(B)", spp2)) +
-    theme(legend.position = "none",
-          axis.text.y = element_blank())
-  
-  fig3 <- plot_fun(mods3) +
-    labs(x = "",
-         title = paste("(C)", spp3)) +
-    theme(axis.text.y = element_blank(),
-          legend.box.margin = margin(-10, 0, -10, -10)) +
-    scale_color_viridis_d(direction = -1, name = "Management\nlag\n(years)") +
-    guides(color = guide_legend(reverse = TRUE))
-  
-  comb_fig <- fig1 + fig2 + fig3 + plot_annotation(
-    theme = theme(plot.margin = margin(5, -5, 0, -10),
-                  plot.title = element_text(size = 10, hjust = 0.5)),
-    title = plotname
-  )
-  
-  ggsave(filename, comb_fig,
-         device = "eps", width = 6.5, height = 3.5, units = "in")
-  
-}
-
-# prop covered with initial PAC
-panel_plot_fun(hydr_mods, wahy_mods, wale_mods,
-               "Hydrilla", "Water hyacinth", "Water lettuce",
-               "output/fwc_focal_invasive_PAC_diff_model.eps",
-               "Effects on annual difference in invasive plant PAC")
-panel_plot_fun(cubu_mods, pagr_mods, torp_mods,
-               "Cuban bulrush", "Para grass", "Torpedograss",
-               "output/fwc_non_focal_invasive_PAC_diff_model.eps",
-               "Effects on annual difference in invasive plant PAC")
-
-
-#### finalize models ####
-
-# SE with heteroskedasticity and autocorrelation
-coeftest(hydr_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig, surveyor not
-coeftest(wahy_mods[[3]], vcov = vcovHC, type = "HC3") # treatment sig, surveyor not
-coeftest(wale_mods[[3]], vcov = vcovHC, type = "HC3") # neither sig
-coeftest(cubu_mods[[3]], vcov = vcovHC, type = "HC3") # neither sig
-coeftest(pagr_mods[[3]], vcov = vcovHC, type = "HC3") # neither sig
-coeftest(torp_mods[[3]], vcov = vcovHC, type = "HC3") # neither sig
-
-# don't need surveyor experience
-# only using lag 3
-hydr_dat3 <- hydr_dat %>% filter(!is.na(Lag3Treated)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-wahy_dat3 <- wahy_dat %>% filter(!is.na(Lag3Treated)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-wale_dat3 <- wale_dat %>% filter(!is.na(Lag3Treated)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-cubu_dat3 <- cubu_dat %>% filter(!is.na(Lag3Treated)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-torp_dat3 <- torp_dat %>% filter(!is.na(Lag3Treated)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-pagr_dat3 <- pagr_dat %>% filter(!is.na(Lag3Treated)) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-
-# fit models
-hydr_mod <- plm(PercDiffCovered ~ Lag3Treated, data = hydr_dat3,
-                index = c("PermanentID", "GSYear"), model = "within")
-wahy_mod <- update(hydr_mod, data = wahy_dat3)
-wale_mod <- update(hydr_mod, data = wale_dat3)
-cubu_mod <- update(hydr_mod, data = cubu_dat3)
-torp_mod <- update(hydr_mod, data = torp_dat3)
-pagr_mod <- update(hydr_mod, data = pagr_dat3)
-
-# check fits
-# overall p-values matches management estimate - use adjusted below
+hydr_mod <- plm(PercCovLogRatio ~ Treated, data = hydr_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(hydr_mod)
+
+wahy_mod <- plm(PercCovLogRatio ~ Treated, data = wahy_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(wahy_mod)
+
+wale_mod <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "random",
+                effect = "time")
 summary(wale_mod)
+
+cubu_mod <- plm(PercCovLogRatio ~ Treated, data = cubu_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(cubu_mod)
-summary(torp_mod)
+
+pagr_mod <- plm(PercCovLogRatio ~ Treated, data = pagr_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "random",
+                effect = "time")
 summary(pagr_mod)
-# all are balanced
+
+torp_mod <- plm(PercCovLogRatio ~ Treated, data = torp_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "random",
+                effect = "time")
+summary(torp_mod)
 
 # SE with heteroskedasticity and autocorrelation
-hydr_mod_se <- coeftest(hydr_mod, vcov = vcovHC, type = "HC3") # sig
-wahy_mod_se <- coeftest(wahy_mod, vcov = vcovHC, type = "HC3") # sig
-wale_mod_se <- coeftest(wale_mod, vcov = vcovHC, type = "HC3") # marginal
-cubu_mod_se <- coeftest(cubu_mod, vcov = vcovHC, type = "HC3") # not
-pagr_mod_se <- coeftest(pagr_mod, vcov = vcovHC, type = "HC3") # marginal
-torp_mod_se <- coeftest(torp_mod, vcov = vcovHC, type = "HC3") # sig
+hydr_mod_p <- coeftest(hydr_mod, vcov = vcovHC, type = "HC3") # sig
+wahy_mod_p <- coeftest(wahy_mod, vcov = vcovHC, type = "HC3") # sig
+wale_mod_p <- coeftest(wale_mod, vcov = vcovHC, type = "HC3") # not
+cubu_mod_p <- coeftest(cubu_mod, vcov = vcovHC, type = "HC3") # sig
+pagr_mod_p <- coeftest(pagr_mod, vcov = vcovHC, type = "HC3") # not
+torp_mod_p <- coeftest(torp_mod, vcov = vcovHC, type = "HC3") # not
 
-# add fitted values to pdata.frame (important to match rows)
-# convert to regular dataframe
-hydr_fit <- mutate(hydr_dat3, Fitted = as.numeric(hydr_dat3$PercDiffCovered - hydr_mod$residuals)) %>%
-  as.data.frame(keep.attributes = F)
-wahy_fit <- mutate(wahy_dat3, Fitted = as.numeric(wahy_dat3$PercDiffCovered - wahy_mod$residuals)) %>%
-  as.data.frame(keep.attributes = F)
-wale_fit <- mutate(wale_dat3, Fitted = as.numeric(wale_dat3$PercDiffCovered - wale_mod$residuals)) %>%
-  as.data.frame(keep.attributes = F)
-cubu_fit <- mutate(cubu_dat3, Fitted = as.numeric(cubu_dat3$PercDiffCovered - cubu_mod$residuals)) %>%
-  as.data.frame(keep.attributes = F)
-pagr_fit <- mutate(pagr_dat3, Fitted = as.numeric(pagr_dat3$PercDiffCovered - pagr_mod$residuals)) %>%
-  as.data.frame(keep.attributes = F)
-torp_fit <- mutate(torp_dat3, Fitted = as.numeric(torp_dat3$PercDiffCovered - torp_mod$residuals)) %>%
-  as.data.frame(keep.attributes = F)
+# result: negative effect of treatment for all species, sig for 3
 
-# fitted vs. observed
-ggplot(hydr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(wahy_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(wale_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(cubu_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(pagr_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-ggplot(torp_fit, aes(x = Fitted, y = PercDiffCovered)) + geom_point()
-# generally poor fits
 
-# export models
-save(hydr_mod, file = "output/fwc_hydrilla_treatment_model.rda")
-save(wahy_mod, file = "output/fwc_water_hyacinth_treatment_model.rda")
-save(wale_mod, file = "output/fwc_water_lettuce_treatment_model.rda")
-save(cubu_mod, file = "output/fwc_cuban_bulrush_treatment_model.rda")
-save(pagr_mod, file = "output/fwc_para_grass_treatment_model.rda")
-save(torp_mod, file = "output/fwc_torpedograss_treatment_model.rda")
+#### figures ####
 
-# combine SE tables
-foc_mod_se <- tidy(hydr_mod_se) %>%
-  mutate(term = "hydrilla",
-         R2 = r.squared(hydr_mod),
-         Waterbodies = n_distinct(hydr_dat3$PermanentID),
-         Years = n_distinct(hydr_dat3$GSYear),
-         N = nrow(hydr_dat3)) %>%
-  full_join(tidy(wahy_mod_se) %>%
-              mutate(term = "water hyacinth",
-                     R2 = r.squared(wahy_mod),
-                     Waterbodies = n_distinct(wahy_dat3$PermanentID),
-                     Years = n_distinct(wahy_dat3$GSYear),
-                     N = nrow(wahy_dat3))) %>%
-  full_join(tidy(wale_mod_se) %>%
-              mutate(term = "water lettuce",
-                     R2 = r.squared(wale_mod),
-                     Waterbodies = n_distinct(wale_dat3$PermanentID),
-                     Years = n_distinct(wale_dat3$GSYear),
-                     N = nrow(wale_dat3))) %>%
-  rename(Species = term,
-         Estimate = estimate,
-         SE = std.error,
-         t = statistic,
-         P = p.value)
+# trial figures
+ggplot(inv_dat2, aes(x = Treatment, y = PercCovLogRatio)) +
+  geom_point(size = 0.1, alpha = 0.5, 
+             position = position_jitter(width = 0.1, height = 0)) +
+  geom_boxplot() +
+  facet_wrap(~ CommonName, scales = "free")
 
-non_foc_mod_se <- tidy(cubu_mod_se) %>%
-  mutate(term = "Cuban bulrush",
-         R2 = r.squared(cubu_mod),
-         Waterbodies = n_distinct(cubu_dat3$PermanentID),
-         Years = n_distinct(cubu_dat3$GSYear),
-         N = nrow(cubu_dat3)) %>%
-  full_join(tidy(pagr_mod_se) %>%
-              mutate(term = "para grass",
-                     R2 = r.squared(pagr_mod),
-                     Waterbodies = n_distinct(pagr_dat3$PermanentID),
-                     Years = n_distinct(pagr_dat3$GSYear),
-                     N = nrow(pagr_dat3))) %>%
-  full_join(tidy(torp_mod_se) %>%
-              mutate(term = "torpedograss",
-                     R2 = r.squared(torp_mod),
-                     Waterbodies = n_distinct(torp_dat3$PermanentID),
-                     Years = n_distinct(torp_dat3$GSYear),
-                     N = nrow(torp_dat3))) %>%
-  rename(Species = term,
-         Estimate = estimate,
-         SE = std.error,
-         t = statistic,
-         P = p.value)
+ggplot(inv_dat2, aes(x = Treatment, y = PercCovLogRatio)) +
+  geom_point(size = 0.1, alpha = 0.5, 
+             position = position_jitter(width = 0.1, height = 0)) +
+  geom_violin(fill = NA) +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_dat2, aes(x = Treatment, y = PercCovLogRatio)) +
+  geom_point(size = 0.1, alpha = 0.5, color = "yellow", 
+             position = position_jitter(width = 0.1, height = 0)) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  facet_wrap(~ CommonName, scales = "free")
+
+ggplot(inv_dat2, aes(x = Treatment, y = exp(PercCovLogRatio))) +
+  stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+  stat_summary(geom = "point", fun = "mean") +
+  facet_wrap(~ CommonName, scales = "free")
+
+# figure function
+treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
+  
+  fig_p_val <- paste("p =", p_val)
+  
+  raw_dat_fig <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
+    geom_point(size = 0.1, alpha = 0.5, 
+               position = position_jitter(width = 0.1, height = 0)) +
+    def_theme_paper +
+    theme(axis.title = element_blank(),
+          axis.text.x = element_text(size = 7, color="black"))
+  
+  if(panel_title == "(A) hydrilla") {
+
+    raw_dat_fig <- raw_dat_fig +
+      scale_y_continuous(breaks = c(-5, 0, 5))
+
+  }
+
+  raw_dat_fig_pres <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
+    geom_point(size = 0.1, alpha = 0.5, 
+               position = position_jitter(width = 0.1, height = 0)) +
+    def_theme +
+    theme(axis.title = element_blank())
+  
+  sum_dat_fig <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
+    stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+    stat_summary(geom = "point", fun = "mean", size = 2) +
+    annotate(geom = "text", label = fig_p_val, size = paper_text_size, 
+             x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
+    labs(y = "Growth rate (log ratio)",
+         title = panel_title) +
+    def_theme_paper +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 9, color="black"))
+  
+  sum_dat_fig_pres <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
+    stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
+    stat_summary(geom = "point", fun = "mean", size = 3) +
+    annotate(geom = "text", label = fig_p_val, size = 4, 
+             x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
+    labs(y = "Growth rate (log ratio)") +
+    def_theme +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 14, color="black"))
+  
+  pap_fig <- sum_dat_fig + inset_element(raw_dat_fig, on_top = F,
+                                         left = 0.4, right = 0.99, bottom = 0.55, top = 0.99)
+  
+  pres_fig <- sum_dat_fig_pres + inset_element(raw_dat_fig_pres, on_top = F,
+                                               left = 0.45, right = 0.99, bottom = 0.55, top = 0.99)
+  
+  ggsave(filename = file_name, plot = pres_fig, device = "jpeg",
+         width = 5, height = 4)
+  
+  return(pap_fig)
+  
+}
+
+# figures
+hydr_fig <- treat_fig_fun(hydr_dat, round_half_up(hydr_mod_p[[4]], 4), "(A) hydrilla",
+                          "output/hydrilla_treatment_fig_presentation.jpg")
+wahy_fig <- treat_fig_fun(wahy_dat, round_half_up(wahy_mod_p[[4]], 5), "(B) water hyacinth",
+                          "output/water_hyacinth_treatment_fig_presentation.jpg")
+wale_fig <- treat_fig_fun(wale_dat, round_half_up(wale_mod_p[[8]], 1), "(C) water lettuce",
+                          "output/water_lettuce_treatment_fig_presentation.jpg")
+cubu_fig <- treat_fig_fun(cubu_dat, round_half_up(cubu_mod_p[[4]], 5), "(A) Cuban bulrush",
+                          "output/cuban_bulrush_treatment_fig_presentation.jpg")
+pagr_fig <- treat_fig_fun(pagr_dat, round_half_up(pagr_mod_p[[8]], 1), "(B) paragrass",
+                          "output/paragrass_treatment_fig_presentation.jpg")
+torp_fig <- treat_fig_fun(torp_dat, round_half_up(torp_mod_p[[8]], 1), "(C) torpedograss",
+                          "output/torpedograss_treatment_fig_presentation.jpg")
+
+# combine
+foc_figs <- hydr_fig + wahy_fig + wale_fig + plot_layout(ncol = 1)
+ggsave("output/fwc_focal_invasive_growth_treatment.png", foc_figs,
+       device = "png", width = 3, height = 8, units = "in")
+
+non_foc_figs <- cubu_fig + pagr_fig + torp_fig + plot_layout(ncol = 1)
+ggsave("output/fwc_non_focal_invasive_growth_treatment.png", non_foc_figs,
+       device = "png", width = 3, height = 8, units = "in")
+
+
+#### tables ####
+
+# combine summary
+foc_mod_sum <- tibble(Species = "hydrilla",
+                      Estimate = hydr_mod_p[1, 1],
+                      SE = hydr_mod_p[1, 2],
+                      t = hydr_mod_p[1, 3],
+                      P = hydr_mod_p[1, 4],
+                      R2 = r.squared(hydr_mod),
+                      Waterbodies = n_distinct(hydr_dat$AreaOfInterestID),
+                      Years = paste(range(count(hydr_dat, AreaOfInterestID)$n), collapse = "-"),
+                      N = nrow(hydr_dat)) %>%
+  full_join(tibble(Species = "water hyacinth",
+                   Estimate = wahy_mod_p[1, 1],
+                   SE = wahy_mod_p[1, 2],
+                   t = wahy_mod_p[1, 3],
+                   P = wahy_mod_p[1, 4],
+                   R2 = r.squared(wahy_mod),
+                   Waterbodies = n_distinct(wahy_dat$AreaOfInterestID),
+                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   N = nrow(wahy_dat))) %>%
+  full_join(tibble(Species = "water lettuce",
+                   Estimate = wale_mod_p[2, 1],
+                   SE = wale_mod_p[2, 2],
+                   t = wale_mod_p[2, 3],
+                   P = wale_mod_p[2, 4],
+                   R2 = r.squared(wale_mod),
+                   Waterbodies = n_distinct(wale_dat$AreaOfInterestID),
+                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   N = nrow(wale_dat)))
+
+non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
+                          Estimate = cubu_mod_p[1, 1],
+                          SE = cubu_mod_p[1, 2],
+                          t = cubu_mod_p[1, 3],
+                          P = cubu_mod_p[1, 4],
+                          R2 = r.squared(cubu_mod),
+                          Waterbodies = n_distinct(cubu_dat$AreaOfInterestID),
+                          Years = paste(range(count(cubu_dat, AreaOfInterestID)$n), collapse = "-"),
+                          N = nrow(cubu_dat)) %>%
+  full_join(tibble(Species = "paragrass",
+                   Estimate = pagr_mod_p[2, 1],
+                   SE = pagr_mod_p[2, 2],
+                   t = pagr_mod_p[2, 3],
+                   P = pagr_mod_p[2, 4],
+                   R2 = r.squared(pagr_mod),
+                   Waterbodies = n_distinct(pagr_dat$AreaOfInterestID),
+                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   N = nrow(pagr_dat))) %>%
+  full_join(tibble(Species = "torpedograss",
+                   Estimate = torp_mod_p[2, 1],
+                   SE = torp_mod_p[2, 2],
+                   t = torp_mod_p[2, 3],
+                   P = torp_mod_p[2, 4],
+                   R2 = r.squared(torp_mod),
+                   Waterbodies = n_distinct(torp_dat$AreaOfInterestID),
+                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   N = nrow(torp_dat)))
 
 # export
-write_csv(foc_mod_se, "output/fwc_focal_treatment_model_summary.csv")
-write_csv(non_foc_mod_se, "output/fwc_non_focal_treatment_model_summary.csv")
-
-
-#### model prediction figures ####
-
-# combine data
-foc_fit_dat <- hydr_fit %>%
-  full_join(wahy_fit) %>%
-  full_join(wale_fit) %>%
-  mutate(Treated = Lag3Treated * 3,
-         PanelName = case_when(CommonName == "Hydrilla" ~ "(A) hydrilla",
-                               CommonName == "Water hyacinth" ~ "(B) water hyacinth",
-                               CommonName == "Water lettuce" ~ "(C) water lettuce"))
-
-non_foc_fit_dat <- cubu_fit %>%
-  full_join(pagr_fit) %>%
-  full_join(torp_fit) %>%
-  mutate(Treated = Lag3Treated * 3,
-         PanelName = case_when(CommonName == "Cuban bulrush" ~ "(A) Cuban bulrush",
-                               CommonName == "Para grass" ~ "(B) para grass",
-                               CommonName == "Torpedograss" ~ "(C) torpedograss"))
-
-# raw data (each waterbody represented)
-ggplot(foc_fit_dat, aes(x = Treated, color = PermanentID)) +
-  geom_point(aes(y = PercDiffCovered), alpha = 0.3) +
-  geom_line(aes(y = Fitted)) +
-  facet_wrap(~ PanelName, scales = "free") +
-  labs(x = "Years managed (out of 3)", y = "Annual difference in PAC") +
-  def_theme_paper +
-  theme(legend.position = "none")
-
-ggplot(non_foc_fit_dat, aes(x = Treated, color = PermanentID)) +
-  geom_point(aes(y = PercDiffCovered), alpha = 0.3) +
-  geom_line(aes(y = Fitted)) +
-  facet_wrap(~ PanelName, scales = "free") +
-  labs(x = "Years managed (out of 3)", y = "Annual difference in PAC") +
-  def_theme_paper +
-  theme(legend.position = "none")
-
-
-# summarize raw data
-foc_pred_fig <- ggplot(foc_fit_dat, aes(x = Treated)) +
-  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
-  geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
-  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
-               aes(y = PercDiffCovered)) +
-  stat_summary(geom = "point", fun = "mean", size = 2,
-               aes(y = PercDiffCovered)) +
-  facet_wrap(~ PanelName, scales = "free") +
-  labs(x = "Years managed (out of 3)", y = "Annual difference in PAC") +
-  scale_color_manual(values = rep(kelly(), 9)) +
-  def_theme_paper +
-  theme(legend.position = "none",
-        strip.text = element_text(size = 9, color = "black", hjust = 0))
-
-non_foc_pred_fig <- ggplot(non_foc_fit_dat, aes(x = Treated)) +
-  geom_point(aes(y = Fitted, color = PermanentID), size = 0.5, alpha = 0.05) +
-  geom_line(aes(y = Fitted, color = PermanentID), alpha = 0.5) +
-  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0,
-               aes(y = PercDiffCovered)) +
-  stat_summary(geom = "point", fun = "mean", size = 2,
-               aes(y = PercDiffCovered)) +
-  facet_wrap(~ PanelName, scales = "free") +
-  labs(x = "Years managed (out of 3)", y = "Annual difference in PAC") +
-  scale_color_manual(values = rep(kelly(), 9)) +
-  scale_x_continuous(breaks = c(0, 1, 2, 3)) +
-  def_theme_paper +
-  theme(legend.position = "none",
-        strip.text = element_text(size = 9, color = "black", hjust = 0))
-
-# save
-ggsave("output/fwc_focal_invasive_PAC_diff_treatment_prediction.png", foc_pred_fig,
-       device = "png", width = 6.5, height = 2.5, units = "in")
-
-ggsave("output/fwc_non_focal_invasive_PAC_diff_treatment_prediction.png", non_foc_pred_fig,
-       device = "png", width = 6.5, height = 2.5, units = "in")
+write_csv(foc_mod_sum, "output/fwc_focal_treatment_model_summary.csv")
+write_csv(non_foc_mod_sum, "output/fwc_non_focal_treatment_model_summary.csv")
 
 
 #### values for text ####
 
 # data tables
-foc_sum <- foc_fit_dat %>%
-  group_by(CommonName) %>%
-  summarize(InitPercCovered = mean(InitPercCovered)) %>%
-  ungroup() %>%
-  left_join(tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
-                   DiffNone = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), mean(fixef(wale_mod))),
-                   Treat = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod))))) %>%
-  mutate(DiffTreat = DiffNone + Treat,
-         ChangeNone = 100 * DiffNone / InitPercCovered,
-         ChangeTreat = 100 * DiffTreat / InitPercCovered)
+foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
+                  Incpt = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), 
+                            as.numeric(wale_mod$coefficients["(Intercept)"])),
+                  Beta = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod)[2]))) %>%
+  mutate(IncptBeta = Incpt + Beta,
+         NoTreat = 100 * (exp(Incpt) - 1),
+         Treat = 100 * (exp(IncptBeta) - 1))
 
-non_foc_sum <- non_foc_fit_dat %>%
-  group_by(CommonName) %>%
-  summarize(InitPercCovered = mean(InitPercCovered)) %>%
-  ungroup() %>%
-  left_join(tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
-                   DiffNone = c(mean(fixef(cubu_mod)), mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
-                   Treat = as.numeric(c(coef(cubu_mod), coef(pagr_mod), coef(torp_mod))))) %>%
-  mutate(DiffTreat = DiffNone + Treat,
-         ChangeNone = 100 * DiffNone / InitPercCovered,
-         ChangeTreat = 100 * DiffTreat / InitPercCovered)
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Paragrass", "Torpedograss"),
+                      Incpt = c(mean(fixef(cubu_mod)), as.numeric(pagr_mod$coefficients["(Intercept)"]), 
+                                as.numeric(torp_mod$coefficients["(Intercept)"])),
+                      Beta = as.numeric(c(coef(cubu_mod), coef(pagr_mod)[2], coef(torp_mod)[2]))) %>%
+  mutate(IncptBeta = Incpt + Beta,
+         NoTreat = 100 * (exp(Incpt) - 1),
+         Treat = 100 * (exp(IncptBeta) - 1))
 
 # save data table
-write_csv(foc_sum, "output/fwc_focal_invasive_PAC_change_treatment_prediction.csv")
-write_csv(non_foc_sum, "output/fwc_non_focal_invasive_PAC_change_treatment_prediction.csv")
+write_csv(foc_sum, "output/fwc_focal_invasive_growth_treatment_prediction.csv")
+write_csv(non_foc_sum, "output/fwc_non_focal_invasive_growth_treatment_prediction.csv")
 
-
-#### last treatment models ####
-
-# only using lag 3
-hydr_last_dat <- hydr_dat %>% filter(!is.na(LastTreatment)) %>%
-  mutate(PercCovered = 100 * PropCovered) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-wahy_last_dat <- wahy_dat %>% filter(!is.na(LastTreatment)) %>%
-  mutate(PercCovered = 100 * PropCovered) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-wale_last_dat <- wale_dat %>% filter(!is.na(LastTreatment)) %>%
-  mutate(PercCovered = 100 * PropCovered) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-cubu_last_dat <- cubu_dat %>% filter(!is.na(LastTreatment)) %>%
-  mutate(PercCovered = 100 * PropCovered) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-torp_last_dat <- torp_dat %>% filter(!is.na(LastTreatment)) %>%
-  mutate(PercCovered = 100 * PropCovered) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-pagr_last_dat <- pagr_dat %>% filter(!is.na(LastTreatment)) %>%
-  mutate(PercCovered = 100 * PropCovered) %>%
-  pdata.frame(index = c("PermanentID", "GSYear"))
-
-# fit models
-hydr_last_mod <- plm(PercCovered ~ LastTreatment, data = hydr_last_dat,
-                index = c("PermanentID", "GSYear"), model = "within")
-wahy_last_mod <- update(hydr_last_mod, data = wahy_last_dat)
-wale_last_mod <- update(hydr_last_mod, data = wale_last_dat)
-cubu_last_mod <- update(hydr_last_mod, data = cubu_last_dat)
-torp_last_mod <- update(hydr_last_mod, data = torp_last_dat)
-pagr_last_mod <- update(hydr_last_mod, data = pagr_last_dat)
-
-# check fits
-summary(hydr_last_mod)
-summary(wahy_last_mod)
-summary(wale_last_mod)
-summary(cubu_last_mod)
-summary(torp_last_mod)
-summary(pagr_last_mod)
-# all are balanced
-
-# SE with heteroskedasticity and autocorrelation
-(hydr_last_mod_se <- coeftest(hydr_last_mod, vcov = vcovHC, type = "HC3")) # sig negative
-(wahy_last_mod_se <- coeftest(wahy_last_mod, vcov = vcovHC, type = "HC3")) # sig negative
-(wale_last_mod_se <- coeftest(wale_last_mod, vcov = vcovHC, type = "HC3")) # not
-(cubu_last_mod_se <- coeftest(cubu_last_mod, vcov = vcovHC, type = "HC3")) # not
-(pagr_last_mod_se <- coeftest(pagr_last_mod, vcov = vcovHC, type = "HC3")) # not
-(torp_last_mod_se <- coeftest(torp_last_mod, vcov = vcovHC, type = "HC3")) # not

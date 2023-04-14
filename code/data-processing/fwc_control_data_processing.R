@@ -493,11 +493,13 @@ for(i in (qual_max_lag - 1):0) {
 # ungroup
 inv_ctrl4 <- inv_ctrl3 %>%
   ungroup() %>%
-  mutate(RecentTreatment = 1 / (LastTreatment + 1))
+  mutate(RecentTreatment = 1 / (LastTreatment + 1),
+         RecentTreatment = replace_na(RecentTreatment, 0)) # no record of treatment
 
 qual_ctrl4 <- qual_ctrl3 %>%
   ungroup() %>%
-  mutate(RecentTreatment = 1 / (LastTreatment + 1))
+  mutate(RecentTreatment = 1 / (LastTreatment + 1),
+         RecentTreatment = replace_na(RecentTreatment, 0))
 
 # check that it worked (use hydrilla because it's managed the most)
 aois <- unique(inv_ctrl4$AreaOfInterestID)

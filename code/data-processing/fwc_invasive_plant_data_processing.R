@@ -66,7 +66,9 @@ inv_fwc <- plant_fwc %>%
          GSYearDiff = GSYear - lag(GSYear),
          PercCovered = 100 * EstAreaCoveredAdj_ha / Waterbody_ha,
          PrevPercCovered = if_else(GSYearDiff == 1, lag(PercCovered), NA_real_),
-         PercDiffCovered = PercCovered - PrevPercCovered) %>%
+         PercCovDiff = PercCovered - PrevPercCovered,
+         PercCovRatio = (PercCovered + 1) / (PrevPercCovered + 1),
+         PercCovLogRatio = log(PercCovRatio)) %>%
   ungroup()
 
 # check for raw percent > 100
