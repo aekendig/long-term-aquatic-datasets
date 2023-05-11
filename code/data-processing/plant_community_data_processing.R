@@ -9,16 +9,14 @@ library(janitor)
 library(lubridate)
 
 # import data
-plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted_temporal_coverage.csv",
-                      col_types = list(JoinNotes = col_character(),
-                                       PermanentID = col_character()))
-plant_fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
-                       col_types = list(Depth_ft = col_double(),
-                                        PermanentID = col_character(),
-                                        YearF = col_character()))
+plant_fwc <- read_csv("intermediate-data/FWC_plant_formatted.csv")
+# plant_fwri <- read_csv("intermediate-data/FWRI_plant_formatted.csv",
+#                        col_types = list(Depth_ft = col_double(),
+#                                         PermanentID = col_character(),
+#                                         YearF = col_character()))
 key_all_acre <- read_csv("original-data/FWC_plant_survey_key_all_acreage.csv")
 key_all_pres <- read_csv("original-data/FWC_plant_survey_key_all_presence.csv")
-inv_plant <- read_csv("intermediate-data/FWC_invasive_plant_formatted.csv")
+inv_plant <- read_csv("intermediate-data/FWC_only_invasive_plant_formatted.csv")
 ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv") 
 
 #### edit plant community data ####
@@ -80,16 +78,15 @@ plant_fwc2 %>%
   filter(surveys > 1) 
 # 33 AOIs have multiple surveys in a year
 
-# summarize by permanentID to remove duplicates
+# summarize to remove duplicates
 plant_fwc3 <- plant_fwc2 %>%
-  group_by(PermanentID, Area_ha, GSYear, PreCtrl, TaxonName, Habitat, Origin) %>%
-  summarize(AreaName = paste(sort(unique(AreaOfInterest)), collapse = "/"),
-            SurveyDate = max(SurveyDate),
+  group_by(AreaOfInterestID, AreaOfInterest, PermanentID, Area_ha, GSYear, PreCtrl, TaxonName, Habitat, Origin) %>%
+  summarize(SurveyDate = max(SurveyDate),
             Detected = as.numeric(sum(Detected) > 0)) %>%
   ungroup()
 
 plant_fwc3 %>%
-  group_by(PermanentID, GSYear, TaxonName) %>%
+  group_by(AreaOfInterestID, GSYear, TaxonName) %>%
   summarise(surveys = length(unique(SurveyDate))) %>%
   ungroup() %>%
   filter(surveys > 1) 
@@ -97,14 +94,10 @@ plant_fwc3 %>%
 
 # add row for every year for each site/species combo (NA's for missing surveys)
 plant_fwc4 <- plant_fwc3 %>%
-  full_join(plant_fwc3 %>%
-              select(PermanentID, TaxonName, Origin) %>%
-              unique() %>%
-              expand_grid(GSYear = min(plant_fwc3$GSYear):max(plant_fwc3$GSYear))) %>%
-  group_by(PermanentID, TaxonName) %>%
+  group_by(AreaOfInterestID, TaxonName) %>%
   arrange(GSYear) %>% 
-  mutate(PrevDetected = lag(Detected), # previous year's detection
-         NextDetected = lead(Detected)) %>%
+  mutate(GSYearDiff = GSYear - lag(GSYear),
+         PrevDetected = if_else(GSYearDiff == 1, lag(Detected), NA_real_)) %>% # previous year's detection
   ungroup()
 
 # species richness over time
@@ -132,7 +125,7 @@ dev.off()
 
 # make sure missing Detected/PrevDetected applies to all taxa
 plant_fwc4 %>%
-  group_by(PermanentID, GSYear, Origin) %>%
+  group_by(AreaOfInterestID, GSYear, Origin) %>%
   summarize(NADetected = sum(is.na(Detected)),
             TotDetected = length(Detected),
             NAPrevDetected = sum(is.na(PrevDetected)),
@@ -144,7 +137,7 @@ plant_fwc4 %>%
 
 # zero detected
 plant_fwc4 %>%
-  group_by(PermanentID, AreaName, GSYear, SurveyDate) %>%
+  group_by(AreaOfInterestID, GSYear, SurveyDate) %>%
   summarize(TotDetected = sum(Detected)) %>%
   ungroup() %>%
   filter(TotDetected == 0)
@@ -162,11 +155,11 @@ nat_fwc <- plant_fwc4 %>%
 
 # total waterbody-year combos
 TotWatYear <- nat_fwc %>%
-  select(PreCtrl, PermanentID, GSYear) %>%
+  select(PreCtrl, AreaOfInterestID, GSYear) %>%
   unique() %>%
   group_by(PreCtrl) %>%
   summarize(TotWatYear = n(),
-            TotWaterbody = n_distinct(PermanentID)) %>%
+            TotWaterbody = n_distinct(AreaOfInterestID)) %>%
   ungroup()
 
 # total habitat types
@@ -182,7 +175,7 @@ common_fwc <- nat_fwc %>%
   filter(Detected == 1) %>%
   group_by(TaxonName, Habitat, Origin, PreCtrl) %>%
   summarize(OccWatYear = n(),
-            OccWaterbody = n_distinct(PermanentID)) %>%
+            OccWaterbody = n_distinct(AreaOfInterestID)) %>%
   ungroup() %>%
   group_by(PreCtrl) %>%
   mutate(RankWatYear = rank(-OccWatYear),
@@ -254,62 +247,25 @@ nat_fwc2 <- nat_fwc %>%
 write_csv(nat_fwc2, "intermediate-data/FWC_common_native_plants_formatted.csv")
 
 
-#### invasive plant data ####
+#### START HERE: invasion and management data ####
 
-# combine water hyacinth and lettuce percent covered
-floating_cover <- inv_plant %>%
-  filter(CommonName %in% c("Water hyacinth", "Water lettuce")) %>%
-  group_by(PermanentID, GSYear) %>%
-  summarize(across(.cols = ends_with ("PropCovered"), sum),
-            InitPercCovered = sum(InitPercCovered),
-            SpeciesAcres = sum(SpeciesAcres),
-            EstAreaCoveredRaw_ha = sum(EstAreaCoveredRaw_ha)) %>%
-  ungroup() %>%
-  mutate(across(.cols = ends_with ("PropCovered"), ~ if_else(.x > 1, 1, .x)),
-         InitPercCovered = if_else(InitPercCovered > 1, 1, InitPercCovered),
-         CommonName = "floating plants")
+# asked candice about absence of control data
+# may need to update control dataset
 
-# add floating cover
-inv_plant2 <- inv_plant %>%
-  full_join(floating_cover) %>%
-  mutate(across(ends_with("PropCovered"), ~ .x * 100), # change proportion to percent
-         Lag2APCsq = Lag2AvgPropCovered^2) %>% # square perc covered
-  rename_with(str_replace, pattern = "PropCovered", replacement = "PercCovered") %>%
-  select(CommonName, PermanentID, GSYear, ends_with("PercCovered"), Lag2APCsq, SpeciesAcres, EstAreaCoveredRaw_ha)
+# combine
+inv_ctrl <- inner_join(inv_plant, ctrl %>%
+                         rename(TaxonName = Species)) %>%
+  group_by(AreaOfInterestID, TaxonName) %>%
+  mutate(InvPresent = if_else(sum(EstAreaCoveredRaw_ha > 0) > 0, 
+                              "yes", "no"),
+         TreatPresent = if_else(sum(Treated > 0) > 0,
+                                "yes", "no")) %>%
+  ungroup()
 
-# Species names
-inv_taxa <- tibble(Species = c("Hydrilla verticillata", "Floating Plants (Eichhornia and Pistia)", "Panicum repens", "Urochloa mutica", "Cyperus blepharoleptos"),
-                   CommonName = c("Hydrilla", "floating plants", "Torpedograss", "Para grass", "Cuban bulrush"))
-
-
-#### management data ####
-
-# use "Species" and "unique" to get floating plants combined
-# becaue GSYear has already been calibrated to precede the plant survey
-ctrl2 <- ctrl %>%
-  select(Species, PermanentID, GSYear, LastTreatment, RecentTreatment, ends_with("Treated")) %>%
-  unique() %>%
-  left_join(inv_taxa) 
-
-
-#### identify waterbodies to use ####
-
-# has the plant ever been established?
-# by using EstAreaCoveredRaw_ha, there had to be more than one year per permanentID
-perm_plant <- inv_plant2 %>%
-  group_by(PermanentID, CommonName) %>%
-  summarize(Established = as.numeric(sum(EstAreaCoveredRaw_ha) > 0)) %>%
-  ungroup() %>%
-  filter(Established > 0)
-
-# has the plant ever been treated?
-perm_ctrl <- ctrl2 %>%
-  group_by(PermanentID, Species) %>%
-  summarize(Treatments = as.numeric(sum(Treated, na.rm = T) > 0)) %>%
-  ungroup() %>%
-  filter(Treatments > 0) %>%
-  left_join(inv_taxa) %>%
-  select(-Species)
+# values
+inv_ctrl %>%
+  distinct(AreaOfInterestID, TaxonName, InvPresent, TreatPresent) %>%
+  count(TaxonName, InvPresent, TreatPresent)
 
 # waterbodies that have the species present and been managed at least once
 perm_plant_ctrl <- inner_join(perm_plant, perm_ctrl) %>%

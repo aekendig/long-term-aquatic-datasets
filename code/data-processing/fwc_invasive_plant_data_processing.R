@@ -32,6 +32,10 @@ plant_fwc %>%
   get_dupes(AreaOfInterestID)
 # 465
 
+# duplicates?
+get_dupes(plant_fwc)
+# none
+
 
 #### edit data ####
 
@@ -40,13 +44,21 @@ inv_taxa <- tibble(TaxonName = c("Hydrilla verticillata", "Pistia stratiotes", "
                    CommonName = c("Hydrilla", "Water lettuce", "Water hyacinth", "Torpedograss", "Para grass", "Cuban bulrush"),
                    Code = c("HYDR", "WALE", "WAHY", "TORP", "PAGR", "BUSE"))
 
+# multiple surveys in one year?
+(dup_inv <- plant_fwc %>%
+  filter(TaxonName %in% inv_taxa$TaxonName) %>%
+  group_by(TaxonName, AreaOfInterestID, GSYear) %>%
+  mutate(surveys = length(unique(SurveyDate))) %>%
+  ungroup() %>%
+  filter(surveys > 1) %>%
+  select(TaxonName, AreaOfInterest, GSYear, SurveyDate, SpeciesAcres) %>%
+  arrange(TaxonName, AreaOfInterest, GSYear, SurveyDate))
+# 428
+
 # plant abundance dataset
 inv_fwc <- plant_fwc %>%
-  filter(!(AreaOfInterestID == 476 & SurveyYear == 2017)) %>%  # incomplete survey
-  filter(TaxonName %in% inv_taxa$TaxonName) %>% # select desired taxa
-  select(AreaOfInterest, AreaOfInterestID, County, PermanentID, ShapeArea, WaterbodyAcres, 
-         SurveyDate, Surveyor, SurveyMonth, SurveyDay, SurveyYear, GSYear,
-         TaxonName, SpeciesAcres) %>%
+  filter(!(AreaOfInterestID == 476 & SurveyYear == 2017) &  # incomplete survey
+           TaxonName %in% inv_taxa$TaxonName) %>% # select desired taxa
   mutate(AreaOfInterest = if_else(AreaOfInterest == "Watermelon Pond" & AreaOfInterestID == 465,
                                   "Watermellon Pond", # correct dual-spelled name
                                   AreaOfInterest),
@@ -55,15 +67,37 @@ inv_fwc <- plant_fwc %>%
          AreaCovered_ha = SpeciesAcres * 0.405, # convert plant cover from acres to hectares,
          MonthDay = case_when(SurveyMonth >= 4 ~ as.Date(paste("2020", SurveyMonth, SurveyDay, sep = "-")), # start "year" in April (2020/2021 are arbitrary)
                               SurveyMonth < 4 ~ as.Date(paste("2021", SurveyMonth, SurveyDay, sep = "-")))) %>% # this is for joining dayDat
-  left_join(inv_taxa) %>% # add common name
   left_join(dayDat) %>% # add standardized days (proportion between April 1 and March 31)
   mutate(AreaChangeSD = lakeO_area_beta1 * (lakeO_area_days-Days) + lakeO_area_beta2 * (lakeO_area_days^2 - Days^2)) %>% # calculate the number of sd's to change to get est. max abundance
   group_by(AreaOfInterestID, TaxonName) %>% # take standard deviation by survey area and species
-  arrange(GSYear) %>%
-  mutate(EstAreaCoveredRaw_ha = case_when(SpeciesAcres > 0.01 ~ AreaCovered_ha + AreaChangeSD * sd(AreaCovered_ha, na.rm = T), # adjust by sd
+  mutate(SDAreaCovered = sd(AreaCovered_ha, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(EstAreaCoveredRaw_ha = case_when(SpeciesAcres > 0.01 ~ AreaCovered_ha + AreaChangeSD * SDAreaCovered, # adjust by sd
                                           TRUE ~ AreaCovered_ha),
-         EstAreaCoveredAdj_ha = if_else(EstAreaCoveredRaw_ha > Waterbody_ha, Waterbody_ha, EstAreaCoveredRaw_ha),
-         GSYearDiff = GSYear - lag(GSYear),
+         EstAreaCoveredAdj_ha = if_else(EstAreaCoveredRaw_ha > Waterbody_ha, Waterbody_ha, EstAreaCoveredRaw_ha)) %>%
+  group_by(AreaOfInterestID, GSYear, TaxonName) %>% # account for multiple surveys per GSyear
+  mutate(MaxSpeciesArea = if_else(sum(!is.na(EstAreaCoveredAdj_ha)) > 0,
+                                  max(EstAreaCoveredAdj_ha, na.rm = T),
+                                  NA_real_),
+         TempSurveyDate = if_else(EstAreaCoveredAdj_ha == MaxSpeciesArea |
+                                   (is.na(EstAreaCoveredAdj_ha) & is.na(MaxSpeciesArea)),
+                                 SurveyDate,
+                                 NA_Date_),
+         MaxSurveyDate = max(TempSurveyDate, na.rm = T),
+         nMaxArea = if_else(!is.na(MaxSpeciesArea),
+                             sum(EstAreaCoveredAdj_ha == MaxSpeciesArea),
+                            sum(is.na(EstAreaCoveredAdj_ha)))) %>%
+  ungroup() %>%
+  filter((nMaxArea == 1 & EstAreaCoveredAdj_ha == MaxSpeciesArea) | # choose max area or max date
+           (nMaxArea > 1 & SurveyDate == MaxSurveyDate)) %>%
+  select(AreaOfInterest, AreaOfInterestID, County, PermanentID, Area_ha, Waterbody_ha, 
+         SpeciesAcres, AreaCovered_ha, EstAreaCoveredRaw_ha, EstAreaCoveredAdj_ha,
+         SurveyDate, Surveyor, SurveyMonth, SurveyDay, SurveyYear, GSYear,
+         TaxonName) %>%
+  left_join(inv_taxa) %>% # add common name
+  group_by(AreaOfInterestID, TaxonName) %>%
+  arrange(GSYear) %>%
+  mutate(GSYearDiff = GSYear - lag(GSYear),
          PercCovered = 100 * EstAreaCoveredAdj_ha / Waterbody_ha,
          PrevPercCovered = if_else(GSYearDiff == 1, lag(PercCovered), NA_real_),
          PercCovDiff = PercCovered - PrevPercCovered,
@@ -79,22 +113,33 @@ inv_fwc %>%
   data.frame()
 # all hydrilla, pretty close to total waterbody
 
-# missing data
+# missing data?
 inv_fwc %>%
-  filter(is.na(PercCovered) & !is.na(SpeciesAcres)) %>%
-  distinct(TaxonName, AreaOfInterestID) %>%
-  inner_join(inv_fwc) %>%
-  filter(!is.na(SpeciesAcres)) %>%
-  count(TaxonName, AreaOfInterestID) %>%
-  full_join(inv_fwc %>%
-              filter(is.na(PercCovered) & !is.na(SpeciesAcres)) %>%
-              select(TaxonName, AreaOfInterest, GSYear, SpeciesAcres, 
-                     AreaCovered_ha, AreaChangeSD, EstAreaCoveredRaw_ha, Waterbody_ha))
-# 5 NA's, all only have on replicate
+  filter(is.na(PercCovered) & !is.na(SpeciesAcres))
+# none
+
+# duplicates?
+inv_fwc %>%
+  group_by(TaxonName, AreaOfInterestID, GSYear) %>%
+  mutate(surveys = n_distinct(SurveyDate)) %>%
+  ungroup() %>%
+  filter(surveys > 1)
+# none
+
+get_dupes(inv_fwc, TaxonName, AreaOfInterestID, GSYear)
 
 # remove missing years
 inv_fwc2 <- inv_fwc %>%
   filter(!is.na(PercCovered))
+
+# waterbody-level rep
+inv_fwc2 %>%
+  group_by(AreaOfInterestID, TaxonName) %>%
+  summarize(surveys = n_distinct(SurveyDate)) %>%
+  ungroup() %>%
+  ggplot(aes(x = surveys)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ TaxonName)
 
 # save
 write_csv(inv_fwc2, "intermediate-data/FWC_only_invasive_plant_formatted.csv")

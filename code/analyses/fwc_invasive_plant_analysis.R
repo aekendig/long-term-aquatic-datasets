@@ -23,16 +23,16 @@ inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
 #### edit data ####
 
-# match ctrl species to invasion taxon
-tax_spp <- tibble(TaxonName = c("Cyperus blepharoleptos", "Eichhornia crassipes", "Hydrilla verticillata", "Panicum repens", "Pistia stratiotes", "Urochloa mutica"),
-                  Species = c("Cyperus blepharoleptos", "Floating Plants (Eichhornia and Pistia)", "Hydrilla verticillata", "Panicum repens", "Floating Plants (Eichhornia and Pistia)", "Urochloa mutica"))
-
+#### START HERE ####
+# modified data by adding back in lakes with presence in first year, but not following years
+# these were taken out by filtering order
+# asked Candice if lakes without management of species A can be assumed to have no mgmt for species A
+# revise ctrl dataset if so
 
 # combine datasets
-inv_dat <- inv_plant %>%
-  filter(!is.na(PrevPercCovered)) %>% # require two consecutive yeras
-  left_join(tax_spp) %>%
-  inner_join(inv_ctrl)
+inv_dat <- inv_plant %>% # require two consecutive yeras
+  inner_join(inv_ctrl %>%
+               rename(TaxonName = Species))
 
 # species presence
 pres_tax <- inv_dat %>%
@@ -40,7 +40,7 @@ pres_tax <- inv_dat %>%
   summarize(Present = sum(EstAreaCoveredRaw_ha > 0)) %>%
   ungroup() 
 
-# lakes that have the species detecte
+# lakes that have the species detected
 pres_tax_inv <- pres_tax %>%
   filter(Present > 0)
 
@@ -52,10 +52,12 @@ write_csv(pres_tax_uninv, "output/fwc_uninvaded_AOI.csv")
 
 # filter for lakes
 inv_dat2 <- inv_dat %>%
+  filter(!is.na(PrevPercCovered)) %>%
   inner_join(pres_tax_inv %>%
                select(AreaOfInterestID, TaxonName)) %>%
   mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
-         Treatment = if_else(Treated == 0, "Not treated", "Treated"))
+         Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
+           fct_relevel("Not mngd."))
 
 # check data availability
 inv_dat2 %>%
@@ -66,15 +68,17 @@ inv_dat2 %>%
   facet_wrap(~ CommonName, scales = "free_y") +
   theme(legend.position = "none")
 # Cuban bulrush is missing a lot of data before 2013
-# Para grass and torpedograss start in 1999
+
+# species
+tax_spp <- sort(unique(inv_dat2$TaxonName))
 
 # loop through taxa
 pdf("output/invasive_plant_time_series_by_taxon.pdf")
 
-for(i in 1:nrow(tax_spp)){
+for(i in 1:length(tax_spp)){
   
   # subset data
-  subdat <- inv_dat2 %>% filter(TaxonName == tax_spp$TaxonName[i])
+  subdat <- inv_dat2 %>% filter(TaxonName == tax_spp[i])
   subdat_ctrl <- subdat %>% filter(Treated > 0)
   
   # make figure
@@ -82,7 +86,7 @@ for(i in 1:nrow(tax_spp)){
                            color = AreaOfInterestID)) +
           geom_line() +
           geom_point(data = subdat_ctrl) + 
-          labs(x = "Year", y = "Percent area covered", title = tax_spp$TaxonName[i]) +
+          labs(x = "Year", y = "Percent area covered", title = tax_spp[i]) +
           def_theme_paper +
           theme(strip.text = element_blank(),
                 plot.title = element_text(hjust = 0.5, size = 8),
@@ -178,6 +182,14 @@ inv_dat2 %>%
   geom_histogram() +
   facet_wrap(~ CommonName, scales = "free")
 # include in supplement
+
+# sample sizes
+inv_dat2 %>%
+  group_by(CommonName, Treated) %>%
+  summarize(mean = mean(PercCovLogRatio),
+            var = var(PercCovLogRatio),
+            n = length(PercCovLogRatio))
+# variance of hydrilla in treated years is very high
 
 
 #### evaluate model structure ####
@@ -311,12 +323,12 @@ torp_mod <- plm(PercCovLogRatio ~ Treated, data = torp_dat,
 summary(torp_mod)
 
 # SE with heteroskedasticity and autocorrelation
-hydr_mod_p <- coeftest(hydr_mod, vcov = vcovHC, type = "HC3") # sig
-wahy_mod_p <- coeftest(wahy_mod, vcov = vcovHC, type = "HC3") # sig
-wale_mod_p <- coeftest(wale_mod, vcov = vcovHC, type = "HC3") # not
-cubu_mod_p <- coeftest(cubu_mod, vcov = vcovHC, type = "HC3") # sig
-pagr_mod_p <- coeftest(pagr_mod, vcov = vcovHC, type = "HC3") # not
-torp_mod_p <- coeftest(torp_mod, vcov = vcovHC, type = "HC3") # not
+(hydr_mod_p <- coeftest(hydr_mod, vcov = vcovHC, type = "HC3")) # sig
+(wahy_mod_p <- coeftest(wahy_mod, vcov = vcovHC, type = "HC3")) # sig
+(wale_mod_p <- coeftest(wale_mod, vcov = vcovHC, type = "HC3")) # not
+(cubu_mod_p <- coeftest(cubu_mod, vcov = vcovHC, type = "HC3")) # sig
+(pagr_mod_p <- coeftest(pagr_mod, vcov = vcovHC, type = "HC3")) # not
+(torp_mod_p <- coeftest(torp_mod, vcov = vcovHC, type = "HC3")) # not
 
 # result: negative effect of treatment for all species, sig for 3
 
@@ -353,6 +365,17 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
   
   fig_p_val <- paste("p =", p_val)
   
+  dat_sum <- dat_in %>%
+    group_by(Treatment) %>%
+    summarize(mean = mean(PercCovLogRatio),
+              n = length(PercCovLogRatio),
+              se = sd(PercCovLogRatio) / sqrt(n)) %>%
+    ungroup() %>%
+    mutate(ymax = mean + se,
+           ymin = mean - se,
+           samps = paste("n =", n),
+           samps_y = min(ymin))
+  
   raw_dat_fig <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
     geom_point(size = 0.1, alpha = 0.5, 
                position = position_jitter(width = 0.1, height = 0)) +
@@ -373,9 +396,11 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
     def_theme +
     theme(axis.title = element_blank())
   
-  sum_dat_fig <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
-    stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-    stat_summary(geom = "point", fun = "mean", size = 2) +
+  sum_dat_fig <- ggplot(dat_sum, aes(x = Treatment, y = mean)) +
+    geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0) +
+    geom_point(size = 2) +
+    geom_text(aes(label = samps, y = samps_y),
+              size = paper_text_size, vjust = 1.05) +
     annotate(geom = "text", label = fig_p_val, size = paper_text_size, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     labs(y = "Growth rate (log ratio)",
@@ -384,9 +409,11 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
     theme(axis.title.x = element_blank(),
           axis.text.x = element_text(size = 9, color="black"))
   
-  sum_dat_fig_pres <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
-    stat_summary(geom = "errorbar", fun.data = "mean_se", width = 0) +
-    stat_summary(geom = "point", fun = "mean", size = 3) +
+  sum_dat_fig_pres <- ggplot(dat_sum, aes(x = Treatment, y = mean)) +
+    geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0) +
+    geom_point(size = 2) +
+    geom_text(aes(label = samps, y = samps_y),
+              size = 4, vjust = 1.05) +
     annotate(geom = "text", label = fig_p_val, size = 4, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     labs(y = "Growth rate (log ratio)") +

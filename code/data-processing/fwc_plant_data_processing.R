@@ -349,8 +349,8 @@ fwc_plant2 %>%
 # remove duplicate rows
 fwc_plant3 <- fwc_plant2 %>%
   mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%Y"),
-         AreaOfInterest = WaterbodyName,
          County = toupper(County)) %>%
+  rename("AreaOfInterest" = "WaterbodyName") %>%
   left_join(fwc_ID3) %>%
   left_join(gis %>%
               filter(CoordSource %in% c("FWC", "FWC_2")) %>%
@@ -410,14 +410,24 @@ fwc_plant5 %>%
 fwc_plant6 <- fwc_plant5 %>%
   full_join(fwc_plant_new4) %>%
   filter(!is.na(SpeciesName)) %>%
-  group_by(across(!SpeciesAcres)) %>%
-  summarise(SpeciesAcres = case_when(str_detect(TaxonName, "Filamentous algae|other|spp.|/") == T ~ sum(SpeciesAcres, na.rm = T),
-                                  TRUE ~ max(SpeciesAcres, na.rm = T))) %>%
+  group_by(AreaOfInterestID, AreaOfInterest, WaterbodyAcres, WaterbodyType, County, WMD, 
+           PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource,
+           SurveyYear, SurveyDate, IsUnableToSurvey, Surveyor,
+           SpeciesName, TaxonName, IsDetected, IsAcreageRequire, Origin, Eppc, Habitat, HabitatShortName) %>%
+  summarise(SumSpeciesAcres = sum(SpeciesAcres, na.rm = T),
+            MaxSpeciesAcres = max(SpeciesAcres, na.rm = T)) %>%
   ungroup() %>%
-  mutate(SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres))
-# will give warnings, but these are addressed by making -Inf into NAs
+  mutate(SpeciesAcres = if_else(str_detect(TaxonName, "Filamentous algae|other|spp.|/") == T,
+                                SumSpeciesAcres,
+                                MaxSpeciesAcres),
+         SpeciesAcres = ifelse(SpeciesAcres == -Inf, NA_real_, SpeciesAcres)) %>%
+  select(-c(SumSpeciesAcres, MaxSpeciesAcres))
+ # will give warnings, but these are addressed by making -Inf into NAs
 
-# number of waterbodies
+# check for duplicates
+(dup_fwc_plant6 <- get_dupes(fwc_plant6))
+
+ # number of waterbodies
 n_distinct(fwc_plant6$AreaOfInterestID)
 
 
@@ -460,7 +470,7 @@ plant_cont <- plant_detect %>%
 
 # taxa with acreage
 taxa_acres <- fwc_plant6 %>%
-  select(TaxonName, Origin, SurveyYear, WaterbodyName, SpeciesAcres) %>%
+  select(TaxonName, Origin, SurveyYear, AreaOfInterest, SpeciesAcres) %>%
   filter(!is.na(SpeciesAcres))
 
 # are any taxa not in the EPPC list?
@@ -471,7 +481,7 @@ non_eppc_taxa <- taxa_acres %>%
   filter(is.na(eppc)) %>%
   select(TaxonName, Origin) %>%
   unique()
-# 144 taxa, some are native
+# 143 taxa, some are native
 
 # are their synonyms on the EPPC list?
 non_eppc_taxa %>%
@@ -559,7 +569,7 @@ keys <- key_all_acre2 %>%
 
 # list of all surveys
 area_yr <- fwc_plant6 %>%
-  select(WaterbodyName, WaterbodyAcres, WaterbodyType, County, WMD, 
+  select(WaterbodyAcres, WaterbodyType, County, WMD, 
          SurveyYear, SurveyDate, Surveyor,
          AreaOfInterest, AreaOfInterestID, PermanentID, GNISID, GNISName,
          Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
@@ -594,6 +604,9 @@ fwc_plant7 <- fwc_plant6 %>%
                                   TRUE ~ SpeciesAcres),
          AcreageSurveyed = if_else(!is.na(SpeciesAcres), 1, 0),
          PresenceSurveyed = if_else(!is.na(IsDetected), 1, 0))
+
+# check for duplication
+get_dupes(fwc_plant7)
 
 
 #### Growing season year ####
