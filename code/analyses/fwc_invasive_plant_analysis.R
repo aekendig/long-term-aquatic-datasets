@@ -23,16 +23,17 @@ inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
 #### edit data ####
 
-#### START HERE ####
-# modified data by adding back in lakes with presence in first year, but not following years
-# these were taken out by filtering order
-# asked Candice if lakes without management of species A can be assumed to have no mgmt for species A
-# revise ctrl dataset if so
+# change column name of ctrl
+inv_ctrl2 <- inv_ctrl %>%
+  rename(TaxonName = Species)
+
+# ctrl data range
+range(inv_ctrl2$GSYear) # 1998-2020
+range(inv_plant$GSYear) # 1982-2019
 
 # combine datasets
-inv_dat <- inv_plant %>% # require two consecutive yeras
-  inner_join(inv_ctrl %>%
-               rename(TaxonName = Species))
+inv_dat <- inner_join(inv_plant, inv_ctrl2) %>%
+  filter()
 
 # species presence
 pres_tax <- inv_dat %>%
@@ -50,7 +51,8 @@ pres_tax_uninv <- pres_tax %>%
 
 write_csv(pres_tax_uninv, "output/fwc_uninvaded_AOI.csv")
 
-# filter for lakes
+# require non-NA previous year
+# require presence in at least one year
 inv_dat2 <- inv_dat %>%
   filter(!is.na(PrevPercCovered)) %>%
   inner_join(pres_tax_inv %>%
@@ -171,7 +173,6 @@ ggplot(inv_dat2, aes(x = AreaOfInterestID, y = PercCovLogRatio)) +
   facet_wrap(~ CommonName, scales = "free") +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
-# include in supplement
 
 # years per waterbody
 inv_dat2 %>%
@@ -307,6 +308,12 @@ wale_mod <- plm(PercCovLogRatio ~ Treated, data = wale_dat,
                 effect = "time")
 summary(wale_mod)
 
+# try wale with fixed to see result
+wale_mod2 <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
+summary(wale_mod2) # not sig
+
 cubu_mod <- plm(PercCovLogRatio ~ Treated, data = cubu_dat, 
                 index = c("AreaOfInterestID", "GSYear"), model = "within",
                 effect = "twoways")
@@ -363,25 +370,32 @@ ggplot(inv_dat2, aes(x = Treatment, y = exp(PercCovLogRatio))) +
 # figure function
 treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
   
+  if(p_val < 0.001) {
+    
+    p_val <- formatC(p_val, format = "e", digits = 1)
+    
+  }
+  
   fig_p_val <- paste("p =", p_val)
   
   dat_sum <- dat_in %>%
     group_by(Treatment) %>%
     summarize(mean = mean(PercCovLogRatio),
               n = length(PercCovLogRatio),
-              se = sd(PercCovLogRatio) / sqrt(n)) %>%
+              ymin = as.numeric(mean_cl_boot(PercCovLogRatio)[2]),
+              ymax = as.numeric(mean_cl_boot(PercCovLogRatio)[3])) %>%
     ungroup() %>%
-    mutate(ymax = mean + se,
-           ymin = mean - se,
-           samps = paste("n =", n),
+    mutate(samps = paste("n =", n),
            samps_y = min(ymin))
   
   raw_dat_fig <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
     geom_point(size = 0.1, alpha = 0.5, 
                position = position_jitter(width = 0.1, height = 0)) +
+    labs(y = "Growth rate (log ratio)",
+         title = panel_title) +
     def_theme_paper +
-    theme(axis.title = element_blank(),
-          axis.text.x = element_text(size = 7, color="black"))
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 9, color="black"))
   
   if(panel_title == "(A) hydrilla") {
 
@@ -389,22 +403,17 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
       scale_y_continuous(breaks = c(-5, 0, 5))
 
   }
-
-  raw_dat_fig_pres <- ggplot(dat_in, aes(x = Treatment, y = PercCovLogRatio)) +
-    geom_point(size = 0.1, alpha = 0.5, 
-               position = position_jitter(width = 0.1, height = 0)) +
-    def_theme +
-    theme(axis.title = element_blank())
   
   sum_dat_fig <- ggplot(dat_sum, aes(x = Treatment, y = mean)) +
     geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0) +
     geom_point(size = 2) +
     geom_text(aes(label = samps, y = samps_y),
-              size = paper_text_size, vjust = 1.05) +
+              size = paper_text_size, vjust = 1.2) +
     annotate(geom = "text", label = fig_p_val, size = paper_text_size, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     labs(y = "Growth rate (log ratio)",
          title = panel_title) +
+    scale_y_continuous(expand = expansion(mult = 0.1)) + 
     def_theme_paper +
     theme(axis.title.x = element_blank(),
           axis.text.x = element_text(size = 9, color="black"))
@@ -413,7 +422,7 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
     geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0) +
     geom_point(size = 2) +
     geom_text(aes(label = samps, y = samps_y),
-              size = 4, vjust = 1.05) +
+              size = 4, vjust = 1.2) +
     annotate(geom = "text", label = fig_p_val, size = 4, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     labs(y = "Growth rate (log ratio)") +
@@ -421,27 +430,21 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
     theme(axis.title.x = element_blank(),
           axis.text.x = element_text(size = 14, color="black"))
   
-  pap_fig <- sum_dat_fig + inset_element(raw_dat_fig, on_top = F,
-                                         left = 0.4, right = 0.99, bottom = 0.55, top = 0.99)
-  
-  pres_fig <- sum_dat_fig_pres + inset_element(raw_dat_fig_pres, on_top = F,
-                                               left = 0.45, right = 0.99, bottom = 0.55, top = 0.99)
-  
-  ggsave(filename = file_name, plot = pres_fig, device = "jpeg",
+  ggsave(filename = file_name, plot = sum_dat_fig_pres, device = "jpeg",
          width = 5, height = 4)
   
-  return(pap_fig)
+  return(list(sum_dat_fig, raw_dat_fig))
   
 }
 
 # figures
-hydr_fig <- treat_fig_fun(hydr_dat, round_half_up(hydr_mod_p[[4]], 4), "(A) hydrilla",
+hydr_fig <- treat_fig_fun(hydr_dat, hydr_mod_p[[4]], "(A) hydrilla",
                           "output/hydrilla_treatment_fig_presentation.jpg")
-wahy_fig <- treat_fig_fun(wahy_dat, round_half_up(wahy_mod_p[[4]], 5), "(B) water hyacinth",
+wahy_fig <- treat_fig_fun(wahy_dat, wahy_mod_p[[4]], "(B) water hyacinth",
                           "output/water_hyacinth_treatment_fig_presentation.jpg")
 wale_fig <- treat_fig_fun(wale_dat, round_half_up(wale_mod_p[[8]], 1), "(C) water lettuce",
                           "output/water_lettuce_treatment_fig_presentation.jpg")
-cubu_fig <- treat_fig_fun(cubu_dat, round_half_up(cubu_mod_p[[4]], 5), "(A) Cuban bulrush",
+cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[[4]], "(A) Cuban bulrush",
                           "output/cuban_bulrush_treatment_fig_presentation.jpg")
 pagr_fig <- treat_fig_fun(pagr_dat, round_half_up(pagr_mod_p[[8]], 1), "(B) paragrass",
                           "output/paragrass_treatment_fig_presentation.jpg")
@@ -449,14 +452,21 @@ torp_fig <- treat_fig_fun(torp_dat, round_half_up(torp_mod_p[[8]], 1), "(C) torp
                           "output/torpedograss_treatment_fig_presentation.jpg")
 
 # combine
-foc_figs <- hydr_fig + wahy_fig + wale_fig + plot_layout(ncol = 1)
+foc_figs <- hydr_fig[[1]] + wahy_fig[[1]] + wale_fig[[1]] + plot_layout(ncol = 1)
 ggsave("output/fwc_focal_invasive_growth_treatment.png", foc_figs,
-       device = "png", width = 3, height = 8, units = "in")
+       device = "png", width = 3, height = 7, units = "in")
 
-non_foc_figs <- cubu_fig + pagr_fig + torp_fig + plot_layout(ncol = 1)
+non_foc_figs <- cubu_fig[[1]] + pagr_fig[[1]] + torp_fig[[1]] + plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_invasive_growth_treatment.png", non_foc_figs,
        device = "png", width = 3, height = 8, units = "in")
 
+foc_raw_figs <- hydr_fig[[2]] + wahy_fig[[2]] + wale_fig[[2]] + plot_layout(ncol = 1)
+ggsave("output/fwc_focal_raw_invasive_growth_treatment.png", foc_raw_figs,
+       device = "png", width = 3, height = 7, units = "in")
+
+non_foc_raw_figs <- cubu_fig[[2]] + pagr_fig[[2]] + torp_fig[[2]] + plot_layout(ncol = 1)
+ggsave("output/fwc_non_focal_raw_invasive_growth_treatment.png", non_foc_raw_figs,
+       device = "png", width = 3, height = 8, units = "in")
 
 #### tables ####
 

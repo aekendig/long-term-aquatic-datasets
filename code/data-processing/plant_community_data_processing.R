@@ -249,9 +249,6 @@ write_csv(nat_fwc2, "intermediate-data/FWC_common_native_plants_formatted.csv")
 
 #### START HERE: invasion and management data ####
 
-# asked candice about absence of control data
-# may need to update control dataset
-
 # combine
 inv_ctrl <- inner_join(inv_plant, ctrl %>%
                          rename(TaxonName = Species)) %>%

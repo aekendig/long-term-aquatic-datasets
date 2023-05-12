@@ -332,7 +332,8 @@ ctrl6 <- ctrl5 %>%
             nTreatmentDays = n_distinct(TreatmentDate),
             TreatmentDate = if_else(nTreatmentDays > 1,
                                     paste(min(TreatmentDate), MaxTreatmentDate, sep = " - "),
-                                    as.character(MaxTreatmentDate))) %>%
+                                    as.character(MaxTreatmentDate)),
+            MaxTreatmentYear = max(TreatmentYear)) %>%
   ungroup()
 
 # check for duplicates
@@ -345,7 +346,7 @@ ctrl7 <- ctrl6 %>%
   full_join(ctrl6 %>%
               select(AreaOfInterestID, AreaOfInterest, PermanentID) %>%
               unique() %>%
-              expand_grid(GSYear = min(ctrl6$GSYear):max(ctrl6$GSYear)) %>%
+              expand_grid(GSYear = min(ctrl6$GSYear):max(ctrl6$GSYear)) %>% # started keeping track of all activities in 2011
               expand_grid(Species = unique(ctrl6$Species))) %>%
   mutate(Treated = replace_na(Treated, 0)) %>%
   left_join(inv_surveys) %>%
