@@ -92,7 +92,7 @@ plant_fwc3 %>%
   filter(surveys > 1) 
 # none
 
-# add row for every year for each site/species combo (NA's for missing surveys)
+# find previous year's value
 plant_fwc4 <- plant_fwc3 %>%
   group_by(AreaOfInterestID, TaxonName) %>%
   arrange(GSYear) %>% 
@@ -247,74 +247,72 @@ nat_fwc2 <- nat_fwc %>%
 write_csv(nat_fwc2, "intermediate-data/FWC_common_native_plants_formatted.csv")
 
 
-#### START HERE: invasion and management data ####
+#### invasion and management data ####
+
+# species presence
+pres_inv <- inv_plant %>%
+  group_by(AreaOfInterestID, CommonName) %>%
+  summarize(Present = sum(EstAreaCoveredRaw_ha > 0)) %>%
+  ungroup() %>%
+  filter(Present > 0)
+
+# select for previous perc cover
+# select columns
+inv_plant2 <- inv_plant %>%
+  filter(!is.na(PrevPercCovered)) %>%
+  select(CommonName, AreaOfInterestID, GSYear, PercCovered, PrevPercCovered)
+
+# add common name
+# select columns
+ctrl2 <- ctrl %>%
+  rename(TaxonName = Species) %>%
+  left_join(inv_plant %>%
+              distinct(TaxonName, CommonName)) %>%
+  select(CommonName, AreaOfInterestID, GSYear,
+         ends_with("Treated"), 
+         MaxTreatmentDate, nTreatmentDays, TreatmentDate, MaxTreatmentYear,
+         LastTreatment, RecentTreatment)
 
 # combine
-inv_ctrl <- inner_join(inv_plant, ctrl %>%
-                         rename(TaxonName = Species)) %>%
-  group_by(AreaOfInterestID, TaxonName) %>%
-  mutate(InvPresent = if_else(sum(EstAreaCoveredRaw_ha > 0) > 0, 
-                              "yes", "no"),
-         TreatPresent = if_else(sum(Treated > 0) > 0,
-                                "yes", "no")) %>%
-  ungroup()
-
-# values
-inv_ctrl %>%
-  distinct(AreaOfInterestID, TaxonName, InvPresent, TreatPresent) %>%
-  count(TaxonName, InvPresent, TreatPresent)
-
-# waterbodies that have the species present and been managed at least once
-perm_plant_ctrl <- inner_join(perm_plant, perm_ctrl) %>%
-  select(PermanentID, CommonName)
+inv_ctrl <- inner_join(inv_plant2, ctrl2) %>%
+  inner_join(pres_inv %>%
+               select(-Present))
 
 
 #### combine data and select waterbodies/years ####
 
 # add invasive plant and control data
 nat_fwc3 <- nat_fwc2 %>%
-  inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
-  inner_join(ctrl2) %>%
-  left_join(perm_plant) %>%
-  mutate(RecentTreatment = replace_na(RecentTreatment, 0),
-         Established = replace_na(Established, 0))
+  expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
+  inner_join(inv_ctrl) %>%
+  mutate(Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
+           fct_relevel("Not mngd."))
 
 # summarize for richness and add invasive plant and control data
 rich <- nat_fwc2 %>%
-  group_by(PermanentID, GSYear, Area_ha) %>%
+  group_by(AreaOfInterestID, GSYear, Area_ha) %>%
   summarize(Richness = sum(Detected)) %>%
   ungroup() %>%
   mutate(LogRichness = log(Richness + 1)) %>%
-  inner_join(inv_plant2) %>% # select waterbodies and years in both datasets
-  inner_join(ctrl2) %>%
-  left_join(perm_plant) %>%
-  mutate(RecentTreatment = replace_na(RecentTreatment, 0),
-         Established = replace_na(Established, 0))
-
-# select waterbodies that have had species and at least one year of management
-nat_inv <- nat_fwc3 %>%
-  inner_join(perm_plant_ctrl)
-
-rich_inv <- rich %>%
-  inner_join(perm_plant_ctrl)
+  expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
+  inner_join(inv_ctrl) %>%
+  mutate(Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
+           fct_relevel("Not mngd."))
 
 # save data
-write_csv(nat_fwc3, "intermediate-data/FWC_common_native_plants_invasive_species_data_formatted.csv")
-write_csv(nat_inv, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
-
-write_csv(rich, "intermediate-data/FWC_common_native_richness_invasive_species_data_formatted.csv")
-write_csv(rich_inv, "intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
-
+write_csv(nat_fwc3, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
+write_csv(rich, "intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
 
 #### waterbody counts ####
-nat_fwc3 %>%
-  group_by(CommonName, Established) %>%
-  summarize(waterbodies = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  mutate(Established = fct_recode(as.factor(Established),
-                                  "Invaded" = "1",
-                                  "Uninvaded" = "0"),
+nat_fwc2 %>%
+  expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
+  full_join(inv_ctrl) %>%
+  mutate(PrevEstablished = if_else(is.na(PrevPercCovered), "Uninvaded", "Invaded"),
+         Established = if_else(is.na(PercCovered), "Uninvaded", "Invaded"),
          CommonName = tolower(CommonName)) %>%
+  group_by(CommonName, PrevEstablished, Established) %>%
+  summarize(waterbodies = n_distinct(AreaOfInterestID)) %>%
+  ungroup() %>%
   pivot_wider(names_from = Established,
               values_from = waterbodies) %>%
   write_csv("intermediate-data/native_plants_invaded_uninvaded_counts.csv")

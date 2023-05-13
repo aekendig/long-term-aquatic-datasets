@@ -16,117 +16,136 @@ source("code/settings/figure_settings.R")
 
 # import data
 dat <- read_csv("intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
-dat_full <- read_csv("intermediate-data/FWC_common_native_plants_invasive_species_data_formatted.csv")
 
 
 #### edit data ####
 
 # split data by invasive species
 hydr_dat <- filter(dat, CommonName == "Hydrilla") %>%
-  arrange(PermanentID, GSYear, TaxonName)
-flpl_dat <- filter(dat, CommonName == "floating plants") %>%
-  arrange(PermanentID, GSYear, TaxonName)
+  arrange(AreaOfInterestID, GSYear, TaxonName)
+wale_dat <- filter(dat, CommonName == "Water lettuce") %>%
+  arrange(AreaOfInterestID, GSYear, TaxonName)
+wahy_dat <- filter(dat, CommonName == "Water hyacinth") %>%
+  arrange(AreaOfInterestID, GSYear, TaxonName)
 cubu_dat <- filter(dat, CommonName == "Cuban bulrush") %>%
-  arrange(PermanentID, GSYear, TaxonName)
+  arrange(AreaOfInterestID, GSYear, TaxonName)
 pagr_dat <- filter(dat, CommonName == "Para grass") %>%
-  arrange(PermanentID, GSYear, TaxonName)
+  arrange(AreaOfInterestID, GSYear, TaxonName)
 torp_dat <- filter(dat, CommonName == "Torpedograss") %>%
-  arrange(PermanentID, GSYear, TaxonName)
+  arrange(AreaOfInterestID, GSYear, TaxonName)
 
 # site-by-species matrices
 # remove taxa with no presences
 hydr_mat <- hydr_dat %>%
-  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  select(AreaOfInterestID, GSYear, TaxonName, Detected) %>%
   pivot_wider(names_from = TaxonName,
               values_from = Detected) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   select(where(~ sum(.) != 0)) %>% 
   as.matrix()
-flpl_mat <- flpl_dat %>%
-  select(PermanentID, GSYear, TaxonName, Detected) %>%
+wale_mat <- wale_dat %>%
+  select(AreaOfInterestID, GSYear, TaxonName, Detected) %>%
   pivot_wider(names_from = TaxonName,
               values_from = Detected) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
+  select(where(~ sum(.) != 0)) %>% 
+  as.matrix()
+wahy_mat <- wahy_dat %>%
+  select(AreaOfInterestID, GSYear, TaxonName, Detected) %>%
+  pivot_wider(names_from = TaxonName,
+              values_from = Detected) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   select(where(~ sum(.) != 0)) %>% 
   as.matrix()
 cubu_mat <- cubu_dat %>%
-  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  select(AreaOfInterestID, GSYear, TaxonName, Detected) %>%
   pivot_wider(names_from = TaxonName,
               values_from = Detected) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   select(where(~ sum(.) != 0)) %>% 
   as.matrix()
 pagr_mat <- pagr_dat %>%
-  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  select(AreaOfInterestID, GSYear, TaxonName, Detected) %>%
   pivot_wider(names_from = TaxonName,
               values_from = Detected) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   select(where(~ sum(.) != 0)) %>% 
   as.matrix()
 torp_mat <- torp_dat %>%
-  select(PermanentID, GSYear, TaxonName, Detected) %>%
+  select(AreaOfInterestID, GSYear, TaxonName, Detected) %>%
   pivot_wider(names_from = TaxonName,
               values_from = Detected) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   select(where(~ sum(.) != 0)) %>% 
   as.matrix()
 
 # covariates
 hydr_cov <- hydr_dat %>%
-  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
-  arrange(PermanentID, GSYear) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  distinct(AreaOfInterestID, GSYear, PrevPercCovered, Treated) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   data.frame()
-flpl_cov <- flpl_dat %>%
-  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
-  arrange(PermanentID, GSYear) %>%
-  select(-c(PermanentID, GSYear)) %>%
+wale_cov <- wale_dat %>%
+  distinct(AreaOfInterestID, GSYear, PrevPercCovered, Treated) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
+  data.frame()
+wahy_cov <- wahy_dat %>%
+  distinct(AreaOfInterestID, GSYear, PrevPercCovered, Treated) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   data.frame()
 cubu_cov <- cubu_dat %>%
-  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
-  arrange(PermanentID, GSYear) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  distinct(AreaOfInterestID, GSYear, PrevPercCovered, Treated) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   data.frame()
 pagr_cov <- pagr_dat %>%
-  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
-  arrange(PermanentID, GSYear) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  distinct(AreaOfInterestID, GSYear, PrevPercCovered, Treated) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   data.frame()
 torp_cov <- torp_dat %>%
-  distinct(PermanentID, GSYear, PercCovered, RecentTreatment) %>%
-  arrange(PermanentID, GSYear) %>%
-  select(-c(PermanentID, GSYear)) %>%
+  distinct(AreaOfInterestID, GSYear, PrevPercCovered, Treated) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  select(-c(AreaOfInterestID, GSYear)) %>%
   data.frame()
 
 # study design
 hydr_stud <- hydr_dat %>%
-  distinct(PermanentID, GSYear) %>%
-  arrange(PermanentID, GSYear) %>%
-  mutate(PermanentID = as.factor(PermanentID),
+  distinct(AreaOfInterestID, GSYear) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
          GSYear = as.factor(GSYear)) %>%
   data.frame()
-flpl_stud <- flpl_dat %>%
-  distinct(PermanentID, GSYear) %>%
-  arrange(PermanentID, GSYear) %>%
-  mutate(PermanentID = as.factor(PermanentID),
+wale_stud <- wale_dat %>%
+  distinct(AreaOfInterestID, GSYear) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
+         GSYear = as.factor(GSYear)) %>%
+  data.frame()
+wahy_stud <- wahy_dat %>%
+  distinct(AreaOfInterestID, GSYear) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
          GSYear = as.factor(GSYear)) %>%
   data.frame()
 cubu_stud <- cubu_dat %>%
-  distinct(PermanentID, GSYear) %>%
-  arrange(PermanentID, GSYear) %>%
-  mutate(PermanentID = as.factor(PermanentID),
+  distinct(AreaOfInterestID, GSYear) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
          GSYear = as.factor(GSYear)) %>%
   data.frame()
 pagr_stud <- pagr_dat %>%
-  distinct(PermanentID, GSYear) %>%
-  arrange(PermanentID, GSYear) %>%
-  mutate(PermanentID = as.factor(PermanentID),
+  distinct(AreaOfInterestID, GSYear) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
          GSYear = as.factor(GSYear)) %>%
   data.frame()
 torp_stud <- torp_dat %>%
-  distinct(PermanentID, GSYear) %>%
-  arrange(PermanentID, GSYear) %>%
-  mutate(PermanentID = as.factor(PermanentID),
+  distinct(AreaOfInterestID, GSYear) %>%
+  arrange(AreaOfInterestID, GSYear) %>%
+  mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
          GSYear = as.factor(GSYear)) %>%
   data.frame()
 
@@ -137,12 +156,18 @@ hydr_hab <- hydr_dat %>%
   data.frame()
 rownames(hydr_hab) <- hydr_hab$TaxonName
 hydr_trait <- select(hydr_hab, -TaxonName)
-flpl_hab <- flpl_dat %>%
+wale_hab <- wale_dat %>%
   distinct(TaxonName, Habitat) %>%
   arrange(TaxonName) %>%
   data.frame()
-rownames(flpl_hab) <- flpl_hab$TaxonName
-flpl_trait <- select(flpl_hab, -TaxonName)
+rownames(wale_hab) <- wale_hab$TaxonName
+wale_trait <- select(wale_hab, -TaxonName)
+wahy_hab <- wahy_dat %>%
+  distinct(TaxonName, Habitat) %>%
+  arrange(TaxonName) %>%
+  data.frame()
+rownames(wahy_hab) <- wahy_hab$TaxonName
+wahy_trait <- select(wahy_hab, -TaxonName)
 cubu_hab <- cubu_dat %>%
   distinct(TaxonName, Habitat) %>%
   arrange(TaxonName) %>%
@@ -167,53 +192,63 @@ torp_trait <- select(torp_hab, -TaxonName)
 
 hydr_mod = Hmsc(Y = hydr_mat,
                 XData = hydr_cov, 
-                XFormula = ~PercCovered * RecentTreatment,
+                XFormula = ~PrevPercCovered * Treated,
                 TrData = hydr_trait,
                 TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = hydr_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = hydr_stud$GSYear), 
-                                 PermanentID = HmscRandomLevel(units = hydr_stud$PermanentID)))
+                                 AreaOfInterestID = HmscRandomLevel(units = hydr_stud$AreaOfInterestID)))
 
-flpl_mod = Hmsc(Y = flpl_mat,
-                XData = flpl_cov, 
-                XFormula = ~PercCovered * RecentTreatment,
-                TrData = flpl_trait,
+wale_mod = Hmsc(Y = wale_mat,
+                XData = wale_cov, 
+                XFormula = ~PrevPercCovered * Treated,
+                TrData = wale_trait,
                 TrFormula = ~Habitat,
                 distr = "probit",
-                studyDesign = flpl_stud,
-                ranLevels = list(GSYear = HmscRandomLevel(units = flpl_stud$GSYear), 
-                                 PermanentID = HmscRandomLevel(units = flpl_stud$PermanentID)))
+                studyDesign = wale_stud,
+                ranLevels = list(GSYear = HmscRandomLevel(units = wale_stud$GSYear), 
+                                 AreaOfInterestID = HmscRandomLevel(units = wale_stud$AreaOfInterestID)))
+
+wahy_mod = Hmsc(Y = wahy_mat,
+                XData = wahy_cov, 
+                XFormula = ~PrevPercCovered * Treated,
+                TrData = wahy_trait,
+                TrFormula = ~Habitat,
+                distr = "probit",
+                studyDesign = wahy_stud,
+                ranLevels = list(GSYear = HmscRandomLevel(units = wahy_stud$GSYear), 
+                                 AreaOfInterestID = HmscRandomLevel(units = wahy_stud$AreaOfInterestID)))
 
 cubu_mod = Hmsc(Y = cubu_mat,
                 XData = cubu_cov, 
-                XFormula = ~PercCovered * RecentTreatment,
+                XFormula = ~PrevPercCovered * Treated,
                 TrData = cubu_trait,
                 TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = cubu_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = cubu_stud$GSYear), 
-                                 PermanentID = HmscRandomLevel(units = cubu_stud$PermanentID)))
+                                 AreaOfInterestID = HmscRandomLevel(units = cubu_stud$AreaOfInterestID)))
 
 pagr_mod = Hmsc(Y = pagr_mat,
                 XData = pagr_cov, 
-                XFormula = ~PercCovered * RecentTreatment,
+                XFormula = ~PrevPercCovered * Treated,
                 TrData = pagr_trait,
                 TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = pagr_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = pagr_stud$GSYear), 
-                                 PermanentID = HmscRandomLevel(units = pagr_stud$PermanentID)))
+                                 AreaOfInterestID = HmscRandomLevel(units = pagr_stud$AreaOfInterestID)))
 
 torp_mod = Hmsc(Y = torp_mat,
                 XData = torp_cov, 
-                XFormula = ~PercCovered * RecentTreatment,
+                XFormula = ~PrevPercCovered * Treated,
                 TrData = torp_trait,
                 TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = torp_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = torp_stud$GSYear), 
-                                 PermanentID = HmscRandomLevel(units = torp_stud$PermanentID)))
+                                 AreaOfInterestID = HmscRandomLevel(units = torp_stud$AreaOfInterestID)))
 
 #### fit models ####
 
@@ -235,13 +270,21 @@ hydr_fit = sampleMcmc(hydr_mod,
                       nParallel = nChains)
 save(hydr_fit, file = "output/fwc_native_plant_hydrilla_hmsc.rda")
 
-flpl_fit = sampleMcmc(flpl_mod,
+wale_fit = sampleMcmc(wale_mod,
                       thin = thin,
                       samples = samples,
                       transient = transient,
                       nChains = nChains,
                       nParallel = nChains)
-save(flpl_fit, file = "output/fwc_native_plant_floating_plants_hmsc.rda")
+save(wale_fit, file = "output/fwc_native_plant_water_lettuce_hmsc.rda")
+
+wahy_fit = sampleMcmc(wahy_mod,
+                      thin = thin,
+                      samples = samples,
+                      transient = transient,
+                      nChains = nChains,
+                      nParallel = nChains)
+save(wahy_fit, file = "output/fwc_native_plant_water_hyacinth_hmsc.rda")
 
 cubu_fit = sampleMcmc(cubu_mod,
                       thin = thin,
@@ -268,7 +311,7 @@ torp_fit = sampleMcmc(torp_mod,
 save(torp_fit, file = "output/fwc_native_plant_torpedograss_hmsc.rda")
 
 
-#### reload models ####
+#### START HERE: reload models ####
 
 load("output/fwc_native_plant_hydrilla_hmsc.rda")
 load("output/fwc_native_plant_floating_plants_hmsc.rda")
@@ -281,7 +324,7 @@ load("output/fwc_native_plant_torpedograss_hmsc.rda")
 
 # posterior samples
 hydr_post = convertToCodaObject(hydr_fit)
-flpl_post = convertToCodaObject(flpl_fit)
+wale_post = convertToCodaObject(wale_fit)
 cubu_post = convertToCodaObject(cubu_fit)
 pagr_post = convertToCodaObject(pagr_fit)
 torp_post = convertToCodaObject(torp_fit)
@@ -289,7 +332,7 @@ torp_post = convertToCodaObject(torp_fit)
 # effective sample sizes
 # total samples = samples * chains
 hist(effectiveSize(hydr_post$Beta))
-hist(effectiveSize(flpl_post$Beta))
+hist(effectiveSize(wale_post$Beta))
 hist(effectiveSize(cubu_post$Beta))
 hist(effectiveSize(pagr_post$Beta)) # almost uniform
 hist(effectiveSize(torp_post$Beta))
@@ -297,7 +340,7 @@ hist(effectiveSize(torp_post$Beta))
 # Gelman diagnostics (potential scale reduction factors)
 # one indicates better convergence among chains
 hist(gelman.diag(hydr_post$Beta, multivariate=FALSE)$psrf)
-hist(gelman.diag(flpl_post$Beta, multivariate=FALSE)$psrf)
+hist(gelman.diag(wale_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(cubu_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(pagr_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(torp_post$Beta, multivariate=FALSE)$psrf)
@@ -309,14 +352,14 @@ hist(hydr_eval$RMSE)
 hist(hydr_eval$TjurR2)
 hist(hydr_eval$AUC)
 
-flpl_preds = computePredictedValues(flpl_fit,
+wale_preds = computePredictedValues(wale_fit,
                                     thin = 10,
                                     nParallel = nChains)
 # had to use settings because vector memory was exhausted
-flpl_eval = evaluateModelFit(hM = flpl_fit, predY = flpl_preds)
-hist(flpl_eval$RMSE)
-hist(flpl_eval$TjurR2)
-hist(flpl_eval$AUC)
+wale_eval = evaluateModelFit(hM = wale_fit, predY = wale_preds)
+hist(wale_eval$RMSE)
+hist(wale_eval$TjurR2)
+hist(wale_eval$AUC)
 
 cubu_preds = computePredictedValues(cubu_fit)
 cubu_eval = evaluateModelFit(hM = cubu_fit, predY = cubu_preds)
@@ -350,14 +393,14 @@ hydr_sum <- as_tibble(summary(hydr_post$Beta)$statistics) %>%
                                      ncol(hydr_mat)))) %>%
   mutate(invader = "hydrilla")
 
-flpl_sum <- as_tibble(summary(flpl_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(flpl_mat), each = 4),
+wale_sum <- as_tibble(summary(wale_post$Beta)$statistics) %>%
+  mutate(species = rep(colnames(wale_mat), each = 4),
          covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(flpl_mat))) %>%
-  full_join(as_tibble(summary(flpl_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(flpl_mat), each = 4),
+                         ncol(wale_mat))) %>%
+  full_join(as_tibble(summary(wale_post$Beta)$quantiles) %>%
+              mutate(species = rep(colnames(wale_mat), each = 4),
                      covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(flpl_mat)))) %>%
+                                     ncol(wale_mat)))) %>%
   mutate(invader = "floating plants")
 
 cubu_sum <- as_tibble(summary(cubu_post$Beta)$statistics) %>%
@@ -391,7 +434,7 @@ torp_sum <- as_tibble(summary(torp_post$Beta)$statistics) %>%
   mutate(invader = "torpedograss")
 
 # combine
-foc_coef_sum <- full_join(hydr_sum, flpl_sum) %>%
+foc_coef_sum <- full_join(hydr_sum, wale_sum) %>%
   relocate(invader, species, covariate) %>%
   rename(naive_se = "Naive SE",
          time_series_se = "Time-series SE",
@@ -471,7 +514,7 @@ hydr_coef_fig <- foc_coef_sum %>%
         axis.text.y = element_text(size = 6.5, face = "italic"),
         axis.title.y = element_blank())
 
-flpl_coef_fig <- hydr_coef_fig %+%
+wale_coef_fig <- hydr_coef_fig %+%
   filter(foc_coef_sum,
          covariate != "intercept" & invader == "floating plants")
 
@@ -490,7 +533,7 @@ torp_coef_fig <- hydr_coef_fig %+%
 
 ggsave("output/fwc_native_plant_coefficients_hydrilla.png", hydr_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_floating_plants.png", flpl_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_floating_plants.png", wale_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_coefficients_cuban_bulrush.png", cubu_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
@@ -516,19 +559,19 @@ plot_prob_fun <- function(mod, inv_tax){
   for (i in 1:2){
     
     # gradients
-    if(v_expV[i] == "PercCovered") {
+    if(v_expV[i] == "PrevPercCovered") {
       
-      grad <- constructGradient(mod, focalVariable = "PercCovered",
+      grad <- constructGradient(mod, focalVariable = "PrevPercCovered",
                                 ngrid = 100,
-                                non.focalVariables = list("RecentTreatment" = list(3, 0)))
+                                non.focalVariables = list("Treated" = list(3, 0)))
       
       var_name <- paste(inv_tax, "PAC")
       
     } else {
       
-      grad <- constructGradient(mod, focalVariable = "RecentTreatment",
+      grad <- constructGradient(mod, focalVariable = "Treated",
                                 ngrid = 2,
-                                non.focalVariables = list("PercCovered" = list(3, 0)))
+                                non.focalVariables = list("PrevPercCovered" = list(3, 0)))
       
       var_name <- paste(inv_tax, "management")
       
@@ -598,7 +641,7 @@ plot_prob_fun <- function(mod, inv_tax){
 
 # apply to each species
 hydr_prob <- plot_prob_fun(hydr_fit, "hydrilla")
-flpl_prob <- plot_prob_fun(flpl_fit, "floating plants")
+wale_prob <- plot_prob_fun(wale_fit, "floating plants")
 cubu_prob <- plot_prob_fun(cubu_fit, "Cuban bulrush")
 pagr_prob <- plot_prob_fun(pagr_fit, "paragrass")
 torp_prob <- plot_prob_fun(torp_fit, "torpedograss")
@@ -606,7 +649,7 @@ torp_prob <- plot_prob_fun(torp_fit, "torpedograss")
 # save figure
 ggsave("output/fwc_native_plant_probabilities_hydrilla.png", hydr_prob[[1]],
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_probabilities_floating_plants.png", flpl_prob[[1]],
+ggsave("output/fwc_native_plant_probabilities_floating_plants.png", wale_prob[[1]],
        device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_probabilities_cuban_bulrush.png", cubu_prob[[1]],
        device = "png", width = 6.5, height = 6.5, units = "in")
@@ -640,17 +683,17 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
   for (i in 1:2){
     
     # gradients
-    if(v_expV[i] == "PercCovered") {
+    if(v_expV[i] == "PrevPercCovered") {
       
-      grad <- constructGradient(mod, focalVariable = "PercCovered",
+      grad <- constructGradient(mod, focalVariable = "PrevPercCovered",
                                 ngrid = npoints,
-                                non.focalVariables = list("RecentTreatment" = list(3, 0)))
+                                non.focalVariables = list("Treated" = list(3, 0)))
       
     } else {
       
-      grad <- constructGradient(mod, focalVariable = "RecentTreatment",
+      grad <- constructGradient(mod, focalVariable = "Treated",
                                 ngrid = npoints,
-                                non.focalVariables = list("PercCovered" = list(3, 0)))
+                                non.focalVariables = list("PrevPercCovered" = list(3, 0)))
       
     }
     
@@ -690,7 +733,7 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
     
     # summarize raw data
     rich_dat <- raw_dat %>%
-      group_by(across(all_of(c("PermanentID", "GSYear", v_expV[i])))) %>%
+      group_by(across(all_of(c("AreaOfInterestID", "GSYear", v_expV[i])))) %>%
       summarize(pred = sum(Detected)) %>%
       ungroup() %>%
       rename(gradient = !!v_expV[i])
@@ -704,20 +747,20 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
   
   # change variable names
   df_CIs2 <- df_CIs %>%
-    mutate(grad_transf = if_else(covNames == "PercCovered",
+    mutate(grad_transf = if_else(covNames == "PrevPercCovered",
                                  car::logit(gradient, adjust = 0.001),
                                  gradient),
            covNames = fct_recode(covNames,
-                                 "invasive plant PAC (logit-transformed)" = "PercCovered",
-                                 "management" = "RecentTreatment"))
+                                 "invasive plant PAC (logit-transformed)" = "PrevPercCovered",
+                                 "management" = "Treated"))
   
   df_raw2 <- df_raw %>%
-    mutate(grad_transf = if_else(covNames == "PercCovered",
+    mutate(grad_transf = if_else(covNames == "PrevPercCovered",
                                  car::logit(gradient, adjust = 0.001),
                                  gradient),
            covNames = fct_recode(covNames,
-                                 "invasive plant PAC (logit-transformed)" = "PercCovered",
-                                 "management" = "RecentTreatment"))
+                                 "invasive plant PAC (logit-transformed)" = "PrevPercCovered",
+                                 "management" = "Treated"))
   
   fig_out <- ggplot(df_raw2, aes(x = grad_transf, y = pred)) +
     geom_point(alpha = 0.5, size = 0.5) +
@@ -739,15 +782,15 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
 
 # run function
 hydr_rich_out <- plot_grad_fun(hydr_fit, hydr_dat, "(A) hydrilla")
-flpl_rich_out <- plot_grad_fun(flpl_fit, flpl_dat, "(B) floating plants")
+wale_rich_out <- plot_grad_fun(wale_fit, wale_dat, "(B) floating plants")
 cubu_rich_out <- plot_grad_fun(cubu_fit, cubu_dat, "(A) Cuban bulrush")
 pagr_rich_out <- plot_grad_fun(pagr_fit, pagr_dat, "(B) paragrass")
 torp_rich_out <- plot_grad_fun(torp_fit, torp_dat, "(C) torpedograss")
 
 # focal figure
 hydr_rich_fig <- hydr_rich_out[[1]]
-flpl_rich_fig <- flpl_rich_out[[1]]
-foc_rich_fig <- hydr_rich_fig / flpl_rich_fig
+wale_rich_fig <- wale_rich_out[[1]]
+foc_rich_fig <- hydr_rich_fig / wale_rich_fig
 
 ggsave("output/fwc_native_plant_richness_focal_invaders.png", foc_rich_fig,
        device = "png", width = 5, height = 5, units = "in")
@@ -764,7 +807,7 @@ ggsave("output/fwc_native_plant_richness_non_focal_invaders.png", non_foc_rich_f
 # focal table of richness effects
 foc_rich_tab <- hydr_rich_out[[2]] %>%
   mutate(Invasive = "hydrilla") %>%
-  full_join(flpl_rich_out[[2]] %>%
+  full_join(wale_rich_out[[2]] %>%
               mutate(Invasive = "floating plants"))
 
 write_csv(foc_rich_tab, "output/fwc_native_plant_richness_focal_invaders.csv")

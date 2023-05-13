@@ -458,7 +458,6 @@ plant_detect %>%
   unique()
 
 # species sampled somewhat continuously 
-# remove focal invasive species
 # remove confused origin species (not sampled continuously anyway)
 plant_cont <- plant_detect %>%
   filter(FirstDetect %in% c(1982, 1983) & Survey2020 == 1 & 

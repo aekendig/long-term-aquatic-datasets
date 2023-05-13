@@ -32,8 +32,7 @@ range(inv_ctrl2$GSYear) # 1998-2020
 range(inv_plant$GSYear) # 1982-2019
 
 # combine datasets
-inv_dat <- inner_join(inv_plant, inv_ctrl2) %>%
-  filter()
+inv_dat <- inner_join(inv_plant, inv_ctrl2)
 
 # species presence
 pres_tax <- inv_dat %>%
