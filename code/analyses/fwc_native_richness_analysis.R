@@ -5,26 +5,33 @@ rm(list = ls())
 
 # load packages
 library(tidyverse)
-library(inspectdf) # inspect_cor
+library(modelsummary) # modelplot
+library(patchwork) # combining figures
 library(plm) # panel data models
 library(sandwich) # vcovHC
 library(lmtest) # coeftest
-library(car) # logit
-library(glmmTMB) # glmmTMB
-library(broom) # tidy
+library(pals) # color palettes
+library(janitor)
 
 # figure settings
 source("code/settings/figure_settings.R")
 
-# functions
-source("code/generic-functions/model_structure_comparison.R")
-
 # import data
+dat <- read_csv("intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
 dat <- read_csv("intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
-dat_full <- read_csv("intermediate-data/FWC_common_native_richness_invasive_species_data_formatted.csv")
 
 
 #### edit data ####
+
+# check values
+range(dat$Richness)
+filter(dat, Richness == 0)
+filter(dat, AreaOfInterestID == 31) %>%
+  distinct(GSYear, Richness) # value for 2002 seems off, looked at original data and only has 6 invasive species
+filter(dat, AreaOfInterestID == 313) %>%
+  distinct(GSYear, Richness) # value for 1999 seems off, looked at original data and only has 1 invasive species
+
+#### START HERE ####
 
 # taxa
 inv_taxa <- sort(unique(dat$CommonName))
