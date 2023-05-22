@@ -311,10 +311,11 @@ torp_fit = sampleMcmc(torp_mod,
 save(torp_fit, file = "output/fwc_native_plant_torpedograss_hmsc.rda")
 
 
-#### START HERE: reload models ####
+#### reload models ####
 
 load("output/fwc_native_plant_hydrilla_hmsc.rda")
-load("output/fwc_native_plant_floating_plants_hmsc.rda")
+load("output/fwc_native_plant_water_lettuce_hmsc.rda")
+load("output/fwc_native_plant_water_hyacinth_hmsc.rda")
 load("output/fwc_native_plant_Cuban_bulrush_hmsc.rda")
 load("output/fwc_native_plant_paragrass_hmsc.rda")
 load("output/fwc_native_plant_torpedograss_hmsc.rda")
@@ -325,6 +326,7 @@ load("output/fwc_native_plant_torpedograss_hmsc.rda")
 # posterior samples
 hydr_post = convertToCodaObject(hydr_fit)
 wale_post = convertToCodaObject(wale_fit)
+wahy_post = convertToCodaObject(wahy_fit)
 cubu_post = convertToCodaObject(cubu_fit)
 pagr_post = convertToCodaObject(pagr_fit)
 torp_post = convertToCodaObject(torp_fit)
@@ -333,6 +335,7 @@ torp_post = convertToCodaObject(torp_fit)
 # total samples = samples * chains
 hist(effectiveSize(hydr_post$Beta))
 hist(effectiveSize(wale_post$Beta))
+hist(effectiveSize(wahy_post$Beta))
 hist(effectiveSize(cubu_post$Beta))
 hist(effectiveSize(pagr_post$Beta)) # almost uniform
 hist(effectiveSize(torp_post$Beta))
@@ -341,6 +344,7 @@ hist(effectiveSize(torp_post$Beta))
 # one indicates better convergence among chains
 hist(gelman.diag(hydr_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(wale_post$Beta, multivariate=FALSE)$psrf)
+hist(gelman.diag(wahy_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(cubu_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(pagr_post$Beta, multivariate=FALSE)$psrf)
 hist(gelman.diag(torp_post$Beta, multivariate=FALSE)$psrf)
@@ -352,14 +356,17 @@ hist(hydr_eval$RMSE)
 hist(hydr_eval$TjurR2)
 hist(hydr_eval$AUC)
 
-wale_preds = computePredictedValues(wale_fit,
-                                    thin = 10,
-                                    nParallel = nChains)
-# had to use settings because vector memory was exhausted
+wale_preds = computePredictedValues(wale_fit)
 wale_eval = evaluateModelFit(hM = wale_fit, predY = wale_preds)
 hist(wale_eval$RMSE)
 hist(wale_eval$TjurR2)
 hist(wale_eval$AUC)
+
+wahy_preds = computePredictedValues(wahy_fit)
+wahy_eval = evaluateModelFit(hM = wahy_fit, predY = wahy_preds)
+hist(wahy_eval$RMSE)
+hist(wahy_eval$TjurR2)
+hist(wahy_eval$AUC)
 
 cubu_preds = computePredictedValues(cubu_fit)
 cubu_eval = evaluateModelFit(hM = cubu_fit, predY = cubu_preds)
@@ -401,7 +408,17 @@ wale_sum <- as_tibble(summary(wale_post$Beta)$statistics) %>%
               mutate(species = rep(colnames(wale_mat), each = 4),
                      covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
                                      ncol(wale_mat)))) %>%
-  mutate(invader = "floating plants")
+  mutate(invader = "water lettuce")
+
+wahy_sum <- as_tibble(summary(wahy_post$Beta)$statistics) %>%
+  mutate(species = rep(colnames(wahy_mat), each = 4),
+         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
+                         ncol(wahy_mat))) %>%
+  full_join(as_tibble(summary(wahy_post$Beta)$quantiles) %>%
+              mutate(species = rep(colnames(wahy_mat), each = 4),
+                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
+                                     ncol(wahy_mat)))) %>%
+  mutate(invader = "water hyacinth")
 
 cubu_sum <- as_tibble(summary(cubu_post$Beta)$statistics) %>%
   mutate(species = rep(colnames(cubu_mat), each = 4),
@@ -435,6 +452,7 @@ torp_sum <- as_tibble(summary(torp_post$Beta)$statistics) %>%
 
 # combine
 foc_coef_sum <- full_join(hydr_sum, wale_sum) %>%
+  full_join(wahy_sum) %>%
   relocate(invader, species, covariate) %>%
   rename(naive_se = "Naive SE",
          time_series_se = "Time-series SE",
@@ -451,7 +469,7 @@ foc_coef_sum <- full_join(hydr_sum, wale_sum) %>%
          cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
                           covariate == "management" ~ paste(invader, "management"),
                           TRUE ~ as.character(covariate)) %>%
-           fct_relevel("intercept", "hydrilla PAC", "floating plants PAC"),
+           fct_relevel("intercept", "hydrilla PAC", "water hyacinth PAC"),
          invader = fct_relevel(invader, "hydrilla"),
          habitat_num = as.numeric(as.factor(Habitat)),
          sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
@@ -514,9 +532,13 @@ hydr_coef_fig <- foc_coef_sum %>%
         axis.text.y = element_text(size = 6.5, face = "italic"),
         axis.title.y = element_blank())
 
+wahy_coef_fig <- hydr_coef_fig %+%
+  filter(foc_coef_sum,
+         covariate != "intercept" & invader == "water hyacinth")
+
 wale_coef_fig <- hydr_coef_fig %+%
   filter(foc_coef_sum,
-         covariate != "intercept" & invader == "floating plants")
+         covariate != "intercept" & invader == "water lettuce")
 
 cubu_coef_fig <- hydr_coef_fig %+%
   filter(non_foc_coef_sum,
@@ -533,7 +555,9 @@ torp_coef_fig <- hydr_coef_fig %+%
 
 ggsave("output/fwc_native_plant_coefficients_hydrilla.png", hydr_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_floating_plants.png", wale_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_water_hyacinth.png", wahy_coef_fig,
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_coefficients_water_lettuce.png", wale_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_coefficients_cuban_bulrush.png", cubu_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
@@ -641,7 +665,8 @@ plot_prob_fun <- function(mod, inv_tax){
 
 # apply to each species
 hydr_prob <- plot_prob_fun(hydr_fit, "hydrilla")
-wale_prob <- plot_prob_fun(wale_fit, "floating plants")
+wale_prob <- plot_prob_fun(wale_fit, "water lettuce")
+wahy_prob <- plot_prob_fun(wale_fit, "water hyacinth")
 cubu_prob <- plot_prob_fun(cubu_fit, "Cuban bulrush")
 pagr_prob <- plot_prob_fun(pagr_fit, "paragrass")
 torp_prob <- plot_prob_fun(torp_fit, "torpedograss")
@@ -649,7 +674,9 @@ torp_prob <- plot_prob_fun(torp_fit, "torpedograss")
 # save figure
 ggsave("output/fwc_native_plant_probabilities_hydrilla.png", hydr_prob[[1]],
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_probabilities_floating_plants.png", wale_prob[[1]],
+ggsave("output/fwc_native_plant_probabilities_water_hyacinth.png", wahy_prob[[1]],
+       device = "png", width = 6.5, height = 6.5, units = "in")
+ggsave("output/fwc_native_plant_probabilities_water_lettuc.png", wale_prob[[1]],
        device = "png", width = 6.5, height = 6.5, units = "in")
 ggsave("output/fwc_native_plant_probabilities_cuban_bulrush.png", cubu_prob[[1]],
        device = "png", width = 6.5, height = 6.5, units = "in")
@@ -782,18 +809,20 @@ plot_grad_fun <- function(mod, raw_dat, plot_title){
 
 # run function
 hydr_rich_out <- plot_grad_fun(hydr_fit, hydr_dat, "(A) hydrilla")
-wale_rich_out <- plot_grad_fun(wale_fit, wale_dat, "(B) floating plants")
+wahy_rich_out <- plot_grad_fun(wahy_fit, wale_dat, "(B) water hyacinth")
+wale_rich_out <- plot_grad_fun(wale_fit, wale_dat, "(C) water lettuce")
 cubu_rich_out <- plot_grad_fun(cubu_fit, cubu_dat, "(A) Cuban bulrush")
 pagr_rich_out <- plot_grad_fun(pagr_fit, pagr_dat, "(B) paragrass")
 torp_rich_out <- plot_grad_fun(torp_fit, torp_dat, "(C) torpedograss")
 
 # focal figure
 hydr_rich_fig <- hydr_rich_out[[1]]
+wahy_rich_fig <- wahy_rich_out[[1]]
 wale_rich_fig <- wale_rich_out[[1]]
-foc_rich_fig <- hydr_rich_fig / wale_rich_fig
+foc_rich_fig <- hydr_rich_fig / wahy_rich_fig / wale_rich_fig
 
 ggsave("output/fwc_native_plant_richness_focal_invaders.png", foc_rich_fig,
-       device = "png", width = 5, height = 5, units = "in")
+       device = "png", width = 5, height = 7.5, units = "in")
 
 # non-focal figure
 cubu_rich_fig <- cubu_rich_out[[1]]
@@ -807,8 +836,10 @@ ggsave("output/fwc_native_plant_richness_non_focal_invaders.png", non_foc_rich_f
 # focal table of richness effects
 foc_rich_tab <- hydr_rich_out[[2]] %>%
   mutate(Invasive = "hydrilla") %>%
+  full_join(wahy_rich_out[[2]] %>%
+              mutate(Invasive = "water hyacinth")) %>%
   full_join(wale_rich_out[[2]] %>%
-              mutate(Invasive = "floating plants"))
+              mutate(Invasive = "water lettuce"))
 
 write_csv(foc_rich_tab, "output/fwc_native_plant_richness_focal_invaders.csv")
 
