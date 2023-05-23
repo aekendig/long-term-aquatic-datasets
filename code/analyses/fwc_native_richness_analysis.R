@@ -17,21 +17,10 @@ library(janitor)
 source("code/settings/figure_settings.R")
 
 # import data
-dat <- read_csv("intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
 dat <- read_csv("intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
 
 
 #### edit data ####
-
-# check values
-range(dat$Richness)
-filter(dat, Richness == 0)
-filter(dat, AreaOfInterestID == 31) %>%
-  distinct(GSYear, Richness) # value for 2002 seems off, looked at original data and only has 6 invasive species
-filter(dat, AreaOfInterestID == 313) %>%
-  distinct(GSYear, Richness) # value for 1999 seems off, looked at original data and only has 1 invasive species
-
-#### START HERE ####
 
 # taxa
 inv_taxa <- sort(unique(dat$CommonName))

@@ -288,16 +288,67 @@ nat_fwc3 <- nat_fwc2 %>%
   mutate(Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
            fct_relevel("Not mngd."))
 
+# total richness
+tot_rich <- plant_fwc4 %>%
+  filter(!is.na(Detected)) %>%
+  group_by(AreaOfInterestID, GSYear, Origin) %>%
+  summarize(Richness = sum(Detected)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = "Origin",
+              values_from = "Richness") %>%
+  mutate(TotRichness = Exotic + Native) %>%
+  rename(TotExRichness = Exotic,
+         TotNatRichness = Native) 
+
 # summarize for richness and add invasive plant and control data
 rich <- nat_fwc2 %>%
-  group_by(AreaOfInterestID, GSYear, Area_ha) %>%
-  summarize(Richness = sum(Detected)) %>%
+  group_by(AreaOfInterestID, GSYear, GSYearDiff, Area_ha) %>%
+  summarize(Richness = sum(Detected),
+            PrevRichness = sum(PrevDetected)) %>%
   ungroup() %>%
   mutate(LogRichness = log(Richness + 1)) %>%
   expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
   inner_join(inv_ctrl) %>%
   mutate(Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
-           fct_relevel("Not mngd."))
+           fct_relevel("Not mngd.")) %>%
+  left_join(tot_rich)
+
+# check values
+range(rich$Richness)
+hist(rich$Richness)
+low_rich <- filter(rich, Richness < 10) %>%
+  mutate(DiffRichness = Richness - PrevRichness) %>%
+  distinct(AreaOfInterestID, GSYear, Richness, PrevRichness, DiffRichness, TotNatRichness, TotExRichness) %>%
+  filter(is.na(DiffRichness) | DiffRichness <= 0) %>%
+  arrange(Richness) 
+filter(rich, AreaOfInterestID == 31) %>%
+  distinct(GSYear, Richness) # value for 2002 seems off
+filter(plant_fwc, AreaOfInterestID == 31 & GSYear == 2002 & IsDetected == "Yes") %>%
+  select(TaxonName, Origin, SpeciesAcres) # only 6 inv. spp
+filter(rich, AreaOfInterestID == 313) %>%
+  distinct(GSYear, Richness) # value for 1999 seems off
+filter(plant_fwc, AreaOfInterestID == 313 & GSYear == 1999 & IsDetected == "Yes") %>%
+  select(TaxonName, Origin, SpeciesAcres) # only 1 inv. spp
+filter(rich, AreaOfInterestID == 229) %>%
+  distinct(GSYear, Richness)
+filter(plant_fwc, AreaOfInterestID == 229 & GSYear == 1999 & IsDetected == "Yes") %>%
+  select(TaxonName, Origin, SpeciesAcres) # may be okay, has two native
+filter(rich, AreaOfInterestID == 361) %>%
+  distinct(GSYear, Richness)
+filter(plant_fwc, AreaOfInterestID == 361 & GSYear ==  2008 & IsDetected == "Yes") %>%
+  select(TaxonName, Origin, SpeciesAcres) # may be okay
+# seems like the top two issues are isolated
+
+#### START HERE ####
+# how to edit pres/absence
+# remove weird cases from rich and prev rich
+# rerun pres/abs analyses?
+
+# remove specific lake/years that seem incorrect
+nat_fwc4 <- nat_fwc3 %>%
+  filter(!(AreaOfInterestID == 31 & GSYear == 2002) & !(AreaOfInterestID == 313 & GSYear == 1999)) %>%
+  mutate(PrevDetected = if_else((AreaOfInterestID == 31 & GSYear == 2003) |
+                                  (AreaOfInterestID == 313 & GSYear == 2000)))
 
 # save data
 write_csv(nat_fwc3, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
