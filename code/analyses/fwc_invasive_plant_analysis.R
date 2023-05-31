@@ -57,8 +57,8 @@ inv_dat2 <- inv_dat %>%
   inner_join(pres_tax_inv %>%
                select(AreaOfInterestID, TaxonName)) %>%
   mutate(AreaOfInterestID = as.factor(AreaOfInterestID),
-         Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
-           fct_relevel("Not mngd."))
+         Treatment = if_else(Treated == 0, "Not managed", "Managed") %>%
+           fct_relevel("Not managed"))
 
 # check data availability
 inv_dat2 %>%
@@ -373,6 +373,10 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
     
     p_val <- formatC(p_val, format = "e", digits = 1)
     
+  } else {
+    
+    p_val <- formatC(p_val, format = "g", digits = 1)
+    
   }
   
   fig_p_val <- paste("p =", p_val)
@@ -441,29 +445,41 @@ hydr_fig <- treat_fig_fun(hydr_dat, hydr_mod_p[[4]], "(A) hydrilla",
                           "output/hydrilla_treatment_fig_presentation.jpg")
 wahy_fig <- treat_fig_fun(wahy_dat, wahy_mod_p[[4]], "(B) water hyacinth",
                           "output/water_hyacinth_treatment_fig_presentation.jpg")
-wale_fig <- treat_fig_fun(wale_dat, round_half_up(wale_mod_p[[8]], 1), "(C) water lettuce",
+wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[[8]], "(C) water lettuce",
                           "output/water_lettuce_treatment_fig_presentation.jpg")
 cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[[4]], "(A) Cuban bulrush",
                           "output/cuban_bulrush_treatment_fig_presentation.jpg")
-pagr_fig <- treat_fig_fun(pagr_dat, round_half_up(pagr_mod_p[[8]], 1), "(B) paragrass",
+pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[[8]], "(B) paragrass",
                           "output/paragrass_treatment_fig_presentation.jpg")
-torp_fig <- treat_fig_fun(torp_dat, round_half_up(torp_mod_p[[8]], 1), "(C) torpedograss",
+torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[[8]], "(C) torpedograss",
                           "output/torpedograss_treatment_fig_presentation.jpg")
 
 # combine
-foc_figs <- hydr_fig[[1]] + wahy_fig[[1]] + wale_fig[[1]] + plot_layout(ncol = 1)
+foc_figs <- hydr_fig[[1]] + theme(axis.title.y = element_blank()) + 
+  wahy_fig[[1]] + 
+  wale_fig[[1]] + theme(axis.title.y = element_blank()) + 
+  plot_layout(ncol = 1)
 ggsave("output/fwc_focal_invasive_growth_treatment.png", foc_figs,
        device = "png", width = 3, height = 7, units = "in")
 
-non_foc_figs <- cubu_fig[[1]] + pagr_fig[[1]] + torp_fig[[1]] + plot_layout(ncol = 1)
+non_foc_figs <- cubu_fig[[1]] + theme(axis.title.y = element_blank()) + 
+  pagr_fig[[1]] + 
+  torp_fig[[1]] + theme(axis.title.y = element_blank()) + 
+  plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_invasive_growth_treatment.png", non_foc_figs,
        device = "png", width = 3, height = 8, units = "in")
 
-foc_raw_figs <- hydr_fig[[2]] + wahy_fig[[2]] + wale_fig[[2]] + plot_layout(ncol = 1)
+foc_raw_figs <- hydr_fig[[2]] + theme(axis.title.y = element_blank()) + 
+  wahy_fig[[2]] + 
+  wale_fig[[2]] + theme(axis.title.y = element_blank()) + 
+  plot_layout(ncol = 1)
 ggsave("output/fwc_focal_raw_invasive_growth_treatment.png", foc_raw_figs,
        device = "png", width = 3, height = 7, units = "in")
 
-non_foc_raw_figs <- cubu_fig[[2]] + pagr_fig[[2]] + torp_fig[[2]] + plot_layout(ncol = 1)
+non_foc_raw_figs <- cubu_fig[[2]] + theme(axis.title.y = element_blank()) + 
+  pagr_fig[[2]] + 
+  torp_fig[[2]] + theme(axis.title.y = element_blank()) + 
+  plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_raw_invasive_growth_treatment.png", non_foc_raw_figs,
        device = "png", width = 3, height = 8, units = "in")
 

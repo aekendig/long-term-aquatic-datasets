@@ -281,13 +281,6 @@ inv_ctrl <- inner_join(inv_plant2, ctrl2) %>%
 
 #### combine data and select waterbodies/years ####
 
-# add invasive plant and control data
-nat_fwc3 <- nat_fwc2 %>%
-  expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
-  inner_join(inv_ctrl) %>%
-  mutate(Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
-           fct_relevel("Not mngd."))
-
 # total richness
 tot_rich <- plant_fwc4 %>%
   filter(!is.na(Detected)) %>%
@@ -306,11 +299,8 @@ rich <- nat_fwc2 %>%
   summarize(Richness = sum(Detected),
             PrevRichness = sum(PrevDetected)) %>%
   ungroup() %>%
-  mutate(LogRichness = log(Richness + 1)) %>%
   expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
   inner_join(inv_ctrl) %>%
-  mutate(Treatment = if_else(Treated == 0, "Not mngd.", "Managed") %>%
-           fct_relevel("Not mngd.")) %>%
   left_join(tot_rich)
 
 # check values
@@ -339,20 +329,36 @@ filter(plant_fwc, AreaOfInterestID == 361 & GSYear ==  2008 & IsDetected == "Yes
   select(TaxonName, Origin, SpeciesAcres) # may be okay
 # seems like the top two issues are isolated
 
-#### START HERE ####
-# how to edit pres/absence
-# remove weird cases from rich and prev rich
-# rerun pres/abs analyses?
-
-# remove specific lake/years that seem incorrect
-nat_fwc4 <- nat_fwc3 %>%
+# remove specific lake/years that seem incomplete
+nat_fwc3 <- nat_fwc2 %>%
   filter(!(AreaOfInterestID == 31 & GSYear == 2002) & !(AreaOfInterestID == 313 & GSYear == 1999)) %>%
   mutate(PrevDetected = if_else((AreaOfInterestID == 31 & GSYear == 2003) |
-                                  (AreaOfInterestID == 313 & GSYear == 2000)))
+                                  (AreaOfInterestID == 313 & GSYear == 2000), NA_real_,
+                                PrevDetected))
+
+# summarize for richness again
+rich2 <- nat_fwc3 %>%
+  group_by(AreaOfInterestID, GSYear, GSYearDiff, Area_ha) %>%
+  summarize(Richness = sum(Detected),
+            PrevRichness = sum(PrevDetected)) %>%
+  ungroup() %>%
+  mutate(LogRichness = log(Richness + 1)) %>%
+  expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
+  inner_join(inv_ctrl) %>%
+  mutate(Treatment = if_else(Treated == 0, "Not managed", "Managed") %>%
+           fct_relevel("Not managed"),
+         LogRatioRichness = log(Richness / PrevRichness))
+
+# add invasive plant and control data
+nat_fwc4 <- nat_fwc3 %>%
+  expand_grid(CommonName = unique(inv_ctrl$CommonName)) %>%
+  inner_join(inv_ctrl) %>%
+  mutate(Treatment = if_else(Treated == 0, "Not managed", "Managed") %>%
+           fct_relevel("Not managed"))
 
 # save data
-write_csv(nat_fwc3, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
-write_csv(rich, "intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
+write_csv(nat_fwc4, "intermediate-data/FWC_common_native_plants_invaded_data_formatted.csv")
+write_csv(rich2, "intermediate-data/FWC_common_native_richness_invaded_data_formatted.csv")
 
 #### waterbody counts ####
 nat_fwc2 %>%
