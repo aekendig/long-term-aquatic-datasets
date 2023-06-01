@@ -610,18 +610,77 @@ wahy_mod_sum <- tibble(Coefficient = c("intercept", "water hyacinth management",
                        Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
                        N = nrow(wahy_dat))
 
-#### start here ####
-# export tables and add to BAA
-# extract values below for text
+cubu_mod_sum <- tibble(Coefficient = c("intercept", "Cuban bulrush management", "Cuban bulrush PAC", 
+                                       "interaction", "error", "random: year"),
+                       Estimate = c(cubu_mod_p[, 1], summary(cubu_mod)$ercomp$sigma2),
+                       SE = c(cubu_mod_p[, 2], NA, NA),
+                       t = c(cubu_mod_p[, 3], NA, NA),
+                       P = c(cubu_mod_p[, 4], NA, NA),
+                       R2 = summary(cubu_mod)$r.squared[2],
+                       Waterbodies = n_distinct(cubu_dat$AreaOfInterestID),
+                       Years = paste(range(count(cubu_dat, AreaOfInterestID)$n), collapse = "-"),
+                       N = nrow(cubu_dat))
+
+pagr_mod_sum <- tibble(Coefficient = c("paragrass management", "paragrass PAC", 
+                                       "interaction"),
+                       Estimate = pagr_mod_p[, 1],
+                       SE = pagr_mod_p[, 2],
+                       t = pagr_mod_p[, 3],
+                       P = pagr_mod_p[, 4],
+                       R2 = summary(pagr_mod)$r.squared[2],
+                       Waterbodies = n_distinct(pagr_dat$AreaOfInterestID),
+                       Years = paste(range(count(pagr_dat, AreaOfInterestID)$n), collapse = "-"),
+                       N = nrow(pagr_dat))
+
+torp_mod_sum <- tibble(Coefficient = c("torpedograss management", "torpedograss PAC", 
+                                       "interaction"),
+                       Estimate = torp_mod_p[, 1],
+                       SE = torp_mod_p[, 2],
+                       t = torp_mod_p[, 3],
+                       P = torp_mod_p[, 4],
+                       R2 = summary(torp_mod)$r.squared[2],
+                       Waterbodies = n_distinct(torp_dat$AreaOfInterestID),
+                       Years = paste(range(count(torp_dat, AreaOfInterestID)$n), collapse = "-"),
+                       N = nrow(torp_dat))
+
+# export
+write_csv(hydr_mod_sum, "fwc_native_richness_hydrilla_model_summary.csv")
+write_csv(wahy_mod_sum, "fwc_native_richness_water_hyacinth_model_summary.csv")
+write_csv(wale_mod_sum, "fwc_native_richness_water_lettuce_model_summary.csv")
+write_csv(cubu_mod_sum, "fwc_native_richness_cuban_bulrush_model_summary.csv")
+write_csv(pagr_mod_sum, "fwc_native_richness_paragrass_model_summary.csv")
+write_csv(torp_mod_sum, "fwc_native_richness_torpedograss_model_summary.csv")
 
 
 #### values for text ####
 
 # data tables
 foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
-                  Incpt = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), 
-                            as.numeric(wale_mod$coefficients["(Intercept)"])),
-                  Beta = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod)[2]))) %>%
-  mutate(IncptBeta = Incpt + Beta,
+                  Incpt = c(hydr_mod_p[1, 1], wahy_mod_p[1, 1], wale_mod_p[1, 1]),
+                  BetaTreat = c(hydr_mod_p[2, 1], wahy_mod_p[2, 1], wale_mod_p[2, 1]),
+                  BetaPAC = c(hydr_mod_p[3, 1], wahy_mod_p[3, 1], wale_mod_p[3, 1]),
+                  BetaInxn = c(hydr_mod_p[4, 1], wahy_mod_p[4, 1], wale_mod_p[4, 1])) %>%
+  mutate(IncptTreat = Incpt + BetaTreat,
+         IncptPAC = Incpt + BetaPAC,
+         IncptTreatPAC = Incpt + BetaTreat + BetaPAC + BetaInxn,
          NoTreat = 100 * (exp(Incpt) - 1),
-         Treat = 100 * (exp(IncptBeta) - 1))
+         Treat = 100 * (exp(IncptTreat) - 1),
+         PAC = 100 * (exp(IncptPAC) - 1),
+         TreatPAC = 100 * (exp(IncptTreatPAC) - 1))
+
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Paragrass", "Torpedograss"),
+                  Incpt = c(cubu_mod_p[1, 1], mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
+                  BetaTreat = c(cubu_mod_p[2, 1], pagr_mod_p[1, 1], torp_mod_p[1, 1]),
+                  BetaPAC = c(cubu_mod_p[3, 1], pagr_mod_p[2, 1], torp_mod_p[2, 1]),
+                  BetaInxn = c(cubu_mod_p[4, 1], pagr_mod_p[3, 1], torp_mod_p[3, 1])) %>%
+  mutate(IncptTreat = Incpt + BetaTreat,
+         IncptPAC = Incpt + BetaPAC,
+         IncptTreatPAC = Incpt + BetaTreat + BetaPAC + BetaInxn,
+         NoTreat = 100 * (exp(Incpt) - 1),
+         Treat = 100 * (exp(IncptTreat) - 1),
+         PAC = 100 * (exp(IncptPAC) - 1),
+         TreatPAC = 100 * (exp(IncptTreatPAC) - 1))
+
+# save data table
+write_csv(foc_sum, "output/fwc_native_richness_focal_treatment_prediction.csv")
+write_csv(non_foc_sum, "output/fwc_native_richness_non_focal_treatment_prediction.csv")
