@@ -395,6 +395,7 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
     annotate(geom = "text", label = fig_p_vals, size = paper_text_size, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
+    scale_x_continuous(limist = c(0, 100)) +
     scale_color_manual(values = pal) +
     labs(x = "Invasive plant PAC") +
     def_theme_paper +
@@ -419,11 +420,13 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
   
 }
 
+#### start here ####
+
 hydr_fig2 <- PAC_fig_fun(hydr_dat, hydr_mod_p[3:4, 4], hydr_mod, "(A) hydrilla",
                           "output/richness_hydrilla_PAC_fig_presentation.jpg")
-wahy_fig2 <- PAC_fig_fun(hydr_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
+wahy_fig2 <- PAC_fig_fun(wahy_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
                          "output/richness_water_hyacinth_PAC_fig_presentation.jpg")
-wale_fig2 <- PAC_fig_fun(hydr_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
+wale_fig2 <- PAC_fig_fun(wale_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
                          "output/richness_water_lettuce_PAC_fig_presentation.jpg")
 
 cubu_fig2 <- PAC_fig_fun(cubu_dat, cubu_mod_p[3:4, 4], cubu_mod, "(A) Cuban bulrush",
@@ -644,12 +647,12 @@ torp_mod_sum <- tibble(Coefficient = c("torpedograss management", "torpedograss 
                        N = nrow(torp_dat))
 
 # export
-write_csv(hydr_mod_sum, "fwc_native_richness_hydrilla_model_summary.csv")
-write_csv(wahy_mod_sum, "fwc_native_richness_water_hyacinth_model_summary.csv")
-write_csv(wale_mod_sum, "fwc_native_richness_water_lettuce_model_summary.csv")
-write_csv(cubu_mod_sum, "fwc_native_richness_cuban_bulrush_model_summary.csv")
-write_csv(pagr_mod_sum, "fwc_native_richness_paragrass_model_summary.csv")
-write_csv(torp_mod_sum, "fwc_native_richness_torpedograss_model_summary.csv")
+write_csv(hydr_mod_sum, "output/fwc_native_richness_hydrilla_model_summary.csv")
+write_csv(wahy_mod_sum, "output/fwc_native_richness_water_hyacinth_model_summary.csv")
+write_csv(wale_mod_sum, "output/fwc_native_richness_water_lettuce_model_summary.csv")
+write_csv(cubu_mod_sum, "output/fwc_native_richness_cuban_bulrush_model_summary.csv")
+write_csv(pagr_mod_sum, "output/fwc_native_richness_paragrass_model_summary.csv")
+write_csv(torp_mod_sum, "output/fwc_native_richness_torpedograss_model_summary.csv")
 
 
 #### values for text ####

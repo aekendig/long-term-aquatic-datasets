@@ -465,12 +465,13 @@ foc_coef_sum <- full_join(hydr_sum, wale_sum) %>%
               distinct(TaxonName, Habitat) %>%
               rename(species = TaxonName)) %>%
   mutate(covariate = fct_relevel(covariate,
-                                 "intercept", "invasive plant PAC", "management"),
+                                 "intercept", "management", "invasive plant PAC"),
          cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
                           covariate == "management" ~ paste(invader, "mgmt."),
                           TRUE ~ as.character(covariate)) %>%
-           fct_relevel("intercept", "hydrilla PAC", "water hyacinth PAC", "water lettuce PAC",
-                       "hydrilla mgmt.", "water hyacinth mgmt.", "water lettuce mgmt."),
+           fct_relevel("intercept",
+                       "hydrilla mgmt.", "water hyacinth mgmt.", "water lettuce mgmt.", 
+                       "hydrilla PAC", "water hyacinth PAC", "water lettuce PAC"),
          invader = fct_relevel(invader, "hydrilla"),
          habitat_num = as.numeric(as.factor(Habitat)),
          sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
@@ -494,16 +495,17 @@ non_foc_coef_sum <- full_join(cubu_sum, pagr_sum) %>%
               distinct(TaxonName, Habitat) %>%
               rename(species = TaxonName)) %>%
   mutate(covariate = fct_relevel(covariate,
-                                 "intercept", "invasive plant PAC", "management"),
+                                 "intercept", "management", "invasive plant PAC"),
          cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
                           covariate == "management" ~ paste(invader, "mgmt."),
                         TRUE ~ as.character(covariate)) %>%
-           fct_relevel("intercept", "Cuban bulrush PAC", 
-                       "paragrass PAC",
-                       "torpedograss PAC", 
+           fct_relevel("intercept", 
                        "Cuban bulrush mgmt.", 
                        "paragrass mgmt.",
-                       "torpedograss mgmt."),
+                       "torpedograss mgmt.", 
+                       "Cuban bulrush PAC", 
+                       "paragrass PAC",
+                       "torpedograss PAC"),
          habitat_num = as.numeric(as.factor(Habitat)),
          sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
          species = fct_reorder(species, sp_num, .desc = T),
