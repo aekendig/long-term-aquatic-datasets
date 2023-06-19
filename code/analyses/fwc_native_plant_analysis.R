@@ -389,135 +389,102 @@ hist(torp_eval$AUC)
 
 #### coefficient figures ####
 
-# summaries
-hydr_sum <- as_tibble(summary(hydr_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(hydr_mat), each = 4),
-         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(hydr_mat))) %>%
-  full_join(as_tibble(summary(hydr_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(hydr_mat), each = 4),
-                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(hydr_mat)))) %>%
-  mutate(invader = "hydrilla")
+# coefficients and net effect of management and cover
+coef_fun <- function(post_in, inv_name) {
+  
+  post_long <- do.call("rbind", post_in$Beta)  %>% # collapse three chain dataframes into one
+    as_tibble() %>%
+    mutate(sample = 1:n()) %>%
+    pivot_longer(cols = -sample, # make covariates and taxa into rows
+                 names_to = "var",
+                 values_to = "est") %>%
+    mutate(covariate = case_when(str_detect(var, "(Intercept)") == T ~ "intercept", # column for covariate
+                                 str_detect(var, ":Treated") == T ~ "interaction",
+                                 str_detect(var, "PrevPercCovered") == T ~ "cover",
+                                 str_detect(var, "Treated") == T ~ "management")) %>%
+    mutate(TaxonName = str_split_i(var, "\\), ", 2), # column for taxa
+           TaxonName = str_split_i(TaxonName, " \\(S", 1)) %>%
+    select(-var) %>%
+    pivot_wider(names_from = "covariate", # make covariates into columns
+                values_from = "est") %>%
+    mutate(cover = 10 * cover, # assume 10% increase in cover
+           interaction = 10 * interaction,
+           net = cover + management + interaction) %>% # net effect
+    pivot_longer(cols = c(intercept, cover, management, interaction, net), # put covariates back into rows
+                 names_to = "covariate",
+                 values_to = "est") %>%
+    group_by(TaxonName, covariate) %>%
+    summarize(Mean = mean(est), # summarize by covariate and taxon
+              quant_2_5 = quantile(est, 0.025),
+              quant_97_5 = quantile(est, 0.975),
+              .groups = "drop") %>%
+    mutate(invader = inv_name)
+  
+  return(post_long)
+  
+}
 
-wale_sum <- as_tibble(summary(wale_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(wale_mat), each = 4),
-         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(wale_mat))) %>%
-  full_join(as_tibble(summary(wale_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(wale_mat), each = 4),
-                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(wale_mat)))) %>%
-  mutate(invader = "water lettuce")
-
-wahy_sum <- as_tibble(summary(wahy_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(wahy_mat), each = 4),
-         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(wahy_mat))) %>%
-  full_join(as_tibble(summary(wahy_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(wahy_mat), each = 4),
-                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(wahy_mat)))) %>%
-  mutate(invader = "water hyacinth")
-
-cubu_sum <- as_tibble(summary(cubu_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(cubu_mat), each = 4),
-         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(cubu_mat))) %>%
-  full_join(as_tibble(summary(cubu_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(cubu_mat), each = 4),
-                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(cubu_mat)))) %>%
-  mutate(invader = "Cuban bulrush")
-
-pagr_sum <- as_tibble(summary(pagr_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(pagr_mat), each = 4),
-         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(pagr_mat))) %>%
-  full_join(as_tibble(summary(pagr_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(pagr_mat), each = 4),
-                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(pagr_mat)))) %>%
-  mutate(invader = "paragrass")
-
-torp_sum <- as_tibble(summary(torp_post$Beta)$statistics) %>%
-  mutate(species = rep(colnames(torp_mat), each = 4),
-         covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                         ncol(torp_mat))) %>%
-  full_join(as_tibble(summary(torp_post$Beta)$quantiles) %>%
-              mutate(species = rep(colnames(torp_mat), each = 4),
-                     covariate = rep(c("intercept", "invasive plant PAC", "management", "interaction"), 
-                                     ncol(torp_mat)))) %>%
-  mutate(invader = "torpedograss")
+hydr_sum <- coef_fun(hydr_post, "hydrilla")
+wale_sum <- coef_fun(wale_post, "water lettuce")
+wahy_sum <- coef_fun(wahy_post, "water hyacinth")
+cubu_sum <- coef_fun(cubu_post, "Cuban bulrush")
+pagr_sum <- coef_fun(pagr_post, "para grass")
+torp_sum <- coef_fun(torp_post, "torpedograss")
 
 # combine
 foc_coef_sum <- full_join(hydr_sum, wale_sum) %>%
   full_join(wahy_sum) %>%
-  relocate(invader, species, covariate) %>%
-  rename(naive_se = "Naive SE",
-         time_series_se = "Time-series SE",
-         quant_2_5 = "2.5%",
-         quant_25 = "25%",
-         quant_50 = "50%",
-         quant_75 = "75%",
-         quant_97_5 = "97.5%") %>%
   left_join(dat %>%
-              distinct(TaxonName, Habitat) %>%
-              rename(species = TaxonName)) %>%
-  mutate(covariate = fct_relevel(covariate,
-                                 "intercept", "management", "invasive plant PAC"),
-         cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
+              distinct(TaxonName, Habitat)) %>%
+  mutate(cov2 = case_when(covariate == "cover" ~ paste(invader, "cover"), # switch between PAC and cover
                           covariate == "management" ~ paste(invader, "mgmt."),
+                          covariate == "net" ~ "mgmt. + cover",
                           TRUE ~ as.character(covariate)) %>%
            fct_relevel("intercept",
-                       "hydrilla mgmt.", "water hyacinth mgmt.", "water lettuce mgmt.", 
-                       "hydrilla PAC", "water hyacinth PAC", "water lettuce PAC"),
+                       "hydrilla mgmt.", 
+                       "water hyacinth mgmt.", 
+                       "water lettuce mgmt.", 
+                       "hydrilla cover", 
+                       "water hyacinth cover", 
+                       "water lettuce cover"),
          invader = fct_relevel(invader, "hydrilla"),
          habitat_num = as.numeric(as.factor(Habitat)),
-         sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
-         species = fct_reorder(species, sp_num, .desc = T),
+         tax_num = habitat_num * 100 + as.numeric(as.factor(TaxonName)),
+         TaxonName = fct_reorder(TaxonName, tax_num, .desc = T),
          sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "yes",
                          quant_2_5 < 0 & quant_97_5 < 0 ~ "yes",
                          TRUE ~ "no"),
-         Habitat = tolower(Habitat))
+         Habitat = tolower(Habitat)) %>%
+  filter(covariate %in% c("management", "cover", "net"))
 
 non_foc_coef_sum <- full_join(cubu_sum, pagr_sum) %>%
   full_join(torp_sum) %>%
-  relocate(invader, species, covariate) %>%
-  rename(naive_se = "Naive SE",
-         time_series_se = "Time-series SE",
-         quant_2_5 = "2.5%",
-         quant_25 = "25%",
-         quant_50 = "50%",
-         quant_75 = "75%",
-         quant_97_5 = "97.5%") %>%
   left_join(dat %>%
-              distinct(TaxonName, Habitat) %>%
-              rename(species = TaxonName)) %>%
-  mutate(covariate = fct_relevel(covariate,
-                                 "intercept", "management", "invasive plant PAC"),
-         cov2 = case_when(covariate == "invasive plant PAC" ~ paste(invader, "PAC"),
+              distinct(TaxonName, Habitat)) %>%
+  mutate(cov2 = case_when(covariate == "cover" ~ paste(invader, "cover"),
                           covariate == "management" ~ paste(invader, "mgmt."),
+                          covariate == "net" ~ "mgmt. + cover",
                         TRUE ~ as.character(covariate)) %>%
            fct_relevel("intercept", 
                        "Cuban bulrush mgmt.", 
-                       "paragrass mgmt.",
+                       "para grass mgmt.",
                        "torpedograss mgmt.", 
-                       "Cuban bulrush PAC", 
-                       "paragrass PAC",
-                       "torpedograss PAC"),
+                       "Cuban bulrush cover", 
+                       "para grass cover",
+                       "torpedograss cover"),
          habitat_num = as.numeric(as.factor(Habitat)),
-         sp_num = habitat_num * 100 + as.numeric(as.factor(species)),
-         species = fct_reorder(species, sp_num, .desc = T),
+         tax_num = habitat_num * 100 + as.numeric(as.factor(TaxonName)),
+         TaxonName = fct_reorder(TaxonName, tax_num, .desc = T),
          sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "yes",
                          quant_2_5 < 0 & quant_97_5 < 0 ~ "yes",
                          TRUE ~ "no"),
-         Habitat = tolower(Habitat))
+         Habitat = tolower(Habitat)) %>%
+  filter(covariate %in% c("management", "cover", "net"))
 
 # coefficient plots
 hydr_coef_fig <- foc_coef_sum %>%
-  filter(covariate != "intercept" & invader == "hydrilla") %>%
-  ggplot(aes(x = Mean, y = species, color = Habitat, alpha = sig)) +
+  filter(invader == "hydrilla") %>%
+  ggplot(aes(x = Mean, y = TaxonName, color = Habitat, alpha = sig)) +
   geom_vline(xintercept = 0) +
   geom_errorbarh(aes(xmin = quant_2_5,
                      xmax = quant_97_5),
@@ -526,48 +493,172 @@ hydr_coef_fig <- foc_coef_sum %>%
   facet_grid(~ cov2, scales = "free") +
   scale_color_manual(values = brewer.set2(n = 3), name = "Growth form") +
   scale_alpha_manual(values = c(0.2, 1), name = "CI omits zero") +
-  labs(x = "Change in detection z-score ± 95% CI") +
+  labs(x = "Change in z-score ± 95% CI") +
   def_theme_paper +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
         legend.box = "vertical",
         legend.spacing.y = unit(-0.4, "cm"),
+        panel.spacing.x = unit(4, "mm"),
         axis.text.y = element_text(size = 6.5, face = "italic"),
         axis.title.y = element_blank())
 
 wahy_coef_fig <- hydr_coef_fig %+%
-  filter(foc_coef_sum,
-         covariate != "intercept" & invader == "water hyacinth")
+  filter(foc_coef_sum, invader == "water hyacinth")
 
 wale_coef_fig <- hydr_coef_fig %+%
-  filter(foc_coef_sum,
-         covariate != "intercept" & invader == "water lettuce")
+  filter(foc_coef_sum, invader == "water lettuce" &
+           TaxonName != "Mayaca fluviatilis")
 
 cubu_coef_fig <- hydr_coef_fig %+%
-  filter(non_foc_coef_sum,
-         covariate != "intercept" & invader == "Cuban bulrush") +
+  filter(non_foc_coef_sum, invader == "Cuban bulrush") +
   theme(strip.text = element_text(size = 8))
 
 pagr_coef_fig <- hydr_coef_fig %+%
-  filter(non_foc_coef_sum,
-         covariate != "intercept" & invader == "paragrass")
+  filter(non_foc_coef_sum, invader == "para grass")
 
 torp_coef_fig <- hydr_coef_fig %+%
-  filter(non_foc_coef_sum,
-         covariate != "intercept" & invader == "torpedograss")
+  filter(non_foc_coef_sum, invader == "torpedograss")
 
-ggsave("output/fwc_native_plant_coefficients_hydrilla_PAC.png", hydr_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_hydrilla_cover.png", hydr_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_water_hyacinth_PAC.png", wahy_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_water_hyacinth_cover.png", wahy_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_water_lettuce_PAC.png", wale_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_water_lettuce_cover.png", wale_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_cuban_bulrush_PAC.png", cubu_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_cuban_bulrush_cover.png", cubu_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_paragrass_PAC.png", pagr_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_paragrass_cover.png", pagr_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
-ggsave("output/fwc_native_plant_coefficients_torpedograss_PAC.png", torp_coef_fig,
+ggsave("output/fwc_native_plant_coefficients_torpedograss_cover.png", torp_coef_fig,
        device = "png", width = 6.5, height = 6.5, units = "in")
 
-write_csv(foc_coef_sum, "output/fwc_native_plant_coefficients_focal_invaders_PAC.csv")
-write_csv(non_foc_coef_sum, "output/fwc_native_plant_coefficients_non_focal_invaders_PAC.csv")
+write_csv(foc_coef_sum, "output/fwc_native_plant_coefficients_focal_invaders_cover.csv")
+write_csv(non_foc_coef_sum, "output/fwc_native_plant_coefficients_non_focal_invaders_cover.csv")
+
+
+#### summary figure ####
+
+# color palette
+pal <- c("#0072B2", "#D55E00")
+
+# summarize data
+foc_sum_dat <- foc_coef_sum %>%
+  mutate(direction = if_else(Mean > 0, "+", "-")) %>%
+  group_by(invader, covariate, cov2, sig, direction) %>%
+  summarize(taxa = n_distinct(TaxonName)) %>%
+  ungroup() %>%
+  mutate(taxa_plot = if_else(direction == "-", -1 * taxa, taxa),
+         panel_name = case_when(invader == "hydrilla" ~ "(A) hydrilla",
+                                invader == "water hyacinth" ~ "(B) water hyacinth",
+                                invader == "water lettuce" ~ "(C) water lettuce"),
+         # covariate = str_replace(covariate, "cover", "PAC") %>%
+         #   fct_relevel("management", "PAC"),
+         covariate = fct_relevel(covariate, "management", "cover"),
+         sig = fct_relevel(sig, "yes")) %>%
+  group_by(invader, covariate, direction) %>%
+  mutate(taxa_col = sum(taxa_plot)) %>%
+  ungroup() %>%
+  mutate(lab_y = if_else(sig == "no", taxa_plot/2,
+                         taxa_col - taxa_plot/2))
+
+non_foc_sum_dat <- non_foc_coef_sum %>%
+  mutate(direction = if_else(Mean > 0, "+", "-")) %>%
+  group_by(invader, covariate, cov2, sig, direction) %>%
+  summarize(taxa = n_distinct(TaxonName)) %>%
+  ungroup() %>%
+  filter(covariate != "intercept") %>%
+  mutate(taxa_plot = if_else(direction == "-", -1 * taxa, taxa),
+         panel_name = case_when(invader == "Cuban bulrush" ~ "(A) Cuban bulrush",
+                                invader == "para grass" ~ "(B) para grass",
+                                invader == "torpedograss" ~ "(C) torpedograss"),
+         # covariate = str_replace(covariate, "cover", "PAC") %>%
+         #   fct_relevel("management", "PAC"),
+         covariate = fct_relevel(covariate, "management", "cover"),
+         sig = fct_relevel(sig, "yes")) %>%
+  group_by(invader, covariate, direction) %>%
+  mutate(taxa_col = sum(taxa_plot)) %>%
+  ungroup() %>%
+  mutate(lab_y = if_else(sig == "no", taxa_plot/2,
+                         taxa_col - taxa_plot/2))
+
+# figure function
+foc_sum_fig <- ggplot(foc_sum_dat, aes(x = covariate, y = taxa_plot, 
+                          fill = direction)) +
+    geom_col(aes(alpha = sig)) +
+    geom_hline(yintercept = 0) +
+  geom_text(aes(label = taxa, y = lab_y), size = 3) +
+    facet_wrap(~ panel_name) +
+    scale_fill_manual(values = pal, name = "Response direction") +
+  scale_alpha_manual(values = c(1, 0.5), name = "CI omits zero") +
+  scale_y_continuous(breaks = c(-50, -25, 0, 25, 50),
+                    labels = c(50, 25, 0, 25, 50)) +
+    labs(y = "Number of native taxa") +
+    def_theme_paper +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal",
+          legend.spacing.y = unit(-0.4, "cm"),
+          axis.title.x = element_blank(),
+          strip.text = element_text(hjust = 0))
+
+ggsave("output/fwc_native_plant_focal_summary_figure_cover.png", foc_sum_fig,
+       device = "png", width = 6.5, height = 4, units = "in")
+
+non_foc_sum_fig <- ggplot(non_foc_sum_dat, aes(x = covariate, y = taxa_plot, 
+                                               fill = direction)) +
+  geom_col(aes(alpha = sig)) +
+  geom_hline(yintercept = 0) +
+  geom_text(aes(label = taxa, y = lab_y), size = 3) +
+  facet_wrap(~ panel_name) +
+  scale_fill_manual(values = pal, name = "Response direction") +
+  scale_alpha_manual(values = c(1, 0.5), name = "CI omits zero") +
+  scale_y_continuous(breaks = c(-50, -25, 0, 25, 50),
+                     labels = c(50, 25, 0, 25, 50)) +
+  labs(y = "Number of native taxa") +
+  def_theme_paper +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.spacing.y = unit(-0.4, "cm"),
+        axis.title.x = element_blank(),
+        strip.text = element_text(hjust = 0))
+
+ggsave("output/fwc_native_plant_non_focal_summary_figure_cover.png", non_foc_sum_fig,
+       device = "png", width = 6.5, height = 4, units = "in")
+
+
+#### time between management and survey ####
+
+# calculate time difference
+time_diff <- dat %>%
+  filter(Treated == 1) %>%
+  distinct(AreaOfInterestID, GSYear, CommonName, SurveyDate, MaxTreatmentDate) %>%
+  mutate(SurveyTreatDays = as.numeric(SurveyDate - MaxTreatmentDate))
+
+# check that it makes sense
+janitor::get_dupes(time_diff, AreaOfInterestID, GSYear, CommonName)
+# should return no duplicates
+
+count(time_diff, CommonName)
+# should be similar, but higher than richness N
+# higher because richness required previous year
+
+# focal taxa
+foc_time_diff <- time_diff %>%
+  filter(CommonName %in% c("Hydrilla", "Water hyacinth", "Water lettuce")) %>%
+  mutate(pan_lab = case_when(CommonName == "Hydrilla" ~ "(A) hydrilla",
+                             CommonName == "Water hyacinth" ~ "(B) water hyacinth",
+                             CommonName == "Water lettuce" ~ "(C) water lettuce"))
+
+
+
+# figure
+foc_time_diff_fig <- ggplot(foc_time_diff, aes(x = SurveyTreatDays)) +
+  geom_histogram(binwidth = 7) +
+  facet_wrap(~ pan_lab, scales = "free") +
+  labs(x = "Days between management and plant survey",
+       y = "Number of waterbody-year combinations") +
+  def_theme_paper +
+  theme(strip.text = element_text(hjust = 0))
+
+ggsave("output/fwc_focal_survey_management_time_difference.png", foc_time_diff_fig,
+       device = "png", width = 6.5, height = 3, units = "in")

@@ -335,7 +335,7 @@ wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[2, 4], "(C) water lettuce",
                           "output/richness_water_lettuce_treatment_fig_presentation.jpg")
 cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[2, 4], "(A) Cuban bulrush",
                           "output/richness_cuban_bulrush_treatment_fig_presentation.jpg")
-pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[1, 4], "(B) paragrass",
+pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[1, 4], "(B) para grass",
                           "output/richness_paragrass_treatment_fig_presentation.jpg")
 torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[1, 4], "(C) torpedograss",
                           "output/richness_torpedograss_treatment_fig_presentation.jpg")
@@ -343,7 +343,7 @@ torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[1, 4], "(C) torpedograss",
 # combine
 foc_figs <- hydr_fig[[1]] + wahy_fig[[1]] + wale_fig[[1]] + plot_layout(ncol = 1)
 ggsave("output/fwc_focal_richness_treatment.png", foc_figs,
-       device = "png", width = 3, height = 7, units = "in")
+       device = "png", width = 3, height = 8, units = "in")
 
 non_foc_figs <- cubu_fig[[1]] + pagr_fig[[1]] + torp_fig[[1]] + plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_richness_treatment.png", non_foc_figs,
@@ -351,7 +351,7 @@ ggsave("output/fwc_non_focal_richness_treatment.png", non_foc_figs,
 
 foc_raw_figs <- hydr_fig[[2]] + wahy_fig[[2]] + wale_fig[[2]] + plot_layout(ncol = 1)
 ggsave("output/fwc_focal_raw_richness_treatment.png", foc_raw_figs,
-       device = "png", width = 3, height = 7, units = "in")
+       device = "png", width = 3, height = 8, units = "in")
 
 non_foc_raw_figs <- cubu_fig[[2]] + pagr_fig[[2]] + torp_fig[[2]] + plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_raw_richness_treatment.png", non_foc_raw_figs,
@@ -361,7 +361,7 @@ ggsave("output/fwc_non_focal_raw_richness_treatment.png", non_foc_raw_figs,
 #### PAC figures ####
 
 # figure function
-PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
+PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
   
   if(p_vals[1] < 0.001) {
     
@@ -384,7 +384,7 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
   } 
   
   fig_p_vals <- paste0("PAC p = ", p_vals1, ", interaction p = ", p_vals2)
-
+  
   dat_in2 <- dat_in %>%
     mutate(Pred = predict(mod, newdata = .),
            LogitPrevPercCov = car::logit(PrevPercCovered/100, adjust = 0.001))
@@ -395,7 +395,7 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
     annotate(geom = "text", label = fig_p_vals, size = paper_text_size, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
-    scale_x_continuous(limist = c(0, 100)) +
+    scale_x_continuous(limits = c(0, x_lim)) +
     scale_color_manual(values = pal) +
     labs(x = "Invasive plant PAC") +
     def_theme_paper +
@@ -420,21 +420,19 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
   
 }
 
-#### start here ####
-
 hydr_fig2 <- PAC_fig_fun(hydr_dat, hydr_mod_p[3:4, 4], hydr_mod, "(A) hydrilla",
-                          "output/richness_hydrilla_PAC_fig_presentation.jpg")
+                         "output/richness_hydrilla_PAC_fig_presentation.jpg", 100)
 wahy_fig2 <- PAC_fig_fun(wahy_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
-                         "output/richness_water_hyacinth_PAC_fig_presentation.jpg")
+                         "output/richness_water_hyacinth_PAC_fig_presentation.jpg", 100)
 wale_fig2 <- PAC_fig_fun(wale_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
-                         "output/richness_water_lettuce_PAC_fig_presentation.jpg")
+                         "output/richness_water_lettuce_PAC_fig_presentation.jpg", 100)
 
 cubu_fig2 <- PAC_fig_fun(cubu_dat, cubu_mod_p[3:4, 4], cubu_mod, "(A) Cuban bulrush",
-                         "output/richness_cuban_bulrush_PAC_fig_presentation.jpg")
-pagr_fig2 <- PAC_fig_fun(pagr_dat, pagr_mod_p[2:3, 4], pagr_mod, "(B) paragrass",
-                         "output/richness_paragrass_PAC_fig_presentation.jpg")
+                         "output/richness_cuban_bulrush_PAC_fig_presentation.jpg", 25)
+pagr_fig2 <- PAC_fig_fun(pagr_dat, pagr_mod_p[2:3, 4], pagr_mod, "(B) para grass",
+                         "output/richness_paragrass_PAC_fig_presentation.jpg", 25)
 torp_fig2 <- PAC_fig_fun(torp_dat, as.numeric(torp_mod_p[2:3, 4]), torp_mod, "(B) torpedograss",
-                         "output/richness_torpedograss_PAC_fig_presentation.jpg")
+                         "output/richness_torpedograss_PAC_fig_presentation.jpg", 25)
 
 # combine and save
 foc_figs_PAC <- hydr_fig[[1]] + theme(axis.title.y = element_blank(),
@@ -451,10 +449,10 @@ foc_figs_PAC <- hydr_fig[[1]] + theme(axis.title.y = element_blank(),
         legend.box.margin = margin(-10, 0, 0, 0)) &
   guides(fill = "none")
 ggsave("output/fwc_focal_PAC_richness.png", foc_figs_PAC,
-       device = "png", width = 6, height = 7, units = "in")
+       device = "png", width = 6, height = 8, units = "in")
 
 non_foc_figs_PAC <- cubu_fig[[1]] + theme(axis.title.y = element_blank(),
-                                      axis.text.x = element_blank()) + 
+                                          axis.text.x = element_blank()) + 
   cubu_fig2 + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
   pagr_fig[[1]] + theme(axis.title.y = element_text(hjust = -0.01),
                         axis.text.x = element_blank()) +
@@ -467,12 +465,12 @@ non_foc_figs_PAC <- cubu_fig[[1]] + theme(axis.title.y = element_blank(),
         legend.box.margin = margin(-10, 0, 0, 0)) &
   guides(fill = "none")
 ggsave("output/fwc_non_focal_PAC_richness.png", non_foc_figs_PAC,
-       device = "png", width = 6, height = 7, units = "in")
+       device = "png", width = 6, height = 8, units = "in")
 
 
 #### cover figures ####
 
-cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
+cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
   
   if(p_vals[1] < 0.001) {
     
@@ -506,6 +504,7 @@ cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
     annotate(geom = "text", label = fig_p_vals, size = paper_text_size, 
              x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5) +
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
+    scale_x_continuous(limits = c(0, x_lim)) +
     scale_color_manual(values = pal) +
     labs(x = "Invasive plant cover (%)") +
     def_theme_paper +
@@ -531,18 +530,18 @@ cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name) {
 }
 
 hydr_fig3 <- cov_fig_fun(hydr_dat, hydr_mod_p[3:4, 4], hydr_mod, "(A) hydrilla",
-                         "output/richness_hydrilla_cov_fig_presentation.jpg")
+                         "output/richness_hydrilla_cov_fig_presentation.jpg", 100)
 wahy_fig3 <- cov_fig_fun(hydr_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
-                         "output/richness_water_hyacinth_cov_fig_presentation.jpg")
+                         "output/richness_water_hyacinth_cov_fig_presentation.jpg", 100)
 wale_fig3 <- cov_fig_fun(hydr_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
-                         "output/richness_water_lettuce_cov_fig_presentation.jpg")
+                         "output/richness_water_lettuce_cov_fig_presentation.jpg", 100)
 
 cubu_fig3 <- cov_fig_fun(cubu_dat, cubu_mod_p[3:4, 4], cubu_mod, "(A) Cuban bulrush",
-                         "output/richness_cuban_bulrush_cov_fig_presentation.jpg")
-pagr_fig3 <- cov_fig_fun(pagr_dat, pagr_mod_p[2:3, 4], pagr_mod, "(B) paragrass",
-                         "output/richness_paragrass_cov_fig_presentation.jpg")
+                         "output/richness_cuban_bulrush_cov_fig_presentation.jpg", 25)
+pagr_fig3 <- cov_fig_fun(pagr_dat, pagr_mod_p[2:3, 4], pagr_mod, "(B) para grass",
+                         "output/richness_paragrass_cov_fig_presentation.jpg", 25)
 torp_fig3 <- cov_fig_fun(torp_dat, as.numeric(torp_mod_p[2:3, 4]), torp_mod, "(B) torpedograss",
-                         "output/richness_torpedograss_cov_fig_presentation.jpg")
+                         "output/richness_torpedograss_cov_fig_presentation.jpg", 25)
 
 # combine and save
 foc_figs_cov <- hydr_fig[[1]] + theme(axis.title.y = element_blank(),
@@ -559,7 +558,7 @@ foc_figs_cov <- hydr_fig[[1]] + theme(axis.title.y = element_blank(),
         legend.box.margin = margin(-10, 0, 0, 0)) &
   guides(fill = "none")
 ggsave("output/fwc_focal_cov_richness.png", foc_figs_cov,
-       device = "png", width = 6, height = 7, units = "in")
+       device = "png", width = 6, height = 8, units = "in")
 
 non_foc_figs_cov <- cubu_fig[[1]] + theme(axis.title.y = element_blank(),
                                           axis.text.x = element_blank()) + 
@@ -575,7 +574,7 @@ non_foc_figs_cov <- cubu_fig[[1]] + theme(axis.title.y = element_blank(),
         legend.box.margin = margin(-10, 0, 0, 0)) &
   guides(fill = "none")
 ggsave("output/fwc_non_focal_cov_richness.png", non_foc_figs_cov,
-       device = "png", width = 6, height = 7, units = "in")
+       device = "png", width = 6, height = 8, units = "in")
 
 
 #### tables ####
@@ -624,7 +623,7 @@ cubu_mod_sum <- tibble(Coefficient = c("intercept", "Cuban bulrush management", 
                        Years = paste(range(count(cubu_dat, AreaOfInterestID)$n), collapse = "-"),
                        N = nrow(cubu_dat))
 
-pagr_mod_sum <- tibble(Coefficient = c("paragrass management", "paragrass PAC", 
+pagr_mod_sum <- tibble(Coefficient = c("para grass management", "para grass PAC", 
                                        "interaction"),
                        Estimate = pagr_mod_p[, 1],
                        SE = pagr_mod_p[, 2],
@@ -671,7 +670,7 @@ foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
          PAC = 100 * (exp(IncptPAC) - 1),
          TreatPAC = 100 * (exp(IncptTreatPAC) - 1))
 
-non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Paragrass", "Torpedograss"),
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
                   Incpt = c(cubu_mod_p[1, 1], mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
                   BetaTreat = c(cubu_mod_p[2, 1], pagr_mod_p[1, 1], torp_mod_p[1, 1]),
                   BetaPAC = c(cubu_mod_p[3, 1], pagr_mod_p[2, 1], torp_mod_p[2, 1]),

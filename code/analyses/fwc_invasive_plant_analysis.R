@@ -20,6 +20,9 @@ source("code/settings/figure_settings.R")
 inv_plant <- read_csv("intermediate-data/FWC_only_invasive_plant_formatted.csv")
 inv_ctrl <- read_csv("intermediate-data/FWC_invasive_control_formatted.csv")
 
+# color palette
+pal <- c("#000000", "#56B4E9")
+
 
 #### edit data ####
 
@@ -409,7 +412,8 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
   
   sum_dat_fig <- ggplot(dat_sum, aes(x = Treatment, y = mean)) +
     geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0) +
-    geom_point(size = 2) +
+    geom_point(size = 2, shape = 21,
+               aes(fill = Treatment)) +
     geom_text(aes(label = samps, y = samps_y),
               size = paper_text_size, vjust = 1.2) +
     annotate(geom = "text", label = fig_p_val, size = paper_text_size, 
@@ -417,6 +421,7 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
     labs(y = "Growth rate (log ratio)",
          title = panel_title) +
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
+    scale_fill_manual(values = pal, guide = "none") +
     def_theme_paper +
     theme(axis.title.x = element_blank(),
           axis.text.x = element_text(size = 9, color="black"))
@@ -449,7 +454,7 @@ wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[[8]], "(C) water lettuce",
                           "output/water_lettuce_treatment_fig_presentation.jpg")
 cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[[4]], "(A) Cuban bulrush",
                           "output/cuban_bulrush_treatment_fig_presentation.jpg")
-pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[[8]], "(B) paragrass",
+pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[[8]], "(B) para grass",
                           "output/paragrass_treatment_fig_presentation.jpg")
 torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[[8]], "(C) torpedograss",
                           "output/torpedograss_treatment_fig_presentation.jpg")
@@ -460,7 +465,7 @@ foc_figs <- hydr_fig[[1]] + theme(axis.title.y = element_blank()) +
   wale_fig[[1]] + theme(axis.title.y = element_blank()) + 
   plot_layout(ncol = 1)
 ggsave("output/fwc_focal_invasive_growth_treatment.png", foc_figs,
-       device = "png", width = 3, height = 7, units = "in")
+       device = "png", width = 3, height = 8, units = "in")
 
 non_foc_figs <- cubu_fig[[1]] + theme(axis.title.y = element_blank()) + 
   pagr_fig[[1]] + 
@@ -474,7 +479,7 @@ foc_raw_figs <- hydr_fig[[2]] + theme(axis.title.y = element_blank()) +
   wale_fig[[2]] + theme(axis.title.y = element_blank()) + 
   plot_layout(ncol = 1)
 ggsave("output/fwc_focal_raw_invasive_growth_treatment.png", foc_raw_figs,
-       device = "png", width = 3, height = 7, units = "in")
+       device = "png", width = 3, height = 8, units = "in")
 
 non_foc_raw_figs <- cubu_fig[[2]] + theme(axis.title.y = element_blank()) + 
   pagr_fig[[2]] + 
@@ -494,7 +499,8 @@ foc_mod_sum <- tibble(Species = "hydrilla",
                       R2 = r.squared(hydr_mod),
                       Waterbodies = n_distinct(hydr_dat$AreaOfInterestID),
                       Years = paste(range(count(hydr_dat, AreaOfInterestID)$n), collapse = "-"),
-                      N = nrow(hydr_dat)) %>%
+                      N = nrow(hydr_dat),
+                      Model = "fixed effects") %>%
   full_join(tibble(Species = "water hyacinth",
                    Estimate = wahy_mod_p[1, 1],
                    SE = wahy_mod_p[1, 2],
@@ -503,7 +509,8 @@ foc_mod_sum <- tibble(Species = "hydrilla",
                    R2 = r.squared(wahy_mod),
                    Waterbodies = n_distinct(wahy_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(wahy_dat))) %>%
+                   N = nrow(wahy_dat),
+                   Model = "fixed effects")) %>%
   full_join(tibble(Species = "water lettuce",
                    Estimate = wale_mod_p[2, 1],
                    SE = wale_mod_p[2, 2],
@@ -512,7 +519,8 @@ foc_mod_sum <- tibble(Species = "hydrilla",
                    R2 = r.squared(wale_mod),
                    Waterbodies = n_distinct(wale_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(wale_dat)))
+                   N = nrow(wale_dat),
+                   Model = "random effects"))
 
 non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                           Estimate = cubu_mod_p[1, 1],
@@ -522,8 +530,9 @@ non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                           R2 = r.squared(cubu_mod),
                           Waterbodies = n_distinct(cubu_dat$AreaOfInterestID),
                           Years = paste(range(count(cubu_dat, AreaOfInterestID)$n), collapse = "-"),
-                          N = nrow(cubu_dat)) %>%
-  full_join(tibble(Species = "paragrass",
+                          N = nrow(cubu_dat),
+                          Model = "fixed effects") %>%
+  full_join(tibble(Species = "para grass",
                    Estimate = pagr_mod_p[2, 1],
                    SE = pagr_mod_p[2, 2],
                    t = pagr_mod_p[2, 3],
@@ -531,7 +540,8 @@ non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                    R2 = r.squared(pagr_mod),
                    Waterbodies = n_distinct(pagr_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(pagr_dat))) %>%
+                   N = nrow(pagr_dat),
+                   Model = "random effects")) %>%
   full_join(tibble(Species = "torpedograss",
                    Estimate = torp_mod_p[2, 1],
                    SE = torp_mod_p[2, 2],
@@ -540,7 +550,8 @@ non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                    R2 = r.squared(torp_mod),
                    Waterbodies = n_distinct(torp_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(torp_dat)))
+                   N = nrow(torp_dat),
+                   Model = "random effects"))
 
 # export
 write_csv(foc_mod_sum, "output/fwc_focal_treatment_model_summary.csv")
@@ -558,7 +569,7 @@ foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
          NoTreat = 100 * (exp(Incpt) - 1),
          Treat = 100 * (exp(IncptBeta) - 1))
 
-non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Paragrass", "Torpedograss"),
+non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
                       Incpt = c(mean(fixef(cubu_mod)), as.numeric(pagr_mod$coefficients["(Intercept)"]), 
                                 as.numeric(torp_mod$coefficients["(Intercept)"])),
                       Beta = as.numeric(c(coef(cubu_mod), coef(pagr_mod)[2], coef(torp_mod)[2]))) %>%
