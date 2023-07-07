@@ -460,29 +460,33 @@ torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[[8]], "(C) torpedograss",
                           "output/torpedograss_treatment_fig_presentation.jpg")
 
 # combine
-foc_figs <- hydr_fig[[1]] + theme(axis.title.y = element_blank()) + 
-  wahy_fig[[1]] + 
+foc_figs <- hydr_fig[[1]] + theme(axis.title.y = element_blank(),
+                                  axis.text.x = element_blank()) + 
+  wahy_fig[[1]] + theme(axis.text.x = element_blank()) +
   wale_fig[[1]] + theme(axis.title.y = element_blank()) + 
   plot_layout(ncol = 1)
 ggsave("output/fwc_focal_invasive_growth_treatment.png", foc_figs,
        device = "png", width = 3, height = 8, units = "in")
 
-non_foc_figs <- cubu_fig[[1]] + theme(axis.title.y = element_blank()) + 
-  pagr_fig[[1]] + 
+non_foc_figs <- cubu_fig[[1]] + theme(axis.title.y = element_blank(),
+                                      axis.text.x = element_blank()) +  
+  pagr_fig[[1]] + theme(axis.text.x = element_blank()) +
   torp_fig[[1]] + theme(axis.title.y = element_blank()) + 
   plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_invasive_growth_treatment.png", non_foc_figs,
        device = "png", width = 3, height = 8, units = "in")
 
-foc_raw_figs <- hydr_fig[[2]] + theme(axis.title.y = element_blank()) + 
-  wahy_fig[[2]] + 
+foc_raw_figs <- hydr_fig[[2]] + theme(axis.title.y = element_blank(),
+                                      axis.text.x = element_blank()) + 
+  wahy_fig[[2]] +  theme(axis.text.x = element_blank()) +
   wale_fig[[2]] + theme(axis.title.y = element_blank()) + 
   plot_layout(ncol = 1)
 ggsave("output/fwc_focal_raw_invasive_growth_treatment.png", foc_raw_figs,
        device = "png", width = 3, height = 8, units = "in")
 
-non_foc_raw_figs <- cubu_fig[[2]] + theme(axis.title.y = element_blank()) + 
-  pagr_fig[[2]] + 
+non_foc_raw_figs <- cubu_fig[[2]] + theme(axis.title.y = element_blank(),
+                                          axis.text.x = element_blank()) + 
+  pagr_fig[[2]] + theme(axis.text.x = element_blank()) +
   torp_fig[[2]] + theme(axis.title.y = element_blank()) + 
   plot_layout(ncol = 1)
 ggsave("output/fwc_non_focal_raw_invasive_growth_treatment.png", non_foc_raw_figs,

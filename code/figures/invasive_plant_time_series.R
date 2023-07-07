@@ -16,19 +16,10 @@ source("code/settings/figure_settings.R")
 # import data
 inv_dat <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv")
 nat_dat <- read_csv("intermediate-data/FWC_native_richness_analysis_formatted.csv")
-pho_dat <- read_csv("intermediate-data/FWC_phosphorus_analysis_formatted.csv")
-nit_dat <- read_csv("intermediate-data/FWC_nitrogen_analysis_formatted.csv")
-chl_dat <- read_csv("intermediate-data/FWC_chlorophyll_analysis_formatted.csv")
-sec_dat <- read_csv("intermediate-data/FWC_secchi_analysis_formatted.csv", guess_max = 7000)
 
 # order of invasive species
 inv_order <- c("hydrilla", "water hyacinth", "water lettuce", 
                "Cuban bulrush", "torpedograss", "para grass")
-
-# Quarter names
-quart_name <- tibble(Quarter = 1:4,
-                     QuarterF = c("Apr-Jun", "Jul-Sep", "Oct-Dec", "Jan-Mar") %>%
-                       fct_relevel("Apr-Jun", "Jul-Sep", "Oct-Dec"))
 
 # figure aesthetics
 shape_pal <- c(24, 22, 19)
@@ -38,24 +29,24 @@ col_pal <- kelly()[c(3:6, 10:11)]
 #### invasive plant time series by waterbody ####
 
 # list of waterbodies
-perm_ids <- inv_dat %>%
-  select(PermanentID, AreaName) %>%
+aoi_ids <- inv_dat %>%
+  select(AreaOfInterestID, AreaOfInterest) %>%
   unique() %>%
-  arrange(AreaName) %>%
-  pull(PermanentID)
+  arrange(AreaOfInterest) %>%
+  pull(AreaOfInterestID)
 
 # loop through IDs and make figure
 pdf("output/invasive_plant_time_series_by_waterbody.pdf")
 
-for(i in 1:length(perm_ids)){
+for(i in 1:length(aoi_ids)){
   
   # subset data
-  subdat <- inv_dat %>% filter(PermanentID == perm_ids[i])
-  subdat_ctrl <- subdat %>% filter(Lag1Treated == 1)
-  subdat_name <- subdat %>% select(AreaName) %>% pull() %>% unique()
+  subdat <- inv_dat %>% filter(AreaOfInterestID == aoi_ids[i])
+  subdat_ctrl <- subdat %>% filter(Treated == 1)
+  subdat_name <- subdat %>% select(AreaOfInterest) %>% pull() %>% unique()
   
   # make figure
-  print(ggplot(subdat, aes(x = GSYear, y = PropCovered * 100, color = CommonName)) +
+  print(ggplot(subdat, aes(x = GSYear, y = PercCovered, color = CommonName)) +
           geom_vline(data = subdat_ctrl, aes(xintercept = GSYear), alpha = 0.5) +
           geom_line() +
           geom_point() + 
@@ -74,20 +65,8 @@ dev.off()
 
 inv_dat2 <- inv_dat %>%
   left_join(nat_dat %>%
-              select(PermanentID, CommonName, GSYear) %>%
+              select(AreaOfInterestID, CommonName, GSYear) %>%
               mutate(native = 1)) %>%
-  left_join(chl_dat %>%
-              distinct(PermanentID, CommonName, GSYear) %>%
-              mutate(chlorophyll = 1)) %>%
-  left_join(nit_dat %>%
-              distinct(PermanentID, CommonName, GSYear) %>%
-              mutate(nitrogen = 1)) %>%
-  left_join(pho_dat %>%
-              distinct(PermanentID, CommonName, GSYear) %>%
-              mutate(phosphorus = 1)) %>%
-  left_join(sec_dat %>%
-              distinct(PermanentID, CommonName, GSYear) %>%
-              mutate(secchi = 1)) %>%
   mutate(CommonName = if_else(CommonName == "Cuban bulrush", CommonName,
                              tolower(CommonName)) %>%
            fct_relevel(inv_order))
@@ -95,71 +74,37 @@ inv_dat2 <- inv_dat %>%
 # summarize
 inv_sum <- inv_dat2 %>%
   group_by(GSYear, CommonName) %>%
-  summarize(mean_cl_boot(PropCovered * 100),
-            n = n_distinct(PermanentID)) %>%
-  ungroup()
+  summarize(mean_cl_boot(PercCovered),
+            n = n_distinct(AreaOfInterestID)) %>%
+  ungroup() %>%
+  mutate(inv_group = if_else(CommonName == "Cuban bulrush" & GSYear < 2005, "Cuban bulrush 1",
+                             CommonName))
 
 inv_sum_nat <- inv_dat2 %>%
   filter(native == 1) %>%
   group_by(GSYear, CommonName) %>%
-  summarize(mean_cl_boot(PropCovered * 100),
-            n = n_distinct(PermanentID)) %>%
-  ungroup()
-
-inv_sum_qual <- inv_dat2 %>%
-  filter(chlorophyll == 1 | nitrogen == 1 | phosphorus == 1 | secchi == 1) %>%
-  group_by(GSYear, CommonName) %>%
-  summarize(mean_cl_boot(PropCovered * 100),
-            n = n_distinct(PermanentID)) %>%
+  summarize(mean_cl_boot(PercCovered),
+            n = n_distinct(AreaOfInterestID)) %>%
   ungroup()
 
 # are all lakes for a year included in subsets?
 inv_sum_nat %>%
   select(GSYear, CommonName, n) %>%
-  anti_join(inv_sum) # yes
-
-inv_sum_qual %>%
-  select(GSYear, CommonName, n) %>%
-  anti_join(inv_sum) # no
-
-# indicate native data in inv_sum
-# add mean from quality data
-inv_sum2 <- inv_sum %>%
-  left_join(inv_sum_nat %>%
-              select(GSYear, CommonName) %>%
-              mutate(Native = "invasive/native")) %>%
-  mutate(Native = replace_na(Native, "invasive")) %>%
-  left_join(inv_sum_qual %>%
-              select(GSYear, CommonName, y) %>%
-              rename(yQual = "y")) %>%
-  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/\nquality"),
-                        Native))
+  rename(n_nat = n) %>%
+  full_join(inv_sum) %>%
+  filter(n != n_nat)
+# removed one lake each in 1999 and 2003 from native plant data
 
 # figure
-inv_fig_col <- ggplot(inv_sum2, aes(x = GSYear, y = y, color = CommonName)) +
+inv_fig <- ggplot(inv_sum, aes(x = GSYear, y = y, color = CommonName, group = inv_group)) +
   geom_errorbar(aes(ymin = ymin, ymax = ymax), 
                 width = 0, size = 0.25) +
-  geom_line(size = 0.25) +
-  geom_point(aes(shape = Analyses), 
-             size = 1, stroke = 0.25) +
-  # geom_point(aes(y = yQual), size = 1, stroke = 0.25) + # quality subset means differ
-  scale_shape_manual(values = shape_pal, guide = "none") +
+  geom_line(linewidth = 0.25) +
+  geom_point(size = 1, stroke = 0.25) +
   scale_color_manual(values = col_pal, name = "Invasive") +
-  labs(x = "Year", y = "Invasive PAC") +
+  labs(x = "Year", y = "Invasive plant cover (%)") +
   def_theme_paper +
   theme(axis.text.x = element_text(hjust = 0.8))
-
-leg_col <- get_legend(inv_fig_col)
-
-inv_fig_shape <- inv_fig_col +
-  scale_shape_manual(values = shape_pal) +
-  scale_color_manual(values = col_pal, guide = "none") +
-  guides(shape = guide_legend(override.aes = list(fill = c("white", "white", "black"))))
-
-leg_shape <- get_legend(inv_fig_shape)
-
-inv_fig <- inv_fig_shape +
-  theme(legend.position = "none")
 
 
 #### management time series ####
@@ -167,41 +112,21 @@ inv_fig <- inv_fig_shape +
 # summarize
 mgmt_sum <- inv_dat2 %>%
   group_by(GSYear, CommonName) %>%
-  summarize(mean_cl_boot(Lag1Treated * 100),
-            n = n_distinct(PermanentID)) %>%
-  ungroup()
-
-mgmt_sum_nat <- inv_dat2 %>%
-  filter(native == 1) %>%
-  group_by(GSYear, CommonName) %>%
-  summarize(mean_cl_boot(Lag1Treated * 100),
-            n = n_distinct(PermanentID)) %>%
-  ungroup()
-
-mgmt_sum_qual <- inv_dat2 %>%
-  filter(chlorophyll == 1 | nitrogen == 1 | phosphorus == 1 | secchi == 1) %>%
-  group_by(GSYear, CommonName) %>%
-  summarize(mean_cl_boot(Lag1Treated * 100),
-            n = n_distinct(PermanentID)) %>%
-  ungroup()
-
-# indicate native data in mgmt_sum
-# add mean from quality data
-mgmt_sum2 <- mgmt_sum %>%
-  left_join(mgmt_sum_nat %>%
-              select(GSYear, CommonName) %>%
-              mutate(Native = "invasive/native")) %>%
-  mutate(Native = replace_na(Native, "invasive")) %>%
-  left_join(mgmt_sum_qual %>%
-              select(GSYear, CommonName, y) %>%
-              rename(yQual = "y")) %>%
-  mutate(Analyses = if_else(!is.na(yQual), paste0(Native, "/\nquality"),
-                            Native))
+  summarize(s = sum(Treated),
+            n = n_distinct(AreaOfInterestID)) %>%
+  ungroup() %>%
+  mutate(inv_group = if_else(CommonName == "Cuban bulrush" & GSYear < 2005, "Cuban bulrush 1",
+                             CommonName),
+         y = 100 * s/n)
 
 # figure
-mgmt_fig <- inv_fig %+%
-  mgmt_sum2 +
-  labs(x = "Year", y = "Waterbodies managed (%)")
+mgmt_fig <- ggplot(mgmt_sum, aes(x = GSYear, y = y, color = CommonName, group = inv_group)) +
+  geom_line(linewidth = 0.25) +
+  geom_point(size = 1, stroke = 0.25) +
+  scale_color_manual(values = col_pal, name = "Invasive") +
+  labs(x = "Year", y = "Waterbodies managed (%)") +
+  def_theme_paper +
+  theme(axis.text.x = element_text(hjust = 0.8))
 
 
 #### richness time series ####
@@ -210,51 +135,38 @@ mgmt_fig <- inv_fig %+%
 rich_sum <- nat_dat %>%
   group_by(GSYear, CommonName) %>%
   summarize(mean_cl_boot(Richness),
-            n = n_distinct(PermanentID)) %>%
+            n = n_distinct(AreaOfInterestID)) %>%
   ungroup() %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order))
+  mutate(CommonName = if_else(CommonName == "Cuban bulrush", CommonName,
+                              tolower(CommonName)) %>%
+           fct_relevel(inv_order),
+         inv_group = case_when(CommonName == "Cuban bulrush" & GSYear < 2005 ~ "Cuban bulrush 1",
+                               GSYear < 2000 ~ paste(CommonName, "early"),
+                               TRUE ~ CommonName))
 
 # figure
-rich_fig <- ggplot(rich_sum, aes(x = GSYear, y = y, color = CommonName)) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
-                width = 0, size = 0.25) +
-  geom_line(size = 0.25) +
-  geom_point(shape = shape_pal[2], size = 1, stroke = 0.25, fill = "white") +
-  scale_color_manual(values = col_pal, guide = "none") +
-  labs(x = "Year", y = "Native richness") +
-  def_theme_paper +
-  theme(axis.text.x = element_text(hjust = 0.8))
-
-
-#### chlorophyll time series ####
-
-# summarize
-chl_sum <- chl_dat %>%
-  group_by(GSYear, CommonName, Quarter) %>%
-  summarize(mean_cl_boot(QualityValue),
-            n = n_distinct(PermanentID)) %>%
-  ungroup() %>%
-  mutate(CommonName = fct_relevel(CommonName, inv_order[-6])) %>%
-  left_join(quart_name) %>%
-  filter(QuarterF == "Jul-Sep")
-
-# figure
-chl_fig <- ggplot(chl_sum, aes(x = GSYear, y = y, color = CommonName)) +
-  geom_errorbar(aes(ymin = ymin, ymax = ymax), 
-                width = 0, size = 0.25) +
-  geom_line(size = 0.25) +
-  geom_point(size = 1, stroke = 0.25) +
-  scale_color_manual(values = col_pal, guide = "none") +
-  labs(x = "Year",
-       y = expression(paste("Chlorophyll ", italic(a), " (", mu, "g/L)", sep = ""))) +
-  def_theme_paper +
-  theme(axis.text.x = element_text(hjust = 0.8))
+rich_fig <- inv_fig %+%
+  rich_sum +
+  labs(x = "Year", y = "Common native plant richness")
 
 
 #### combine plots ####
 
-combo_fig <- inv_fig + mgmt_fig + leg_shape + rich_fig + chl_fig + leg_col +
-  plot_layout(ncol = 3, widths = c(1, 1, 0.5))
+combo_fig <- inv_fig + mgmt_fig + rich_fig +
+  plot_layout(ncol = 1, guides = "collect")
 
-ggsave("output/invasive_plant_time_series.png", combo_fig,
-       width = 6, height = 4)
+ggsave("output/invasive_plant_time_series.pdf", combo_fig,
+       width = 4, height = 6)
+
+
+#### data check for map ####
+
+# can I just use the invasive plant waterbodies?
+nat_dat %>%
+  distinct(AreaOfInterestID) %>%
+  anti_join(inv_dat)
+
+inv_dat %>%
+  distinct(AreaOfInterestID) %>%
+  anti_join(nat_dat)
+# one lake is only used in invasive plant data

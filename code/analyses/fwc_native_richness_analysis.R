@@ -55,6 +55,9 @@ for(i in inv_taxa){
 
 dev.off()
 
+# save for summary figure
+write_csv(dat2, "intermediate-data/FWC_native_richness_analysis_formatted.csv")
+
 # split data by invasive species
 hydr_dat <- filter(dat2, CommonName == "Hydrilla")
 wale_dat <- filter(dat2, CommonName == "Water lettuce")
@@ -531,9 +534,9 @@ cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
 
 hydr_fig3 <- cov_fig_fun(hydr_dat, hydr_mod_p[3:4, 4], hydr_mod, "(A) hydrilla",
                          "output/richness_hydrilla_cov_fig_presentation.jpg", 100)
-wahy_fig3 <- cov_fig_fun(hydr_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
+wahy_fig3 <- cov_fig_fun(wahy_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
                          "output/richness_water_hyacinth_cov_fig_presentation.jpg", 100)
-wale_fig3 <- cov_fig_fun(hydr_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
+wale_fig3 <- cov_fig_fun(wale_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
                          "output/richness_water_lettuce_cov_fig_presentation.jpg", 100)
 
 cubu_fig3 <- cov_fig_fun(cubu_dat, cubu_mod_p[3:4, 4], cubu_mod, "(A) Cuban bulrush",
