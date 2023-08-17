@@ -245,7 +245,16 @@ plmtest(PercCovLogRatio ~ Treated, data = hydr_dat,
 plmtest(PercCovLogRatio ~ Treated, data = wahy_dat, 
         index = c("AreaOfInterestID", "GSYear"), model = "within",
         effect = "twoways", type = "bp") # sig
+plmtest(PercCovLogRatio ~ Treated, data = wale_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
 plmtest(PercCovLogRatio ~ Treated, data = cubu_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(PercCovLogRatio ~ Treated, data = pagr_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(PercCovLogRatio ~ Treated, data = torp_dat, 
         index = c("AreaOfInterestID", "GSYear"), model = "within",
         effect = "twoways", type = "bp") # sig
 
@@ -295,6 +304,8 @@ summary(torpr3) # no individual variance, small time variance
 
 #### fit models ####
 
+# decided to do all as fixed effects to account for waterbody and year
+
 hydr_mod <- plm(PercCovLogRatio ~ Treated, data = hydr_dat, 
                 index = c("AreaOfInterestID", "GSYear"), model = "within",
                 effect = "twoways")
@@ -306,15 +317,9 @@ wahy_mod <- plm(PercCovLogRatio ~ Treated, data = wahy_dat,
 summary(wahy_mod)
 
 wale_mod <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
-summary(wale_mod)
-
-# try wale with fixed to see result
-wale_mod2 <- plm(PercCovLogRatio ~ Treated, data = wale_dat, 
                 index = c("AreaOfInterestID", "GSYear"), model = "within",
                 effect = "twoways")
-summary(wale_mod2) # not sig
+summary(wale_mod)
 
 cubu_mod <- plm(PercCovLogRatio ~ Treated, data = cubu_dat, 
                 index = c("AreaOfInterestID", "GSYear"), model = "within",
@@ -322,13 +327,13 @@ cubu_mod <- plm(PercCovLogRatio ~ Treated, data = cubu_dat,
 summary(cubu_mod)
 
 pagr_mod <- plm(PercCovLogRatio ~ Treated, data = pagr_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(pagr_mod)
 
 torp_mod <- plm(PercCovLogRatio ~ Treated, data = torp_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(torp_mod)
 
 # SE with heteroskedasticity and autocorrelation
@@ -374,15 +379,14 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
   
   if(p_val < 0.001) {
     
-    p_val <- formatC(p_val, format = "e", digits = 1)
+    # fig_p_val <- paste("p =", formatC(p_val, format = "e", digits = 1))
+    fig_p_val <- "p < 0.001"
     
   } else {
     
-    p_val <- formatC(p_val, format = "g", digits = 1)
+    fig_p_val <- paste("p =", formatC(p_val, format = "g", digits = 1))
     
   }
-  
-  fig_p_val <- paste("p =", p_val)
   
   dat_sum <- dat_in %>%
     group_by(Treatment) %>%
@@ -450,13 +454,13 @@ hydr_fig <- treat_fig_fun(hydr_dat, hydr_mod_p[[4]], "(A) hydrilla",
                           "output/hydrilla_treatment_fig_presentation.jpg")
 wahy_fig <- treat_fig_fun(wahy_dat, wahy_mod_p[[4]], "(B) water hyacinth",
                           "output/water_hyacinth_treatment_fig_presentation.jpg")
-wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[[8]], "(C) water lettuce",
+wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[[4]], "(C) water lettuce",
                           "output/water_lettuce_treatment_fig_presentation.jpg")
 cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[[4]], "(A) Cuban bulrush",
                           "output/cuban_bulrush_treatment_fig_presentation.jpg")
-pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[[8]], "(B) para grass",
+pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[[4]], "(B) para grass",
                           "output/paragrass_treatment_fig_presentation.jpg")
-torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[[8]], "(C) torpedograss",
+torp_fig <- treat_fig_fun(torp_dat, torp_mod_p[[4]], "(C) torpedograss",
                           "output/torpedograss_treatment_fig_presentation.jpg")
 
 # combine
@@ -492,6 +496,7 @@ non_foc_raw_figs <- cubu_fig[[2]] + theme(axis.title.y = element_blank(),
 ggsave("output/fwc_non_focal_raw_invasive_growth_treatment.png", non_foc_raw_figs,
        device = "png", width = 3, height = 8, units = "in")
 
+
 #### tables ####
 
 # combine summary
@@ -503,8 +508,7 @@ foc_mod_sum <- tibble(Species = "hydrilla",
                       R2 = r.squared(hydr_mod),
                       Waterbodies = n_distinct(hydr_dat$AreaOfInterestID),
                       Years = paste(range(count(hydr_dat, AreaOfInterestID)$n), collapse = "-"),
-                      N = nrow(hydr_dat),
-                      Model = "fixed effects") %>%
+                      N = nrow(hydr_dat)) %>%
   full_join(tibble(Species = "water hyacinth",
                    Estimate = wahy_mod_p[1, 1],
                    SE = wahy_mod_p[1, 2],
@@ -513,18 +517,16 @@ foc_mod_sum <- tibble(Species = "hydrilla",
                    R2 = r.squared(wahy_mod),
                    Waterbodies = n_distinct(wahy_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(wahy_dat),
-                   Model = "fixed effects")) %>%
+                   N = nrow(wahy_dat))) %>%
   full_join(tibble(Species = "water lettuce",
-                   Estimate = wale_mod_p[2, 1],
-                   SE = wale_mod_p[2, 2],
-                   t = wale_mod_p[2, 3],
-                   P = wale_mod_p[2, 4],
+                   Estimate = wale_mod_p[1, 1],
+                   SE = wale_mod_p[1, 2],
+                   t = wale_mod_p[1, 3],
+                   P = wale_mod_p[1, 4],
                    R2 = r.squared(wale_mod),
                    Waterbodies = n_distinct(wale_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(wale_dat),
-                   Model = "random effects"))
+                   N = nrow(wale_dat)))
 
 non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                           Estimate = cubu_mod_p[1, 1],
@@ -534,28 +536,25 @@ non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                           R2 = r.squared(cubu_mod),
                           Waterbodies = n_distinct(cubu_dat$AreaOfInterestID),
                           Years = paste(range(count(cubu_dat, AreaOfInterestID)$n), collapse = "-"),
-                          N = nrow(cubu_dat),
-                          Model = "fixed effects") %>%
+                          N = nrow(cubu_dat)) %>%
   full_join(tibble(Species = "para grass",
-                   Estimate = pagr_mod_p[2, 1],
-                   SE = pagr_mod_p[2, 2],
-                   t = pagr_mod_p[2, 3],
-                   P = pagr_mod_p[2, 4],
+                   Estimate = pagr_mod_p[1, 1],
+                   SE = pagr_mod_p[1, 2],
+                   t = pagr_mod_p[1, 3],
+                   P = pagr_mod_p[1, 4],
                    R2 = r.squared(pagr_mod),
                    Waterbodies = n_distinct(pagr_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(pagr_dat),
-                   Model = "random effects")) %>%
+                   N = nrow(pagr_dat))) %>%
   full_join(tibble(Species = "torpedograss",
-                   Estimate = torp_mod_p[2, 1],
-                   SE = torp_mod_p[2, 2],
-                   t = torp_mod_p[2, 3],
-                   P = torp_mod_p[2, 4],
+                   Estimate = torp_mod_p[1, 1],
+                   SE = torp_mod_p[1, 2],
+                   t = torp_mod_p[1, 3],
+                   P = torp_mod_p[1, 4],
                    R2 = r.squared(torp_mod),
                    Waterbodies = n_distinct(torp_dat$AreaOfInterestID),
                    Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
-                   N = nrow(torp_dat),
-                   Model = "random effects"))
+                   N = nrow(torp_dat)))
 
 # export
 write_csv(foc_mod_sum, "output/fwc_focal_treatment_model_summary.csv")
@@ -567,16 +566,16 @@ write_csv(non_foc_mod_sum, "output/fwc_non_focal_treatment_model_summary.csv")
 # data tables
 foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
                   Incpt = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), 
-                            as.numeric(wale_mod$coefficients["(Intercept)"])),
-                  Beta = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod)[2]))) %>%
+                            mean(fixef(wahy_mod))),
+                  Beta = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod)))) %>%
   mutate(IncptBeta = Incpt + Beta,
          NoTreat = 100 * (exp(Incpt) - 1),
          Treat = 100 * (exp(IncptBeta) - 1))
 
 non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
-                      Incpt = c(mean(fixef(cubu_mod)), as.numeric(pagr_mod$coefficients["(Intercept)"]), 
-                                as.numeric(torp_mod$coefficients["(Intercept)"])),
-                      Beta = as.numeric(c(coef(cubu_mod), coef(pagr_mod)[2], coef(torp_mod)[2]))) %>%
+                      Incpt = c(mean(fixef(cubu_mod)), mean(fixef(pagr_mod)), 
+                                mean(fixef(torp_mod))),
+                      Beta = as.numeric(c(coef(cubu_mod), coef(pagr_mod), coef(torp_mod)))) %>%
   mutate(IncptBeta = Incpt + Beta,
          NoTreat = 100 * (exp(Incpt) - 1),
          Treat = 100 * (exp(IncptBeta) - 1))

@@ -150,6 +150,18 @@ phtest(LogRatioRichness ~ Treated * PrevPercCovered, data = torp_dat,
        index = c("AreaOfInterestID", "GSYear")) # fixed
 
 # individual and time effects for within?
+plmtest(LogRatioRichness ~ Treated * PrevPercCovered, data = hydr_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(LogRatioRichness ~ Treated * PrevPercCovered, data = wahy_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(LogRatioRichness ~ Treated * PrevPercCovered, data = wale_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
+plmtest(LogRatioRichness ~ Treated * PrevPercCovered, data = cubu_dat, 
+        index = c("AreaOfInterestID", "GSYear"), model = "within",
+        effect = "twoways", type = "bp") # sig
 plmtest(LogRatioRichness ~ Treated * PrevPercCovered, data = pagr_dat, 
         index = c("AreaOfInterestID", "GSYear"), model = "within",
         effect = "twoways", type = "bp") # sig
@@ -217,24 +229,26 @@ summary(cubur3)
 
 #### fit models ####
 
+# decided to do all as fixed effects to account for waterbody and year
+
 hydr_mod <- plm(LogRatioRichness ~ Treated * PrevPercCovered, data = hydr_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(hydr_mod)
 
 wahy_mod <- plm(LogRatioRichness ~ Treated * PrevPercCovered, data = wahy_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(wahy_mod)
 
 wale_mod <- plm(LogRatioRichness ~ Treated * PrevPercCovered, data = wale_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(wale_mod)
 
 cubu_mod <- plm(LogRatioRichness ~ Treated * PrevPercCovered, data = cubu_dat, 
-                index = c("AreaOfInterestID", "GSYear"), model = "random",
-                effect = "time")
+                index = c("AreaOfInterestID", "GSYear"), model = "within",
+                effect = "twoways")
 summary(cubu_mod)
 
 pagr_mod <- plm(LogRatioRichness ~ Treated * PrevPercCovered, data = pagr_dat, 
@@ -263,15 +277,14 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
   
   if(p_val < 0.001) {
     
-    p_val <- formatC(p_val, format = "e", digits = 1)
+    # fig_p_val <- paste("p =", formatC(p_val, format = "e", digits = 1))
+    fig_p_val <- "p < 0.001"
     
   } else {
     
-    p_val <- formatC(p_val, format = "g", digits = 1)
+    fig_p_val <- paste("p =", formatC(p_val, format = "g", digits = 1))
     
   }
-  
-  fig_p_val <- paste("p =", p_val)
   
   dat_sum <- dat_in %>%
     group_by(Treatment) %>%
@@ -330,13 +343,13 @@ treat_fig_fun <- function(dat_in, p_val, panel_title, file_name) {
 }
 
 # figures
-hydr_fig <- treat_fig_fun(hydr_dat, hydr_mod_p[2, 4], "(A) hydrilla",
+hydr_fig <- treat_fig_fun(hydr_dat, hydr_mod_p[1, 4], "(A) hydrilla",
                           "output/richness_hydrilla_treatment_fig_presentation.jpg")
-wahy_fig <- treat_fig_fun(wahy_dat, wahy_mod_p[2, 4], "(B) water hyacinth",
+wahy_fig <- treat_fig_fun(wahy_dat, wahy_mod_p[1, 4], "(B) water hyacinth",
                           "output/richness_water_hyacinth_treatment_fig_presentation.jpg")
-wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[2, 4], "(C) water lettuce",
+wale_fig <- treat_fig_fun(wale_dat, wale_mod_p[1, 4], "(C) water lettuce",
                           "output/richness_water_lettuce_treatment_fig_presentation.jpg")
-cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[2, 4], "(A) Cuban bulrush",
+cubu_fig <- treat_fig_fun(cubu_dat, cubu_mod_p[1, 4], "(A) Cuban bulrush",
                           "output/richness_cuban_bulrush_treatment_fig_presentation.jpg")
 pagr_fig <- treat_fig_fun(pagr_dat, pagr_mod_p[1, 4], "(B) para grass",
                           "output/richness_paragrass_treatment_fig_presentation.jpg")
@@ -368,25 +381,27 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
   
   if(p_vals[1] < 0.001) {
     
-    p_vals1 <- formatC(p_vals[1], format = "e", digits = 1)
+    # p_val1 <- paste("PAC p =", formatC(p_vals[1], format = "e", digits = 1))
+    p_val1 <- "PAC p < 0.001"
     
   } else {
     
-    p_vals1 <- formatC(p_vals[1], format = "g", digits = 1)
+    p_val1 <- paste("PAC p =", formatC(p_vals[1], format = "g", digits = 1))
     
   }
   
   if(p_vals[2] < 0.001) {
     
-    p_vals2 <- formatC(p_vals[2], format = "e", digits = 1)
+    # p_val2 <- paste("interaction p =", formatC(p_vals[2], format = "e", digits = 1))
+    p_val2 <- "interaction p < 0.001"
     
   } else {
     
-    p_vals2 <- formatC(p_vals[2], format = "g", digits = 1)
+    p_val2 <- paste("interaction p =", formatC(p_vals[2], format = "g", digits = 1))
     
-  } 
+  }
   
-  fig_p_vals <- paste0("PAC p = ", p_vals1, ", interaction p = ", p_vals2)
+  fig_p_vals <- paste0(p_val1, ", ", p_val2)
   
   dat_in2 <- dat_in %>%
     mutate(Pred = predict(mod, newdata = .),
@@ -423,18 +438,18 @@ PAC_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
   
 }
 
-hydr_fig2 <- PAC_fig_fun(hydr_dat, hydr_mod_p[3:4, 4], hydr_mod, "(A) hydrilla",
+hydr_fig2 <- PAC_fig_fun(hydr_dat, hydr_mod_p[2:3, 4], hydr_mod, "(A) hydrilla",
                          "output/richness_hydrilla_PAC_fig_presentation.jpg", 100)
-wahy_fig2 <- PAC_fig_fun(wahy_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
+wahy_fig2 <- PAC_fig_fun(wahy_dat, wahy_mod_p[2:3, 4], wahy_mod, "(B) water hyacinth",
                          "output/richness_water_hyacinth_PAC_fig_presentation.jpg", 100)
-wale_fig2 <- PAC_fig_fun(wale_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
+wale_fig2 <- PAC_fig_fun(wale_dat, wale_mod_p[2:3, 4], hydr_mod, "(C) water lettuce",
                          "output/richness_water_lettuce_PAC_fig_presentation.jpg", 100)
 
-cubu_fig2 <- PAC_fig_fun(cubu_dat, cubu_mod_p[3:4, 4], cubu_mod, "(A) Cuban bulrush",
+cubu_fig2 <- PAC_fig_fun(cubu_dat, cubu_mod_p[2:3, 4], cubu_mod, "(A) Cuban bulrush",
                          "output/richness_cuban_bulrush_PAC_fig_presentation.jpg", 25)
 pagr_fig2 <- PAC_fig_fun(pagr_dat, pagr_mod_p[2:3, 4], pagr_mod, "(B) para grass",
                          "output/richness_paragrass_PAC_fig_presentation.jpg", 25)
-torp_fig2 <- PAC_fig_fun(torp_dat, as.numeric(torp_mod_p[2:3, 4]), torp_mod, "(B) torpedograss",
+torp_fig2 <- PAC_fig_fun(torp_dat, torp_mod_p[2:3, 4], torp_mod, "(C) torpedograss",
                          "output/richness_torpedograss_PAC_fig_presentation.jpg", 25)
 
 # combine and save
@@ -477,25 +492,27 @@ cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
   
   if(p_vals[1] < 0.001) {
     
-    p_vals1 <- formatC(p_vals[1], format = "e", digits = 1)
+    # p_val1 <- paste("% cover p =", formatC(p_vals[1], format = "e", digits = 1))
+    p_val1 <- "% cover p < 0.001"
     
   } else {
     
-    p_vals1 <- formatC(p_vals[1], format = "g", digits = 1)
+    p_val1 <- paste("% cover p =", formatC(p_vals[1], format = "g", digits = 1))
     
   }
   
   if(p_vals[2] < 0.001) {
     
-    p_vals2 <- formatC(p_vals[2], format = "e", digits = 1)
+    # p_val2 <- paste("interaction p =", formatC(p_vals[2], format = "e", digits = 1))
+    p_val2 <- "interaction p < 0.001"
     
   } else {
     
-    p_vals2 <- formatC(p_vals[2], format = "g", digits = 1)
+    p_val2 <- paste("interaction p =", formatC(p_vals[2], format = "g", digits = 1))
     
-  } 
+  }
   
-  fig_p_vals <- paste0("% cover p = ", p_vals1, ", interaction p = ", p_vals2)
+  fig_p_vals <- paste0(p_val1, ", ", p_val2)
   
   dat_in2 <- dat_in %>%
     mutate(Pred = predict(mod, newdata = .),
@@ -532,18 +549,18 @@ cov_fig_fun <- function(dat_in, p_vals, mod, panel_title, file_name, x_lim) {
   
 }
 
-hydr_fig3 <- cov_fig_fun(hydr_dat, hydr_mod_p[3:4, 4], hydr_mod, "(A) hydrilla",
+hydr_fig3 <- cov_fig_fun(hydr_dat, hydr_mod_p[2:3, 4], hydr_mod, "(A) hydrilla",
                          "output/richness_hydrilla_cov_fig_presentation.jpg", 100)
-wahy_fig3 <- cov_fig_fun(wahy_dat, wahy_mod_p[3:4, 4], wahy_mod, "(B) water hyacinth",
+wahy_fig3 <- cov_fig_fun(wahy_dat, wahy_mod_p[2:3, 4], wahy_mod, "(B) water hyacinth",
                          "output/richness_water_hyacinth_cov_fig_presentation.jpg", 100)
-wale_fig3 <- cov_fig_fun(wale_dat, wale_mod_p[3:4, 4], hydr_mod, "(C) water lettuce",
+wale_fig3 <- cov_fig_fun(wale_dat, wale_mod_p[2:3, 4], hydr_mod, "(C) water lettuce",
                          "output/richness_water_lettuce_cov_fig_presentation.jpg", 100)
 
-cubu_fig3 <- cov_fig_fun(cubu_dat, cubu_mod_p[3:4, 4], cubu_mod, "(A) Cuban bulrush",
+cubu_fig3 <- cov_fig_fun(cubu_dat, cubu_mod_p[2:3, 4], cubu_mod, "(A) Cuban bulrush",
                          "output/richness_cuban_bulrush_cov_fig_presentation.jpg", 25)
 pagr_fig3 <- cov_fig_fun(pagr_dat, pagr_mod_p[2:3, 4], pagr_mod, "(B) para grass",
                          "output/richness_paragrass_cov_fig_presentation.jpg", 25)
-torp_fig3 <- cov_fig_fun(torp_dat, as.numeric(torp_mod_p[2:3, 4]), torp_mod, "(B) torpedograss",
+torp_fig3 <- cov_fig_fun(torp_dat, torp_mod_p[2:3, 4], torp_mod, "(C) torpedograss",
                          "output/richness_torpedograss_cov_fig_presentation.jpg", 25)
 
 # combine and save
@@ -582,45 +599,45 @@ ggsave("output/fwc_non_focal_cov_richness.png", non_foc_figs_cov,
 
 #### tables ####
 
-hydr_mod_sum <- tibble(Coefficient = c("intercept", "hydrilla management", "hydrilla PAC", 
-                                      "interaction", "error", "random: year"),
-                      Estimate = c(hydr_mod_p[, 1], summary(hydr_mod)$ercomp$sigma2),
-                      SE = c(hydr_mod_p[, 2], NA, NA),
-                      t = c(hydr_mod_p[, 3], NA, NA),
-                      P = c(hydr_mod_p[, 4], NA, NA),
-                      R2 = summary(hydr_mod)$r.squared[2],
-                      Waterbodies = n_distinct(hydr_dat$AreaOfInterestID),
-                      Years = paste(range(count(hydr_dat, AreaOfInterestID)$n), collapse = "-"),
-                      N = nrow(hydr_dat))
+hydr_mod_sum <- tibble(Coefficient = c("hydrilla management", "hydrilla PAC", 
+                                       "interaction"),
+                       Estimate = hydr_mod_p[, 1],
+                       SE = hydr_mod_p[, 2],
+                       t = hydr_mod_p[, 3],
+                       P = hydr_mod_p[, 4],
+                       R2 = summary(hydr_mod)$r.squared[2],
+                       Waterbodies = n_distinct(hydr_dat$AreaOfInterestID),
+                       Years = paste(range(count(hydr_dat, AreaOfInterestID)$n), collapse = "-"),
+                       N = nrow(hydr_dat))
 
-wale_mod_sum <- tibble(Coefficient = c("intercept", "water lettuce management", "water lettuce PAC", 
-                                       "interaction", "error", "random: year"),
-                       Estimate = c(wale_mod_p[, 1], summary(wale_mod)$ercomp$sigma2),
-                       SE = c(wale_mod_p[, 2], NA, NA),
-                       t = c(wale_mod_p[, 3], NA, NA),
-                       P = c(wale_mod_p[, 4], NA, NA),
+wale_mod_sum <- tibble(Coefficient = c("water lettuce management", "water lettuce PAC", 
+                                       "interaction"),
+                       Estimate = wale_mod_p[, 1],
+                       SE = wale_mod_p[, 2],
+                       t = wale_mod_p[, 3],
+                       P = wale_mod_p[, 4],
                        R2 = summary(wale_mod)$r.squared[2],
                        Waterbodies = n_distinct(wale_dat$AreaOfInterestID),
                        Years = paste(range(count(wale_dat, AreaOfInterestID)$n), collapse = "-"),
                        N = nrow(wale_dat))
 
-wahy_mod_sum <- tibble(Coefficient = c("intercept", "water hyacinth management", "water hyacinth PAC", 
-                                       "interaction", "error", "random: year"),
-                       Estimate = c(wahy_mod_p[, 1], summary(wahy_mod)$ercomp$sigma2),
-                       SE = c(wahy_mod_p[, 2], NA, NA),
-                       t = c(wahy_mod_p[, 3], NA, NA),
-                       P = c(wahy_mod_p[, 4], NA, NA),
+wahy_mod_sum <- tibble(Coefficient = c("water hyacinth management", "water hyacinth PAC", 
+                                       "interaction"),
+                       Estimate = wahy_mod_p[, 1],
+                       SE = wahy_mod_p[, 2],
+                       t = wahy_mod_p[, 3],
+                       P = wahy_mod_p[, 4],
                        R2 = summary(wahy_mod)$r.squared[2],
                        Waterbodies = n_distinct(wahy_dat$AreaOfInterestID),
                        Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
                        N = nrow(wahy_dat))
 
-cubu_mod_sum <- tibble(Coefficient = c("intercept", "Cuban bulrush management", "Cuban bulrush PAC", 
-                                       "interaction", "error", "random: year"),
-                       Estimate = c(cubu_mod_p[, 1], summary(cubu_mod)$ercomp$sigma2),
-                       SE = c(cubu_mod_p[, 2], NA, NA),
-                       t = c(cubu_mod_p[, 3], NA, NA),
-                       P = c(cubu_mod_p[, 4], NA, NA),
+cubu_mod_sum <- tibble(Coefficient = c("cuban bulrush management", "cuban bulrush PAC", 
+                                       "interaction"),
+                       Estimate = cubu_mod_p[, 1],
+                       SE = cubu_mod_p[, 2],
+                       t = cubu_mod_p[, 3],
+                       P = cubu_mod_p[, 4],
                        R2 = summary(cubu_mod)$r.squared[2],
                        Waterbodies = n_distinct(cubu_dat$AreaOfInterestID),
                        Years = paste(range(count(cubu_dat, AreaOfInterestID)$n), collapse = "-"),
@@ -659,28 +676,31 @@ write_csv(torp_mod_sum, "output/fwc_native_richness_torpedograss_model_summary.c
 
 #### values for text ####
 
+# percentage point increase in PAC
+perc_pac <- 10
+
 # data tables
 foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
-                  Incpt = c(hydr_mod_p[1, 1], wahy_mod_p[1, 1], wale_mod_p[1, 1]),
-                  BetaTreat = c(hydr_mod_p[2, 1], wahy_mod_p[2, 1], wale_mod_p[2, 1]),
-                  BetaPAC = c(hydr_mod_p[3, 1], wahy_mod_p[3, 1], wale_mod_p[3, 1]),
-                  BetaInxn = c(hydr_mod_p[4, 1], wahy_mod_p[4, 1], wale_mod_p[4, 1])) %>%
+                  Incpt = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), mean(fixef(wale_mod))),
+                  BetaTreat = c(hydr_mod_p[1, 1], wahy_mod_p[1, 1], wale_mod_p[1, 1]),
+                  BetaPAC = c(hydr_mod_p[2, 1], wahy_mod_p[2, 1], wale_mod_p[2, 1]),
+                  BetaInxn = c(hydr_mod_p[3, 1], wahy_mod_p[3, 1], wale_mod_p[3, 1])) %>%
   mutate(IncptTreat = Incpt + BetaTreat,
-         IncptPAC = Incpt + BetaPAC,
-         IncptTreatPAC = Incpt + BetaTreat + BetaPAC + BetaInxn,
+         IncptPAC = Incpt + BetaPAC * perc_pac,
+         IncptTreatPAC = Incpt + BetaTreat + BetaPAC * perc_pac + BetaInxn * perc_pac,
          NoTreat = 100 * (exp(Incpt) - 1),
          Treat = 100 * (exp(IncptTreat) - 1),
          PAC = 100 * (exp(IncptPAC) - 1),
          TreatPAC = 100 * (exp(IncptTreatPAC) - 1))
 
 non_foc_sum <- tibble(CommonName = c("Cuban bulrush", "Para grass", "Torpedograss"),
-                  Incpt = c(cubu_mod_p[1, 1], mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
-                  BetaTreat = c(cubu_mod_p[2, 1], pagr_mod_p[1, 1], torp_mod_p[1, 1]),
-                  BetaPAC = c(cubu_mod_p[3, 1], pagr_mod_p[2, 1], torp_mod_p[2, 1]),
-                  BetaInxn = c(cubu_mod_p[4, 1], pagr_mod_p[3, 1], torp_mod_p[3, 1])) %>%
+                  Incpt = c(mean(fixef(cubu_mod)), mean(fixef(pagr_mod)), mean(fixef(torp_mod))),
+                  BetaTreat = c(cubu_mod_p[1, 1], pagr_mod_p[1, 1], torp_mod_p[1, 1]),
+                  BetaPAC = c(cubu_mod_p[2, 1], pagr_mod_p[2, 1], torp_mod_p[2, 1]),
+                  BetaInxn = c(cubu_mod_p[3, 1], pagr_mod_p[3, 1], torp_mod_p[3, 1])) %>%
   mutate(IncptTreat = Incpt + BetaTreat,
-         IncptPAC = Incpt + BetaPAC,
-         IncptTreatPAC = Incpt + BetaTreat + BetaPAC + BetaInxn,
+         IncptPAC = Incpt + BetaPAC * perc_pac,
+         IncptTreatPAC = Incpt + BetaTreat + BetaPAC * perc_pac + BetaInxn * perc_pac,
          NoTreat = 100 * (exp(Incpt) - 1),
          Treat = 100 * (exp(IncptTreat) - 1),
          PAC = 100 * (exp(IncptPAC) - 1),
