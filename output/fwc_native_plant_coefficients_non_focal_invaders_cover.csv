@@ -1,577 +1,577 @@
-TaxonName,covariate,Mean,quant_2_5,quant_97_5,invader,Habitat,cov2,habitat_num,tax_num,sig
-Azolla caroliniana,cover,0.13251283944425807,-0.958796821995691,1.1283238911091997,Cuban bulrush,floating,Cuban bulrush cover,2,201,no
-Azolla caroliniana,management,0.2303307252442355,0.03944295991840904,0.42565757909564594,Cuban bulrush,floating,Cuban bulrush mgmt.,2,201,yes
-Azolla caroliniana,net,-0.2697084441491123,-1.3604254565046472,0.7424871251194457,Cuban bulrush,floating,mgmt. + cover,2,201,no
-Bacopa caroliniana,cover,1.4367681339749199,0.4148831397720064,2.4622485124460263,Cuban bulrush,emersed,Cuban bulrush cover,1,102,yes
-Bacopa caroliniana,management,-0.17045117717640038,-0.3602380414574579,0.02920160469834103,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,102,no
-Bacopa caroliniana,net,0.7100148709105746,-0.24863241090427932,1.6478677912313149,Cuban bulrush,emersed,mgmt. + cover,1,102,no
-Bacopa monnieri,cover,-0.20394247720251454,-1.3100128557328894,0.9288483220183201,Cuban bulrush,emersed,Cuban bulrush cover,1,103,no
-Bacopa monnieri,management,0.18703969185140382,0.013958868501739352,0.36344586951754787,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,103,yes
-Bacopa monnieri,net,0.11524594217870805,-0.9936421439390454,1.0471514514559217,Cuban bulrush,emersed,mgmt. + cover,1,103,no
-Bidens spp.,cover,0.18484282668491897,-0.7699106678132077,1.105217725475972,Cuban bulrush,emersed,Cuban bulrush cover,1,104,no
-Bidens spp.,management,0.004953269679054533,-0.16573123036201606,0.17422384794612328,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,104,no
-Bidens spp.,net,0.1559698418852923,-0.7404450217782228,1.0007453663897599,Cuban bulrush,emersed,mgmt. + cover,1,104,no
-Brasenia schreberi,cover,0.6354842879928994,-0.7740696196341846,2.1946627887778623,Cuban bulrush,emersed,Cuban bulrush cover,1,105,no
-Brasenia schreberi,management,0.10130531446798792,-0.18251885416739178,0.3732835216117961,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,105,no
-Brasenia schreberi,net,0.5875871746604342,-0.7039966431851771,1.5959579281286715,Cuban bulrush,emersed,mgmt. + cover,1,105,no
-Cabomba caroliniana,cover,0.8647917016828983,-0.3231037576285519,2.036857960871162,Cuban bulrush,submersed,Cuban bulrush cover,3,306,no
-Cabomba caroliniana,management,0.11635974785059096,-0.0920869787008662,0.32902681376195375,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,306,no
-Cabomba caroliniana,net,0.707230081575875,-0.32770088912300643,1.6304693097647904,Cuban bulrush,submersed,mgmt. + cover,3,306,no
-Carex spp.,cover,0.911112218464282,-0.10012077223133085,1.8585384526222783,Cuban bulrush,emersed,Cuban bulrush cover,1,107,no
-Carex spp.,management,0.1112039359801682,-0.08798026425582248,0.30324608906811334,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,107,no
-Carex spp.,net,0.70209239007924,-0.23042630782426599,1.5310341770224485,Cuban bulrush,emersed,mgmt. + cover,1,107,no
-Cephalanthus occidentalis,cover,-0.29662269640656413,-1.2797185196974183,0.702981347244889,Cuban bulrush,emersed,Cuban bulrush cover,1,108,no
-Cephalanthus occidentalis,management,-0.08437225124047083,-0.279208942577156,0.11998151816982576,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,108,no
-Cephalanthus occidentalis,net,0.12085978684344505,-0.8500864963605836,1.0155551372982174,Cuban bulrush,emersed,mgmt. + cover,1,108,no
-Ceratophyllum demersum,cover,1.3301458049469754,0.32973984146593893,2.2906295700583366,Cuban bulrush,submersed,Cuban bulrush cover,3,309,yes
-Ceratophyllum demersum,management,0.09609461832048813,-0.08679060881529445,0.287578122455536,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,309,no
-Ceratophyllum demersum,net,1.6927732405209788,0.5955776696155952,2.898876914009871,Cuban bulrush,submersed,mgmt. + cover,3,309,yes
-Chara spp.,cover,0.24420865111012766,-0.8314937219617177,1.2827960687913778,Cuban bulrush,submersed,Cuban bulrush cover,3,310,no
-Chara spp.,management,-0.14046176587637427,-0.3357742575121621,0.044172535827405546,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,310,no
-Chara spp.,net,1.2033300434704572,0.3928027024458575,2.046727143094473,Cuban bulrush,submersed,mgmt. + cover,3,310,yes
-Cicuta maculata,cover,-0.8713735117697852,-2.4999645562055366,0.609034205215299,Cuban bulrush,emersed,Cuban bulrush cover,1,111,no
-Cicuta maculata,management,0.01164758024832513,-0.2217118642222869,0.24312129818762268,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,111,no
-Cicuta maculata,net,-0.20693515984765648,-1.4099604006251274,0.8853638669330869,Cuban bulrush,emersed,mgmt. + cover,1,111,no
-Cladium jamaicense,cover,-0.21207550626096128,-1.2347848372711305,0.7989954842294025,Cuban bulrush,emersed,Cuban bulrush cover,1,112,no
-Cladium jamaicense,management,-0.05687305969741415,-0.25360867629692596,0.14495522759973267,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,112,no
-Cladium jamaicense,net,0.17543074621846047,-0.8100824776310002,1.1623384547352997,Cuban bulrush,emersed,mgmt. + cover,1,112,no
-Crinum americanum,cover,-0.3973343173490185,-1.7021935459004647,0.7536227537662099,Cuban bulrush,emersed,Cuban bulrush cover,1,113,no
-Crinum americanum,management,0.08861736904738278,-0.12958829546644574,0.30752725234523615,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,113,no
-Crinum americanum,net,-2.340153541300924,-4.710428724371115,-0.5023935942397214,Cuban bulrush,emersed,mgmt. + cover,1,113,yes
-Cyperus articulatus,cover,1.394398640501556,-0.028105601719081337,2.742119586299548,Cuban bulrush,emersed,Cuban bulrush cover,1,114,no
-Cyperus articulatus,management,-0.07738073975253591,-0.3809532667298491,0.21756858675976082,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,114,no
-Cyperus articulatus,net,-1.1697136533860053,-4.248174464557739,1.2125021530030153,Cuban bulrush,emersed,mgmt. + cover,1,114,no
-Cyperus spp. (other natives),cover,-0.40575587267337104,-1.283621409575682,0.44648842891640167,Cuban bulrush,emersed,Cuban bulrush cover,1,115,no
-Cyperus spp. (other natives),management,-0.08505098878110307,-0.25056475723211774,0.08589890342931777,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,115,no
-Cyperus spp. (other natives),net,0.9911660388895904,0.07559818208338466,2.113170847351027,Cuban bulrush,emersed,mgmt. + cover,1,115,yes
-Decodon verticillatus,cover,0.1933496837836362,-1.074263936113933,1.3391878974118328,Cuban bulrush,emersed,Cuban bulrush cover,1,116,no
-Decodon verticillatus,management,0.13563515912525834,-0.07205449625878074,0.33852790221129353,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,116,no
-Decodon verticillatus,net,1.3880009540446532,0.44206005708671986,2.2984487104017077,Cuban bulrush,emersed,mgmt. + cover,1,116,yes
-Echinochloa spp.,cover,-0.07151084242164711,-1.1719051482177014,0.925460600209224,Cuban bulrush,emersed,Cuban bulrush cover,1,117,no
-Echinochloa spp.,management,0.0850181476024319,-0.09438007695679437,0.2735741548092725,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,117,no
-Echinochloa spp.,net,-0.7136347220288459,-2.145064926375084,0.4413774583169144,Cuban bulrush,emersed,mgmt. + cover,1,117,no
-"Eleocharis spp., emersed",cover,-0.0032091240372635194,-0.9837982713911071,0.9610694612643165,Cuban bulrush,emersed,Cuban bulrush cover,1,118,no
-"Eleocharis spp., emersed",management,0.10799335456161388,-0.08204129546827416,0.2930815266364725,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,118,no
-"Eleocharis spp., emersed",net,-1.0487182001982933,-2.2259221957518447,0.0333558504474094,Cuban bulrush,emersed,mgmt. + cover,1,118,no
-"Eleocharis spp., sub/floating",cover,0.6842414637957331,-0.23690439453654324,1.6790047242652757,Cuban bulrush,submersed,Cuban bulrush cover,3,319,no
-"Eleocharis spp., sub/floating",management,0.1275384193256213,-0.04219488585514165,0.29215183712370957,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,319,no
-"Eleocharis spp., sub/floating",net,0.648332445437307,-0.15673399173278887,1.4610171320254892,Cuban bulrush,submersed,mgmt. + cover,3,319,no
-Filamentous algae,cover,0.5827117150183857,-0.3158727871206045,1.5168204285192792,Cuban bulrush,floating,Cuban bulrush cover,2,220,no
-Filamentous algae,management,0.19715267660613456,0.023669589078515754,0.3730704745600518,Cuban bulrush,floating,Cuban bulrush mgmt.,2,220,yes
-Filamentous algae,net,0.929051430662469,0.16877901904961126,1.6761448142671864,Cuban bulrush,floating,mgmt. + cover,2,220,yes
-Fuirena spp.,cover,-0.7595688613667829,-2.087427696103797,0.5516445752943089,Cuban bulrush,emersed,Cuban bulrush cover,1,121,no
-Fuirena spp.,management,-0.1817322671751955,-0.40267787625099344,0.03982517581129136,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,121,no
-Fuirena spp.,net,-1.3425397116459332,-3.2247166266972958,0.4028346238796071,Cuban bulrush,emersed,mgmt. + cover,1,121,no
-Hydrocotyle spp.,cover,0.4032108563316011,-0.8214876504995315,1.8660690552493158,Cuban bulrush,emersed,Cuban bulrush cover,1,122,no
-Hydrocotyle spp.,management,0.10984724135082678,-0.1211707710087793,0.34679295437834246,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,122,no
-Hydrocotyle spp.,net,0.4704505175740107,-0.48107152789791874,1.729341067638369,Cuban bulrush,emersed,mgmt. + cover,1,122,no
-Hypericum spp.,cover,-1.2554388487823662,-3.189051411018724,0.30999759733735766,Cuban bulrush,emersed,Cuban bulrush cover,1,123,no
-Hypericum spp.,management,-0.15431436543809376,-0.3888029512968072,0.07505789728921616,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,123,no
-Hypericum spp.,net,-1.196305153021155,-3.0136166352699707,0.4032045322684401,Cuban bulrush,emersed,mgmt. + cover,1,123,no
-Juncus effusus,cover,0.28026586033384004,-0.7185701560395437,1.2516954411261993,Cuban bulrush,emersed,Cuban bulrush cover,1,124,no
-Juncus effusus,management,-0.016651175005663144,-0.19079833378778904,0.16562993720999947,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,124,no
-Juncus effusus,net,-0.17863950179026727,-1.2786507321269582,0.7426575412329157,Cuban bulrush,emersed,mgmt. + cover,1,124,no
-Leersia hexandra,cover,0.4549796141578302,-0.6028652249134759,1.477027706669371,Cuban bulrush,emersed,Cuban bulrush cover,1,125,no
-Leersia hexandra,management,-0.10924578745768815,-0.29543253004666103,0.07629471716995842,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,125,no
-Leersia hexandra,net,-0.7737270592413177,-2.0385557611470206,0.3314555927808264,Cuban bulrush,emersed,mgmt. + cover,1,125,no
-Lemna/Spirodela spp.,cover,-0.0942719868350956,-0.9949962577611657,0.8566495386471937,Cuban bulrush,floating,Cuban bulrush cover,2,226,no
-Lemna/Spirodela spp.,management,-0.05217350519278682,-0.22520225149692802,0.12645067038774882,Cuban bulrush,floating,Cuban bulrush mgmt.,2,226,no
-Lemna/Spirodela spp.,net,0.2206605706042076,-0.6969705301011834,1.1085978118857436,Cuban bulrush,floating,mgmt. + cover,2,226,no
-Limnobium spongia,cover,1.308957556003587,0.05293645806518331,2.593803353227854,Cuban bulrush,floating,Cuban bulrush cover,2,227,yes
-Limnobium spongia,management,0.2513316391784998,0.049725066124988664,0.4639158601465634,Cuban bulrush,floating,Cuban bulrush mgmt.,2,227,yes
-Limnobium spongia,net,0.8803580926626455,-0.18522319030960527,1.8689729536828343,Cuban bulrush,floating,mgmt. + cover,2,227,no
-Ludwigia octovalvis/peruviana,cover,2.7910167747642287,0.8322367382791149,5.105086318696747,Cuban bulrush,emersed,Cuban bulrush cover,1,128,yes
-Ludwigia octovalvis/peruviana,management,0.2042667631214232,-0.041673852797037295,0.4515205464927211,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,128,no
-Ludwigia octovalvis/peruviana,net,1.2765485053652332,-0.0011112311566264666,2.9530143299516594,Cuban bulrush,emersed,mgmt. + cover,1,128,no
-Ludwigia palustris/repens,cover,0.36444119172238343,-0.6876668863565016,1.4179336004672383,Cuban bulrush,emersed,Cuban bulrush cover,1,129,no
-Ludwigia palustris/repens,management,-0.04631645584910859,-0.24305617439996982,0.1434899688354206,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,129,no
-Ludwigia palustris/repens,net,0.7606938015220314,-0.07349666448358785,1.5058933633484934,Cuban bulrush,emersed,mgmt. + cover,1,129,no
-Luziola fluitans,cover,0.6488024385480813,-0.4399203885800357,1.7690229196664085,Cuban bulrush,submersed,Cuban bulrush cover,3,330,no
-Luziola fluitans,management,0.26895440327362635,0.08760836942462338,0.44766888943110594,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,330,yes
-Luziola fluitans,net,-1.016754269739372,-2.5718682249347515,0.17223597637069282,Cuban bulrush,submersed,mgmt. + cover,3,330,no
-Mayaca fluviatilis,cover,0.06529501660767267,-1.8616954692098306,1.6059404021104964,Cuban bulrush,submersed,Cuban bulrush cover,3,331,no
-Mayaca fluviatilis,management,0.34001476518033397,0.10352860090536964,0.5781756015477246,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,331,yes
-Mayaca fluviatilis,net,-0.03339609913008836,-1.985442634416885,1.6090914517577082,Cuban bulrush,submersed,mgmt. + cover,3,331,no
-Micranthemum glomeratum,cover,-0.4199180355953272,-1.6790526576430989,0.768712822987414,Cuban bulrush,submersed,Cuban bulrush cover,3,332,no
-Micranthemum glomeratum,management,0.21208451125370373,0.008919904088591819,0.4119997210904416,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,332,yes
-Micranthemum glomeratum,net,-1.8839151499525961,-4.214636226668074,0.0880375963611428,Cuban bulrush,submersed,mgmt. + cover,3,332,no
-Micranthemum umbrosum,cover,0.5312218206625964,-0.7230606870523146,1.6626458195426763,Cuban bulrush,emersed,Cuban bulrush cover,1,133,no
-Micranthemum umbrosum,management,0.3023977140025096,0.09795203584388995,0.5024403526841035,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,133,yes
-Micranthemum umbrosum,net,-1.016393121610181,-3.23587532307074,0.7103072414695928,Cuban bulrush,emersed,mgmt. + cover,1,133,no
-Myriophyllum laxum/pinnatum,cover,-0.8598761028122153,-3.250674233158157,1.0016877493950542,Cuban bulrush,submersed,Cuban bulrush cover,3,334,no
-Myriophyllum laxum/pinnatum,management,0.2771401434284762,0.020685491261509988,0.5237861717527793,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,334,yes
-Myriophyllum laxum/pinnatum,net,-0.6207842358124014,-2.722370105376691,1.1237726072602516,Cuban bulrush,submersed,mgmt. + cover,3,334,no
-Najas guadalupensis,cover,0.1709850878659888,-0.8153177399867679,1.0877387449704288,Cuban bulrush,submersed,Cuban bulrush cover,3,335,no
-Najas guadalupensis,management,-0.03830505187549471,-0.21771212131979506,0.1406748541071255,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,335,no
-Najas guadalupensis,net,0.26896891298800035,-0.6247415611553022,1.0654091153390919,Cuban bulrush,submersed,mgmt. + cover,3,335,no
-Nelumbo lutea,cover,-1.2494671070786183,-3.3873190192332783,0.5250544374653257,Cuban bulrush,emersed,Cuban bulrush cover,1,136,no
-Nelumbo lutea,management,0.04492893357224802,-0.2796385746051795,0.3125576229415067,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,136,no
-Nelumbo lutea,net,-3.1652361573641983,-6.451487971747106,-0.3273686875449985,Cuban bulrush,emersed,mgmt. + cover,1,136,yes
-Nitella spp.,cover,0.554885007549787,-0.7291753977761677,1.6934537734218829,Cuban bulrush,submersed,Cuban bulrush cover,3,337,no
-Nitella spp.,management,0.07618213690031937,-0.12179980210493435,0.2797885050841281,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,337,no
-Nitella spp.,net,0.2237504352648279,-1.2720268903250393,1.3728475247319603,Cuban bulrush,submersed,mgmt. + cover,3,337,no
-Nuphar advena,cover,1.2270857028198618,-0.15021284487182945,2.892770851133411,Cuban bulrush,emersed,Cuban bulrush cover,1,138,no
-Nuphar advena,management,0.004867754022855592,-0.2036370667974876,0.22507945521852707,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,138,no
-Nuphar advena,net,0.03514296438947819,-0.9117638800966772,0.9648754813584803,Cuban bulrush,emersed,mgmt. + cover,1,138,no
-Nymphaea mexicana,cover,-0.4749636606623343,-2.1721071754234056,0.9102955179395597,Cuban bulrush,emersed,Cuban bulrush cover,1,139,no
-Nymphaea mexicana,management,0.23910753255857126,0.03870309669746756,0.4552851514804058,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,139,yes
-Nymphaea mexicana,net,1.308193250448687,0.4242593344149447,2.1874230907839713,Cuban bulrush,emersed,mgmt. + cover,1,139,yes
-Nymphaea odorata,cover,1.308410903995845,0.19003683881106645,2.4996549528148932,Cuban bulrush,emersed,Cuban bulrush cover,1,140,yes
-Nymphaea odorata,management,0.16062190658311726,-0.03902577997969016,0.3584911226389751,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,140,no
-Nymphaea odorata,net,0.9788061744430371,-0.014750553116385741,1.898201610160932,Cuban bulrush,emersed,mgmt. + cover,1,140,no
-Nymphoides aquatica,cover,-2.844233927773847,-5.046817908318938,-0.8711563629203593,Cuban bulrush,emersed,Cuban bulrush cover,1,141,yes
-Nymphoides aquatica,management,-0.10366525078675641,-0.3197372955168545,0.11351266135923148,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,141,no
-Nymphoides aquatica,net,-5.57720922090508,-8.403560561926668,-3.003768222407712,Cuban bulrush,emersed,mgmt. + cover,1,141,yes
-Panicum hemitomon,cover,-0.42589429001646667,-1.3329330237303796,0.4570501080112679,Cuban bulrush,emersed,Cuban bulrush cover,1,142,no
-Panicum hemitomon,management,-0.0031390855445475613,-0.20378974788266502,0.19599761761086498,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,142,no
-Panicum hemitomon,net,-0.4303213798121936,-1.357777131285749,0.43619631995059094,Cuban bulrush,emersed,mgmt. + cover,1,142,no
-Paspalidium geminatum,cover,-3.2509690059421232,-4.8120562948596834,-1.918757416663596,Cuban bulrush,emersed,Cuban bulrush cover,1,143,yes
-Paspalidium geminatum,management,-0.2504214512198573,-0.4276735489512161,-0.07093667822545915,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,143,yes
-Paspalidium geminatum,net,-1.0708502633369748,-2.0368280936887877,-0.09524055040570667,Cuban bulrush,emersed,mgmt. + cover,1,143,yes
-Paspalum repens,cover,-1.845586256522993,-4.134823046810011,0.16426055980464646,Cuban bulrush,emersed,Cuban bulrush cover,1,144,no
-Paspalum repens,management,-0.03885996467789144,-0.2941117613019668,0.2134466187922881,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,144,no
-Paspalum repens,net,-1.6796844552540233,-3.8698740512505814,0.13904231259941302,Cuban bulrush,emersed,mgmt. + cover,1,144,no
-Peltandra spp.,cover,0.30061560279328114,-0.964171743020145,1.4170970134377443,Cuban bulrush,emersed,Cuban bulrush cover,1,145,no
-Peltandra spp.,management,0.13246169560066118,-0.07316648670535861,0.32704203597321757,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,145,no
-Peltandra spp.,net,0.04250478291279196,-0.9902574838922037,0.9977118019910673,Cuban bulrush,emersed,mgmt. + cover,1,145,no
-Phragmites australis,cover,-1.430676996004024,-3.2086763245927443,0.0709245853599767,Cuban bulrush,emersed,Cuban bulrush cover,1,146,no
-Phragmites australis,management,-0.24175640967686043,-0.46982522599584065,-0.01617246802452077,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,146,yes
-Phragmites australis,net,-0.6694123623936177,-1.7553200535630382,0.3506486984824711,Cuban bulrush,emersed,mgmt. + cover,1,146,no
-Pontederia cordata,cover,0.21446194085108333,-0.8230459311250202,1.3845369672065941,Cuban bulrush,emersed,Cuban bulrush cover,1,147,no
-Pontederia cordata,management,0.12855397259315732,-0.09438510388125748,0.34684658114632605,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,147,no
-Pontederia cordata,net,-0.5893480010233686,-1.4103926577034032,0.26456987887512357,Cuban bulrush,emersed,mgmt. + cover,1,147,no
-Potamogeton illinoensis,cover,-1.0801469041540064,-2.6023879720601615,0.36276194678728335,Cuban bulrush,submersed,Cuban bulrush cover,3,348,no
-Potamogeton illinoensis,management,-0.21704584806788668,-0.4521575226939889,0.030809314272252968,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,348,no
-Potamogeton illinoensis,net,-2.073363372379278,-4.543885915518012,-0.06895705228121624,Cuban bulrush,submersed,mgmt. + cover,3,348,yes
-Rhynchospora spp.,cover,-0.22645394057693236,-1.4325417795542763,0.8758533302247633,Cuban bulrush,emersed,Cuban bulrush cover,1,149,no
-Rhynchospora spp.,management,-0.275802445631807,-0.48202316328358163,-0.09004341189149033,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,149,yes
-Rhynchospora spp.,net,-0.1887682455737961,-1.159246300798729,0.8558416330330552,Cuban bulrush,emersed,mgmt. + cover,1,149,no
-Sacciolepis striata,cover,0.5821377981041465,-0.3240577064162046,1.5209233324725553,Cuban bulrush,emersed,Cuban bulrush cover,1,150,no
-Sacciolepis striata,management,0.28234589204831,0.11861736660988975,0.4498192591139236,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,150,yes
-Sacciolepis striata,net,-0.10106279827308813,-0.9839333844836267,0.7439645877181934,Cuban bulrush,emersed,mgmt. + cover,1,150,no
-Sagittaria lancifolia,cover,0.8914107611204096,-0.2063287921394637,2.138804755228625,Cuban bulrush,emersed,Cuban bulrush cover,1,151,no
-Sagittaria lancifolia,management,0.10093343425343915,-0.09675876489656125,0.29491708128242466,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,151,no
-Sagittaria lancifolia,net,0.27188624959409696,-0.5380402916255326,1.0753715896179465,Cuban bulrush,emersed,mgmt. + cover,1,151,no
-Sagittaria latifolia,cover,0.5253970812884429,-0.48130399655423123,1.5738023979379208,Cuban bulrush,emersed,Cuban bulrush cover,1,152,no
-Sagittaria latifolia,management,0.05890952196827275,-0.12070046984746835,0.2506294284884516,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,152,no
-Sagittaria latifolia,net,0.061189968126716475,-1.0318362211772918,1.2083269918085646,Cuban bulrush,emersed,mgmt. + cover,1,152,no
-Sagittaria subulata/graminea/gracillima,cover,-2.313853536899481,-4.4826263316498665,-0.26760245396923477,Cuban bulrush,emersed,Cuban bulrush cover,1,153,yes
-Sagittaria subulata/graminea/gracillima,management,-0.2143442301614251,-0.43360426457064993,0.004365384508007251,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,153,no
-Sagittaria subulata/graminea/gracillima,net,-1.7388303179577775,-3.648317874649646,-0.02021900506219195,Cuban bulrush,emersed,mgmt. + cover,1,153,yes
-Salix spp.,cover,-0.3352291671522713,-1.3684940337146698,0.8338729406805342,Cuban bulrush,emersed,Cuban bulrush cover,1,154,no
-Salix spp.,management,0.11365836838060203,-0.11066070027776187,0.3526669738648056,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,154,no
-Salix spp.,net,-0.8374462610223278,-1.771948384679412,0.03866092883726867,Cuban bulrush,emersed,mgmt. + cover,1,154,no
-Saururus cernuus,cover,1.0594330755829664,-0.06274237670618546,2.2503953751404273,Cuban bulrush,emersed,Cuban bulrush cover,1,155,no
-Saururus cernuus,management,0.2167711116320572,0.0011990340923317528,0.42577868285243947,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,155,yes
-Saururus cernuus,net,-0.9290244361193807,-2.27021464644484,0.2216422883679518,Cuban bulrush,emersed,mgmt. + cover,1,155,no
-Spartina bakeri,cover,-1.2150427155893322,-2.544432225882652,0.10731356120266192,Cuban bulrush,emersed,Cuban bulrush cover,1,156,no
-Spartina bakeri,management,-0.14427791659177316,-0.33601243325599633,0.0429518343906792,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,156,no
-Spartina bakeri,net,-0.8293401860178068,-2.450748417801285,0.518512781744264,Cuban bulrush,emersed,mgmt. + cover,1,156,no
-Thalia geniculata,cover,-1.3770237879156826,-2.8267564623570474,-0.017480911007981645,Cuban bulrush,emersed,Cuban bulrush cover,1,157,yes
-Thalia geniculata,management,0.03625300013471489,-0.18759670207133405,0.29130592842814995,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,157,no
-Thalia geniculata,net,-1.5382510712375859,-3.772604606140958,0.5557837934496246,Cuban bulrush,emersed,mgmt. + cover,1,157,no
-Typha spp.,cover,1.6510011296857514,-0.08884919523268822,3.7476469543325495,Cuban bulrush,emersed,Cuban bulrush cover,1,158,no
-Typha spp.,management,0.12630741186689265,-0.12924506255413246,0.3904095755672933,Cuban bulrush,emersed,Cuban bulrush mgmt.,1,158,no
-Typha spp.,net,0.64495401155294,-0.48839691888990255,2.1589193273762124,Cuban bulrush,emersed,mgmt. + cover,1,158,no
-Utricularia floridana,cover,-0.24113373240415392,-1.8876702037720614,1.194945707431153,Cuban bulrush,submersed,Cuban bulrush cover,3,359,no
-Utricularia floridana,management,0.08820659678084547,-0.15331833950119572,0.33320211882696965,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,359,no
-Utricularia floridana,net,-2.9901247434773954,-5.700649671003818,-0.523747612268127,Cuban bulrush,submersed,mgmt. + cover,3,359,yes
-Utricularia foliosa,cover,1.7706673324357811,0.7471172918170478,2.823757161512229,Cuban bulrush,submersed,Cuban bulrush cover,3,360,yes
-Utricularia foliosa,management,0.11753458601850923,-0.061507428663935354,0.3070281771962473,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,360,no
-Utricularia foliosa,net,-0.21981244536900968,-1.180045364135284,0.709552647088484,Cuban bulrush,submersed,mgmt. + cover,3,360,no
-Utricularia gibba,cover,2.5149920994058217,1.4430785252352312,3.6270040558628147,Cuban bulrush,submersed,Cuban bulrush cover,3,361,yes
-Utricularia gibba,management,0.1128143658982414,-0.05919910415473273,0.288261077239964,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,361,no
-Utricularia gibba,net,1.3514294167329988,0.5269043052114919,2.1413501838824502,Cuban bulrush,submersed,mgmt. + cover,3,361,yes
-Utricularia inflata,cover,0.8731971803569166,-0.3563659606051159,1.9886782372981378,Cuban bulrush,submersed,Cuban bulrush cover,3,362,no
-Utricularia inflata,management,0.13533264718425222,-0.0819156107359596,0.33729911387245026,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,362,no
-Utricularia inflata,net,0.8688018333446488,-0.10593755825804552,1.7386026424308314,Cuban bulrush,submersed,mgmt. + cover,3,362,no
-Utricularia purpurea,cover,-1.1897236910677027,-3.406125668507718,0.6079172543154394,Cuban bulrush,submersed,Cuban bulrush cover,3,363,no
-Utricularia purpurea,management,0.1717669583479524,-0.05148909166792923,0.3845019631113539,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,363,no
-Utricularia purpurea,net,-0.5654732378229684,-2.3272115871787316,0.8817697006024172,Cuban bulrush,submersed,mgmt. + cover,3,363,no
-Vallisneria americana,cover,0.060475083058427685,-1.258067950988218,1.3913177750416978,Cuban bulrush,submersed,Cuban bulrush cover,3,364,no
-Vallisneria americana,management,0.15402996748378098,-0.06749246833335731,0.3954524093569628,Cuban bulrush,submersed,Cuban bulrush mgmt.,3,364,no
-Vallisneria americana,net,-2.375729158146658,-4.310561682115715,-0.7318399533197747,Cuban bulrush,submersed,mgmt. + cover,3,364,yes
-Azolla caroliniana,cover,1.0173915626980077,0.37495715288524356,1.6741919685918214,para grass,floating,para grass cover,2,201,yes
-Azolla caroliniana,management,0.3388463340294685,-0.31063405818412937,0.9801525333895003,para grass,floating,para grass mgmt.,2,201,no
-Azolla caroliniana,net,1.5787233467114037,-2.747744356899954,5.843886790059315,para grass,floating,mgmt. + cover,2,201,no
-Bacopa caroliniana,cover,0.4713666187346579,-0.49941861928313036,1.429259899932969,para grass,emersed,para grass cover,1,102,no
-Bacopa caroliniana,management,0.12097198449090771,-0.5747591202468547,0.8143345140840118,para grass,emersed,para grass mgmt.,1,102,no
-Bacopa caroliniana,net,-6.20078445440451,-22.25014652545275,6.758743569686423,para grass,emersed,mgmt. + cover,1,102,no
-Bacopa monnieri,cover,-0.4783258247197559,-1.1802270168547928,0.21415885358897235,para grass,emersed,para grass cover,1,103,no
-Bacopa monnieri,management,-0.057302083093515296,-0.6755790462700059,0.551207501145436,para grass,emersed,para grass mgmt.,1,103,no
-Bacopa monnieri,net,1.0402887076754535,-3.1695588986136,5.182046408612031,para grass,emersed,mgmt. + cover,1,103,no
-Bidens spp.,cover,-0.4289565819308375,-1.0540273586946305,0.23317987553621622,para grass,emersed,para grass cover,1,104,no
-Bidens spp.,management,0.2352124088604817,-0.326220369463846,0.8208032066051709,para grass,emersed,para grass mgmt.,1,104,no
-Bidens spp.,net,-7.671342809324242,-17.621390490393082,0.03469864700174164,para grass,emersed,mgmt. + cover,1,104,no
-Brasenia schreberi,cover,-2.1221159726954144,-7.575220457504567,1.309192552690372,para grass,emersed,para grass cover,1,105,no
-Brasenia schreberi,management,-0.0862178261393774,-0.9082269770780963,0.7194160778279326,para grass,emersed,para grass mgmt.,1,105,no
-Brasenia schreberi,net,-12.819403936984168,-41.72437431578339,7.120558733167105,para grass,emersed,mgmt. + cover,1,105,no
-Cabomba caroliniana,cover,-2.1613941869675104,-4.114050394983428,-0.45815695157529834,para grass,submersed,para grass cover,3,306,yes
-Cabomba caroliniana,management,-0.4863451693272701,-1.3408926203465585,0.35234668601993224,para grass,submersed,para grass mgmt.,3,306,no
-Cabomba caroliniana,net,-16.059708142735296,-44.23448413249808,5.589649061168049,para grass,submersed,mgmt. + cover,3,306,no
-Carex spp.,cover,-0.7630448749558741,-1.773551221749624,0.23143033620939094,para grass,emersed,para grass cover,1,107,no
-Carex spp.,management,-0.20033944370981466,-0.9118626032125697,0.45950745025548095,para grass,emersed,para grass mgmt.,1,107,no
-Carex spp.,net,-10.387652389248307,-31.03059615342451,1.1328881909046342,para grass,emersed,mgmt. + cover,1,107,no
-Cephalanthus occidentalis,cover,-0.33819997620502573,-1.0577399433059511,0.36434227251435514,para grass,emersed,para grass cover,1,108,no
-Cephalanthus occidentalis,management,0.18173968789955358,-0.5512890627610098,0.9099183526122445,para grass,emersed,para grass mgmt.,1,108,no
-Cephalanthus occidentalis,net,8.459468598998413,-0.08987762403202071,21.54708939676942,para grass,emersed,mgmt. + cover,1,108,no
-Ceratophyllum demersum,cover,0.57469807066722,-0.19025838159622965,1.3475043733905312,para grass,submersed,para grass cover,3,309,no
-Ceratophyllum demersum,management,-0.013623411975500212,-0.695857449542097,0.6667802913357478,para grass,submersed,para grass mgmt.,3,309,no
-Ceratophyllum demersum,net,1.3845012221710795,-3.243671578276041,5.836523357090602,para grass,submersed,mgmt. + cover,3,309,no
-Chara spp.,cover,-0.2337230369182512,-1.109780409545328,0.5674983006480738,para grass,submersed,para grass cover,3,310,no
-Chara spp.,management,-0.05573405776442666,-0.6883179665742742,0.5818976149175569,para grass,submersed,para grass mgmt.,3,310,no
-Chara spp.,net,-0.24959148797613956,-7.634300125891614,6.150476747265214,para grass,submersed,mgmt. + cover,3,310,no
-Cicuta maculata,cover,-2.971139953948764,-4.500559893308869,-1.5249895135517746,para grass,emersed,para grass cover,1,111,yes
-Cicuta maculata,management,7.286744380111983e-4,-0.67506301315022,0.6844992654046812,para grass,emersed,para grass mgmt.,1,111,no
-Cicuta maculata,net,-16.430558464014116,-42.86487463126342,-1.2355258447112112,para grass,emersed,mgmt. + cover,1,111,yes
-Cladium jamaicense,cover,-1.7381417841358995,-2.9740265583604586,-0.5404538584910994,para grass,emersed,para grass cover,1,112,yes
-Cladium jamaicense,management,0.8081929687246192,0.13516924570751987,1.5698396702120423,para grass,emersed,para grass mgmt.,1,112,yes
-Cladium jamaicense,net,-4.4836010064564675,-15.831098800062744,4.6628269740939645,para grass,emersed,mgmt. + cover,1,112,no
-Crinum americanum,cover,-0.8779651113838467,-2.0598412548830476,0.216604408411289,para grass,emersed,para grass cover,1,113,no
-Crinum americanum,management,-0.2893856759036681,-1.1433912600261453,0.4329769806380141,para grass,emersed,para grass mgmt.,1,113,no
-Crinum americanum,net,-14.176048468675532,-36.356922705192105,0.6697012363508918,para grass,emersed,mgmt. + cover,1,113,no
-Cyperus articulatus,cover,0.1553093796865292,-0.709145831800551,1.015263607690356,para grass,emersed,para grass cover,1,114,no
-Cyperus articulatus,management,0.14364323104785212,-0.4946411264565971,0.7757407294169256,para grass,emersed,para grass mgmt.,1,114,no
-Cyperus articulatus,net,-2.204212616450101,-8.325330374582396,3.0214052635996618,para grass,emersed,mgmt. + cover,1,114,no
-Cyperus spp. (other natives),cover,-0.9251467257360313,-1.5148524848189926,-0.3195768019221863,para grass,emersed,para grass cover,1,115,yes
-Cyperus spp. (other natives),management,-0.3890023776228326,-1.0121081661869344,0.18977334704776808,para grass,emersed,para grass mgmt.,1,115,no
-Cyperus spp. (other natives),net,3.6058167622597432,-1.436121195266713,9.907885008038566,para grass,emersed,mgmt. + cover,1,115,no
-Decodon verticillatus,cover,-1.755833963597314,-3.4795804898560774,-0.21519604014938487,para grass,emersed,para grass cover,1,116,yes
-Decodon verticillatus,management,0.02671149159719254,-0.7122727433657248,0.752181575978041,para grass,emersed,para grass mgmt.,1,116,no
-Decodon verticillatus,net,-13.17769005598166,-38.6695910246911,3.397296793540737,para grass,emersed,mgmt. + cover,1,116,no
-Echinochloa spp.,cover,-0.987093961010077,-1.6489656882672057,-0.2754172765641598,para grass,emersed,para grass cover,1,117,yes
-Echinochloa spp.,management,0.41294251438261315,-0.16787911956609794,1.0397629325366429,para grass,emersed,para grass mgmt.,1,117,no
-Echinochloa spp.,net,-2.0223170201938845,-6.107235198489709,2.1386020854303,para grass,emersed,mgmt. + cover,1,117,no
-"Eleocharis spp., emersed",cover,0.6748947006374774,-0.007755978914547854,1.4310004047854206,para grass,emersed,para grass cover,1,118,no
-"Eleocharis spp., emersed",management,0.2526140860694147,-0.3336223037072806,0.8624402400651962,para grass,emersed,para grass mgmt.,1,118,no
-"Eleocharis spp., emersed",net,1.6313243410691065,-3.485239897535412,6.190831344349775,para grass,emersed,mgmt. + cover,1,118,no
-"Eleocharis spp., sub/floating",cover,0.23909657515132457,-0.40528465327980123,0.8930201514328977,para grass,submersed,para grass cover,3,319,no
-"Eleocharis spp., sub/floating",management,0.016312074917030735,-0.6146135569338707,0.65275902652035,para grass,submersed,para grass mgmt.,3,319,no
-"Eleocharis spp., sub/floating",net,-2.250545333908327,-9.978152998845104,4.216245926826757,para grass,submersed,mgmt. + cover,3,319,no
-Filamentous algae,cover,0.6359381403150464,-0.1517923750995035,1.4297964027163585,para grass,floating,para grass cover,2,220,no
-Filamentous algae,management,0.6722494847929874,-0.04571983186483757,1.469413047798338,para grass,floating,para grass mgmt.,2,220,no
-Filamentous algae,net,-2.383673673423086,-7.770455574156727,2.7363244602013084,para grass,floating,mgmt. + cover,2,220,no
-Fuirena spp.,cover,-1.3497012612970378,-2.3048892460397816,-0.39348872227089815,para grass,emersed,para grass cover,1,121,yes
-Fuirena spp.,management,-0.13128310678967758,-0.9445498920973383,0.5887262808205509,para grass,emersed,para grass mgmt.,1,121,no
-Fuirena spp.,net,3.741945188453881,-7.087638250186153,14.266353493997718,para grass,emersed,mgmt. + cover,1,121,no
-Hydrocotyle spp.,cover,-1.4356134982207343,-2.1260527037003483,-0.7894576683672139,para grass,emersed,para grass cover,1,122,yes
-Hydrocotyle spp.,management,0.4172948390059979,-0.34941973589282094,1.225121200508715,para grass,emersed,para grass mgmt.,1,122,no
-Hydrocotyle spp.,net,-4.442341358571529,-8.592517748934242,-0.12426956521828707,para grass,emersed,mgmt. + cover,1,122,yes
-Hypericum spp.,cover,-1.110992771941847,-2.6765793187710774,0.2898389992561311,para grass,emersed,para grass cover,1,123,no
-Hypericum spp.,management,-0.005424194887918026,-0.6647961034382001,0.6485904491569654,para grass,emersed,para grass mgmt.,1,123,no
-Hypericum spp.,net,2.7364921239609443,-4.209468568355213,8.450855125371232,para grass,emersed,mgmt. + cover,1,123,no
-Juncus effusus,cover,-0.5646403213822367,-1.2758107023083496,0.16821152441115506,para grass,emersed,para grass cover,1,124,no
-Juncus effusus,management,-0.2224025012874447,-0.8584019999273587,0.33444669908438596,para grass,emersed,para grass mgmt.,1,124,no
-Juncus effusus,net,-2.0538996069418496,-10.714554158218743,4.602494991157573,para grass,emersed,mgmt. + cover,1,124,no
-Leersia hexandra,cover,0.5173281971077947,-0.1675236405782446,1.2061363359973702,para grass,emersed,para grass cover,1,125,no
-Leersia hexandra,management,-0.09960181178672452,-0.767197150304482,0.537339577198251,para grass,emersed,para grass mgmt.,1,125,no
-Leersia hexandra,net,-6.7313286412013325,-19.728703886864622,2.4121683468623765,para grass,emersed,mgmt. + cover,1,125,no
-Lemna/Spirodela spp.,cover,0.8562898306189619,0.12868859194644885,1.514829868170834,para grass,floating,para grass cover,2,226,yes
-Lemna/Spirodela spp.,management,0.5067192227679426,-0.27222641265614844,1.3445481271726927,para grass,floating,para grass mgmt.,2,226,no
-Lemna/Spirodela spp.,net,5.935461858777538,-1.803600089119159,16.207477019066793,para grass,floating,mgmt. + cover,2,226,no
-Limnobium spongia,cover,0.7369443872829353,-0.03826644746339479,1.5198320942597499,para grass,floating,para grass cover,2,227,no
-Limnobium spongia,management,-0.049608334060180025,-0.7826654950193563,0.6173555438705383,para grass,floating,para grass mgmt.,2,227,no
-Limnobium spongia,net,3.1589931830977016,-1.3183866684325385,7.695689434409154,para grass,floating,mgmt. + cover,2,227,no
-Ludwigia octovalvis/peruviana,cover,0.4746534439647282,-0.3387836485642213,1.295186369655455,para grass,emersed,para grass cover,1,128,no
-Ludwigia octovalvis/peruviana,management,-0.07308139597059668,-0.7528192631318025,0.5659428579033701,para grass,emersed,para grass mgmt.,1,128,no
-Ludwigia octovalvis/peruviana,net,-1.4350411266873058,-6.000024600169197,3.171008032989159,para grass,emersed,mgmt. + cover,1,128,no
-Ludwigia palustris/repens,cover,0.950297740640364,0.2591566691502628,1.568104898278641,para grass,emersed,para grass cover,1,129,yes
-Ludwigia palustris/repens,management,0.15427294197938154,-0.454423036446261,0.7482993350313645,para grass,emersed,para grass mgmt.,1,129,no
-Ludwigia palustris/repens,net,3.986954943633249,-0.23224218667061303,8.3911615353081,para grass,emersed,mgmt. + cover,1,129,no
-Luziola fluitans,cover,0.9532134650096139,0.12373569468655965,1.766079484628472,para grass,submersed,para grass cover,3,330,yes
-Luziola fluitans,management,-0.24519955883678274,-0.943931097502018,0.43979889201059064,para grass,submersed,para grass mgmt.,3,330,no
-Luziola fluitans,net,-1.7750359834266911,-14.613974223396598,7.440153428402645,para grass,submersed,mgmt. + cover,3,330,no
-Mayaca fluviatilis,cover,-1.186631097930979,-3.3128114371733464,0.6990276270871272,para grass,submersed,para grass cover,3,331,no
-Mayaca fluviatilis,management,-0.2523048179750965,-1.1064471169804553,0.5728720934437384,para grass,submersed,para grass mgmt.,3,331,no
-Mayaca fluviatilis,net,4.3327559687701545,-9.038360073381572,16.36797694175705,para grass,submersed,mgmt. + cover,3,331,no
-Micranthemum glomeratum,cover,-0.4583432679542613,-1.362508196272345,0.3878046500886913,para grass,submersed,para grass cover,3,332,no
-Micranthemum glomeratum,management,2.011433489011574e-4,-0.7937607927167337,0.7522267161787615,para grass,submersed,para grass mgmt.,3,332,no
-Micranthemum glomeratum,net,-18.762352996814744,-45.17653854763342,1.190688187562127,para grass,submersed,mgmt. + cover,3,332,no
-Micranthemum umbrosum,cover,-1.123692395478275,-2.3451113845614326,0.0011022713430547848,para grass,emersed,para grass cover,1,133,no
-Micranthemum umbrosum,management,-0.18940620525378438,-0.9680112060974781,0.4968655754529264,para grass,emersed,para grass mgmt.,1,133,no
-Micranthemum umbrosum,net,-4.711226825390846,-19.421784801471148,5.633337651729949,para grass,emersed,mgmt. + cover,1,133,no
-Myriophyllum laxum/pinnatum,cover,-3.866337390516791,-7.55210782857894,-0.5194499531751888,para grass,submersed,para grass cover,3,334,yes
-Myriophyllum laxum/pinnatum,management,-0.3845964264830053,-1.453958514975716,0.5010000542784807,para grass,submersed,para grass mgmt.,3,334,no
-Myriophyllum laxum/pinnatum,net,-17.142570298223507,-49.77321369554541,7.2027070352107385,para grass,submersed,mgmt. + cover,3,334,no
-Najas guadalupensis,cover,0.17357891371044562,-0.5886269971826752,0.9220227595078134,para grass,submersed,para grass cover,3,335,no
-Najas guadalupensis,management,0.39084218004729915,-0.21322064754498898,1.0590029654273783,para grass,submersed,para grass mgmt.,3,335,no
-Najas guadalupensis,net,-1.7948057474841672,-9.245529503245468,4.032988804478667,para grass,submersed,mgmt. + cover,3,335,no
-Nelumbo lutea,cover,-1.6869002622124323,-2.831841620074864,-0.7015314616833231,para grass,emersed,para grass cover,1,136,yes
-Nelumbo lutea,management,0.5280975931528419,-0.09904964996374979,1.2022690960644504,para grass,emersed,para grass mgmt.,1,136,no
-Nelumbo lutea,net,-5.098437904390991,-12.515152304986499,0.981809672862703,para grass,emersed,mgmt. + cover,1,136,no
-Nitella spp.,cover,0.8393892500924541,-0.09989354274816314,1.729887838453497,para grass,submersed,para grass cover,3,337,no
-Nitella spp.,management,-0.05534279660513094,-0.8282476927978497,0.7317160317272884,para grass,submersed,para grass mgmt.,3,337,no
-Nitella spp.,net,-13.965071725639902,-38.1437442349028,6.056181706127501,para grass,submersed,mgmt. + cover,3,337,no
-Nuphar advena,cover,0.3373849545635122,-0.4955105061409406,1.121764844624924,para grass,emersed,para grass cover,1,138,no
-Nuphar advena,management,0.3358626203290416,-0.4035835201558974,1.1789177342555246,para grass,emersed,para grass mgmt.,1,138,no
-Nuphar advena,net,-3.991090974426159,-11.478339717666348,2.0447289357038385,para grass,emersed,mgmt. + cover,1,138,no
-Nymphaea mexicana,cover,0.2051453727399997,-0.626120998182393,0.9923322976879775,para grass,emersed,para grass cover,1,139,no
-Nymphaea mexicana,management,0.0473020869930311,-0.5481256017421757,0.6397002187320194,para grass,emersed,para grass mgmt.,1,139,no
-Nymphaea mexicana,net,3.8183949192165363,-1.1820913951783525,8.898117060766157,para grass,emersed,mgmt. + cover,1,139,no
-Nymphaea odorata,cover,0.6860670022749471,-0.11658309526946946,1.4967181725351706,para grass,emersed,para grass cover,1,140,no
-Nymphaea odorata,management,-0.1274814978137984,-0.7933357730507191,0.5011047108101859,para grass,emersed,para grass mgmt.,1,140,no
-Nymphaea odorata,net,0.43485664852826117,-8.658501047908764,8.296333252299267,para grass,emersed,mgmt. + cover,1,140,no
-Nymphoides aquatica,cover,1.4953867621890746,0.4768250465104378,2.427929641303265,para grass,emersed,para grass cover,1,141,yes
-Nymphoides aquatica,management,0.05198416721271808,-0.7570968974337715,0.8806040879279611,para grass,emersed,para grass mgmt.,1,141,no
-Nymphoides aquatica,net,-1.8283857828413237,-18.528079649313945,10.728068530748972,para grass,emersed,mgmt. + cover,1,141,no
-Panicum hemitomon,cover,-0.7081030361802041,-1.3493564897872972,-0.07973197163495832,para grass,emersed,para grass cover,1,142,yes
-Panicum hemitomon,management,0.7722842436890833,0.047566126217973126,1.6395978348759144,para grass,emersed,para grass mgmt.,1,142,yes
-Panicum hemitomon,net,-5.09714256544657,-13.336053617395446,1.0728645664197844,para grass,emersed,mgmt. + cover,1,142,no
-Paspalidium geminatum,cover,-2.6265784664546032,-3.4588414340303637,-1.8246423671890222,para grass,emersed,para grass cover,1,143,yes
-Paspalidium geminatum,management,0.5909019962812828,-0.08694101416303919,1.3340284441427843,para grass,emersed,para grass mgmt.,1,143,no
-Paspalidium geminatum,net,-8.248478808226487,-18.635823652450995,-0.07542489480389009,para grass,emersed,mgmt. + cover,1,143,yes
-Paspalum repens,cover,1.2573444718017717,0.56184285765811,1.9466985377614598,para grass,emersed,para grass cover,1,144,yes
-Paspalum repens,management,-0.24711923492892762,-0.8918076029685638,0.3484277110663173,para grass,emersed,para grass mgmt.,1,144,no
-Paspalum repens,net,8.573484559037603,2.0506082448303884,16.611548834367504,para grass,emersed,mgmt. + cover,1,144,yes
-Peltandra spp.,cover,-0.096122932464728,-1.5661112656114116,1.1360750132327455,para grass,emersed,para grass cover,1,145,no
-Peltandra spp.,management,-0.30188564500824266,-1.1228185185193,0.3993088962534711,para grass,emersed,para grass mgmt.,1,145,no
-Peltandra spp.,net,-1.6334347129511089,-14.930625870611683,9.305450303241251,para grass,emersed,mgmt. + cover,1,145,no
-Phragmites australis,cover,-2.4245742573110456,-3.6953281215363116,-1.3374903983153625,para grass,emersed,para grass cover,1,146,yes
-Phragmites australis,management,-0.08138200080452519,-0.7236939000309321,0.5464817262935733,para grass,emersed,para grass mgmt.,1,146,no
-Phragmites australis,net,2.7524453755906695,-4.825536907775008,12.307131288895977,para grass,emersed,mgmt. + cover,1,146,no
-Pontederia cordata,cover,1.3099683935368138,0.4234526501454934,2.2254932890561614,para grass,emersed,para grass cover,1,147,yes
-Pontederia cordata,management,-0.06519723752860454,-0.7491310522128782,0.6162236465034148,para grass,emersed,para grass mgmt.,1,147,no
-Pontederia cordata,net,-6.17068163608587,-16.777462932235174,2.057118556569715,para grass,emersed,mgmt. + cover,1,147,no
-Potamogeton illinoensis,cover,-0.7145142085919698,-1.993366336146902,0.5450751266095389,para grass,submersed,para grass cover,3,348,no
-Potamogeton illinoensis,management,-0.23542103350221907,-1.0758812439937875,0.5653940064686042,para grass,submersed,para grass mgmt.,3,348,no
-Potamogeton illinoensis,net,-9.546929867617271,-35.093943731864286,10.947911154458284,para grass,submersed,mgmt. + cover,3,348,no
-Rhynchospora spp.,cover,0.22711477880424052,-0.6396646527078023,1.090651925452895,para grass,emersed,para grass cover,1,149,no
-Rhynchospora spp.,management,0.12294488848539947,-0.5224600192646611,0.7929103690310555,para grass,emersed,para grass mgmt.,1,149,no
-Rhynchospora spp.,net,-7.8437563698320805,-23.72137606878814,3.3237199200935468,para grass,emersed,mgmt. + cover,1,149,no
-Sacciolepis striata,cover,-1.3638138861836995,-2.019773895926679,-0.6780685192423387,para grass,emersed,para grass cover,1,150,yes
-Sacciolepis striata,management,0.26203432079900957,-0.30030799859211776,0.9060433542635944,para grass,emersed,para grass mgmt.,1,150,no
-Sacciolepis striata,net,-5.912454665517846,-11.724100692978048,-0.6179582512810108,para grass,emersed,mgmt. + cover,1,150,yes
-Sagittaria lancifolia,cover,0.027367399174299648,-0.752496593753095,0.832905816440561,para grass,emersed,para grass cover,1,151,no
-Sagittaria lancifolia,management,-0.5762648520283107,-1.3134490327224064,0.09012164860993363,para grass,emersed,para grass mgmt.,1,151,no
-Sagittaria lancifolia,net,-5.475865775281883,-18.089532336227485,3.0264493307403173,para grass,emersed,mgmt. + cover,1,151,no
-Sagittaria latifolia,cover,0.5302355718467634,-0.2249373598966089,1.3939518287892207,para grass,emersed,para grass cover,1,152,no
-Sagittaria latifolia,management,-0.2062537500865007,-0.82070341717033,0.4040720467280447,para grass,emersed,para grass mgmt.,1,152,no
-Sagittaria latifolia,net,-2.0991891627783392,-10.204691336813573,4.537527644351199,para grass,emersed,mgmt. + cover,1,152,no
-Sagittaria subulata/graminea/gracillima,cover,0.3354314941723536,-0.7222006330262469,1.2702848236834505,para grass,emersed,para grass cover,1,153,no
-Sagittaria subulata/graminea/gracillima,management,0.29022054649884005,-0.37977641932271017,0.9978799598813943,para grass,emersed,para grass mgmt.,1,153,no
-Sagittaria subulata/graminea/gracillima,net,0.32055365092599286,-11.141969890763654,9.049884724188331,para grass,emersed,mgmt. + cover,1,153,no
-Salix spp.,cover,0.5263961218842454,-0.2955272286501392,1.4141946958136584,para grass,emersed,para grass cover,1,154,no
-Salix spp.,management,0.31631988045591597,-0.47947242205879315,1.1389890941302403,para grass,emersed,para grass mgmt.,1,154,no
-Salix spp.,net,2.4630770331994127,-3.918050262951772,11.4684019751367,para grass,emersed,mgmt. + cover,1,154,no
-Saururus cernuus,cover,0.701255397190171,-0.4015158323500568,1.6937475729711515,para grass,emersed,para grass cover,1,155,no
-Saururus cernuus,management,-0.18241452393934873,-0.9328142907817891,0.5091774751649627,para grass,emersed,para grass mgmt.,1,155,no
-Saururus cernuus,net,-7.193960816325827,-25.203800675243308,6.237033942369097,para grass,emersed,mgmt. + cover,1,155,no
-Spartina bakeri,cover,0.1874998918721894,-0.6330434801856695,0.9632908954098491,para grass,emersed,para grass cover,1,156,no
-Spartina bakeri,management,0.39729141130203843,-0.29039594311223427,1.1431357302996905,para grass,emersed,para grass mgmt.,1,156,no
-Spartina bakeri,net,-11.904314375235339,-28.01546561002779,-0.08575348362831392,para grass,emersed,mgmt. + cover,1,156,yes
-Thalia geniculata,cover,0.2811728201278899,-0.6208639951738626,1.2327327711400975,para grass,emersed,para grass cover,1,157,no
-Thalia geniculata,management,0.3544245548851499,-0.31825890316218897,1.052365652517445,para grass,emersed,para grass mgmt.,1,157,no
-Thalia geniculata,net,-10.544330171122153,-29.38269468690549,0.1444527908576198,para grass,emersed,mgmt. + cover,1,157,no
-Typha spp.,cover,0.20993859750488772,-0.665863681317799,1.2067417771477842,para grass,emersed,para grass cover,1,158,no
-Typha spp.,management,0.1880321187040973,-0.551782187893803,0.9541939961143215,para grass,emersed,para grass mgmt.,1,158,no
-Typha spp.,net,-2.9865990726804923,-7.365988723165303,1.281230356091036,para grass,emersed,mgmt. + cover,1,158,no
-Utricularia floridana,cover,-2.2019983146658073,-5.105080653867944,0.24517483099439033,para grass,submersed,para grass cover,3,359,no
-Utricularia floridana,management,-0.39152857026498805,-1.2938344716091201,0.4318617311372507,para grass,submersed,para grass mgmt.,3,359,no
-Utricularia floridana,net,-15.594595570967776,-44.543525310115406,6.32983008015059,para grass,submersed,mgmt. + cover,3,359,no
-Utricularia foliosa,cover,0.6545564454518776,-0.19807103746117377,1.555695146608001,para grass,submersed,para grass cover,3,360,no
-Utricularia foliosa,management,-0.18144945486350367,-0.8901533896248597,0.502979997429002,para grass,submersed,para grass mgmt.,3,360,no
-Utricularia foliosa,net,-5.177735254909611,-19.20141650946488,5.250285181779043,para grass,submersed,mgmt. + cover,3,360,no
-Utricularia gibba,cover,0.506526030327135,-0.3180174873629388,1.3225744179296632,para grass,submersed,para grass cover,3,361,no
-Utricularia gibba,management,-0.03451068779797781,-0.665388213190595,0.560753785038181,para grass,submersed,para grass mgmt.,3,361,no
-Utricularia gibba,net,-1.481879026586649,-12.00417636957659,6.1758040487412815,para grass,submersed,mgmt. + cover,3,361,no
-Utricularia inflata,cover,2.1944626834125556,1.4102428893599113,3.0108784149988974,para grass,submersed,para grass cover,3,362,yes
-Utricularia inflata,management,-0.023452238749046683,-0.7522062701851209,0.679126632995612,para grass,submersed,para grass mgmt.,3,362,no
-Utricularia inflata,net,-1.2681563094795083,-15.618713554656129,9.241493259014728,para grass,submersed,mgmt. + cover,3,362,no
-Utricularia purpurea,cover,-0.9476805029778685,-2.525611521847134,0.41152306206775524,para grass,submersed,para grass cover,3,363,no
-Utricularia purpurea,management,-0.13984024639039572,-0.8841599998589962,0.5657912273379319,para grass,submersed,para grass mgmt.,3,363,no
-Utricularia purpurea,net,-4.494627439154868,-21.52649559677368,8.046783813022472,para grass,submersed,mgmt. + cover,3,363,no
-Vallisneria americana,cover,-0.5517289975243576,-1.3961344592171527,0.3009244181551904,para grass,submersed,para grass cover,3,364,no
-Vallisneria americana,management,0.09800442292899142,-0.6186965896133372,0.8452440911635746,para grass,submersed,para grass mgmt.,3,364,no
-Vallisneria americana,net,-16.42555556906309,-42.97458783746025,-0.1754307758468814,para grass,submersed,mgmt. + cover,3,364,yes
-Azolla caroliniana,cover,0.2887635454292145,0.010640843661255912,0.5497123213537594,torpedograss,floating,torpedograss cover,2,201,yes
-Azolla caroliniana,management,0.11075638365221385,-0.07313721541137146,0.30572554847491884,torpedograss,floating,torpedograss mgmt.,2,201,no
-Azolla caroliniana,net,-0.3130301520658335,-1.039645038753726,0.34410038304300655,torpedograss,floating,mgmt. + cover,2,201,no
-Bacopa caroliniana,cover,0.4025244805895898,0.12010439644727566,0.6623633064924281,torpedograss,emersed,torpedograss cover,1,102,yes
-Bacopa caroliniana,management,-0.008817367521831269,-0.19248658210508265,0.1786991428429476,torpedograss,emersed,torpedograss mgmt.,1,102,no
-Bacopa caroliniana,net,-0.6457449841128313,-1.2747423863113738,-0.03491625064847146,torpedograss,emersed,mgmt. + cover,1,102,yes
-Bacopa monnieri,cover,-0.043709549598469934,-0.24194334710507615,0.1589214512740783,torpedograss,emersed,torpedograss cover,1,103,no
-Bacopa monnieri,management,0.12328510668944859,-0.04863753216129743,0.29577491524738364,torpedograss,emersed,torpedograss mgmt.,1,103,no
-Bacopa monnieri,net,0.4744085770503363,-0.0011383759754169413,0.9280316537838311,torpedograss,emersed,mgmt. + cover,1,103,no
-Bidens spp.,cover,-0.12082685240619748,-0.3597258583704923,0.10172122932719393,torpedograss,emersed,torpedograss cover,1,104,no
-Bidens spp.,management,-0.07125795735482489,-0.23252400117483618,0.08991933660064547,torpedograss,emersed,torpedograss mgmt.,1,104,no
-Bidens spp.,net,-0.25036812898054533,-0.7867135259635039,0.24788303169733297,torpedograss,emersed,mgmt. + cover,1,104,no
-Brasenia schreberi,cover,-0.43485393492716873,-0.9591789568162372,0.0357071966221392,torpedograss,emersed,torpedograss cover,1,105,no
-Brasenia schreberi,management,-0.0019661852689192537,-0.2773352975084419,0.25813021716708223,torpedograss,emersed,torpedograss mgmt.,1,105,no
-Brasenia schreberi,net,-0.2961910148414735,-1.2740955183969649,0.5056323343213447,torpedograss,emersed,mgmt. + cover,1,105,no
-Cabomba caroliniana,cover,-0.6477575789354801,-0.988784813681576,-0.2994692197663943,torpedograss,submersed,torpedograss cover,3,306,yes
-Cabomba caroliniana,management,0.03797701644011734,-0.17662130493984832,0.26507095252977797,torpedograss,submersed,torpedograss mgmt.,3,306,no
-Cabomba caroliniana,net,-0.8380456700973198,-1.6891755892180167,-0.1107773073395042,torpedograss,submersed,mgmt. + cover,3,306,yes
-Carex spp.,cover,0.5972462993277243,0.32756631980507733,0.8476201441858942,torpedograss,emersed,torpedograss cover,1,107,yes
-Carex spp.,management,0.2239598126586139,0.02115317206111331,0.44028336418768305,torpedograss,emersed,torpedograss mgmt.,1,107,yes
-Carex spp.,net,0.7562287995848801,0.1482127275776245,1.2737635061127777,torpedograss,emersed,mgmt. + cover,1,107,yes
-Cephalanthus occidentalis,cover,-0.4366812725857744,-0.6622577233670367,-0.21017771513532088,torpedograss,emersed,torpedograss cover,1,108,yes
-Cephalanthus occidentalis,management,0.18533797523609744,-0.011500983151631014,0.38203192082777393,torpedograss,emersed,torpedograss mgmt.,1,108,no
-Cephalanthus occidentalis,net,0.1871135773449054,-0.37633342470696207,0.8045155877489241,torpedograss,emersed,mgmt. + cover,1,108,no
-Ceratophyllum demersum,cover,0.08241114419227728,-0.1853109674365937,0.3325982911050701,torpedograss,submersed,torpedograss cover,3,309,no
-Ceratophyllum demersum,management,-0.1308691926349986,-0.3171620085518685,0.06089900440253163,torpedograss,submersed,torpedograss mgmt.,3,309,no
-Ceratophyllum demersum,net,-0.36781855678562286,-0.9178339056708402,0.13520655746023508,torpedograss,submersed,mgmt. + cover,3,309,no
-Chara spp.,cover,-0.22978492705287767,-0.5237648874337522,0.030063756795898296,torpedograss,submersed,torpedograss cover,3,310,no
-Chara spp.,management,0.20170385491933804,-0.010044009286067024,0.3960257731846981,torpedograss,submersed,torpedograss mgmt.,3,310,no
-Chara spp.,net,0.11220258572437986,-0.45174872170903557,0.6179942182854197,torpedograss,submersed,mgmt. + cover,3,310,no
-Cicuta maculata,cover,-1.8952631045496695,-2.5514920539925887,-1.2700129253202688,torpedograss,emersed,torpedograss cover,1,111,yes
-Cicuta maculata,management,0.20216268352825298,-0.02161692836818386,0.42066041266088394,torpedograss,emersed,torpedograss mgmt.,1,111,no
-Cicuta maculata,net,-1.188165904076247,-2.73068924721609,0.09222219032586021,torpedograss,emersed,mgmt. + cover,1,111,no
-Cladium jamaicense,cover,-0.34023045218227616,-0.6808107697451968,0.0011541347182683005,torpedograss,emersed,torpedograss cover,1,112,no
-Cladium jamaicense,management,0.1781356972765586,-0.03492707194952702,0.39561353132439564,torpedograss,emersed,torpedograss mgmt.,1,112,no
-Cladium jamaicense,net,-0.4965206475157766,-1.3355167809669783,0.30152804241716724,torpedograss,emersed,mgmt. + cover,1,112,no
-Crinum americanum,cover,-0.522786063033841,-0.9221494470511742,-0.1331211399831445,torpedograss,emersed,torpedograss cover,1,113,yes
-Crinum americanum,management,0.3044150978661377,0.10407716841527276,0.5217762893678545,torpedograss,emersed,torpedograss mgmt.,1,113,yes
-Crinum americanum,net,-0.7275474898618036,-1.8774186735557685,0.24718044035187042,torpedograss,emersed,mgmt. + cover,1,113,no
-Cyperus articulatus,cover,0.5909135810082602,0.24977089689748053,0.9152137565859757,torpedograss,emersed,torpedograss cover,1,114,yes
-Cyperus articulatus,management,0.2933393165055857,0.05847542678326849,0.5360107837201394,torpedograss,emersed,torpedograss mgmt.,1,114,yes
-Cyperus articulatus,net,-0.22251323753393998,-1.5675743125897377,0.8168896244191657,torpedograss,emersed,mgmt. + cover,1,114,no
-Cyperus spp. (other natives),cover,-0.08607530491250454,-0.2850813808222724,0.11554882766337497,torpedograss,emersed,torpedograss cover,1,115,no
-Cyperus spp. (other natives),management,-0.21929092847407639,-0.3874727750449215,-0.05515632000487838,torpedograss,emersed,torpedograss mgmt.,1,115,yes
-Cyperus spp. (other natives),net,0.28108872402447665,-0.25181359376247014,0.9013163453614286,torpedograss,emersed,mgmt. + cover,1,115,no
-Decodon verticillatus,cover,-0.20563166764651972,-0.5776983361740364,0.17346644320912916,torpedograss,emersed,torpedograss cover,1,116,no
-Decodon verticillatus,management,0.35568486294334906,0.15597506985845816,0.5540101450267999,torpedograss,emersed,torpedograss mgmt.,1,116,yes
-Decodon verticillatus,net,0.7449463231844545,0.17333121535709667,1.3466138550614035,torpedograss,emersed,mgmt. + cover,1,116,yes
-Echinochloa spp.,cover,0.2933542198214136,0.08268218040046428,0.5088717186886716,torpedograss,emersed,torpedograss cover,1,117,yes
-Echinochloa spp.,management,-0.03669498692154553,-0.22039550156852322,0.1479483342201887,torpedograss,emersed,torpedograss mgmt.,1,117,no
-Echinochloa spp.,net,0.8264063415492147,0.3043333294110689,1.3794196756722834,torpedograss,emersed,mgmt. + cover,1,117,yes
-"Eleocharis spp., emersed",cover,0.004477109281689947,-0.2105627554386722,0.22871287526234946,torpedograss,emersed,torpedograss cover,1,118,no
-"Eleocharis spp., emersed",management,0.1615017377660682,-0.026344484087045872,0.34001440703817687,torpedograss,emersed,torpedograss mgmt.,1,118,no
-"Eleocharis spp., emersed",net,0.7059748705230232,0.06619735260695428,1.3914549531657623,torpedograss,emersed,mgmt. + cover,1,118,yes
-"Eleocharis spp., sub/floating",cover,0.05850483608897304,-0.17407438927023572,0.2922137108261424,torpedograss,submersed,torpedograss cover,3,319,no
-"Eleocharis spp., sub/floating",management,-0.023884457524797276,-0.18708108372826626,0.15418949890963068,torpedograss,submersed,torpedograss mgmt.,3,319,no
-"Eleocharis spp., sub/floating",net,0.02571673616669312,-0.5532028070582931,0.6312057990881323,torpedograss,submersed,mgmt. + cover,3,319,no
-Filamentous algae,cover,0.8147648365627941,0.527530901602464,1.0833434292734863,torpedograss,floating,torpedograss cover,2,220,yes
-Filamentous algae,management,-0.0749445294627653,-0.25161054803313776,0.0994383171681223,torpedograss,floating,torpedograss mgmt.,2,220,no
-Filamentous algae,net,0.6004134742900386,-0.03835549655999368,1.3385839364276608,torpedograss,floating,mgmt. + cover,2,220,no
-Fuirena spp.,cover,-0.08250665733039204,-0.35162666226153066,0.1983233621481867,torpedograss,emersed,torpedograss cover,1,121,no
-Fuirena spp.,management,0.24778268023623673,0.04953878415427943,0.4509130937677901,torpedograss,emersed,torpedograss mgmt.,1,121,yes
-Fuirena spp.,net,0.6014069482109277,-0.068544567435078,1.30844419916561,torpedograss,emersed,mgmt. + cover,1,121,no
-Hydrocotyle spp.,cover,0.16205221935876477,-0.14454787586909795,0.509513430511897,torpedograss,emersed,torpedograss cover,1,122,no
-Hydrocotyle spp.,management,-0.09984546466776308,-0.3161484788000902,0.1297795115278464,torpedograss,emersed,torpedograss mgmt.,1,122,no
-Hydrocotyle spp.,net,0.2074531964843941,-0.6027924679905694,1.262138784391646,torpedograss,emersed,mgmt. + cover,1,122,no
-Hypericum spp.,cover,0.19550838072881296,-0.1098910098529545,0.5153193852743916,torpedograss,emersed,torpedograss cover,1,123,no
-Hypericum spp.,management,0.12092304433131029,-0.07679982528126636,0.31896409726262076,torpedograss,emersed,torpedograss mgmt.,1,123,no
-Hypericum spp.,net,1.056149640918896,0.44236250734894733,1.6519737306202726,torpedograss,emersed,mgmt. + cover,1,123,yes
-Juncus effusus,cover,0.20138898627936955,-0.020355793390071063,0.46824931387291313,torpedograss,emersed,torpedograss cover,1,124,no
-Juncus effusus,management,-0.09649490238309844,-0.28082771616354224,0.10629659326978093,torpedograss,emersed,torpedograss mgmt.,1,124,no
-Juncus effusus,net,0.09892623278225586,-0.42999563199347046,0.6979701607544702,torpedograss,emersed,mgmt. + cover,1,124,no
-Leersia hexandra,cover,-0.02377671893388457,-0.29046111465823543,0.2321333084222635,torpedograss,emersed,torpedograss cover,1,125,no
-Leersia hexandra,management,0.15432059071397405,-0.02564314069226664,0.33130992593966824,torpedograss,emersed,torpedograss mgmt.,1,125,no
-Leersia hexandra,net,-0.10786479793864802,-0.6887350656975207,0.3960635421259198,torpedograss,emersed,mgmt. + cover,1,125,no
-Lemna/Spirodela spp.,cover,0.2679993917089682,0.04750469207978596,0.4841994487389897,torpedograss,floating,torpedograss cover,2,226,yes
-Lemna/Spirodela spp.,management,0.03000032765888262,-0.15354063957195926,0.21117622299652233,torpedograss,floating,torpedograss mgmt.,2,226,no
-Lemna/Spirodela spp.,net,0.5375044365599974,0.026345301849358925,1.108858477416839,torpedograss,floating,mgmt. + cover,2,226,yes
-Limnobium spongia,cover,0.18111112111236502,-0.11818287018256268,0.4908325608775058,torpedograss,floating,torpedograss cover,2,227,no
-Limnobium spongia,management,0.13792121769548318,-0.064612771033463,0.3328705004266036,torpedograss,floating,torpedograss mgmt.,2,227,no
-Limnobium spongia,net,0.1564717935272414,-0.4374999478693131,0.7124265101928602,torpedograss,floating,mgmt. + cover,2,227,no
-Ludwigia octovalvis/peruviana,cover,0.18859782976878728,-0.17603655425765963,0.5498143089818153,torpedograss,emersed,torpedograss cover,1,128,no
-Ludwigia octovalvis/peruviana,management,-0.2092413609988041,-0.43377664890955847,0.010853302918354343,torpedograss,emersed,torpedograss mgmt.,1,128,no
-Ludwigia octovalvis/peruviana,net,0.2213598524153841,-0.6699048731890191,1.4043478890044283,torpedograss,emersed,mgmt. + cover,1,128,no
-Ludwigia palustris/repens,cover,0.4713642850743683,0.26456471761177947,0.6755940813108123,torpedograss,emersed,torpedograss cover,1,129,yes
-Ludwigia palustris/repens,management,0.2427058457310038,0.0665951783767916,0.4176703902848393,torpedograss,emersed,torpedograss mgmt.,1,129,yes
-Ludwigia palustris/repens,net,0.5226583802658016,0.059919414821040004,0.9947183652305085,torpedograss,emersed,mgmt. + cover,1,129,yes
-Luziola fluitans,cover,0.2363384474648663,-0.04314458547183733,0.5152073726275326,torpedograss,submersed,torpedograss cover,3,330,no
-Luziola fluitans,management,0.06861384771591755,-0.1146312458139225,0.25447447889165864,torpedograss,submersed,torpedograss mgmt.,3,330,no
-Luziola fluitans,net,0.3826240389465366,-0.2370306736724489,1.0107914536966502,torpedograss,submersed,mgmt. + cover,3,330,no
-Mayaca fluviatilis,cover,0.6424865701201309,0.3566491506773181,0.9344313377866442,torpedograss,submersed,torpedograss cover,3,331,yes
-Mayaca fluviatilis,management,3.1939889136427084e-4,-0.2406533591754732,0.22505167986062508,torpedograss,submersed,torpedograss mgmt.,3,331,no
-Mayaca fluviatilis,net,0.47308114562905546,-0.1780259011224588,1.1008925955651043,torpedograss,submersed,mgmt. + cover,3,331,no
-Micranthemum glomeratum,cover,0.07610021651641996,-0.136465273983431,0.2918015267705243,torpedograss,submersed,torpedograss cover,3,332,no
-Micranthemum glomeratum,management,0.30683974666379876,0.11840174622535704,0.4864372362679831,torpedograss,submersed,torpedograss mgmt.,3,332,yes
-Micranthemum glomeratum,net,0.5414985771153064,0.08058887032128333,1.0047999884062735,torpedograss,submersed,mgmt. + cover,3,332,yes
-Micranthemum umbrosum,cover,0.1687389205071621,-0.0716450133090491,0.40231467036800306,torpedograss,emersed,torpedograss cover,1,133,no
-Micranthemum umbrosum,management,0.041261065606172216,-0.16120866903316883,0.23964770461527451,torpedograss,emersed,torpedograss mgmt.,1,133,no
-Micranthemum umbrosum,net,0.7327725753592588,0.24825788087193407,1.200345336019399,torpedograss,emersed,mgmt. + cover,1,133,yes
-Myriophyllum laxum/pinnatum,cover,0.13056139214464452,-0.20528072608821443,0.45577060827224736,torpedograss,submersed,torpedograss cover,3,334,no
-Myriophyllum laxum/pinnatum,management,-0.02468867422328417,-0.29152337790970906,0.23024006471169686,torpedograss,submersed,torpedograss mgmt.,3,334,no
-Myriophyllum laxum/pinnatum,net,0.17114593969787859,-0.47833940100753813,0.7358996193096523,torpedograss,submersed,mgmt. + cover,3,334,no
-Najas guadalupensis,cover,0.3402379238477219,0.11135211404521533,0.563877872613449,torpedograss,submersed,torpedograss cover,3,335,yes
-Najas guadalupensis,management,0.021335489166163596,-0.17640139518615755,0.21475409882303134,torpedograss,submersed,torpedograss mgmt.,3,335,no
-Najas guadalupensis,net,0.8292105600866574,0.24983217578869976,1.482708955991006,torpedograss,submersed,mgmt. + cover,3,335,yes
-Nelumbo lutea,cover,-0.40564185433804617,-0.9429011158020797,0.46598080573299716,torpedograss,emersed,torpedograss cover,1,136,no
-Nelumbo lutea,management,0.11697787689551309,-0.09915482609349002,0.3237267656280195,torpedograss,emersed,torpedograss mgmt.,1,136,no
-Nelumbo lutea,net,-0.6559231657091004,-1.8032893531747507,0.6703367082045921,torpedograss,emersed,mgmt. + cover,1,136,no
-Nitella spp.,cover,0.49691174782366765,0.2507005686866182,0.7300718674258357,torpedograss,submersed,torpedograss cover,3,337,yes
-Nitella spp.,management,0.3385760421958021,0.13258891550198088,0.5392526258077919,torpedograss,submersed,torpedograss mgmt.,3,337,yes
-Nitella spp.,net,0.4432148422466406,-0.1258113407201953,0.9820059396074876,torpedograss,submersed,mgmt. + cover,3,337,no
-Nuphar advena,cover,0.0873181470718351,-0.22673975119750148,0.4052626910968707,torpedograss,emersed,torpedograss cover,1,138,no
-Nuphar advena,management,0.12324342850918156,-0.14560821729902104,0.37802299314977217,torpedograss,emersed,torpedograss mgmt.,1,138,no
-Nuphar advena,net,0.9776457021645675,-0.1748874568934362,2.4918732877170156,torpedograss,emersed,mgmt. + cover,1,138,no
-Nymphaea mexicana,cover,-0.566735903771657,-0.973209566612575,-0.1642167610015537,torpedograss,emersed,torpedograss cover,1,139,yes
-Nymphaea mexicana,management,0.17348811768236774,-0.05355868069494002,0.3880770217385455,torpedograss,emersed,torpedograss mgmt.,1,139,no
-Nymphaea mexicana,net,-0.2804592485456764,-1.390658079990532,0.5354798618513263,torpedograss,emersed,mgmt. + cover,1,139,no
-Nymphaea odorata,cover,0.6198005462428456,0.35149937597107594,0.8741509529439637,torpedograss,emersed,torpedograss cover,1,140,yes
-Nymphaea odorata,management,-0.04852930803055158,-0.2757701054248475,0.16985268560265715,torpedograss,emersed,torpedograss mgmt.,1,140,no
-Nymphaea odorata,net,1.996916322899977,0.6594988561676163,3.5982122405605446,torpedograss,emersed,mgmt. + cover,1,140,yes
-Nymphoides aquatica,cover,0.26192294917980846,-0.07436888191573968,0.6262472646207549,torpedograss,emersed,torpedograss cover,1,141,no
-Nymphoides aquatica,management,-0.08923167278672467,-0.30410837429491905,0.12205489178236996,torpedograss,emersed,torpedograss mgmt.,1,141,no
-Nymphoides aquatica,net,-0.8678036769565127,-1.5765282977431159,-0.17019547517529843,torpedograss,emersed,mgmt. + cover,1,141,yes
-Panicum hemitomon,cover,-0.05101710189171298,-0.3423494180848007,0.28736889695969375,torpedograss,emersed,torpedograss cover,1,142,no
-Panicum hemitomon,management,0.06880362475292034,-0.17645647296116007,0.3010223291785161,torpedograss,emersed,torpedograss mgmt.,1,142,no
-Panicum hemitomon,net,0.3612838580175861,-0.5398257316745834,1.6213628384273586,torpedograss,emersed,mgmt. + cover,1,142,no
-Paspalidium geminatum,cover,-0.7607870196946132,-1.0320698938897248,-0.4853274978447882,torpedograss,emersed,torpedograss cover,1,143,yes
-Paspalidium geminatum,management,-0.12418412474192832,-0.3186103803643767,0.07748716494708849,torpedograss,emersed,torpedograss mgmt.,1,143,no
-Paspalidium geminatum,net,-1.0031391531152833,-1.6356559558473607,-0.2775894587051162,torpedograss,emersed,mgmt. + cover,1,143,yes
-Paspalum repens,cover,0.046797287934940916,-0.3767336537330803,0.43242213512584027,torpedograss,emersed,torpedograss cover,1,144,no
-Paspalum repens,management,0.29923482085978603,0.07903918683096381,0.5382343818610921,torpedograss,emersed,torpedograss mgmt.,1,144,yes
-Paspalum repens,net,-0.354108945528998,-1.5400969654655265,0.6573527452502921,torpedograss,emersed,mgmt. + cover,1,144,no
-Peltandra spp.,cover,0.5279552300769983,0.1964037482629168,0.8747235228173252,torpedograss,emersed,torpedograss cover,1,145,yes
-Peltandra spp.,management,0.13824737025553654,-0.07194036288877376,0.364652153188327,torpedograss,emersed,torpedograss mgmt.,1,145,no
-Peltandra spp.,net,0.6959051597460604,-0.05149827142623746,1.5376381452625076,torpedograss,emersed,mgmt. + cover,1,145,no
-Phragmites australis,cover,-2.48894728162613,-3.2468570701886366,-1.7615558575256023,torpedograss,emersed,torpedograss cover,1,146,yes
-Phragmites australis,management,0.004666586210389707,-0.25576867977264456,0.28162458134612706,torpedograss,emersed,torpedograss mgmt.,1,146,no
-Phragmites australis,net,-1.6897714205963885,-3.9567181425603666,-0.046162148598411196,torpedograss,emersed,mgmt. + cover,1,146,yes
-Pontederia cordata,cover,-0.13236988993374343,-0.48986892632546264,0.3068988111496147,torpedograss,emersed,torpedograss cover,1,147,no
-Pontederia cordata,management,0.020876972092491432,-0.21859787568705516,0.2536322698974378,torpedograss,emersed,torpedograss mgmt.,1,147,no
-Pontederia cordata,net,-0.06883733230248931,-0.9432514920943111,1.0707357903644055,torpedograss,emersed,mgmt. + cover,1,147,no
-Potamogeton illinoensis,cover,-0.1632952834472873,-0.4593360106929859,0.13353950622090438,torpedograss,submersed,torpedograss cover,3,348,no
-Potamogeton illinoensis,management,0.06340228614398603,-0.19223453585377612,0.33613583523751933,torpedograss,submersed,torpedograss mgmt.,3,348,no
-Potamogeton illinoensis,net,-1.7519343471115376,-2.9007527037000207,-0.7141446711696998,torpedograss,submersed,mgmt. + cover,3,348,yes
-Rhynchospora spp.,cover,0.3643404214712334,0.11079631610763868,0.61789078304317,torpedograss,emersed,torpedograss cover,1,149,yes
-Rhynchospora spp.,management,-0.06948244276872234,-0.2568263907614612,0.11779389692061644,torpedograss,emersed,torpedograss mgmt.,1,149,no
-Rhynchospora spp.,net,0.9177186215304052,0.33898007401636543,1.5328493290393204,torpedograss,emersed,mgmt. + cover,1,149,yes
-Sacciolepis striata,cover,-0.06819127771426366,-0.30102676105599296,0.18179607961646288,torpedograss,emersed,torpedograss cover,1,150,no
-Sacciolepis striata,management,-0.04330094353265211,-0.21288726899386085,0.13912873358807304,torpedograss,emersed,torpedograss mgmt.,1,150,no
-Sacciolepis striata,net,-0.32155136488945996,-0.8616135928259019,0.21640913177944415,torpedograss,emersed,mgmt. + cover,1,150,no
-Sagittaria lancifolia,cover,0.051222036324815604,-0.2622053913791184,0.40406945967979957,torpedograss,emersed,torpedograss cover,1,151,no
-Sagittaria lancifolia,management,-0.33763231942266797,-0.5406847207251697,-0.1312237138150286,torpedograss,emersed,torpedograss mgmt.,1,151,yes
-Sagittaria lancifolia,net,-0.25072607441820166,-0.9296201922259012,0.5826364234757261,torpedograss,emersed,mgmt. + cover,1,151,no
-Sagittaria latifolia,cover,-0.18990170617048416,-0.5071948543288979,0.14654089625830352,torpedograss,emersed,torpedograss cover,1,152,no
-Sagittaria latifolia,management,-0.36904991437782286,-0.5770506914365484,-0.17318385551089155,torpedograss,emersed,torpedograss mgmt.,1,152,yes
-Sagittaria latifolia,net,-0.3680507251751133,-0.9772698171037917,0.20386739095908674,torpedograss,emersed,mgmt. + cover,1,152,no
-Sagittaria subulata/graminea/gracillima,cover,0.1340019927144853,-0.16311614975174166,0.40059819270227953,torpedograss,emersed,torpedograss cover,1,153,no
-Sagittaria subulata/graminea/gracillima,management,-0.12089272985505921,-0.3285002101556662,0.08964564037155416,torpedograss,emersed,torpedograss mgmt.,1,153,no
-Sagittaria subulata/graminea/gracillima,net,0.5044571855611859,-0.07066016357096352,1.0810161301590249,torpedograss,emersed,mgmt. + cover,1,153,no
-Salix spp.,cover,-0.6194638059355243,-0.8643706647951576,-0.36190960156029384,torpedograss,emersed,torpedograss cover,1,154,yes
-Salix spp.,management,0.005600002143588257,-0.21907449410328944,0.22648305801258828,torpedograss,emersed,torpedograss mgmt.,1,154,no
-Salix spp.,net,-0.8460337075588237,-1.3687142926973053,-0.3130739407451113,torpedograss,emersed,mgmt. + cover,1,154,yes
-Saururus cernuus,cover,0.7735249594310893,0.4572878138784082,1.1056680220447093,torpedograss,emersed,torpedograss cover,1,155,yes
-Saururus cernuus,management,-0.07219605238420289,-0.2813704967904207,0.13706399364476912,torpedograss,emersed,torpedograss mgmt.,1,155,no
-Saururus cernuus,net,0.8068701984364305,0.1326990967113227,1.482723055112516,torpedograss,emersed,mgmt. + cover,1,155,yes
-Spartina bakeri,cover,-0.1625607915508272,-0.5829256714385733,0.1622327223715755,torpedograss,emersed,torpedograss cover,1,156,no
-Spartina bakeri,management,-0.099637296024060365,-0.2992656928385279,0.10163030556720648,torpedograss,emersed,torpedograss mgmt.,1,156,no
-Spartina bakeri,net,-0.6423023239632518,-1.5139879000719922,0.17229984302482465,torpedograss,emersed,mgmt. + cover,1,156,no
-Thalia geniculata,cover,0.6084317854750229,0.22611339122203405,1.022000968389093,torpedograss,emersed,torpedograss cover,1,157,yes
-Thalia geniculata,management,-5.437925744727803e-4,-0.24734400057094613,0.24681400143656446,torpedograss,emersed,torpedograss mgmt.,1,157,no
-Thalia geniculata,net,0.7019373133133534,-0.09037971511943649,1.5229508210671514,torpedograss,emersed,mgmt. + cover,1,157,no
-Typha spp.,cover,0.24550761535950844,-0.12290440675516498,0.6638823989941322,torpedograss,emersed,torpedograss cover,1,158,no
-Typha spp.,management,0.011339203249835934,-0.23818231187939737,0.2724148330034587,torpedograss,emersed,torpedograss mgmt.,1,158,no
-Typha spp.,net,0.9173202937158584,-0.4054227778070819,2.7819798979774832,torpedograss,emersed,mgmt. + cover,1,158,no
-Utricularia floridana,cover,-0.12995872008828233,-0.4765638100768511,0.22560147425624666,torpedograss,submersed,torpedograss cover,3,359,no
-Utricularia floridana,management,0.2678986120218863,0.015195028906288328,0.50873775542646,torpedograss,submersed,torpedograss mgmt.,3,359,yes
-Utricularia floridana,net,0.5288752206902714,-0.06226485588084338,1.1173458927972542,torpedograss,submersed,mgmt. + cover,3,359,no
-Utricularia foliosa,cover,0.5125556817722209,0.18351200866758854,0.8092478296495219,torpedograss,submersed,torpedograss cover,3,360,yes
-Utricularia foliosa,management,-0.10662443246461407,-0.3093630759142914,0.08096705195518536,torpedograss,submersed,torpedograss mgmt.,3,360,no
-Utricularia foliosa,net,-0.09997469835979124,-0.7832126689953679,0.5861571166474886,torpedograss,submersed,mgmt. + cover,3,360,no
-Utricularia gibba,cover,0.5432967610024708,0.29903942341602574,0.7769078794307143,torpedograss,submersed,torpedograss cover,3,361,yes
-Utricularia gibba,management,-0.15828559850291185,-0.34194919208842994,0.023285749507165956,torpedograss,submersed,torpedograss mgmt.,3,361,no
-Utricularia gibba,net,0.4092575446027005,-0.17140185595509752,0.9603896629885447,torpedograss,submersed,mgmt. + cover,3,361,no
-Utricularia inflata,cover,0.6603603205512802,0.4358614419054181,0.9020398794228524,torpedograss,submersed,torpedograss cover,3,362,yes
-Utricularia inflata,management,0.15955735103780352,-0.04335205232663868,0.35222725754245243,torpedograss,submersed,torpedograss mgmt.,3,362,no
-Utricularia inflata,net,0.06202729727424405,-0.5162425105562695,0.5787387573089144,torpedograss,submersed,mgmt. + cover,3,362,no
-Utricularia purpurea,cover,-0.5452720537490106,-0.8660842275169861,-0.22043173562819332,torpedograss,submersed,torpedograss cover,3,363,yes
-Utricularia purpurea,management,-0.008940544633262491,-0.23053664060505052,0.21181636188721487,torpedograss,submersed,torpedograss mgmt.,3,363,no
-Utricularia purpurea,net,0.009426141332002005,-0.536034708095829,0.5461996940602158,torpedograss,submersed,mgmt. + cover,3,363,no
-Vallisneria americana,cover,0.18809768854501757,-0.1342546363621904,0.4843538931934995,torpedograss,submersed,torpedograss cover,3,364,no
-Vallisneria americana,management,0.13033556834040227,-0.09225829523273829,0.3536700909948627,torpedograss,submersed,torpedograss mgmt.,3,364,no
-Vallisneria americana,net,0.1724887776813653,-0.3766282977025046,0.7513780708906475,torpedograss,submersed,mgmt. + cover,3,364,no
+TaxonName,covariate,Mean,quant_2_5,quant_97_5,invader,psrf,ess,Habitat,cov2,habitat_num,tax_num,sig,sig_reliable
+Azolla caroliniana,cover,0.04983243173660388,-1.0264979634196045,1.0508818688533432,Cuban bulrush,0.9995405749076657,3000,floating,Cuban bulrush cover,2,201,no,no
+Azolla caroliniana,management,0.19918092463012277,0.026277942863016112,0.3748791823211335,Cuban bulrush,0.9999129403613058,3134.5688736564,floating,Cuban bulrush mgmt.,2,201,yes,yes
+Azolla caroliniana,net,-0.40354194365831986,-1.483318897874718,0.5744429898784482,Cuban bulrush,1.000463509947431,2715.3579206870195,floating,mgmt. + cover,2,201,no,no
+Bacopa caroliniana,cover,1.5245095085554867,0.4806510800447486,2.5787783934247583,Cuban bulrush,1.0008114043797482,2791.2770786633632,emersed,Cuban bulrush cover,1,102,yes,yes
+Bacopa caroliniana,management,-0.14609359531337937,-0.34327164691028667,0.041686256750428016,Cuban bulrush,1.000737706796289,2821.231789919594,emersed,Cuban bulrush mgmt.,1,102,no,no
+Bacopa caroliniana,net,0.807160370553197,-0.17941003561298977,1.7954563208737457,Cuban bulrush,1.001792530706026,2791.2770786633632,emersed,mgmt. + cover,1,102,no,no
+Bacopa monnieri,cover,-0.2114732445630767,-1.3821117817010538,0.8084102411261221,Cuban bulrush,1.001165868326721,2866.979316145211,emersed,Cuban bulrush cover,1,103,no,no
+Bacopa monnieri,management,0.1802924991965515,0.010940734908761745,0.35125015296491513,Cuban bulrush,1.002005566891072,2718.8758541916936,emersed,Cuban bulrush mgmt.,1,103,yes,yes
+Bacopa monnieri,net,-0.07857269319803571,-1.1468464280287587,0.7995587830817165,Cuban bulrush,1.0033040114288279,2417.7514557482073,emersed,mgmt. + cover,1,103,no,no
+Bidens spp.,cover,0.18801822877753466,-0.7581885522826204,1.1778580775794247,Cuban bulrush,1.000646329194279,3000,emersed,Cuban bulrush cover,1,104,no,no
+Bidens spp.,management,-0.008861247209522397,-0.1705302610674011,0.15733992554708945,Cuban bulrush,1.0002695480797374,2992.503721810221,emersed,Cuban bulrush mgmt.,1,104,no,no
+Bidens spp.,net,0.09407344748005513,-0.8146471250807407,0.987280094647826,Cuban bulrush,1.0029718342451226,2992.503721810221,emersed,mgmt. + cover,1,104,no,no
+Brasenia schreberi,cover,0.855592401412225,-0.5174820230153852,2.3055682788307115,Cuban bulrush,0.9999419885030083,2245.2090429177956,emersed,Cuban bulrush cover,1,105,no,no
+Brasenia schreberi,management,0.1636264902207853,-0.08593897059682326,0.4054882472663434,Cuban bulrush,1.0031976094757735,2497.765740266819,emersed,Cuban bulrush mgmt.,1,105,no,no
+Brasenia schreberi,net,0.7394652957115243,-0.4427838522360263,1.7248567187851496,Cuban bulrush,1.0249138368093014,439.7009484212529,emersed,mgmt. + cover,1,105,no,no
+Cabomba caroliniana,cover,0.8702047354276513,-0.2442372157889028,1.9841502428902689,Cuban bulrush,0.9999081980060864,2875.1018381349368,submersed,Cuban bulrush cover,3,306,no,no
+Cabomba caroliniana,management,0.1437329853765752,-0.050478188941380536,0.33950649298784435,Cuban bulrush,1.000571186642935,2746.4818425630265,submersed,Cuban bulrush mgmt.,3,306,no,no
+Cabomba caroliniana,net,0.9338315203241645,0.03741254759378051,1.7644174276828537,Cuban bulrush,1.0048971845289412,2162.044982618325,submersed,mgmt. + cover,3,306,yes,yes
+Carex spp.,cover,1.0422461408040624,0.06314388492595692,2.013988943798097,Cuban bulrush,1.0011575936911248,3000,emersed,Cuban bulrush cover,1,107,yes,yes
+Carex spp.,management,0.13899229226723592,-0.05549064292230234,0.33555247659820914,Cuban bulrush,0.9998027904128605,3000,emersed,Cuban bulrush mgmt.,1,107,no,no
+Carex spp.,net,0.8013245966843254,-0.061684013053499055,1.5986772935416518,Cuban bulrush,1.0011575936911248,2447.6900421262167,emersed,mgmt. + cover,1,107,no,no
+Cephalanthus occidentalis,cover,-0.32460304991951244,-1.295935597817494,0.6783708130472064,Cuban bulrush,1.0004220811242757,2908.242919762394,emersed,Cuban bulrush cover,1,108,no,no
+Cephalanthus occidentalis,management,-0.08979897923421493,-0.2873952363879818,0.10278858292638723,Cuban bulrush,1.0036788612863723,2964.455193792858,emersed,Cuban bulrush mgmt.,1,108,no,no
+Cephalanthus occidentalis,net,0.07813848730067051,-0.9274704248553293,1.016631133948174,Cuban bulrush,1.0036788612863723,2701.3709410467222,emersed,mgmt. + cover,1,108,no,no
+Ceratophyllum demersum,cover,1.3771603012623397,0.44008587767548957,2.3456984765516937,Cuban bulrush,1.002775022144585,2903.0361769473047,submersed,Cuban bulrush cover,3,309,yes,yes
+Ceratophyllum demersum,management,0.12867027614008186,-0.0385877129012264,0.30106906110015547,Cuban bulrush,1.0013886650300254,2665.0337397492676,submersed,Cuban bulrush mgmt.,3,309,no,no
+Ceratophyllum demersum,net,1.8426749653176626,0.8572128078136457,3.0184791056652545,Cuban bulrush,1.002775022144585,2634.522898105154,submersed,mgmt. + cover,3,309,yes,yes
+Chara spp.,cover,0.23379934423746446,-0.890471950210105,1.2972844120753502,Cuban bulrush,1.0011433329185997,3399.5597804124322,submersed,Cuban bulrush cover,3,310,no,no
+Chara spp.,management,-0.1539186563714534,-0.3452876176069027,0.0318991947667447,Cuban bulrush,0.9998639032618185,3295.5728260905917,submersed,Cuban bulrush mgmt.,3,310,no,no
+Chara spp.,net,1.318811627215604,0.5293941100475524,2.2215585233010304,Cuban bulrush,1.0011433329185997,3399.5597804124322,submersed,mgmt. + cover,3,310,yes,yes
+Cicuta maculata,cover,-0.6904574809513309,-2.390489757136722,0.7463535527674987,Cuban bulrush,1.0012168596338904,2268.41551299096,emersed,Cuban bulrush cover,1,111,no,no
+Cicuta maculata,management,0.0673702615574907,-0.15490033838502842,0.2920404532093435,Cuban bulrush,1.006633577480171,2705.7328885073944,emersed,Cuban bulrush mgmt.,1,111,no,no
+Cicuta maculata,net,-0.014653551401423864,-1.1967256128481323,1.0326699081719333,Cuban bulrush,1.006633577480171,742.8091244486084,emersed,mgmt. + cover,1,111,no,no
+Cladium jamaicense,cover,-0.36946386437764234,-1.394157396665455,0.5762694818017384,Cuban bulrush,1.0025156004787472,3000,emersed,Cuban bulrush cover,1,112,no,no
+Cladium jamaicense,management,-0.10163729705704522,-0.2861436308672417,0.08910836063060984,Cuban bulrush,1.0008688925584492,2843.5921794400588,emersed,Cuban bulrush mgmt.,1,112,no,no
+Cladium jamaicense,net,-6.113557390648366e-4,-0.9787121686295776,0.8936280690989151,Cuban bulrush,1.0025156004787472,2843.5921794400588,emersed,mgmt. + cover,1,112,no,no
+Crinum americanum,cover,-0.395650175942612,-1.5973617130347328,0.7885375262948476,Cuban bulrush,1.001836815992244,2759.046401121032,emersed,Cuban bulrush cover,1,113,no,no
+Crinum americanum,management,0.08068524848611716,-0.13235672457498504,0.2963439660894961,Cuban bulrush,1.002667397768294,2651.989809120222,emersed,Cuban bulrush mgmt.,1,113,no,no
+Crinum americanum,net,-2.3830928374753744,-4.579185730478806,-0.5915227160647523,Cuban bulrush,1.0065966631352643,1196.6723765471052,emersed,mgmt. + cover,1,113,yes,yes
+Cyperus articulatus,cover,1.1535118756949367,-0.16711460532960337,2.3363212550192283,Cuban bulrush,1.0023188147915378,2600.328375001368,emersed,Cuban bulrush cover,1,114,no,no
+Cyperus articulatus,management,-0.060817510988289754,-0.35860392598842955,0.22418068807793276,Cuban bulrush,0.9996160827231989,2162.231229296448,emersed,Cuban bulrush mgmt.,1,114,no,no
+Cyperus articulatus,net,-1.3885404998302253,-4.064904926630484,0.513603085271332,Cuban bulrush,1.008976126024313,244.9729534959002,emersed,mgmt. + cover,1,114,no,no
+Cyperus spp. (other natives),cover,-0.46031862277742186,-1.356039523210225,0.4320407690698872,Cuban bulrush,0.9997630329774378,2910.5890211587566,emersed,Cuban bulrush cover,1,115,no,no
+Cyperus spp. (other natives),management,-0.09782912632890463,-0.27338741595963717,0.07027179148151924,Cuban bulrush,0.9997441396761427,3099.2052408163736,emersed,Cuban bulrush mgmt.,1,115,no,no
+Cyperus spp. (other natives),net,0.8664211835968224,-0.0051416405499289984,1.9360820507382097,Cuban bulrush,0.9997630329774378,2797.3053338304835,emersed,mgmt. + cover,1,115,no,no
+Decodon verticillatus,cover,0.3707823334421025,-0.8639842282337612,1.5754575377863702,Cuban bulrush,1.0005666553776205,2691.9229238638227,emersed,Cuban bulrush cover,1,116,no,no
+Decodon verticillatus,management,0.18371086339307383,-0.0181501114846018,0.3876871861915725,Cuban bulrush,1.0008978599715348,2868.376007582019,emersed,Cuban bulrush mgmt.,1,116,no,no
+Decodon verticillatus,net,1.5728734633629837,0.6565778808626515,2.4651470006795395,Cuban bulrush,1.006776457970472,880.3378405142353,emersed,mgmt. + cover,1,116,yes,no
+Echinochloa spp.,cover,-0.1791788247221109,-1.2225982534127708,0.837547828752367,Cuban bulrush,0.9992982657779911,2999.9999999999995,emersed,Cuban bulrush cover,1,117,no,no
+Echinochloa spp.,management,0.06921197955931928,-0.11229770938036954,0.2505783107993804,Cuban bulrush,1.0020528024312243,2898.808678887992,emersed,Cuban bulrush mgmt.,1,117,no,no
+Echinochloa spp.,net,-1.0592540664591812,-2.3480599628451877,0.046010397888534865,Cuban bulrush,1.0020528024312243,2756.7987614986405,emersed,mgmt. + cover,1,117,no,no
+"Eleocharis spp., emersed",cover,-0.03544909013811958,-0.9521759433992742,0.8930552978762979,Cuban bulrush,1.000809734850116,2851.9915599761257,emersed,Cuban bulrush cover,1,118,no,no
+"Eleocharis spp., emersed",management,0.10246022099216977,-0.07984166963349308,0.28615973332186023,Cuban bulrush,1.0015881158684288,2999.9999999999995,emersed,Cuban bulrush mgmt.,1,118,no,no
+"Eleocharis spp., emersed",net,-1.1399754812569212,-2.3305896577774132,-0.06559083423973823,Cuban bulrush,1.0015881158684288,2654.868491585861,emersed,mgmt. + cover,1,118,yes,yes
+"Eleocharis spp., sub/floating",cover,0.5829127584955018,-0.29134613027547396,1.5324298080860979,Cuban bulrush,0.9999561091229839,2710.5364059341746,submersed,Cuban bulrush cover,3,319,no,no
+"Eleocharis spp., sub/floating",management,0.10696033798301958,-0.06224500213328879,0.2735961290791403,Cuban bulrush,1.0018965272162768,2893.527728903599,submersed,Cuban bulrush mgmt.,3,319,no,no
+"Eleocharis spp., sub/floating",net,0.5754872362247041,-0.22388741284692745,1.3296248711542493,Cuban bulrush,1.0027994992775948,2710.5364059341746,submersed,mgmt. + cover,3,319,no,no
+Filamentous algae,cover,0.6166281904188528,-0.25863629588698334,1.5469740886429815,Cuban bulrush,1.0004788913409957,2765.203755932198,floating,Cuban bulrush cover,2,220,no,no
+Filamentous algae,management,0.1871019592480031,0.019469329140149157,0.3546682101820878,Cuban bulrush,1.00023798628545,2981.591829663771,floating,Cuban bulrush mgmt.,2,220,yes,yes
+Filamentous algae,net,0.9917457901057758,0.23663547921108966,1.7561325430594477,Cuban bulrush,1.0052048957086488,2765.203755932198,floating,mgmt. + cover,2,220,yes,yes
+Fuirena spp.,cover,-0.8216875155220074,-2.012812782052896,0.42496123972806116,Cuban bulrush,1.0035269768107369,2552.677554633824,emersed,Cuban bulrush cover,1,121,no,no
+Fuirena spp.,management,-0.18028350186822215,-0.3921543713842616,0.029021862347681122,Cuban bulrush,1.00009649553669,3404.0646014399836,emersed,Cuban bulrush mgmt.,1,121,no,no
+Fuirena spp.,net,-1.4246971052074284,-3.2298551215622626,0.17380411110152708,Cuban bulrush,1.0036886690196511,1804.5591050092562,emersed,mgmt. + cover,1,121,no,no
+Hydrocotyle spp.,cover,0.4483511112391861,-0.7674101305889158,1.8316473537712652,Cuban bulrush,1.0010147077079252,2760.413057190182,emersed,Cuban bulrush cover,1,122,no,no
+Hydrocotyle spp.,management,0.14006739556985268,-0.09176956851675017,0.3727117655788392,Cuban bulrush,1.0000136872166405,2839.242497699285,emersed,Cuban bulrush mgmt.,1,122,no,no
+Hydrocotyle spp.,net,0.520343205714405,-0.4323518667361202,1.7588281729390112,Cuban bulrush,1.0081793321289838,2437.7465271917854,emersed,mgmt. + cover,1,122,no,no
+Hypericum spp.,cover,-1.1680538068745798,-2.862064091088722,0.31831812972818285,Cuban bulrush,1.000647335600184,2115.5039290055634,emersed,Cuban bulrush cover,1,123,no,no
+Hypericum spp.,management,-0.2175558593740685,-0.42433697614158833,-0.007527059798823618,Cuban bulrush,1.0027168859133249,2740.300253528265,emersed,Cuban bulrush mgmt.,1,123,yes,yes
+Hypericum spp.,net,-1.3969322721939437,-3.0971558707161515,0.08177632532937978,Cuban bulrush,1.005240015918567,1943.8822499307685,emersed,mgmt. + cover,1,123,no,no
+Juncus effusus,cover,0.21407767979687461,-0.6871641661770513,1.1348147136475402,Cuban bulrush,1.000619298122273,3000,emersed,Cuban bulrush cover,1,124,no,no
+Juncus effusus,management,-0.0252590997116502,-0.2115803051870962,0.15450021460408486,Cuban bulrush,1.0000466256476588,3000,emersed,Cuban bulrush mgmt.,1,124,no,no
+Juncus effusus,net,-0.33106346286390204,-1.4010875613554565,0.6130252973167802,Cuban bulrush,1.000737896364041,2943.243121780177,emersed,mgmt. + cover,1,124,no,no
+Leersia hexandra,cover,0.3635194419683643,-0.7078501964384193,1.445144851448962,Cuban bulrush,1.0001268139412072,2773.5846316611814,emersed,Cuban bulrush cover,1,125,no,no
+Leersia hexandra,management,-0.12872276209520875,-0.30898115848942487,0.053569045865735423,Cuban bulrush,0.9999214182609278,3287.2483675388703,emersed,Cuban bulrush mgmt.,1,125,no,no
+Leersia hexandra,net,-0.8892544465197203,-2.10749809455657,0.22273931601398994,Cuban bulrush,1.0006557192649184,3686.5519262360503,emersed,mgmt. + cover,1,125,no,no
+Lemna/Spirodela spp.,cover,-0.14828560994571904,-1.0683966883858482,0.8078671281156815,Cuban bulrush,1.000421223130592,2747.923867584033,floating,Cuban bulrush cover,2,226,no,no
+Lemna/Spirodela spp.,management,-0.07258984097070785,-0.24621473648107423,0.09406154939303787,Cuban bulrush,1.0004333420701232,2888.049112651347,floating,Cuban bulrush mgmt.,2,226,no,no
+Lemna/Spirodela spp.,net,0.15374852470492753,-0.7370542859667287,1.0026765220740346,Cuban bulrush,1.0020415702233048,2747.923867584033,floating,mgmt. + cover,2,226,no,no
+Limnobium spongia,cover,1.3740311760099577,0.16927869782502836,2.575521897803826,Cuban bulrush,1.0017392376010488,3027.2203191007975,floating,Cuban bulrush cover,2,227,yes,yes
+Limnobium spongia,management,0.23737590277106937,0.047097065753175814,0.429565223874704,Cuban bulrush,1.0000444327285105,2771.3584484140983,floating,Cuban bulrush mgmt.,2,227,yes,yes
+Limnobium spongia,net,0.9120271395336321,-0.18393071005529912,1.9227013401307564,Cuban bulrush,1.0037687882578084,1910.1925007222092,floating,mgmt. + cover,2,227,no,no
+Ludwigia octovalvis/peruviana,cover,2.6738750927761457,0.8487347440927653,4.751187158221204,Cuban bulrush,1.0016401885711947,1412.6077422784888,emersed,Cuban bulrush cover,1,128,yes,yes
+Ludwigia octovalvis/peruviana,management,0.2004905747151742,-0.020894785183733503,0.43678207848866757,Cuban bulrush,1.002510095024083,2606.6395493333125,emersed,Cuban bulrush mgmt.,1,128,no,no
+Ludwigia octovalvis/peruviana,net,1.1585117748844527,-0.17664134275883078,2.8027153166616303,Cuban bulrush,1.0030486236588794,1412.6077422784888,emersed,mgmt. + cover,1,128,no,no
+Ludwigia palustris/repens,cover,0.3650846868537046,-0.8592283661670558,1.4018838252013306,Cuban bulrush,0.9996002433585177,3000,emersed,Cuban bulrush cover,1,129,no,no
+Ludwigia palustris/repens,management,-0.04131399528135742,-0.24135697419134947,0.15145798757792212,Cuban bulrush,0.9991578512036879,3323.9285215364544,emersed,Cuban bulrush mgmt.,1,129,no,no
+Ludwigia palustris/repens,net,0.7287229485983735,-0.06567903193801762,1.4788502012562388,Cuban bulrush,1.0028050755645233,3323.9285215364544,emersed,mgmt. + cover,1,129,no,no
+Luziola fluitans,cover,0.5774006411675224,-0.46093871408924375,1.643314532096523,Cuban bulrush,1.001407983388719,2937.6759340175067,submersed,Cuban bulrush cover,3,330,no,no
+Luziola fluitans,management,0.252831758079965,0.07995409186953614,0.43943250588765354,Cuban bulrush,1.0003195320174274,2900.63633568895,submersed,Cuban bulrush mgmt.,3,330,yes,yes
+Luziola fluitans,net,-1.0315826694786105,-2.489482180893127,0.1720499012237292,Cuban bulrush,1.0056199950677693,2541.036164264676,submersed,mgmt. + cover,3,330,no,no
+Mayaca fluviatilis,cover,-0.08037778935019811,-2.0538385484625583,1.4863914703800611,Cuban bulrush,1.0006152099071164,1719.257898468041,submersed,Cuban bulrush cover,3,331,no,no
+Mayaca fluviatilis,management,0.33016878334461375,0.09282071249637726,0.5717878725050304,Cuban bulrush,0.9994350481719277,2454.6436988505725,submersed,Cuban bulrush mgmt.,3,331,yes,yes
+Mayaca fluviatilis,net,0.0024330401555547813,-1.9894956547139726,1.5564467028120303,Cuban bulrush,1.0067732953141442,705.5326101970595,submersed,mgmt. + cover,3,331,no,no
+Micranthemum glomeratum,cover,-0.4738323636269084,-1.722098577938714,0.6725695786041128,Cuban bulrush,1.0016370300153665,2935.173587975378,submersed,Cuban bulrush cover,3,332,no,no
+Micranthemum glomeratum,management,0.20086476005542522,-0.0029192809348810873,0.40428432455886104,Cuban bulrush,1.0010059543575691,2317.987539614027,submersed,Cuban bulrush mgmt.,3,332,no,no
+Micranthemum glomeratum,net,-1.9006952155824541,-4.205659594019907,-0.02215884460538307,Cuban bulrush,1.0046691326106696,1059.2072600831461,submersed,mgmt. + cover,3,332,yes,yes
+Micranthemum umbrosum,cover,0.5171776348229005,-0.6607152459833214,1.6078162456307958,Cuban bulrush,0.999211267997078,2775.474456068779,emersed,Cuban bulrush cover,1,133,no,no
+Micranthemum umbrosum,management,0.32000972838053066,0.12341243515755074,0.5242812385933008,Cuban bulrush,1.0015405176066727,2606.335783817925,emersed,Cuban bulrush mgmt.,1,133,yes,yes
+Micranthemum umbrosum,net,-1.1704433553187272,-3.2188394710759396,0.4716843867606211,Cuban bulrush,1.0079730094973416,1455.4879121835013,emersed,mgmt. + cover,1,133,no,no
+Myriophyllum laxum/pinnatum,cover,-0.9655341625714361,-3.1917746991106433,0.8476512178397861,Cuban bulrush,0.9995004775127706,1419.7968439414376,submersed,Cuban bulrush cover,3,334,no,no
+Myriophyllum laxum/pinnatum,management,0.2643518008535011,0.031763837709949574,0.5203031513102603,Cuban bulrush,1.006041865954323,2239.6303094766367,submersed,Cuban bulrush mgmt.,3,334,yes,yes
+Myriophyllum laxum/pinnatum,net,-0.3950094121421714,-2.385376035191045,1.1843422361227918,Cuban bulrush,1.006041865954323,579.2050104599998,submersed,mgmt. + cover,3,334,no,no
+Najas guadalupensis,cover,0.14853163313437884,-0.8780542744361223,1.0920525662955622,Cuban bulrush,0.9998899638736315,2896.003356731463,submersed,Cuban bulrush cover,3,335,no,no
+Najas guadalupensis,management,-0.03347774653757043,-0.20400331058276636,0.1278873735582435,Cuban bulrush,0.9995450739741375,3061.582833094477,submersed,Cuban bulrush mgmt.,3,335,no,no
+Najas guadalupensis,net,0.3745040853241322,-0.4661569578962033,1.1581601217556043,Cuban bulrush,1.0016492513983974,2873.2232736515125,submersed,mgmt. + cover,3,335,no,no
+Nelumbo lutea,cover,-0.1318779556467301,-1.0623280886837925,0.812787808572411,Cuban bulrush,1.0009743282051429,3115.6974443200716,emersed,Cuban bulrush cover,1,136,no,no
+Nelumbo lutea,management,0.17726597114672324,0.007752329967342637,0.3527509251717512,Cuban bulrush,1.0014215418447179,2899.991918452476,emersed,Cuban bulrush mgmt.,1,136,yes,yes
+Nelumbo lutea,net,-1.2515795293061063,-2.557392056135773,-0.08874983472086072,Cuban bulrush,1.002152543464575,2541.7156912791725,emersed,mgmt. + cover,1,136,yes,yes
+Nitella spp.,cover,0.4955975971300803,-0.7292238285259909,1.6861414756003257,Cuban bulrush,1.000339874440979,2813.2446680042585,submersed,Cuban bulrush cover,3,337,no,no
+Nitella spp.,management,0.059170476360723034,-0.14196463804711904,0.2659318966386792,Cuban bulrush,1.0012787196925144,2796.1266440534723,submersed,Cuban bulrush mgmt.,3,337,no,no
+Nitella spp.,net,0.24508151575133125,-1.2202531435985031,1.4054882619678255,Cuban bulrush,1.0060417351372866,1671.0493525578595,submersed,mgmt. + cover,3,337,no,no
+Nuphar advena,cover,1.0771769099857191,-0.22418085026295392,2.5470139120896396,Cuban bulrush,0.9993612833583991,2485.807200524744,emersed,Cuban bulrush cover,1,138,no,no
+Nuphar advena,management,-0.005555533433110506,-0.21914160855887982,0.21087802337510483,Cuban bulrush,1.0028400949249423,2821.5599532214737,emersed,Cuban bulrush mgmt.,1,138,no,no
+Nuphar advena,net,-0.08034304838182671,-1.0335385777381092,0.8337053644164232,Cuban bulrush,1.0048088962564936,2398.417184666424,emersed,mgmt. + cover,1,138,no,no
+Nymphaea mexicana,cover,-0.3643691954979568,-1.9028340513990216,0.9454280397183228,Cuban bulrush,1.0032186406972932,2448.0816769163393,emersed,Cuban bulrush cover,1,139,no,no
+Nymphaea mexicana,management,0.2551515391094783,0.035267680688784525,0.4787376908896304,Cuban bulrush,1.0005397626653076,2768.156754575554,emersed,Cuban bulrush mgmt.,1,139,yes,yes
+Nymphaea mexicana,net,1.356214513697059,0.5273549254354549,2.1530391216269744,Cuban bulrush,1.006398429327313,1393.3154307655768,emersed,mgmt. + cover,1,139,yes,yes
+Nymphaea odorata,cover,1.413107221722975,0.35028485742309406,2.557954266789899,Cuban bulrush,0.9991943076804364,2908.136653731598,emersed,Cuban bulrush cover,1,140,yes,yes
+Nymphaea odorata,management,0.2025032403257658,0.015871069880326404,0.3947220876098789,Cuban bulrush,1.000997777017884,3109.508585408873,emersed,Cuban bulrush mgmt.,1,140,yes,yes
+Nymphaea odorata,net,1.2702176140702872,0.4016028134528226,2.143194278329663,Cuban bulrush,1.0020864212737595,2677.4071764398504,emersed,mgmt. + cover,1,140,yes,yes
+Nymphoides aquatica,cover,-2.7415028402302615,-4.959396931914423,-0.7683720645930784,Cuban bulrush,1.0055800749695458,1244.055580960488,emersed,Cuban bulrush cover,1,141,yes,yes
+Nymphoides aquatica,management,-0.10902702306137059,-0.32751551620514296,0.09541422733531556,Cuban bulrush,1.0048815900053607,2346.1588245018866,emersed,Cuban bulrush mgmt.,1,141,no,no
+Nymphoides aquatica,net,-5.343459062349578,-8.163526882949537,-2.7943043791198385,Cuban bulrush,1.0055800749695458,906.0403655026639,emersed,mgmt. + cover,1,141,yes,no
+Panicum hemitomon,cover,-0.5096084584902884,-1.4197686091922201,0.43751640878843084,Cuban bulrush,0.9993756182271751,3000,emersed,Cuban bulrush cover,1,142,no,no
+Panicum hemitomon,management,-0.014594699956547996,-0.22451158157256154,0.1898907854716654,Cuban bulrush,1.000917984525602,3165.9033170076473,emersed,Cuban bulrush mgmt.,1,142,no,no
+Panicum hemitomon,net,-0.558653230959136,-1.4459956328262427,0.2914683399201775,Cuban bulrush,1.000917984525602,3165.9033170076473,emersed,mgmt. + cover,1,142,no,no
+Paspalidium geminatum,cover,-3.343627709234562,-4.81183549019598,-2.000205206862901,Cuban bulrush,1.0040317716543516,2396.0337906419763,emersed,Cuban bulrush cover,1,143,yes,yes
+Paspalidium geminatum,management,-0.2478293699923909,-0.4114871483705072,-0.07851998806190938,Cuban bulrush,1.0007425138481592,3203.6399844051866,emersed,Cuban bulrush mgmt.,1,143,yes,yes
+Paspalidium geminatum,net,-1.2986256173958128,-2.2647761913232585,-0.3417333995869108,Cuban bulrush,1.0040317716543516,2396.0337906419763,emersed,mgmt. + cover,1,143,yes,yes
+Paspalum repens,cover,-1.926482384815945,-4.218449897135036,0.02503418945284566,Cuban bulrush,1.0007674853349453,1289.6006102257063,emersed,Cuban bulrush cover,1,144,no,no
+Paspalum repens,management,-0.05089217666629001,-0.29838704925080717,0.1934655391730194,Cuban bulrush,1.0006893256646543,2401.309493822798,emersed,Cuban bulrush mgmt.,1,144,no,no
+Paspalum repens,net,-2.019047617686374,-4.176557338148862,-0.30297103578095397,Cuban bulrush,1.0025852268052524,1289.6006102257063,emersed,mgmt. + cover,1,144,yes,yes
+Peltandra spp.,cover,0.23204056973120596,-0.8694893202041779,1.295832460797187,Cuban bulrush,1.0033617077433872,2863.257174320798,emersed,Cuban bulrush cover,1,145,no,no
+Peltandra spp.,management,0.10074362846030607,-0.09490389523392702,0.29092267603557154,Cuban bulrush,0.999128262746233,3000,emersed,Cuban bulrush mgmt.,1,145,no,no
+Peltandra spp.,net,-0.1128004229027388,-1.0881997655471294,0.7878750538434388,Cuban bulrush,1.0033617077433872,2059.867174679088,emersed,mgmt. + cover,1,145,no,no
+Phragmites australis,cover,-1.3302722799316136,-3.1070648227586664,0.17126271694385653,Cuban bulrush,0.9999009056995907,2094.6106701041244,emersed,Cuban bulrush cover,1,146,no,no
+Phragmites australis,management,-0.2531522116250601,-0.48923346407713764,-0.02267567633897108,Cuban bulrush,1.0020422082528047,2884.311756898068,emersed,Cuban bulrush mgmt.,1,146,yes,yes
+Phragmites australis,net,-0.6694719978251797,-1.78262487247067,0.3607150377294527,Cuban bulrush,1.0022409154561394,1353.697959133056,emersed,mgmt. + cover,1,146,no,no
+Pontederia cordata,cover,0.22579181351299168,-0.77939599424913,1.3457245375960343,Cuban bulrush,0.9998889860281562,3082.468295853983,emersed,Cuban bulrush cover,1,147,no,no
+Pontederia cordata,management,0.155257598621222,-0.05985057027556437,0.36376164945924233,Cuban bulrush,1.0005004917034301,3000,emersed,Cuban bulrush mgmt.,1,147,no,no
+Pontederia cordata,net,-0.550478784347979,-1.400139097903895,0.24924883256411745,Cuban bulrush,1.001102411386913,2590.895847374188,emersed,mgmt. + cover,1,147,no,no
+Potamogeton illinoensis,cover,-1.1070512696648707,-2.5854717310434907,0.3531483062915329,Cuban bulrush,1.0005036089494812,2019.6641561658057,submersed,Cuban bulrush cover,3,348,no,no
+Potamogeton illinoensis,management,-0.2350336264393815,-0.4740307252054108,-0.009771258836641513,Cuban bulrush,1.000264241963681,2787.8491577286704,submersed,Cuban bulrush mgmt.,3,348,yes,yes
+Potamogeton illinoensis,net,-1.9983647282500023,-4.317280942867387,-0.025574816806435845,Cuban bulrush,1.0034739545623963,1199.597944251886,submersed,mgmt. + cover,3,348,yes,yes
+Rhynchospora spp.,cover,-0.2948448264730884,-1.4973269139795624,0.8200134742187415,Cuban bulrush,0.9995149740639198,3000,emersed,Cuban bulrush cover,1,149,no,no
+Rhynchospora spp.,management,-0.28243330627830016,-0.47365929424387376,-0.09561851377295078,Cuban bulrush,1.005616663949599,2999.9999999999995,emersed,Cuban bulrush mgmt.,1,149,yes,yes
+Rhynchospora spp.,net,-0.2741018635874629,-1.3142096805264287,0.7500579600220971,Cuban bulrush,1.005616663949599,2733.238512230868,emersed,mgmt. + cover,1,149,no,no
+Sacciolepis striata,cover,0.47221833027316373,-0.4026158208548545,1.3494381045764139,Cuban bulrush,1.0023720674036793,2897.6651797828445,emersed,Cuban bulrush cover,1,150,no,no
+Sacciolepis striata,management,0.26209702965541926,0.10294010784609989,0.43289754852272594,Cuban bulrush,0.9998839560840005,2869.0288733388106,emersed,Cuban bulrush mgmt.,1,150,yes,yes
+Sacciolepis striata,net,-0.3318443795188682,-1.189465752787619,0.46558084857475995,Cuban bulrush,1.0023720674036793,3305.553777796695,emersed,mgmt. + cover,1,150,no,no
+Sagittaria lancifolia,cover,0.8148064687897844,-0.26547420748791395,2.054878054767058,Cuban bulrush,1.000976070420591,3000,emersed,Cuban bulrush cover,1,151,no,no
+Sagittaria lancifolia,management,0.09534951227716189,-0.0975474751756871,0.29942680598944615,Cuban bulrush,1.0035085154300185,2860.3503210320064,emersed,Cuban bulrush mgmt.,1,151,no,no
+Sagittaria lancifolia,net,0.18065168981423987,-0.638775831913062,0.9402289080781612,Cuban bulrush,1.0035085154300185,2860.3503210320064,emersed,mgmt. + cover,1,151,no,no
+Sagittaria latifolia,cover,0.5472624274261398,-0.4608557746534723,1.5559647531324785,Cuban bulrush,1.003363232220808,2710.8589229974064,emersed,Cuban bulrush cover,1,152,no,no
+Sagittaria latifolia,management,0.07993540702059058,-0.11349494622821231,0.27432006158335,Cuban bulrush,1.0054811769558603,2860.2956201789557,emersed,Cuban bulrush mgmt.,1,152,no,no
+Sagittaria latifolia,net,0.04389260617644241,-1.0654849027573323,1.1679013964734328,Cuban bulrush,1.0054811769558603,2511.375342543198,emersed,mgmt. + cover,1,152,no,no
+Sagittaria subulata/graminea/gracillima,cover,-2.3246833266725355,-4.502278772306629,-0.3585062633269725,Cuban bulrush,1.002268002468435,1275.5770196477588,emersed,Cuban bulrush cover,1,153,yes,yes
+Sagittaria subulata/graminea/gracillima,management,-0.22335372883748011,-0.4399331237236934,-0.013192695822627349,Cuban bulrush,1.001942223440178,2875.9237618760085,emersed,Cuban bulrush mgmt.,1,153,yes,yes
+Sagittaria subulata/graminea/gracillima,net,-1.773465113036681,-3.7539005751371977,-0.10394467247889716,Cuban bulrush,1.0031661118690829,1275.5770196477588,emersed,mgmt. + cover,1,153,yes,yes
+Salix spp.,cover,-0.4129702161083545,-1.397190141550168,0.6681048880737934,Cuban bulrush,1.0010579171792868,3000,emersed,Cuban bulrush cover,1,154,no,no
+Salix spp.,management,0.09071425497613587,-0.1363992839674217,0.32296578623080757,Cuban bulrush,1.001637348732384,2607.1069506061476,emersed,Cuban bulrush mgmt.,1,154,no,no
+Salix spp.,net,-0.9782182555007234,-1.833891001428835,-0.17076203842517984,Cuban bulrush,1.0022840237403265,2259.421086494249,emersed,mgmt. + cover,1,154,yes,yes
+Saururus cernuus,cover,1.1153843034286173,0.009415449397606334,2.2739602394062337,Cuban bulrush,0.9992813175122146,2794.154932482577,emersed,Cuban bulrush cover,1,155,yes,yes
+Saururus cernuus,management,0.2115827680261317,-0.004582589303667506,0.42005666492917665,Cuban bulrush,1.0005102637407979,2783.581326291908,emersed,Cuban bulrush mgmt.,1,155,no,no
+Saururus cernuus,net,-0.8415237700767765,-2.1649748259687147,0.28479962599730396,Cuban bulrush,1.0005102637407979,1068.8382659336407,emersed,mgmt. + cover,1,155,no,no
+Spartina bakeri,cover,-1.43097672132504,-2.757027545318191,-0.21690067226573767,Cuban bulrush,1.0004279259949191,2159.839509122479,emersed,Cuban bulrush cover,1,156,yes,yes
+Spartina bakeri,management,-0.16410463994683913,-0.33834511116088417,0.006020167110061236,Cuban bulrush,1.0004822285338513,2657.163013225342,emersed,Cuban bulrush mgmt.,1,156,no,no
+Spartina bakeri,net,-1.2611772871222178,-2.622419579513678,-0.12978140908288002,Cuban bulrush,1.0012888519621486,2159.839509122479,emersed,mgmt. + cover,1,156,yes,yes
+Thalia geniculata,cover,-1.428203131352568,-2.7385742145387235,-0.24015103812833538,Cuban bulrush,0.9993475131881788,2893.207288612858,emersed,Cuban bulrush cover,1,157,yes,yes
+Thalia geniculata,management,5.510896167255714e-4,-0.19479578385972818,0.19309253043415922,Cuban bulrush,1.0018613947074428,2650.4346326526893,emersed,Cuban bulrush mgmt.,1,157,no,no
+Thalia geniculata,net,-2.085990908329443,-4.0216227893071235,-0.42277250098422314,Cuban bulrush,1.0018613947074428,2132.7618014379136,emersed,mgmt. + cover,1,157,yes,yes
+Typha spp.,cover,1.506393736132626,-0.16254470597188547,3.495319942622446,Cuban bulrush,1.0012781780801991,1998.4897847804637,emersed,Cuban bulrush cover,1,158,no,no
+Typha spp.,management,0.1347854681598585,-0.12366736841380493,0.39508335004028977,Cuban bulrush,1.000383470763728,2518.122145271855,emersed,Cuban bulrush mgmt.,1,158,no,no
+Typha spp.,net,0.5527645790167615,-0.517770783253287,1.961870840542536,Cuban bulrush,1.0030339721776662,1572.4577040273093,emersed,mgmt. + cover,1,158,no,no
+Utricularia floridana,cover,-0.26653224300665035,-1.9088403830651839,1.1549561029810744,Cuban bulrush,1.0059919590756001,2012.0232365366799,submersed,Cuban bulrush cover,3,359,no,no
+Utricularia floridana,management,0.07160293213467142,-0.15704360454141814,0.305708874365018,Cuban bulrush,1.0013441735717612,2544.561741933843,submersed,Cuban bulrush mgmt.,3,359,no,no
+Utricularia floridana,net,-2.5136362652889663,-5.157947981898298,-0.059624249281021606,Cuban bulrush,1.0059919590756001,968.5983858988058,submersed,mgmt. + cover,3,359,yes,no
+Utricularia foliosa,cover,1.7323180156912954,0.6969981732040061,2.8054158799060764,Cuban bulrush,1.0019812860425428,2933.4222181466585,submersed,Cuban bulrush cover,3,360,yes,yes
+Utricularia foliosa,management,0.10137915440345562,-0.0809877084521341,0.28617637188694245,Cuban bulrush,1.0000348272597746,3000,submersed,Cuban bulrush mgmt.,3,360,no,no
+Utricularia foliosa,net,-0.1853875692786956,-1.0982187920056834,0.7534412477087752,Cuban bulrush,1.0023341545130349,2688.7333859531573,submersed,mgmt. + cover,3,360,no,no
+Utricularia gibba,cover,2.4572538567916755,1.4021920702776027,3.550625211278092,Cuban bulrush,1.0005125652124907,2785.7644855966723,submersed,Cuban bulrush cover,3,361,yes,yes
+Utricularia gibba,management,0.1121892140597775,-0.05529580317513819,0.2744451030154449,Cuban bulrush,0.9991937787023969,2899.009256248797,submersed,Cuban bulrush mgmt.,3,361,no,no
+Utricularia gibba,net,1.3717464416296414,0.5344557187597728,2.162914911923272,Cuban bulrush,1.003235930518219,2785.7644855966723,submersed,mgmt. + cover,3,361,yes,yes
+Utricularia inflata,cover,0.8140364883309421,-0.3780552626658456,1.8383622049626753,Cuban bulrush,1.0007377539462117,2874.4864800318655,submersed,Cuban bulrush cover,3,362,no,no
+Utricularia inflata,management,0.12715224632148472,-0.07202106756897822,0.33612459112073834,Cuban bulrush,0.9992692029618905,3000.0000000000005,submersed,Cuban bulrush mgmt.,3,362,no,no
+Utricularia inflata,net,0.8479391992842762,-0.10781811266132243,1.6732205149556143,Cuban bulrush,1.0015638527293478,2324.821031988064,submersed,mgmt. + cover,3,362,no,no
+Utricularia purpurea,cover,-1.2404379566686272,-3.452387024234918,0.5643095230887905,Cuban bulrush,1.0057727046939027,1454.303671086518,submersed,Cuban bulrush cover,3,363,no,no
+Utricularia purpurea,management,0.1676267894879068,-0.04098649626079929,0.3834805159069888,Cuban bulrush,1.0014879546263544,2466.680466297108,submersed,Cuban bulrush mgmt.,3,363,no,no
+Utricularia purpurea,net,-0.4027275284913235,-2.085385342545798,0.9690198567139069,Cuban bulrush,1.0057727046939027,1327.5444045350646,submersed,mgmt. + cover,3,363,no,no
+Vallisneria americana,cover,0.10757923923101136,-1.2293239499988513,1.441797017254936,Cuban bulrush,1.0023636790773405,2947.4264298197636,submersed,Cuban bulrush cover,3,364,no,no
+Vallisneria americana,management,0.1578170577710176,-0.07201006386787684,0.3880787995073306,Cuban bulrush,0.9997391848912404,2733.494691281371,submersed,Cuban bulrush mgmt.,3,364,no,no
+Vallisneria americana,net,-2.0029924920863587,-3.869342817287671,-0.5215736316122875,Cuban bulrush,1.0043043653951185,1846.0718372052572,submersed,mgmt. + cover,3,364,yes,yes
+Azolla caroliniana,cover,0.9574247207639194,0.31636389036332857,1.5801612636653228,para grass,1.0025174841574267,3000,floating,para grass cover,2,201,yes,yes
+Azolla caroliniana,management,0.20278428701013348,-0.35863848207891447,0.7927530672569918,para grass,1.0021996273426919,2999.9999999999995,floating,para grass mgmt.,2,201,no,no
+Azolla caroliniana,net,1.702143463554221,-2.5428753443697736,5.980862820690353,para grass,1.0061709883309977,3000.0000000000005,floating,mgmt. + cover,2,201,no,no
+Bacopa caroliniana,cover,0.40955258469667594,-0.5732195457490912,1.3059855491741559,para grass,1.0084900530743655,2285.086988349164,emersed,para grass cover,1,102,no,no
+Bacopa caroliniana,management,0.03925812331957574,-0.6137055874112856,0.6813919603990924,para grass,1.0016429934188233,2445.7910112381096,emersed,para grass mgmt.,1,102,no,no
+Bacopa caroliniana,net,-6.135694116458939,-22.79851247001117,5.4624074068724395,para grass,1.0084900530743655,633.8254171049515,emersed,mgmt. + cover,1,102,no,no
+Bacopa monnieri,cover,-0.4951243146246804,-1.20413921888535,0.18208292144044572,para grass,1.011498411457649,2765.6265739969085,emersed,para grass cover,1,103,no,no
+Bacopa monnieri,management,-0.05238203984778476,-0.6594533065382486,0.5260476194988557,para grass,1.001894291776116,3056.9857837874497,emersed,para grass mgmt.,1,103,no,no
+Bacopa monnieri,net,0.7003938849044925,-3.6907822373263115,4.880954269990143,para grass,1.011498411457649,2765.6265739969085,emersed,mgmt. + cover,1,103,no,no
+Bidens spp.,cover,-0.48406965741881874,-1.1442315753527073,0.16121663366079153,para grass,1.0084147967498664,3000,emersed,para grass cover,1,104,no,no
+Bidens spp.,management,0.21515216631638853,-0.36670891703616365,0.8135566520863899,para grass,1.000239122612419,3000,emersed,para grass mgmt.,1,104,no,no
+Bidens spp.,net,-7.827851762679566,-17.69047789279175,-0.6356905019943941,para grass,1.0084147967498664,1456.9203724719619,emersed,mgmt. + cover,1,104,yes,yes
+Brasenia schreberi,cover,-0.9134455673868674,-3.5765372610085655,1.103936888963523,para grass,1.0205371447452556,523.3633724592797,emersed,para grass cover,1,105,no,no
+Brasenia schreberi,management,-0.18652336617620963,-1.0100160811385517,0.6813011987341208,para grass,1.0100541004600443,2274.648577645263,emersed,para grass mgmt.,1,105,no,no
+Brasenia schreberi,net,-14.626889139955825,-44.57153731376794,5.061272354703443,para grass,2.1512094311072287,108.13300378956384,emersed,mgmt. + cover,1,105,no,no
+Cabomba caroliniana,cover,-2.1016502396897856,-3.7612713840627596,-0.5662633182153078,para grass,1.1256563653558476,1265.8221005701832,submersed,para grass cover,3,306,yes,no
+Cabomba caroliniana,management,-0.42989708116261793,-1.2256509773289643,0.3042794127684935,para grass,1.016522341567708,2477.988620695278,submersed,para grass mgmt.,3,306,no,no
+Cabomba caroliniana,net,-16.071404786095034,-44.5389275625063,3.348177217662351,para grass,1.1256563653558476,231.68193665501113,submersed,mgmt. + cover,3,306,no,no
+Carex spp.,cover,-0.7761888220401755,-1.7868813773934036,0.16531484813963457,para grass,1.0076801283474215,2358.025764026664,emersed,para grass cover,1,107,no,no
+Carex spp.,management,-0.23403077219805266,-0.9538642540008263,0.4462273724767337,para grass,1.0027415566774036,2720.0934107689295,emersed,para grass mgmt.,1,107,no,no
+Carex spp.,net,-10.42739530038562,-29.536650073852243,1.5753568825184632,para grass,1.0192136170304356,448.0515782125557,emersed,mgmt. + cover,1,107,no,no
+Cephalanthus occidentalis,cover,-0.2646678209244304,-0.9236992699032872,0.4191646499429126,para grass,1.0023640840117538,2693.654043225137,emersed,para grass cover,1,108,no,no
+Cephalanthus occidentalis,management,0.20181639615618083,-0.5077588068914547,0.9382648540826432,para grass,1.00657170073321,2825.9170748484435,emersed,para grass mgmt.,1,108,no,no
+Cephalanthus occidentalis,net,8.724748604758043,0.230873238158846,22.16896416889559,para grass,1.00657170073321,826.6141615646068,emersed,mgmt. + cover,1,108,yes,no
+Ceratophyllum demersum,cover,0.3809969437915176,-0.31357220426304405,1.0732010047326441,para grass,1.0211423979833243,3000,submersed,para grass cover,3,309,no,no
+Ceratophyllum demersum,management,0.051552837138868074,-0.572829185429404,0.652555692400744,para grass,1.0211051961368935,3000,submersed,para grass mgmt.,3,309,no,no
+Ceratophyllum demersum,net,0.23569535828779475,-4.071417943907627,4.649255251658045,para grass,1.0211423979833243,3000.0000000000005,submersed,mgmt. + cover,3,309,no,no
+Chara spp.,cover,-0.3260221050372898,-1.2128701500339978,0.5077049773861502,para grass,1.0192955102940875,2997.1077393785404,submersed,para grass cover,3,310,no,no
+Chara spp.,management,-0.02157964633832918,-0.6512350060410838,0.5915256925845684,para grass,1.005400888858508,3478.9735966393955,submersed,para grass mgmt.,3,310,no,no
+Chara spp.,net,-1.597313880507602,-9.382784456287604,4.165866830521558,para grass,1.0192955102940875,2440.418662163608,submersed,mgmt. + cover,3,310,no,no
+Cicuta maculata,cover,-2.763456386043244,-4.2442527272175905,-1.4235000929850734,para grass,0.9999526172215323,1352.5157148752462,emersed,para grass cover,1,111,yes,yes
+Cicuta maculata,management,-0.013080364878893289,-0.7097188961662584,0.6548753237268995,para grass,1.0058885470047076,2401.5608814360635,emersed,para grass mgmt.,1,111,no,no
+Cicuta maculata,net,-15.362882778200303,-40.38254567649682,-0.3508255968857034,para grass,1.011435862081735,269.30851914435993,emersed,mgmt. + cover,1,111,yes,no
+Cladium jamaicense,cover,-1.6702801147580384,-2.7735392316595204,-0.5768320169997581,para grass,1.355600799111355,2212.740050735629,emersed,para grass cover,1,112,yes,no
+Cladium jamaicense,management,0.8080034182270217,0.11516180559023434,1.6065608122439552,para grass,1.0457228758908241,2373.6279292227237,emersed,para grass mgmt.,1,112,yes,yes
+Cladium jamaicense,net,-3.6119426139137216,-15.459070431722273,5.545444873847171,para grass,1.355600799111355,1065.9807612531845,emersed,mgmt. + cover,1,112,no,no
+Crinum americanum,cover,-0.781555825782001,-1.9121496779040086,0.33314978087256736,para grass,1.0328801368413385,2194.6288006251652,emersed,para grass cover,1,113,no,no
+Crinum americanum,management,-0.30642383453290567,-1.1227110818284736,0.3872593802998845,para grass,1.0061271454357201,2758.800572128187,emersed,para grass mgmt.,1,113,no,no
+Crinum americanum,net,-15.713171836363054,-41.51606955001486,1.4915021940963296,para grass,1.0328801368413385,195.05591495823788,emersed,mgmt. + cover,1,113,no,no
+Cyperus articulatus,cover,0.15091969022513418,-0.64730657656413,0.9453255778001721,para grass,1.0142463648877524,2509.596971744614,emersed,para grass cover,1,114,no,no
+Cyperus articulatus,management,0.10229632868714911,-0.5271528862152285,0.7304978625793712,para grass,1.0349978803320263,3156.759380940404,emersed,para grass mgmt.,1,114,no,no
+Cyperus articulatus,net,-2.101433729668372,-7.612536179744531,2.8293708316145127,para grass,1.5805323373749327,794.6840532349842,emersed,mgmt. + cover,1,114,no,no
+Cyperus spp. (other natives),cover,-0.9508569995314131,-1.5282076685630257,-0.3708322063785241,para grass,1.005334272257733,2840.7500420356414,emersed,para grass cover,1,115,yes,yes
+Cyperus spp. (other natives),management,-0.3659198691710136,-0.980254470970242,0.1907304486590046,para grass,1.0004181227076963,2684.861383553909,emersed,para grass mgmt.,1,115,no,no
+Cyperus spp. (other natives),net,3.3865636281137528,-1.7380145619055578,9.758370351337733,para grass,1.007589996223204,2538.5211325233245,emersed,mgmt. + cover,1,115,no,no
+Decodon verticillatus,cover,-1.5907680796318495,-3.1443774943061364,-0.09303228303511199,para grass,1.171977176598678,1295.8803038917624,emersed,para grass cover,1,116,yes,no
+Decodon verticillatus,management,-0.0052985234122953934,-0.7114245737615188,0.7084225151854954,para grass,1.0225070266030583,2618.2318519093274,emersed,para grass mgmt.,1,116,no,no
+Decodon verticillatus,net,-12.615735104267554,-34.65306986093544,3.315938784438605,para grass,1.171977176598678,343.11827335396015,emersed,mgmt. + cover,1,116,no,no
+Echinochloa spp.,cover,-0.9928873771853286,-1.6554048043614953,-0.31641376707930935,para grass,1.0218141635701674,3000,emersed,para grass cover,1,117,yes,yes
+Echinochloa spp.,management,0.408112861274409,-0.17745932080995366,1.0281765379228902,para grass,1.0127029118405158,2896.95108434936,emersed,para grass mgmt.,1,117,no,no
+Echinochloa spp.,net,-2.161934583736843,-6.1425211778726005,1.926192143517349,para grass,1.0218141635701674,2896.95108434936,emersed,mgmt. + cover,1,117,no,no
+"Eleocharis spp., emersed",cover,0.7227858812602841,0.028890633716379045,1.4383652486693608,para grass,1.008744717070155,3000,emersed,para grass cover,1,118,yes,yes
+"Eleocharis spp., emersed",management,0.27135313202845374,-0.3347910661775696,0.8778510956046707,para grass,1.0080222095539222,2850.291516981646,emersed,para grass mgmt.,1,118,no,no
+"Eleocharis spp., emersed",net,1.4324138997514362,-3.284364329966528,5.991578831277735,para grass,1.008744717070155,2850.291516981646,emersed,mgmt. + cover,1,118,no,no
+"Eleocharis spp., sub/floating",cover,0.15553702093831356,-0.4664277074025711,0.7819360908749682,para grass,1.0081672510283501,2756.0552137929535,submersed,para grass cover,3,319,no,no
+"Eleocharis spp., sub/floating",management,0.10663350397298263,-0.47810269161403707,0.6998449237277806,para grass,1.0006836666474144,3000,submersed,para grass mgmt.,3,319,no,no
+"Eleocharis spp., sub/floating",net,-3.0985664199433938,-10.640758109883695,3.0707253443650413,para grass,1.0081672510283501,2237.614447226364,submersed,mgmt. + cover,3,319,no,no
+Filamentous algae,cover,0.3565359756116033,-0.31049067014767,1.019715251833049,para grass,1.0014918040019627,2610.3842860196382,floating,para grass cover,2,220,no,no
+Filamentous algae,management,0.5011578678857592,-0.11111122557079657,1.2089560078064276,para grass,1.0009947694737291,2910.654553813657,floating,para grass mgmt.,2,220,no,no
+Filamentous algae,net,-3.6315324273027154,-8.151624826624309,0.5580964569351387,para grass,1.004691175436298,2610.3842860196382,floating,mgmt. + cover,2,220,no,no
+Fuirena spp.,cover,-1.3298484677666957,-2.240013124301815,-0.3944898019370993,para grass,0.9998921201091424,2365.6326127150965,emersed,para grass cover,1,121,yes,yes
+Fuirena spp.,management,-0.12063301053749033,-0.8870881986641046,0.6132598427197362,para grass,1.0018172416775561,3000,emersed,para grass mgmt.,1,121,no,no
+Fuirena spp.,net,3.0523307930245642,-7.550568028353564,12.933595514600785,para grass,1.0102471773376591,1112.8866331220356,emersed,mgmt. + cover,1,121,no,no
+Hydrocotyle spp.,cover,-1.479623045649373,-2.139406798965193,-0.8114848718433667,para grass,1.0072269086777141,2949.493543129218,emersed,para grass cover,1,122,yes,yes
+Hydrocotyle spp.,management,0.3941355743994343,-0.31859924363141007,1.176231512331991,para grass,1.002258191119957,2543.96262551474,emersed,para grass mgmt.,1,122,no,no
+Hydrocotyle spp.,net,-4.328208362049501,-8.592557711294818,0.10044869196164309,para grass,1.5664386934119343,2543.96262551474,emersed,mgmt. + cover,1,122,no,no
+Hypericum spp.,cover,-0.9749640488053009,-2.359260976351106,0.268667989505596,para grass,1.0843683975303817,1716.9412701069928,emersed,para grass cover,1,123,no,no
+Hypericum spp.,management,-0.021896472212168724,-0.6799099134948305,0.6377363969427389,para grass,1.0030851103745213,2939.353634573578,emersed,para grass mgmt.,1,123,no,no
+Hypericum spp.,net,2.2945735597784287,-4.749789294690822,8.163536202602565,para grass,1.318210677015587,1716.9412701069928,emersed,mgmt. + cover,1,123,no,no
+Juncus effusus,cover,-0.5697325200187131,-1.3649068738516141,0.19459385182084027,para grass,1.1541401736699157,3000,emersed,para grass cover,1,124,no,no
+Juncus effusus,management,-0.20550301562861187,-0.826568774403358,0.37874275911845,para grass,1.0034759351542415,2737.133414189608,emersed,para grass mgmt.,1,124,no,no
+Juncus effusus,net,-1.8391999113154796,-10.903531594065681,4.8504511121046,para grass,1.1541401736699157,1833.4621666559804,emersed,mgmt. + cover,1,124,no,no
+Leersia hexandra,cover,0.5421593494410246,-0.16924937233154558,1.2346512727447256,para grass,1.0136026334323158,2887.008365704217,emersed,para grass cover,1,125,no,no
+Leersia hexandra,management,-0.1236820088825638,-0.7707418942208792,0.48919063713249616,para grass,1.0075806334863475,2868.092261245701,emersed,para grass mgmt.,1,125,no,no
+Leersia hexandra,net,-6.580008105618864,-18.103686192195422,1.9205397112796372,para grass,1.0359436103760395,1266.5635032148023,emersed,mgmt. + cover,1,125,no,no
+Lemna/Spirodela spp.,cover,0.8543821111052157,0.17610366957454465,1.519089107542912,para grass,1.0242611220885862,2999.9999999999995,floating,para grass cover,2,226,yes,yes
+Lemna/Spirodela spp.,management,0.30980488236450765,-0.35596816980552537,1.0605225862950165,para grass,1.0017501199477818,2892.805940263177,floating,para grass mgmt.,2,226,no,no
+Lemna/Spirodela spp.,net,6.708121931034504,-1.0149930247067838,17.052359644172615,para grass,1.0242611220885862,1484.5990636251684,floating,mgmt. + cover,2,226,no,no
+Limnobium spongia,cover,0.7067833037533412,-0.07939701621700548,1.5245713706326165,para grass,1.07278886448532,3239.6086952340775,floating,para grass cover,2,227,no,no
+Limnobium spongia,management,-0.18934241698863327,-0.8217414551405191,0.4327414273666948,para grass,1.030483382584313,3000.0000000000005,floating,para grass mgmt.,2,227,no,no
+Limnobium spongia,net,3.5130581437251505,-0.7582683341078376,7.757169933035778,para grass,1.07278886448532,2289.0042462214446,floating,mgmt. + cover,2,227,no,no
+Ludwigia octovalvis/peruviana,cover,0.5561303341065508,-0.31845607376964724,1.4548409461978915,para grass,1.012401258902337,2663.1081898782163,emersed,para grass cover,1,128,no,no
+Ludwigia octovalvis/peruviana,management,-0.03507593080180189,-0.7195888215239761,0.6361119992003639,para grass,1.0018814290958673,2923.4463358549306,emersed,para grass mgmt.,1,128,no,no
+Ludwigia octovalvis/peruviana,net,-0.8425112059459302,-5.5581261939323445,3.5157800009696047,para grass,1.012401258902337,2189.559108199509,emersed,mgmt. + cover,1,128,no,no
+Ludwigia palustris/repens,cover,0.8917826013690912,0.22692788754226442,1.5380334621648055,para grass,1.0018438445179334,3000,emersed,para grass cover,1,129,yes,yes
+Ludwigia palustris/repens,management,0.1359751962453334,-0.45049607395564545,0.7233202792184736,para grass,1.0036505896753738,2855.579858700848,emersed,para grass mgmt.,1,129,no,no
+Ludwigia palustris/repens,net,3.597751805354213,-0.7526611733369767,7.716903550758501,para grass,1.0036505896753738,2855.579858700848,emersed,mgmt. + cover,1,129,no,no
+Luziola fluitans,cover,0.9628164984483651,0.09744302612604276,1.7717735474065344,para grass,1.0424906839432526,3000.0000000000005,submersed,para grass cover,3,330,yes,yes
+Luziola fluitans,management,-0.16707602891742618,-0.8644547127402427,0.5191745034056123,para grass,1.0011090779945926,2839.923794155738,submersed,para grass mgmt.,3,330,no,no
+Luziola fluitans,net,-1.984460097595999,-15.04507772699613,7.628872176330861,para grass,1.0424906839432526,962.2880610507816,submersed,mgmt. + cover,3,330,no,no
+Mayaca fluviatilis,cover,-1.4092281300743996,-3.495135803065284,0.4066568519435851,para grass,1.0126437547707672,664.5837174765361,submersed,para grass cover,3,331,no,no
+Mayaca fluviatilis,management,-0.18978670565484362,-1.0043254797035828,0.6137337534038715,para grass,1.000439462713047,2651.5162006107203,submersed,para grass mgmt.,3,331,no,no
+Mayaca fluviatilis,net,4.416083388638949,-8.391241773550673,15.069130367294504,para grass,1.035137460030492,388.1586933468078,submersed,mgmt. + cover,3,331,no,no
+Micranthemum glomeratum,cover,-0.4836952150717283,-1.4316983376676762,0.38226286484226446,para grass,1.0005920306300227,3024.226969016522,submersed,para grass cover,3,332,no,no
+Micranthemum glomeratum,management,0.042530030866673854,-0.6634828700188014,0.736608363557035,para grass,1.0018402730614278,2590.31124192843,submersed,para grass mgmt.,3,332,no,no
+Micranthemum glomeratum,net,-17.35069559037173,-41.75244110213391,0.9123657651811121,para grass,1.019527673117015,256.6581191732401,submersed,mgmt. + cover,3,332,no,no
+Micranthemum umbrosum,cover,-1.1225095033434682,-2.4127300591425622,-0.044372560411672694,para grass,1.0006655533348885,1720.3865924588276,emersed,para grass cover,1,133,yes,yes
+Micranthemum umbrosum,management,-0.19623041849381145,-0.9184356187610063,0.5018115157895527,para grass,0.9999217011207548,2798.8571145937785,emersed,para grass mgmt.,1,133,no,no
+Micranthemum umbrosum,net,-4.609423625778126,-18.271976162931168,5.274241165601701,para grass,1.0138915305135598,786.0806915451237,emersed,mgmt. + cover,1,133,no,no
+Myriophyllum laxum/pinnatum,cover,-3.293317012236976,-6.376763204579264,-0.39235598162192814,para grass,1.0849722652985074,312.4913132023312,submersed,para grass cover,3,334,yes,no
+Myriophyllum laxum/pinnatum,management,-0.29538717434591216,-1.1759189646478325,0.5084653392321584,para grass,1.0061416737132298,2188.469520649644,submersed,para grass mgmt.,3,334,no,no
+Myriophyllum laxum/pinnatum,net,-14.056300953196812,-43.0292208711115,5.8103494035933885,para grass,1.0849722652985074,212.6998484989213,submersed,mgmt. + cover,3,334,no,no
+Najas guadalupensis,cover,0.061253139586025754,-0.6917895252841431,0.790359744858329,para grass,1.000825655705136,3000,submersed,para grass cover,3,335,no,no
+Najas guadalupensis,management,0.4166700546134514,-0.19218174250527217,1.0569277622628237,para grass,1.007445498323296,2885.9316554180223,submersed,para grass mgmt.,3,335,no,no
+Najas guadalupensis,net,-2.8070737104083276,-10.31405133473972,2.9499201179665984,para grass,1.007445498323296,2508.428119025142,submersed,mgmt. + cover,3,335,no,no
+Nelumbo lutea,cover,-1.6557598964855471,-2.735350547591657,-0.6480336842633126,para grass,1.044603694541745,2285.700065905414,emersed,para grass cover,1,136,yes,yes
+Nelumbo lutea,management,0.5049986511734481,-0.13256444955347654,1.2267327967349335,para grass,1.0674604499896072,2434.620097188893,emersed,para grass mgmt.,1,136,no,no
+Nelumbo lutea,net,-3.8449834301227996,-11.127965755079359,2.208386664573958,para grass,3.564064286996714,350.65649470706995,emersed,mgmt. + cover,1,136,no,no
+Nitella spp.,cover,0.8029024575514633,-0.07182469216142397,1.6454034126198187,para grass,1.0049871309632457,2795.1827425714137,submersed,para grass cover,3,337,no,no
+Nitella spp.,management,-0.016395372038137172,-0.7366047902383642,0.7071879764148981,para grass,0.9997760244944046,2999.999999999999,submersed,para grass mgmt.,3,337,no,no
+Nitella spp.,net,-12.279489460698983,-34.5981737455604,4.897660687760067,para grass,1.0279066978581077,292.17333895170174,submersed,mgmt. + cover,3,337,no,no
+Nuphar advena,cover,0.5296936589466266,-0.2025448798001896,1.2781151995402347,para grass,1.0012459302916343,2656.777780244606,emersed,para grass cover,1,138,no,no
+Nuphar advena,management,0.369591432319038,-0.34792180224311836,1.1401229121410175,para grass,1.0104522537619343,2754.446869023066,emersed,para grass mgmt.,1,138,no,no
+Nuphar advena,net,-3.4315221282676767,-10.806230546672706,2.5492158472371913,para grass,1.0104522537619343,2111.3407438402974,emersed,mgmt. + cover,1,138,no,no
+Nymphaea mexicana,cover,0.11490638999634285,-0.7863012628279595,0.9399389575235534,para grass,1.18932038597173,2696.374644218923,emersed,para grass cover,1,139,no,no
+Nymphaea mexicana,management,-0.0013868164401082976,-0.6240410410402589,0.607734873179376,para grass,1.002294878068708,3065.0019519191055,emersed,para grass mgmt.,1,139,no,no
+Nymphaea mexicana,net,3.391887747868746,-1.3584905121974649,8.665430294486033,para grass,1.18932038597173,1678.6285413460466,emersed,mgmt. + cover,1,139,no,no
+Nymphaea odorata,cover,0.6958915893981203,-0.11402476484628611,1.477005443497356,para grass,1.1017759413605925,2869.824068949226,emersed,para grass cover,1,140,no,no
+Nymphaea odorata,management,-0.12791223740969365,-0.8732656596657163,0.5179894243835003,para grass,1.0115351364546794,2881.949533043175,emersed,para grass mgmt.,1,140,no,no
+Nymphaea odorata,net,0.1314700804564833,-8.70450702053922,7.652620414783138,para grass,1.1017759413605925,1904.5562423425897,emersed,mgmt. + cover,1,140,no,no
+Nymphoides aquatica,cover,1.4098473124481556,0.34150000266143055,2.4276635838986564,para grass,1.0036605332872448,2268.446734079132,emersed,para grass cover,1,141,yes,yes
+Nymphoides aquatica,management,0.018240426333467907,-0.7355986312273481,0.7585692246034235,para grass,1.000999580662085,2409.407913192952,emersed,para grass mgmt.,1,141,no,no
+Nymphoides aquatica,net,-2.3084895099510088,-16.832495287093383,9.954867574116598,para grass,1.0036605332872448,636.3874514596631,emersed,mgmt. + cover,1,141,no,no
+Panicum hemitomon,cover,-0.6852606678326874,-1.3197491226339086,0.007548504516724422,para grass,1.0419943770275848,3103.485801388523,emersed,para grass cover,1,142,no,no
+Panicum hemitomon,management,0.7544607629662513,0.04359058689156267,1.6158690494267263,para grass,1.002005849812949,2570.1081044749535,emersed,para grass mgmt.,1,142,yes,yes
+Panicum hemitomon,net,-4.408927000263124,-12.409359008165678,1.8308839908344763,para grass,1.0419943770275848,2273.317014786946,emersed,mgmt. + cover,1,142,no,no
+Paspalidium geminatum,cover,-2.6858663074926414,-3.5157449845979487,-1.8894673692356234,para grass,1.006477523116501,2713.681618894645,emersed,para grass cover,1,143,yes,yes
+Paspalidium geminatum,management,0.552357560044525,-0.0865770018469812,1.2829347550455754,para grass,1.0210985737314933,2322.3549231249303,emersed,para grass mgmt.,1,143,no,no
+Paspalidium geminatum,net,-7.578916609192021,-19.309008852486787,0.94494433785668,para grass,1.0535169266579076,1056.861838021454,emersed,mgmt. + cover,1,143,no,no
+Paspalum repens,cover,1.2580903467740785,0.5447750690327112,1.941684405937121,para grass,1.015155597601959,3171.5276241074334,emersed,para grass cover,1,144,yes,yes
+Paspalum repens,management,-0.2725122952027797,-0.9056526022823578,0.33879272112183434,para grass,1.0022982069161976,2868.073341841482,emersed,para grass mgmt.,1,144,no,no
+Paspalum repens,net,8.606049357013985,2.0582870511337332,16.99137864102731,para grass,1.015155597601959,1621.7432481094334,emersed,mgmt. + cover,1,144,yes,yes
+Peltandra spp.,cover,0.04075255642356876,-1.1766557385509377,1.15297954863011,para grass,1.003845415047024,2117.907157066574,emersed,para grass cover,1,145,no,no
+Peltandra spp.,management,-0.3265837144927095,-1.110034859430549,0.41911820352812595,para grass,1.0011952423427555,2334.6373506121945,emersed,para grass mgmt.,1,145,no,no
+Peltandra spp.,net,-1.7365102967632315,-16.42152531292136,10.146635229114638,para grass,1.066148851933215,720.3074223114041,emersed,mgmt. + cover,1,145,no,no
+Phragmites australis,cover,-2.8786828437485377,-3.9624758232848447,-1.846992369411981,para grass,1.0061344447278195,2098.0782357321787,emersed,para grass cover,1,146,yes,yes
+Phragmites australis,management,-0.16798546975881687,-0.8580612556085627,0.47147233658214094,para grass,1.00167581835213,2937.159421600145,emersed,para grass mgmt.,1,146,no,no
+Phragmites australis,net,2.0308811820044945,-5.571704874535658,12.768484407566472,para grass,1.382584174432658,680.3234176959486,emersed,mgmt. + cover,1,146,no,no
+Pontederia cordata,cover,1.4885164215856765,0.644392672055588,2.361803469346532,para grass,1.0202076718907196,2697.9541116706678,emersed,para grass cover,1,147,yes,yes
+Pontederia cordata,management,-0.00986604813938088,-0.7082536538738947,0.6694723261266252,para grass,0.9998174886358917,2794.4020593314945,emersed,para grass mgmt.,1,147,no,no
+Pontederia cordata,net,-6.294673231411945,-17.1799375034032,2.3744563351288077,para grass,1.0202076718907196,1234.485535588788,emersed,mgmt. + cover,1,147,no,no
+Potamogeton illinoensis,cover,-0.7235386939417104,-2.0501215321989346,0.5888200719369004,para grass,1.0123517749630084,1585.109163055603,submersed,para grass cover,3,348,no,no
+Potamogeton illinoensis,management,-0.13853942527574506,-0.9343200824880193,0.6237414504914262,para grass,1.0058034511914453,2907.656154364056,submersed,para grass mgmt.,3,348,no,no
+Potamogeton illinoensis,net,-9.163777816220335,-32.91057894635669,9.968138596400022,para grass,1.019138213968844,248.3735363072474,submersed,mgmt. + cover,3,348,no,no
+Rhynchospora spp.,cover,0.148104767909566,-0.7223223311892563,0.9719162185569098,para grass,1.0371356715435007,2478.2711367434913,emersed,para grass cover,1,149,no,no
+Rhynchospora spp.,management,0.08335938733253183,-0.5162630511613291,0.6820002424168594,para grass,1.0021371530195016,2453.589661883351,emersed,para grass mgmt.,1,149,no,no
+Rhynchospora spp.,net,-7.930127393161892,-22.26759032444306,2.2053677687950013,para grass,1.0371356715435007,930.8926714097854,emersed,mgmt. + cover,1,149,no,no
+Sacciolepis striata,cover,-1.2402878063725415,-1.9411507590163304,-0.5675298431809558,para grass,1.000832182257068,3143.555075667946,emersed,para grass cover,1,150,yes,yes
+Sacciolepis striata,management,0.23056951947333745,-0.3627565594627333,0.8400741601662574,para grass,1.009844635222844,3214.139395662658,emersed,para grass mgmt.,1,150,no,no
+Sacciolepis striata,net,-4.574285834272666,-10.814381738935142,0.5456034980430047,para grass,1.009844635222844,2351.3076836077626,emersed,mgmt. + cover,1,150,no,no
+Sagittaria lancifolia,cover,0.19640142595455656,-0.5749304047263375,0.9473286270623007,para grass,1.0061147536897077,2893.0783382451314,emersed,para grass cover,1,151,no,no
+Sagittaria lancifolia,management,-0.4853651151803589,-1.236820797262976,0.19327599218813807,para grass,1.0020082846434142,2405.470369140442,emersed,para grass mgmt.,1,151,no,no
+Sagittaria lancifolia,net,-6.426185394267967,-19.687957833752147,3.993065623069804,para grass,1.0061147536897077,930.068153780361,emersed,mgmt. + cover,1,151,no,no
+Sagittaria latifolia,cover,0.6836416437487928,-0.12641445590181682,1.4500290006845293,para grass,1.0190561344481488,3000,emersed,para grass cover,1,152,no,no
+Sagittaria latifolia,management,-0.20008165121993138,-0.8393675681312056,0.4002731636356031,para grass,1.0051831840795187,2686.3433225818726,emersed,para grass mgmt.,1,152,no,no
+Sagittaria latifolia,net,-1.387281497100356,-10.030289945001742,5.208983766136841,para grass,1.0190561344481488,1993.2931384724154,emersed,mgmt. + cover,1,152,no,no
+Sagittaria subulata/graminea/gracillima,cover,0.25708138657596247,-0.7615928655630023,1.2097904690673358,para grass,0.9999941553077399,2157.592114935524,emersed,para grass cover,1,153,no,no
+Sagittaria subulata/graminea/gracillima,management,0.22728330987414572,-0.399624172874868,0.903695226728196,para grass,1.0074412685852938,2766.0310762526888,emersed,para grass mgmt.,1,153,no,no
+Sagittaria subulata/graminea/gracillima,net,0.08446816626257155,-11.332644003353524,8.23483291731107,para grass,1.0074412685852938,1228.7886259800841,emersed,mgmt. + cover,1,153,no,no
+Salix spp.,cover,0.6034217658384353,-0.18629891641098856,1.4835026722380493,para grass,1.0021615254552438,2981.8778774296934,emersed,para grass cover,1,154,no,no
+Salix spp.,management,0.332373481997504,-0.4214976853730917,1.1469242504612853,para grass,1.0076164205992606,2700.6024298663497,emersed,para grass mgmt.,1,154,no,no
+Salix spp.,net,3.099091707991413,-3.341014095776504,11.991888089475934,para grass,1.0264230602729054,1863.7812124160478,emersed,mgmt. + cover,1,154,no,no
+Saururus cernuus,cover,0.7990986394417114,-0.2272907197192074,1.7976760341369942,para grass,1.0371731193251732,2032.5200764685742,emersed,para grass cover,1,155,no,no
+Saururus cernuus,management,-0.15367002463071466,-0.9210990657026243,0.5672023878884244,para grass,1.0013870694395677,2389.7204373130717,emersed,para grass mgmt.,1,155,no,no
+Saururus cernuus,net,-9.07409505980646,-27.94344091420718,5.671072206789104,para grass,1.1412205616663187,528.9263355760544,emersed,mgmt. + cover,1,155,no,no
+Spartina bakeri,cover,0.12069731357772573,-0.6578353706555494,0.8900498116747799,para grass,1.3182616788897754,2943.8619457715936,emersed,para grass cover,1,156,no,no
+Spartina bakeri,management,0.37231964001938617,-0.31940756082112437,1.1321195546553484,para grass,1.0896604117205826,2235.741617722768,emersed,para grass mgmt.,1,156,no,no
+Spartina bakeri,net,-11.673342634826145,-27.458623393937522,-0.8702193915292361,para grass,1.5811679871152577,682.9709515303903,emersed,mgmt. + cover,1,156,yes,no
+Thalia geniculata,cover,0.473279677881351,-0.39803379082348705,1.4050075703425362,para grass,1.2593019158072847,2894.233048197145,emersed,para grass cover,1,157,no,no
+Thalia geniculata,management,0.3261253424095738,-0.3837124405532443,1.0750732932886014,para grass,1.1783213599562938,2482.931829852553,emersed,para grass mgmt.,1,157,no,no
+Thalia geniculata,net,-9.047563601046894,-24.623839020256334,1.8258542716931032,para grass,4.1922476618233,860.0844382031174,emersed,mgmt. + cover,1,157,no,no
+Typha spp.,cover,0.23543107083417109,-0.72541856453188,1.2407757141551765,para grass,1.007924631668149,2341.6895083877203,emersed,para grass cover,1,158,no,no
+Typha spp.,management,0.19575366609227757,-0.5666805471291609,0.9708394473897736,para grass,1.0101711941916192,3048.14307535253,emersed,para grass mgmt.,1,158,no,no
+Typha spp.,net,-2.7244766042584225,-7.104591561367679,1.7825602375857663,para grass,1.0439438297560444,2056.8498055446294,emersed,mgmt. + cover,1,158,no,no
+Utricularia floridana,cover,-1.501836804941749,-3.682540250954343,0.37513831680790904,para grass,1.0054057572039086,655.3760777598116,submersed,para grass cover,3,359,no,no
+Utricularia floridana,management,-0.29215077404873,-1.1588379450525361,0.466984839609513,para grass,1.0085797998926591,2597.882572563286,submersed,para grass mgmt.,3,359,no,no
+Utricularia floridana,net,-13.114543072320366,-40.32129458554061,4.391974652630338,para grass,1.0357338360250936,257.8557454579245,submersed,mgmt. + cover,3,359,no,no
+Utricularia foliosa,cover,0.6073000696622765,-0.29272699661556734,1.4909668189741987,para grass,1.1106234725195472,2774.830052209732,submersed,para grass cover,3,360,no,no
+Utricularia foliosa,management,-0.14081080160200757,-0.7880478144398302,0.4636929281836539,para grass,1.0225381757279794,2656.170999274639,submersed,para grass mgmt.,3,360,no,no
+Utricularia foliosa,net,-4.711172358924153,-19.067086622979996,4.586368723506562,para grass,1.1106234725195472,827.9173491985536,submersed,mgmt. + cover,3,360,no,no
+Utricularia gibba,cover,0.5039147269969054,-0.3389621984503253,1.3202132312735018,para grass,1.0025355129304647,3055.358061117753,submersed,para grass cover,3,361,no,no
+Utricularia gibba,management,0.043232994469831205,-0.5610943570652779,0.6447534791909353,para grass,1.0027864353607745,2686.0991702279607,submersed,para grass mgmt.,3,361,no,no
+Utricularia gibba,net,-1.745308820258673,-12.461543539559255,6.0106483123742915,para grass,1.0027864353607745,1453.4993928020126,submersed,mgmt. + cover,3,361,no,no
+Utricularia inflata,cover,2.186193005600536,1.3872282245144103,2.9751131543752773,para grass,1.0087933726236247,3000.000000000001,submersed,para grass cover,3,362,yes,yes
+Utricularia inflata,management,0.0136213008877391,-0.6757169756335781,0.6750181679780143,para grass,0.9997832315830529,2910.041565234311,submersed,para grass mgmt.,3,362,no,no
+Utricularia inflata,net,-1.123426506678707,-15.022689864651845,8.697169464181764,para grass,1.0087933726236247,745.3909681628272,submersed,mgmt. + cover,3,362,no,no
+Utricularia purpurea,cover,-0.8094933285318457,-2.177628638363623,0.4379896757740389,para grass,1.0035893369223228,1610.7108063448056,submersed,para grass cover,3,363,no,no
+Utricularia purpurea,management,-0.09372297936610996,-0.8066301421678993,0.6032464871020236,para grass,1.000570333262544,2744.8456211755893,submersed,para grass mgmt.,3,363,no,no
+Utricularia purpurea,net,-4.004007046605383,-19.26058392942857,6.630270083518814,para grass,1.0110555117357685,683.3945394328557,submersed,mgmt. + cover,3,363,no,no
+Vallisneria americana,cover,-0.6179770238661796,-1.5251099766960645,0.24379969802992574,para grass,1.0480856878830367,3000,submersed,para grass cover,3,364,no,no
+Vallisneria americana,management,0.14585658398400345,-0.5161692947960435,0.8232628447001339,para grass,1.011255176328354,2204.7331841979667,submersed,para grass mgmt.,3,364,no,no
+Vallisneria americana,net,-15.217891805228074,-35.79272044305448,-1.388689608055922,para grass,1.0480856878830367,350.1147304056928,submersed,mgmt. + cover,3,364,yes,no
+Azolla caroliniana,cover,0.2893627792038647,0.030674619597035043,0.5394447360389418,torpedograss,1.0000066331567425,2841.135960389298,floating,torpedograss cover,2,201,yes,yes
+Azolla caroliniana,management,0.10254707985150566,-0.09360248241590194,0.2849094057368267,torpedograss,1.002953317445526,2956.677958111095,floating,torpedograss mgmt.,2,201,no,no
+Azolla caroliniana,net,-0.3006833564038787,-1.0509154827806737,0.35404088394796057,torpedograss,1.002953317445526,2841.135960389298,floating,mgmt. + cover,2,201,no,no
+Bacopa caroliniana,cover,0.4364315575843944,0.1876904847802791,0.6975356333022322,torpedograss,1.0001717169765383,2625.8825458504316,emersed,torpedograss cover,1,102,yes,yes
+Bacopa caroliniana,management,-0.003033836723953949,-0.19226644083480104,0.18037117006786024,torpedograss,1.0006302393847326,3000,emersed,torpedograss mgmt.,1,102,no,no
+Bacopa caroliniana,net,-0.623972760370084,-1.2231323902259086,-0.022154293271062952,torpedograss,1.0006302393847326,2625.8825458504316,emersed,mgmt. + cover,1,102,yes,yes
+Bacopa monnieri,cover,-0.039697469404120556,-0.2572654290784908,0.15812653603160662,torpedograss,1.0028052941875643,2898.6154820758675,emersed,torpedograss cover,1,103,no,no
+Bacopa monnieri,management,0.12161064356796275,-0.053856020748814834,0.2987517939273497,torpedograss,1.0001261224925473,3569.8729990366915,emersed,torpedograss mgmt.,1,103,no,no
+Bacopa monnieri,net,0.46889311339932366,-0.0026244000348276298,0.936160572292788,torpedograss,1.0028781768511847,3569.8729990366915,emersed,mgmt. + cover,1,103,no,no
+Bidens spp.,cover,-0.11499912140550476,-0.35637598419018035,0.11630631025359098,torpedograss,0.9994230048814163,3000.822407054491,emersed,torpedograss cover,1,104,no,no
+Bidens spp.,management,-0.0785819139501884,-0.24763332747693262,0.0860490572464423,torpedograss,1.0013802531559814,2516.595713601594,emersed,torpedograss mgmt.,1,104,no,no
+Bidens spp.,net,-0.24893161050124307,-0.7613152799463875,0.272966752133783,torpedograss,1.004135307216248,2516.595713601594,emersed,mgmt. + cover,1,104,no,no
+Brasenia schreberi,cover,-0.4088288403545029,-0.9104879324708806,0.0653258960443138,torpedograss,1.0056533838227644,1234.9526429295954,emersed,torpedograss cover,1,105,no,no
+Brasenia schreberi,management,0.03057864769123719,-0.24801157906470123,0.29990278645043494,torpedograss,1.0043672135748758,1971.1409391335162,emersed,torpedograss mgmt.,1,105,no,no
+Brasenia schreberi,net,-0.2560025730728259,-1.2101096817613792,0.5152434466095596,torpedograss,1.0056533838227644,243.9434267531346,emersed,mgmt. + cover,1,105,no,no
+Cabomba caroliniana,cover,-0.6414088998597582,-0.9906807178085131,-0.30656408942531055,torpedograss,1.0091741541576436,2195.5222693581977,submersed,torpedograss cover,3,306,yes,yes
+Cabomba caroliniana,management,0.03500071719833301,-0.17942314563081274,0.25402915895984657,torpedograss,1.0017434259005324,2672.589524747835,submersed,torpedograss mgmt.,3,306,no,no
+Cabomba caroliniana,net,-0.825776465202779,-1.6818824314983367,-0.08613971742337498,torpedograss,1.0091741541576436,1801.6898592917587,submersed,mgmt. + cover,3,306,yes,yes
+Carex spp.,cover,0.5996869372300431,0.3328169792066653,0.8623183803609054,torpedograss,1.0027751188886367,2755.3338027881073,emersed,torpedograss cover,1,107,yes,yes
+Carex spp.,management,0.22966422988031898,0.031173977288003654,0.4268972192923187,torpedograss,1.0016042973925794,3076.641356417811,emersed,torpedograss mgmt.,1,107,yes,yes
+Carex spp.,net,0.7570684996423033,0.2141040840095043,1.2645999560038177,torpedograss,1.0027751188886367,2467.4304133409614,emersed,mgmt. + cover,1,107,yes,yes
+Cephalanthus occidentalis,cover,-0.4316178596668855,-0.6621465950286155,-0.2070776329044854,torpedograss,1.001758901561029,2846.3152850260444,emersed,torpedograss cover,1,108,yes,yes
+Cephalanthus occidentalis,management,0.17656114597995176,-0.025846668563167488,0.3859752573644848,torpedograss,1.0003912972264133,3087.881076708124,emersed,torpedograss mgmt.,1,108,no,no
+Cephalanthus occidentalis,net,0.18082732159804502,-0.38489933340609583,0.8222279826919071,torpedograss,1.0026977841139681,2712.3624005080837,emersed,mgmt. + cover,1,108,no,no
+Ceratophyllum demersum,cover,0.1137427383125293,-0.12183369164109838,0.34094064921317596,torpedograss,1.0021671552174771,2158.4488808570345,submersed,torpedograss cover,3,309,no,no
+Ceratophyllum demersum,management,-0.12322788586007628,-0.3066459796176787,0.055075270298517505,torpedograss,1.0023862435286326,3434.6800774208987,submersed,torpedograss mgmt.,3,309,no,no
+Ceratophyllum demersum,net,-0.3137258607474428,-0.8399078830518462,0.2098896610282289,torpedograss,1.0036300066061608,2158.4488808570345,submersed,mgmt. + cover,3,309,no,no
+Chara spp.,cover,-0.1810517093208374,-0.420431784891304,0.05100530068614446,torpedograss,1.0048033167890438,2838.1029987993156,submersed,torpedograss cover,3,310,no,no
+Chara spp.,management,0.22516597754633538,0.046785631696973015,0.406669690580771,torpedograss,1.002083719217725,3000,submersed,torpedograss mgmt.,3,310,yes,yes
+Chara spp.,net,0.1767837032483014,-0.3319578961409191,0.6570045596450258,torpedograss,1.0048033167890438,2838.1029987993156,submersed,mgmt. + cover,3,310,no,no
+Cicuta maculata,cover,-1.8463520335004127,-2.474407570406105,-1.2583431631739093,torpedograss,1.00397067842136,756.4896455210446,emersed,torpedograss cover,1,111,yes,no
+Cicuta maculata,management,0.19035248045138542,-0.03668735340614634,0.41146667874774406,torpedograss,1.0052659856950785,2627.1197233806724,emersed,torpedograss mgmt.,1,111,no,no
+Cicuta maculata,net,-1.1147296060411063,-2.6343596239254072,0.08714491107941232,torpedograss,1.0191827324568352,756.4896455210446,emersed,mgmt. + cover,1,111,no,no
+Cladium jamaicense,cover,-0.276676608328025,-0.5656873928991489,0.02627751224377236,torpedograss,1.0000104927527598,2620.5356311894093,emersed,torpedograss cover,1,112,no,no
+Cladium jamaicense,management,0.16835191217830997,-0.030906199375559197,0.3667310045515468,torpedograss,1.002004970879841,3135.7423351745283,emersed,torpedograss mgmt.,1,112,no,no
+Cladium jamaicense,net,-0.40701513554725205,-1.1704578268257413,0.3190009679515139,torpedograss,1.002004970879841,2385.496223830945,emersed,mgmt. + cover,1,112,no,no
+Crinum americanum,cover,-0.5125259140284778,-0.8909579889465031,-0.14337518274905142,torpedograss,1.0044961995801198,2073.351148785423,emersed,torpedograss cover,1,113,yes,yes
+Crinum americanum,management,0.3048725522753467,0.09678343542019185,0.514654419301284,torpedograss,1.0026381991215152,3081.400835923403,emersed,torpedograss mgmt.,1,113,yes,yes
+Crinum americanum,net,-0.6808556858608485,-1.829143326853654,0.21611757552561026,torpedograss,1.0044961995801198,1583.7932888402015,emersed,mgmt. + cover,1,113,no,no
+Cyperus articulatus,cover,0.5989232631750661,0.28771725546279225,0.9295410183167756,torpedograss,1.00228634899451,1837.2426160133632,emersed,torpedograss cover,1,114,yes,yes
+Cyperus articulatus,management,0.30624363675986865,0.062392044629746075,0.5523211913322617,torpedograss,1.0041709696645778,2569.6104021553665,emersed,torpedograss mgmt.,1,114,yes,yes
+Cyperus articulatus,net,-0.10348688279643055,-1.3491254490451796,0.8971868159919397,torpedograss,1.004324203299797,582.8086268391471,emersed,mgmt. + cover,1,114,no,no
+Cyperus spp. (other natives),cover,-0.09039192033370333,-0.29066815062620693,0.11289373823541679,torpedograss,0.9997993028449783,2731.673952684747,emersed,torpedograss cover,1,115,no,no
+Cyperus spp. (other natives),management,-0.23580248650156396,-0.40077798286935506,-0.0705373494477925,torpedograss,1.000864541063592,3000,emersed,torpedograss mgmt.,1,115,yes,yes
+Cyperus spp. (other natives),net,0.2774791671760961,-0.2674372599727051,0.8857511394735365,torpedograss,1.000864541063592,2731.673952684747,emersed,mgmt. + cover,1,115,no,no
+Decodon verticillatus,cover,-0.254677785095396,-0.6318617498139651,0.11895414177088359,torpedograss,1.0037654499804702,1753.958543530896,emersed,torpedograss cover,1,116,no,no
+Decodon verticillatus,management,0.3400814741146258,0.13602240057168827,0.5377035729127617,torpedograss,1.0000725164285191,3000,emersed,torpedograss mgmt.,1,116,yes,yes
+Decodon verticillatus,net,0.6791445415009987,0.07014410180367238,1.2395677964206588,torpedograss,1.006885714219256,816.1409966428309,emersed,mgmt. + cover,1,116,yes,no
+Echinochloa spp.,cover,0.3140216013102305,0.10816726296316465,0.5188386639807026,torpedograss,0.9997978285846166,3175.984604726983,emersed,torpedograss cover,1,117,yes,yes
+Echinochloa spp.,management,-0.02831063011442867,-0.19996815241406293,0.1436217225417818,torpedograss,1.0032870515812649,2832.240653434428,emersed,torpedograss mgmt.,1,117,no,no
+Echinochloa spp.,net,0.8577035626620101,0.34396222647760105,1.38047986926071,torpedograss,1.0032870515812649,3175.984604726983,emersed,mgmt. + cover,1,117,yes,yes
+"Eleocharis spp., emersed",cover,-0.0011079183036114923,-0.21657435714819331,0.2206246740807711,torpedograss,1.0003295228214086,2747.1069591411424,emersed,torpedograss cover,1,118,no,no
+"Eleocharis spp., emersed",management,0.15490415519088455,-0.028647446568832936,0.3386865255771863,torpedograss,1.0020749132236908,2893.419861193891,emersed,torpedograss mgmt.,1,118,no,no
+"Eleocharis spp., emersed",net,0.6626191916428734,0.04630172356017173,1.3401091818596225,torpedograss,1.0020749132236908,2694.881365833038,emersed,mgmt. + cover,1,118,yes,yes
+"Eleocharis spp., sub/floating",cover,0.0819744558366578,-0.1487882394719274,0.2925058819318797,torpedograss,1.0024808423851777,3000,submersed,torpedograss cover,3,319,no,no
+"Eleocharis spp., sub/floating",management,-0.030364559870494186,-0.20187064536579244,0.147717508258602,torpedograss,0.99958644356410975,3000,submersed,torpedograss mgmt.,3,319,no,no
+"Eleocharis spp., sub/floating",net,0.034037379628709584,-0.5240518556869584,0.6072279891711546,torpedograss,1.0024808423851777,2880.7675363786157,submersed,mgmt. + cover,3,319,no,no
+Filamentous algae,cover,0.8633691193481908,0.6331123188117878,1.0960103699042414,torpedograss,1.0026206638573327,2163.591607409384,floating,torpedograss cover,2,220,yes,yes
+Filamentous algae,management,-0.07623737234985795,-0.2487592887606023,0.09167754309109447,torpedograss,0.9999548968777491,2782.303327261814,floating,torpedograss mgmt.,2,220,no,no
+Filamentous algae,net,0.6786923203902016,0.042817833460892865,1.3697264782581078,torpedograss,1.0026206638573327,2163.591607409384,floating,mgmt. + cover,2,220,yes,yes
+Fuirena spp.,cover,-0.08524321136986492,-0.3527025149510276,0.1912390155674447,torpedograss,1.0002066694340999,2671.736205907274,emersed,torpedograss cover,1,121,no,no
+Fuirena spp.,management,0.23114898517160268,0.027245181981857138,0.4340510013410351,torpedograss,1.0029299568497605,2924.552570579257,emersed,torpedograss mgmt.,1,121,yes,yes
+Fuirena spp.,net,0.5424342747656888,-0.11859245960701792,1.2442740328461501,torpedograss,1.0029299568497605,2671.736205907274,emersed,mgmt. + cover,1,121,no,no
+Hydrocotyle spp.,cover,0.11828732615260253,-0.16608675867069542,0.4217327856220178,torpedograss,0.9991272771777682,2507.8363462006077,emersed,torpedograss cover,1,122,no,no
+Hydrocotyle spp.,management,-0.12034837072754181,-0.33111365891529637,0.09737320693576725,torpedograss,1.0023755261335978,2879.7599908428024,emersed,torpedograss mgmt.,1,122,no,no
+Hydrocotyle spp.,net,0.1487231828287878,-0.6139014303817911,1.1094317255675006,torpedograss,1.004075760072034,2041.0511833196567,emersed,mgmt. + cover,1,122,no,no
+Hypericum spp.,cover,0.1962043414282638,-0.11561204776571278,0.4912441828095593,torpedograss,1.0054084794258948,2742.8037361915963,emersed,torpedograss cover,1,123,no,no
+Hypericum spp.,management,0.1381460175964727,-0.056393502859572335,0.3341667264407323,torpedograss,0.999970738342803,3000.0000000000005,emersed,torpedograss mgmt.,1,123,no,no
+Hypericum spp.,net,1.1261346476520016,0.5503940561727724,1.702519901055841,torpedograss,1.005750124284705,2084.922935835507,emersed,mgmt. + cover,1,123,yes,yes
+Juncus effusus,cover,0.1546630016599889,-0.04607124122274813,0.35917503181189403,torpedograss,1.0011480769115966,2391.8427096787877,emersed,torpedograss cover,1,124,no,no
+Juncus effusus,management,-0.1366220343871021,-0.30292731903895737,0.030164166897819766,torpedograss,1.0004197237480519,2613.5242625216733,emersed,torpedograss mgmt.,1,124,no,no
+Juncus effusus,net,0.002736253425914474,-0.47651030321077176,0.4674798560160464,torpedograss,1.0039110738711525,2391.8427096787877,emersed,mgmt. + cover,1,124,no,no
+Leersia hexandra,cover,-0.019795663652455744,-0.2756892554448351,0.22593882000886428,torpedograss,1.0015381121570346,3000,emersed,torpedograss cover,1,125,no,no
+Leersia hexandra,management,0.1643904370744564,-0.009179848379083078,0.3367530623495613,torpedograss,1.000182877349798,2868.5768820404255,emersed,torpedograss mgmt.,1,125,no,no
+Leersia hexandra,net,-0.09708370028030054,-0.6505026271574701,0.4191045982797206,torpedograss,1.002426400351035,3436.328655556824,emersed,mgmt. + cover,1,125,no,no
+Lemna/Spirodela spp.,cover,0.24720307387206128,0.03620616269122497,0.46296627954148695,torpedograss,1.0049027268335182,2854.2165552650717,floating,torpedograss cover,2,226,yes,yes
+Lemna/Spirodela spp.,management,0.021361388555881197,-0.14727144103842807,0.18995057739170312,torpedograss,1.0027587749161802,3003.6081364520396,floating,torpedograss mgmt.,2,226,no,no
+Lemna/Spirodela spp.,net,0.5407620638941115,0.025282088290252514,1.0706233005956372,torpedograss,1.0068040540913872,2854.2165552650717,floating,mgmt. + cover,2,226,yes,yes
+Limnobium spongia,cover,0.18380354699953816,-0.1066468459189283,0.4796239985599324,torpedograss,1.0013353537234038,3211.3975944393237,floating,torpedograss cover,2,227,no,no
+Limnobium spongia,management,0.1322871755846972,-0.059269722986282344,0.3178737232199875,torpedograss,1.001247287085353,3000,floating,torpedograss mgmt.,2,227,no,no
+Limnobium spongia,net,0.14706824989414638,-0.4474646509732646,0.7179253677837844,torpedograss,1.0023795515274123,2364.414517610566,floating,mgmt. + cover,2,227,no,no
+Ludwigia octovalvis/peruviana,cover,0.1837828830593145,-0.16129651692935387,0.5413850536080321,torpedograss,1.0001860789359058,1769.0848270118117,emersed,torpedograss cover,1,128,no,no
+Ludwigia octovalvis/peruviana,management,-0.22236351932172949,-0.43022985135847563,-0.020486315328209735,torpedograss,1.0050036244727092,2907.139599225255,emersed,torpedograss mgmt.,1,128,yes,yes
+Ludwigia octovalvis/peruviana,net,0.0692620446291375,-0.7342345810382042,1.1121184857722848,torpedograss,1.0050036244727092,1769.0848270118117,emersed,mgmt. + cover,1,128,no,no
+Ludwigia palustris/repens,cover,0.48401668930163677,0.25926084331951094,0.6914284122910913,torpedograss,1.0011357080024121,3000,emersed,torpedograss cover,1,129,yes,yes
+Ludwigia palustris/repens,management,0.2513292861573444,0.06219542170413229,0.4224842734674113,torpedograss,1.0002445769784272,3000,emersed,torpedograss mgmt.,1,129,yes,yes
+Ludwigia palustris/repens,net,0.5355183480495739,0.04786287626151415,1.0018723348634324,torpedograss,1.0011357080024121,2850.0428293692257,emersed,mgmt. + cover,1,129,yes,yes
+Luziola fluitans,cover,0.22014022729846272,-0.06874429789481674,0.5026358754727223,torpedograss,0.9998757585878338,2818.3098617424594,submersed,torpedograss cover,3,330,no,no
+Luziola fluitans,management,0.05366557086755626,-0.12572874236541182,0.22738506689430835,torpedograss,0.9997228303765187,3000,submersed,torpedograss mgmt.,3,330,no,no
+Luziola fluitans,net,0.291062164900409,-0.3119661764817317,0.8754248213949459,torpedograss,1.0008335530285606,2725.074875498227,submersed,mgmt. + cover,3,330,no,no
+Mayaca fluviatilis,cover,0.6173810224867111,0.3288743475641641,0.8886720826170417,torpedograss,1.0099377316381735,2522.920436854426,submersed,torpedograss cover,3,331,yes,yes
+Mayaca fluviatilis,management,0.005595778891635895,-0.2286875027591888,0.24290388104809468,torpedograss,1.0006060813704065,2760.5150477357147,submersed,torpedograss mgmt.,3,331,no,no
+Mayaca fluviatilis,net,0.4449716931295961,-0.1760143894886765,1.073557907382155,torpedograss,1.0118022197705363,656.49631668796,submersed,mgmt. + cover,3,331,no,no
+Micranthemum glomeratum,cover,0.06641107043447515,-0.14472290496277193,0.2829266440659798,torpedograss,1.0040495460915326,3159.71463581556,submersed,torpedograss cover,3,332,no,no
+Micranthemum glomeratum,management,0.29698927868262154,0.10352425933197774,0.48256620980844567,torpedograss,1.0011087627911384,3312.9373382244785,submersed,torpedograss mgmt.,3,332,yes,yes
+Micranthemum glomeratum,net,0.5367527919989413,0.04845194868681496,1.0180574775668185,torpedograss,1.0086878171615823,3312.9373382244785,submersed,mgmt. + cover,3,332,yes,yes
+Micranthemum umbrosum,cover,0.16444360726244953,-0.0811654728198131,0.4006220933972398,torpedograss,1.0000045847124817,2890.377648689136,emersed,torpedograss cover,1,133,no,no
+Micranthemum umbrosum,management,0.027073612800263262,-0.16687744643742736,0.2190784347260916,torpedograss,1.0018416015109244,2999.9999999999995,emersed,torpedograss mgmt.,1,133,no,no
+Micranthemum umbrosum,net,0.7300387392395448,0.25673033583841015,1.2283039028082798,torpedograss,1.0018416015109244,2822.7658967742027,emersed,mgmt. + cover,1,133,yes,yes
+Myriophyllum laxum/pinnatum,cover,0.11459784425272915,-0.215448761536406,0.4312877245578563,torpedograss,1.0039776550662012,2480.7837838110077,submersed,torpedograss cover,3,334,no,no
+Myriophyllum laxum/pinnatum,management,-0.0067080181661479,-0.2708810712732765,0.2406674794877813,torpedograss,1.0016542283033705,2505.7304912737736,submersed,torpedograss mgmt.,3,334,no,no
+Myriophyllum laxum/pinnatum,net,0.17055404562646231,-0.4730924640406508,0.7633104515887634,torpedograss,1.0039776550662012,530.0064873877028,submersed,mgmt. + cover,3,334,no,no
+Najas guadalupensis,cover,0.36521451399640614,0.15831663535355625,0.5758230846528333,torpedograss,1.0020051120720832,2133.2939227563656,submersed,torpedograss cover,3,335,yes,yes
+Najas guadalupensis,management,0.03133296534762978,-0.15522002521918773,0.2083401881417122,torpedograss,0.9991787689248305,3000,submersed,torpedograss mgmt.,3,335,no,no
+Najas guadalupensis,net,0.8658964714446352,0.28514323541076053,1.5065214462397898,torpedograss,1.0020051120720832,2133.2939227563656,submersed,mgmt. + cover,3,335,yes,yes
+Nelumbo lutea,cover,-0.6598862271329247,-0.9683459638218804,-0.35961969663356724,torpedograss,1.0039013180440592,2549.461376262866,emersed,torpedograss cover,1,136,yes,yes
+Nelumbo lutea,management,0.12841534012553413,-0.06535956423699946,0.32178706806479274,torpedograss,1.005906821559796,3000,emersed,torpedograss mgmt.,1,136,no,no
+Nelumbo lutea,net,-1.0501017769453842,-1.8720169467573289,-0.3236653122278489,torpedograss,1.0106490261377787,1679.0277186010708,emersed,mgmt. + cover,1,136,yes,yes
+Nitella spp.,cover,0.5235480951237373,0.3038064319718503,0.7421494164811999,torpedograss,0.9999264790070664,2829.4883366645918,submersed,torpedograss cover,3,337,yes,yes
+Nitella spp.,management,0.3656682293144905,0.1746386612952739,0.5447090308848022,torpedograss,1.0009414550430336,3068.6892984789192,submersed,torpedograss mgmt.,3,337,yes,yes
+Nitella spp.,net,0.5099805863229971,0.003082838922818759,1.0333542272029743,torpedograss,1.0092765842322406,2575.963651886792,submersed,mgmt. + cover,3,337,yes,yes
+Nuphar advena,cover,0.02503415716432394,-0.2453290834389087,0.306591856432317,torpedograss,1.0060612035053862,2080.7642147346514,emersed,torpedograss cover,1,138,no,no
+Nuphar advena,management,0.12707601411190544,-0.13226478590690477,0.38710988183388295,torpedograss,0.9993939747820946,2310.47953792121,emersed,torpedograss mgmt.,1,138,no,no
+Nuphar advena,net,0.7948277985915475,-0.28222281754494294,2.1287533082464485,torpedograss,1.0060612035053862,1005.2204190285053,emersed,mgmt. + cover,1,138,no,no
+Nymphaea mexicana,cover,-0.5096115327061093,-0.9029815032274774,-0.12484670150330751,torpedograss,0.9999345943342326,1839.7589767681793,emersed,torpedograss cover,1,139,yes,yes
+Nymphaea mexicana,management,0.19388743527472208,-0.025305003729630307,0.39927344572641965,torpedograss,1.0017777788011857,2727.300411824575,emersed,torpedograss mgmt.,1,139,no,no
+Nymphaea mexicana,net,-0.16904101461577895,-1.1354981968940199,0.6041730894611442,torpedograss,1.003851287628712,1839.7589767681793,emersed,mgmt. + cover,1,139,no,no
+Nymphaea odorata,cover,0.6297997153128589,0.3704543028403386,0.8859862807017064,torpedograss,1.0006443407613201,2519.992328526548,emersed,torpedograss cover,1,140,yes,yes
+Nymphaea odorata,management,-0.05448404414867479,-0.26849858745976235,0.1581755405303178,torpedograss,1.0054892834677356,2324.9472686912973,emersed,torpedograss mgmt.,1,140,no,no
+Nymphaea odorata,net,1.9234435281494564,0.616690252932743,3.3800363216433085,torpedograss,1.0119214432322334,986.2845798526841,emersed,mgmt. + cover,1,140,yes,no
+Nymphoides aquatica,cover,0.23153844904446633,-0.07798946698355859,0.5307001102709877,torpedograss,0.9999669857787038,2254.631198446904,emersed,torpedograss cover,1,141,no,no
+Nymphoides aquatica,management,-0.07539119659810911,-0.2831232275828217,0.11905122135810861,torpedograss,1.0013026269154939,2907.155882579978,emersed,torpedograss mgmt.,1,141,no,no
+Nymphoides aquatica,net,-0.8607267750427614,-1.5055179178613702,-0.18649988953604826,torpedograss,1.002171049775124,2254.631198446904,emersed,mgmt. + cover,1,141,yes,yes
+Panicum hemitomon,cover,-0.13155205246037174,-0.36250420831432906,0.11152381020749298,torpedograss,1.0001135758937116,1969.112440341567,emersed,torpedograss cover,1,142,no,no
+Panicum hemitomon,management,0.035773054017425136,-0.17645393333555542,0.25910794184513014,torpedograss,1.0002279506487928,3139.7818846567006,emersed,torpedograss mgmt.,1,142,no,no
+Panicum hemitomon,net,0.19337028395786504,-0.6109085520087097,1.1933568329169582,torpedograss,1.0008309665157344,1969.112440341567,emersed,mgmt. + cover,1,142,no,no
+Paspalidium geminatum,cover,-0.7798986740852012,-1.034045604287929,-0.5302727748393807,torpedograss,1.00311199510091,2196.191005525201,emersed,torpedograss cover,1,143,yes,yes
+Paspalidium geminatum,management,-0.14449779946723743,-0.3207726810786239,0.029378075351155063,torpedograss,1.000598523079559,2915.8948328926076,emersed,torpedograss mgmt.,1,143,no,no
+Paspalidium geminatum,net,-1.0689939767111942,-1.652366522942569,-0.49602904305993806,torpedograss,1.00311199510091,2196.191005525201,emersed,mgmt. + cover,1,143,yes,yes
+Paspalum repens,cover,0.06421007998315809,-0.3708590926412833,0.4541511382375181,torpedograss,1.0015359210598411,1711.2138003901441,emersed,torpedograss cover,1,144,no,no
+Paspalum repens,management,0.30560232254024494,0.08238691684897931,0.5208360756838245,torpedograss,0.9991696069877506,3000,emersed,torpedograss mgmt.,1,144,yes,yes
+Paspalum repens,net,-0.3542437199974656,-1.6169205549151167,0.6189625623677664,torpedograss,1.002930628757396,1469.2616671657888,emersed,mgmt. + cover,1,144,no,no
+Peltandra spp.,cover,0.48442488231678354,0.17668683225711784,0.7909540795583241,torpedograss,1.004528390103366,2419.8014998098915,emersed,torpedograss cover,1,145,yes,yes
+Peltandra spp.,management,0.1062918891907175,-0.094410558505145,0.3023544147892002,torpedograss,1.0013367798237098,2892.3531316488616,emersed,torpedograss mgmt.,1,145,no,no
+Peltandra spp.,net,0.555789435725531,-0.11414323618233882,1.2141925568688825,torpedograss,1.004528390103366,1314.9607074937103,emersed,mgmt. + cover,1,145,no,no
+Phragmites australis,cover,-2.4901731528901725,-3.1516063017022637,-1.8616111630909218,torpedograss,0.9994975439172742,730.0386241353723,emersed,torpedograss cover,1,146,yes,no
+Phragmites australis,management,-0.0011581591784390563,-0.24361984365177378,0.24026811643921372,torpedograss,1.0008882105503107,2591.094652565692,emersed,torpedograss mgmt.,1,146,no,no
+Phragmites australis,net,-1.3299286254360858,-2.8174159969434327,-0.0057171327183825815,torpedograss,1.0039318240646142,730.0386241353723,emersed,mgmt. + cover,1,146,yes,no
+Pontederia cordata,cover,-0.24380472964500408,-0.5227693981957385,0.042984230569227955,torpedograss,1.0005523241482994,1925.2859641736277,emersed,torpedograss cover,1,147,no,no
+Pontederia cordata,management,0.007612262155798877,-0.2271155839975563,0.2401373952278363,torpedograss,1.0003171920566807,3000,emersed,torpedograss mgmt.,1,147,no,no
+Pontederia cordata,net,-0.2234227883446237,-0.9772439627807383,0.745129330646952,torpedograss,1.0026336449191746,1925.2859641736277,emersed,mgmt. + cover,1,147,no,no
+Potamogeton illinoensis,cover,-0.16806744291711387,-0.46764934702582955,0.14893379131612697,torpedograss,1.0073383589021754,2286.8095659860337,submersed,torpedograss cover,3,348,no,no
+Potamogeton illinoensis,management,0.06353567544260019,-0.19531736206973857,0.31919524564407165,torpedograss,1.003852862098951,2328.515465262818,submersed,torpedograss mgmt.,3,348,no,no
+Potamogeton illinoensis,net,-1.6977677750989666,-2.8804031158831616,-0.6607556729500043,torpedograss,1.0073383589021754,787.5185047640914,submersed,mgmt. + cover,3,348,yes,no
+Rhynchospora spp.,cover,0.3889843260004192,0.13775052674918536,0.6372166751357373,torpedograss,1.0030860207128118,2656.3919325606607,emersed,torpedograss cover,1,149,yes,yes
+Rhynchospora spp.,management,-0.060324084660433604,-0.246649699243491,0.122390501905334,torpedograss,1.000430057929067,3000,emersed,torpedograss mgmt.,1,149,no,no
+Rhynchospora spp.,net,0.970839301523997,0.4120884604941024,1.5684663491198698,torpedograss,1.0084797946913195,2656.3919325606607,emersed,mgmt. + cover,1,149,yes,yes
+Sacciolepis striata,cover,-0.11721253254997853,-0.32424954848447335,0.09258504036921984,torpedograss,1.0028914633434216,2494.8014064214753,emersed,torpedograss cover,1,150,no,no
+Sacciolepis striata,management,-0.06449922474960022,-0.23392575563684564,0.10309777598511945,torpedograss,1.000346357663448,2747.29435096325,emersed,torpedograss mgmt.,1,150,no,no
+Sacciolepis striata,net,-0.39698871391174717,-0.8932701380718516,0.1379735844084425,torpedograss,1.0028914633434216,2494.8014064214753,emersed,mgmt. + cover,1,150,no,no
+Sagittaria lancifolia,cover,-0.023438404667934884,-0.2834281146653055,0.2519025247798437,torpedograss,1.008598079217074,1949.0331000076221,emersed,torpedograss cover,1,151,no,no
+Sagittaria lancifolia,management,-0.3528326397487003,-0.5441831518476821,-0.14823460579294187,torpedograss,1.002928474018924,2903.8860194105955,emersed,torpedograss mgmt.,1,151,yes,yes
+Sagittaria lancifolia,net,-0.36443792326566754,-0.9744490830730737,0.30928122779339373,torpedograss,1.008598079217074,1949.0331000076221,emersed,mgmt. + cover,1,151,no,no
+Sagittaria latifolia,cover,-0.25496417092434637,-0.5404933595075545,0.02479366124627759,torpedograss,1.0003047040144535,2854.9150672801206,emersed,torpedograss cover,1,152,no,no
+Sagittaria latifolia,management,-0.37672984528718845,-0.5741912281696614,-0.19322735661175647,torpedograss,1.0010915540794536,3000,emersed,torpedograss mgmt.,1,152,yes,yes
+Sagittaria latifolia,net,-0.4396558928561673,-1.027010199909653,0.10975954575150308,torpedograss,1.004504862360075,2763.7552644948146,emersed,mgmt. + cover,1,152,no,no
+Sagittaria subulata/graminea/gracillima,cover,0.13955481395271754,-0.1472015371945425,0.3979531247082765,torpedograss,0.999846025218773,2834.8270493303726,emersed,torpedograss cover,1,153,no,no
+Sagittaria subulata/graminea/gracillima,management,-0.11633322238708116,-0.3181217521526679,0.07245106742920475,torpedograss,1.004961352502691,3440.7968297164966,emersed,torpedograss mgmt.,1,153,no,no
+Sagittaria subulata/graminea/gracillima,net,0.5170751893574409,-0.061229765230996144,1.1083637921227194,torpedograss,1.004961352502691,3440.7968297164966,emersed,mgmt. + cover,1,153,no,no
+Salix spp.,cover,-0.6556287519334133,-0.8758709707035661,-0.43959192391556484,torpedograss,0.9991857839604231,2692.6976503923233,emersed,torpedograss cover,1,154,yes,yes
+Salix spp.,management,-0.01497854080444578,-0.2296785627464528,0.19878349135905807,torpedograss,1.0006167433070667,3124.7602062782307,emersed,torpedograss mgmt.,1,154,no,no
+Salix spp.,net,-0.8922598367841412,-1.4302532006758018,-0.3766808224475683,torpedograss,1.000778550327748,2692.6976503923233,emersed,mgmt. + cover,1,154,yes,yes
+Saururus cernuus,cover,0.7244305477599091,0.4314281762899561,1.0127624085483444,torpedograss,0.9994935637205504,2587.492518091941,emersed,torpedograss cover,1,155,yes,yes
+Saururus cernuus,management,-0.09201042037894887,-0.30036537784674205,0.11269245600086918,torpedograss,1.0004579487181284,3000,emersed,torpedograss mgmt.,1,155,no,no
+Saururus cernuus,net,0.7051040019568395,0.12615332747238817,1.2668320142588139,torpedograss,1.0079872005294588,1398.081229824027,emersed,mgmt. + cover,1,155,yes,yes
+Spartina bakeri,cover,-0.07152735413178543,-0.3412108720398413,0.19552157670360681,torpedograss,1.0018152507914588,2646.4127877761334,emersed,torpedograss cover,1,156,no,no
+Spartina bakeri,management,-0.07840860681670611,-0.26373120440610676,0.09796695940748577,torpedograss,0.9995745569403824,2853.871795369034,emersed,torpedograss mgmt.,1,156,no,no
+Spartina bakeri,net,-0.4760775081502012,-1.153284929005332,0.20617777464281442,torpedograss,1.016709175771529,1858.4397627964242,emersed,mgmt. + cover,1,156,no,no
+Thalia geniculata,cover,0.5528285305757598,0.18517471141623373,0.9218205418261319,torpedograss,1.0213932387223141,1408.123692772381,emersed,torpedograss cover,1,157,yes,yes
+Thalia geniculata,management,0.025989844374974928,-0.23145074099383056,0.27616092708184736,torpedograss,0.9996461263163782,1306.3678018144847,emersed,torpedograss mgmt.,1,157,no,no
+Thalia geniculata,net,0.6853663864590535,-0.16302065164584886,1.5616691363044977,torpedograss,1.0213932387223141,170.99713227746366,emersed,mgmt. + cover,1,157,no,no
+Typha spp.,cover,0.21083245544569124,-0.13259539409170093,0.5943956306341124,torpedograss,1.0004214908726956,2066.186876544588,emersed,torpedograss cover,1,158,no,no
+Typha spp.,management,-0.0011760289975519657,-0.2492295062463873,0.26041854305388207,torpedograss,1.0033257590021842,2607.5520834641306,emersed,torpedograss mgmt.,1,158,no,no
+Typha spp.,net,0.7903699502236564,-0.44260761429668954,2.450380845559719,torpedograss,1.0053840671835528,882.4134662960456,emersed,mgmt. + cover,1,158,no,no
+Utricularia floridana,cover,-0.17816999419276597,-0.5040744921063357,0.14251309323823869,torpedograss,1.0015188150043641,2033.9732194214066,submersed,torpedograss cover,3,359,no,no
+Utricularia floridana,management,0.31613205131764643,0.1065726892683212,0.5180559793830682,torpedograss,0.9992275367606778,2683.552136117684,submersed,torpedograss mgmt.,3,359,yes,yes
+Utricularia floridana,net,0.577722476379514,0.01666810203525767,1.128291356070571,torpedograss,1.0015188150043641,1181.7905389013943,submersed,mgmt. + cover,3,359,yes,yes
+Utricularia foliosa,cover,0.5645044931683301,0.2894361314739791,0.827537921084649,torpedograss,0.9994112088367767,2191.0379335839143,submersed,torpedograss cover,3,360,yes,yes
+Utricularia foliosa,management,-0.09379019515233604,-0.28880942906710516,0.09224368489208704,torpedograss,1.0002218709280852,3000.0000000000005,submersed,torpedograss mgmt.,3,360,no,no
+Utricularia foliosa,net,-0.0266084281642477,-0.6845142215710788,0.6158435883247694,torpedograss,1.0046578116820042,2191.0379335839143,submersed,mgmt. + cover,3,360,no,no
+Utricularia gibba,cover,0.5548000620136413,0.32137584165187755,0.7918701765276475,torpedograss,1.000945171610814,3000,submersed,torpedograss cover,3,361,yes,yes
+Utricularia gibba,management,-0.17205735282925963,-0.3554137180103773,0.005747770647067671,torpedograss,1.0002588856762695,3000,submersed,torpedograss mgmt.,3,361,no,no
+Utricularia gibba,net,0.40303471509888766,-0.1741558119131027,0.9557642592125226,torpedograss,1.0053020088156521,3527.6227147991726,submersed,mgmt. + cover,3,361,no,no
+Utricularia inflata,cover,0.6618140087578298,0.427041888270392,0.889900851643971,torpedograss,1.0011173767738557,2736.4275053423153,submersed,torpedograss cover,3,362,yes,yes
+Utricularia inflata,management,0.15793020425378596,-0.046273716472171426,0.35351861390736294,torpedograss,1.0006277372555634,3159.532823010467,submersed,torpedograss mgmt.,3,362,no,no
+Utricularia inflata,net,0.07687851745104371,-0.5186233520304959,0.6037843810426503,torpedograss,1.0011173767738557,3464.6883053249503,submersed,mgmt. + cover,3,362,no,no
+Utricularia purpurea,cover,-0.5519574691720233,-0.867360921966981,-0.23133063647087865,torpedograss,1.0012631480905885,1879.1547061563624,submersed,torpedograss cover,3,363,yes,yes
+Utricularia purpurea,management,0.020022399055209226,-0.18217768960088362,0.21827765832104146,torpedograss,0.9997272499832092,3000,submersed,torpedograss mgmt.,3,363,no,no
+Utricularia purpurea,net,0.05081479452013173,-0.49419384767979085,0.55839250742248,torpedograss,1.0012631480905885,1879.1547061563624,submersed,mgmt. + cover,3,363,no,no
+Vallisneria americana,cover,0.23580329367938974,-0.01879633092948222,0.5061668623951926,torpedograss,0.9997756055405643,2812.597304923822,submersed,torpedograss cover,3,364,no,no
+Vallisneria americana,management,0.1299235750397855,-0.0987646706462313,0.3540568347501394,torpedograss,1.0002764339616295,3212.455581279216,submersed,torpedograss mgmt.,3,364,no,no
+Vallisneria americana,net,0.2581913699851828,-0.2891884626153779,0.8194183872046866,torpedograss,1.0002764339616295,3212.455581279216,submersed,mgmt. + cover,3,364,no,no

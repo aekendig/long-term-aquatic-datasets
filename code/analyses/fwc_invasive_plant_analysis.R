@@ -525,7 +525,7 @@ foc_mod_sum <- tibble(Species = "hydrilla",
                    P = wale_mod_p[1, 4],
                    R2 = r.squared(wale_mod),
                    Waterbodies = n_distinct(wale_dat$AreaOfInterestID),
-                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   Years = paste(range(count(wale_dat, AreaOfInterestID)$n), collapse = "-"),
                    N = nrow(wale_dat)))
 
 non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
@@ -544,7 +544,7 @@ non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                    P = pagr_mod_p[1, 4],
                    R2 = r.squared(pagr_mod),
                    Waterbodies = n_distinct(pagr_dat$AreaOfInterestID),
-                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   Years = paste(range(count(pagr_dat, AreaOfInterestID)$n), collapse = "-"),
                    N = nrow(pagr_dat))) %>%
   full_join(tibble(Species = "torpedograss",
                    Estimate = torp_mod_p[1, 1],
@@ -553,7 +553,7 @@ non_foc_mod_sum <- tibble(Species = "Cuban bulrush",
                    P = torp_mod_p[1, 4],
                    R2 = r.squared(torp_mod),
                    Waterbodies = n_distinct(torp_dat$AreaOfInterestID),
-                   Years = paste(range(count(wahy_dat, AreaOfInterestID)$n), collapse = "-"),
+                   Years = paste(range(count(pagr_dat, AreaOfInterestID)$n), collapse = "-"),
                    N = nrow(torp_dat)))
 
 # export
@@ -566,7 +566,7 @@ write_csv(non_foc_mod_sum, "output/fwc_non_focal_treatment_model_summary.csv")
 # data tables
 foc_sum <- tibble(CommonName = c("Hydrilla", "Water hyacinth", "Water lettuce"),
                   Incpt = c(mean(fixef(hydr_mod)), mean(fixef(wahy_mod)), 
-                            mean(fixef(wahy_mod))),
+                            mean(fixef(wale_mod))),
                   Beta = as.numeric(c(coef(hydr_mod), coef(wahy_mod), coef(wale_mod)))) %>%
   mutate(IncptBeta = Incpt + Beta,
          NoTreat = 100 * (exp(Incpt) - 1),

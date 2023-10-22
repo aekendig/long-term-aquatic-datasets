@@ -1,577 +1,577 @@
-TaxonName,covariate,Mean,quant_2_5,quant_97_5,invader,Habitat,cov2,habitat_num,tax_num,sig
-Azolla caroliniana,cover,0.10400721885888367,0.03950421840271778,0.16528076307986164,hydrilla,floating,hydrilla cover,2,201,yes
-Azolla caroliniana,management,0.07737653946623586,-0.032958824248549984,0.19086093229849924,hydrilla,floating,hydrilla mgmt.,2,201,no
-Azolla caroliniana,net,0.1735566476015903,0.06481902633376838,0.2794386245821646,hydrilla,floating,mgmt. + cover,2,201,yes
-Bacopa caroliniana,cover,0.01598416516786335,-0.053782382137524606,0.08869321286955781,hydrilla,emersed,hydrilla cover,1,102,no
-Bacopa caroliniana,management,0.09428655847024787,-0.019105004259900506,0.2091793896743292,hydrilla,emersed,hydrilla mgmt.,1,102,no
-Bacopa caroliniana,net,0.15924806197651695,0.04759721536648727,0.26721708429448643,hydrilla,emersed,mgmt. + cover,1,102,yes
-Bacopa monnieri,cover,-0.03454318334895537,-0.09813315315829074,0.028120393821346096,hydrilla,emersed,hydrilla cover,1,103,no
-Bacopa monnieri,management,0.017012756660991307,-0.08024089485640609,0.10651432246563841,hydrilla,emersed,hydrilla mgmt.,1,103,no
-Bacopa monnieri,net,-0.033891859873918115,-0.13563669745870616,0.05545659399437867,hydrilla,emersed,mgmt. + cover,1,103,no
-Bidens spp.,cover,-0.00496054059291216,-0.06973994808492079,0.05874179291998008,hydrilla,emersed,hydrilla cover,1,104,no
-Bidens spp.,management,0.0012991048267998401,-0.09245104009344735,0.09764980660432135,hydrilla,emersed,hydrilla mgmt.,1,104,no
-Bidens spp.,net,4.87553598384479e-4,-0.09642481347368245,0.09163493995009175,hydrilla,emersed,mgmt. + cover,1,104,no
-Brasenia schreberi,cover,-0.1152116721430441,-0.26601612905714284,0.0285725699759125,hydrilla,emersed,hydrilla cover,1,105,no
-Brasenia schreberi,management,0.23211849970859413,0.039604213464012876,0.42792915066953874,hydrilla,emersed,hydrilla mgmt.,1,105,yes
-Brasenia schreberi,net,0.18671989425817132,-0.006408616215596574,0.38219239041066533,hydrilla,emersed,mgmt. + cover,1,105,no
-Cabomba caroliniana,cover,0.06470373032833626,-0.007584443067265335,0.13588746319430256,hydrilla,submersed,hydrilla cover,3,306,no
-Cabomba caroliniana,management,0.20789434925874814,0.04199398776712197,0.39362038660083726,hydrilla,submersed,hydrilla mgmt.,3,306,yes
-Cabomba caroliniana,net,0.16947087045137071,0.01634771093369004,0.33898452650455274,hydrilla,submersed,mgmt. + cover,3,306,yes
-Carex spp.,cover,0.008547562209694694,-0.0681755986963617,0.08636926412444779,hydrilla,emersed,hydrilla cover,1,107,no
-Carex spp.,management,-0.04190443401272855,-0.17378271061753298,0.08978510241802082,hydrilla,emersed,hydrilla mgmt.,1,107,no
-Carex spp.,net,-0.021157982432103827,-0.14461125720226714,0.10869508917299413,hydrilla,emersed,mgmt. + cover,1,107,no
-Cephalanthus occidentalis,cover,-0.050103541850627854,-0.11458170944752231,0.010243138294960576,hydrilla,emersed,hydrilla cover,1,108,no
-Cephalanthus occidentalis,management,-0.003600920750641639,-0.10095468628956766,0.09348649456048867,hydrilla,emersed,hydrilla mgmt.,1,108,no
-Cephalanthus occidentalis,net,-0.04196567322806856,-0.13666220412333457,0.05576405782442723,hydrilla,emersed,mgmt. + cover,1,108,no
-Ceratophyllum demersum,cover,0.1562195159979414,0.08508319794135039,0.23348530457847538,hydrilla,submersed,hydrilla cover,3,309,yes
-Ceratophyllum demersum,management,0.3886456857755159,0.26763816905541316,0.5283621800675835,hydrilla,submersed,hydrilla mgmt.,3,309,yes
-Ceratophyllum demersum,net,0.46126501339787324,0.3403995514631806,0.6046197057834117,hydrilla,submersed,mgmt. + cover,3,309,yes
-Chara spp.,cover,0.030321366701082503,-0.03601934013928885,0.09156916202007515,hydrilla,submersed,hydrilla cover,3,310,no
-Chara spp.,management,0.1968061752632086,0.09730415611459584,0.3002391352329059,hydrilla,submersed,hydrilla mgmt.,3,310,yes
-Chara spp.,net,0.23368770070859354,0.1356953274169757,0.33144751452128773,hydrilla,submersed,mgmt. + cover,3,310,yes
-Cicuta maculata,cover,-0.024848206779003335,-0.10439231758223999,0.05209425521141992,hydrilla,emersed,hydrilla cover,1,111,no
-Cicuta maculata,management,0.0857138107397762,-0.0787323715726054,0.26249791420112384,hydrilla,emersed,hydrilla mgmt.,1,111,no
-Cicuta maculata,net,0.02314925729581135,-0.12902751861974188,0.18964578737690233,hydrilla,emersed,mgmt. + cover,1,111,no
-Cladium jamaicense,cover,-0.0024937732496209462,-0.07977703395614813,0.08188640977214626,hydrilla,emersed,hydrilla cover,1,112,no
-Cladium jamaicense,management,-0.09234516851544075,-0.25085757771838235,0.05848460212709693,hydrilla,emersed,hydrilla mgmt.,1,112,no
-Cladium jamaicense,net,-0.07900387017235473,-0.23716784437539146,0.07002366589172837,hydrilla,emersed,mgmt. + cover,1,112,no
-Crinum americanum,cover,-0.1174512156233517,-0.21719103461203093,-0.027202822801706803,hydrilla,emersed,hydrilla cover,1,113,yes
-Crinum americanum,management,0.016845413378411195,-0.10922531103090322,0.14656094069417658,hydrilla,emersed,hydrilla mgmt.,1,113,no
-Crinum americanum,net,-0.10668810511099759,-0.22949152696490432,0.020345082241755227,hydrilla,emersed,mgmt. + cover,1,113,no
-Cyperus articulatus,cover,0.037743169251178155,-0.06884750461635314,0.13512871787183828,hydrilla,emersed,hydrilla cover,1,114,no
-Cyperus articulatus,management,-0.17562994795095854,-0.40458239545886765,0.031493158640345735,hydrilla,emersed,hydrilla mgmt.,1,114,no
-Cyperus articulatus,net,-0.08987689594409215,-0.3298733994254069,0.11500714048765576,hydrilla,emersed,mgmt. + cover,1,114,no
-Cyperus spp. (other natives),cover,-0.04455858611935803,-0.09892565055477343,0.010119468166095673,hydrilla,emersed,hydrilla cover,1,115,no
-Cyperus spp. (other natives),management,0.02623798829656817,-0.059014966511754266,0.11484006824629314,hydrilla,emersed,hydrilla mgmt.,1,115,no
-Cyperus spp. (other natives),net,0.015155789903120886,-0.06720005023863618,0.10103888613563175,hydrilla,emersed,mgmt. + cover,1,115,no
-Decodon verticillatus,cover,-0.07432535245530583,-0.165340086409716,0.014880893847239991,hydrilla,emersed,hydrilla cover,1,116,no
-Decodon verticillatus,management,0.015964589862228425,-0.15874924101451998,0.2142880873884612,hydrilla,emersed,hydrilla mgmt.,1,116,no
-Decodon verticillatus,net,-0.04966093868937582,-0.22126206466499698,0.14232824049419088,hydrilla,emersed,mgmt. + cover,1,116,no
-Echinochloa spp.,cover,0.032331266726016605,-0.024344543794003706,0.09524129733651146,hydrilla,emersed,hydrilla cover,1,117,no
-Echinochloa spp.,management,0.04351288570410485,-0.0758535305686244,0.1577726164623978,hydrilla,emersed,hydrilla mgmt.,1,117,no
-Echinochloa spp.,net,0.015860008973754322,-0.10671480018100057,0.12582105770862895,hydrilla,emersed,mgmt. + cover,1,117,no
-"Eleocharis spp., emersed",cover,-0.0130260073427267,-0.07702500532444312,0.051988542396421984,hydrilla,emersed,hydrilla cover,1,118,no
-"Eleocharis spp., emersed",management,0.23499171233751118,0.1389509675890945,0.32744749037129445,hydrilla,emersed,hydrilla mgmt.,1,118,yes
-"Eleocharis spp., emersed",net,0.20637685729465025,0.11259600970115248,0.30214279691670554,hydrilla,emersed,mgmt. + cover,1,118,yes
-"Eleocharis spp., sub/floating",cover,-0.055074671841205604,-0.12170630863475218,0.006584427341111299,hydrilla,submersed,hydrilla cover,3,319,no
-"Eleocharis spp., sub/floating",management,0.09597794392024503,-0.012170487867083215,0.19690182256175143,hydrilla,submersed,hydrilla mgmt.,3,319,no
-"Eleocharis spp., sub/floating",net,0.078897251539712,-0.03219042061349921,0.17971365344997053,hydrilla,submersed,mgmt. + cover,3,319,no
-Filamentous algae,cover,0.1394391692772423,0.06734511198568802,0.2222383352360392,hydrilla,floating,hydrilla cover,2,220,yes
-Filamentous algae,management,0.08172916700344507,-0.010535579644059045,0.1742431734447557,hydrilla,floating,hydrilla mgmt.,2,220,no
-Filamentous algae,net,0.13459996110728698,0.049977360567116644,0.22228641161710747,hydrilla,floating,mgmt. + cover,2,220,yes
-Fuirena spp.,cover,-0.030095917517201767,-0.11801251135698781,0.05532525405115825,hydrilla,emersed,hydrilla cover,1,121,no
-Fuirena spp.,management,0.023568528566987997,-0.11163030536688266,0.15329721811901564,hydrilla,emersed,hydrilla mgmt.,1,121,no
-Fuirena spp.,net,1.3088583957636456e-4,-0.1295077901654888,0.12483360532663205,hydrilla,emersed,mgmt. + cover,1,121,no
-Hydrocotyle spp.,cover,0.018002408346529785,-0.06783599692813268,0.10775119461728544,hydrilla,emersed,hydrilla cover,1,122,no
-Hydrocotyle spp.,management,0.0982056664210051,-0.04936908806389968,0.27063913283216,hydrilla,emersed,hydrilla mgmt.,1,122,no
-Hydrocotyle spp.,net,0.12852112994037218,-0.027820227233873104,0.30300053935367155,hydrilla,emersed,mgmt. + cover,1,122,no
-Hypericum spp.,cover,-0.10454632969086146,-0.25367971181834925,0.020672425014586788,hydrilla,emersed,hydrilla cover,1,123,no
-Hypericum spp.,management,-0.21655606817954762,-0.4758993166276857,0.003128924594974382,hydrilla,emersed,hydrilla mgmt.,1,123,no
-Hypericum spp.,net,-0.21284059182692214,-0.4647937575454097,-0.003486152465020992,hydrilla,emersed,mgmt. + cover,1,123,yes
-Juncus effusus,cover,-0.014878483150055818,-0.09455401694052054,0.05916795751409472,hydrilla,emersed,hydrilla cover,1,124,no
-Juncus effusus,management,-0.06454991159328032,-0.18543621395783577,0.07323316745063216,hydrilla,emersed,hydrilla mgmt.,1,124,no
-Juncus effusus,net,-0.053072165118077316,-0.17128642616046907,0.0874058319252444,hydrilla,emersed,mgmt. + cover,1,124,no
-Leersia hexandra,cover,0.010060389310541245,-0.07439459154665862,0.09045032542710117,hydrilla,emersed,hydrilla cover,1,125,no
-Leersia hexandra,management,-0.031724714974333906,-0.22013658410572035,0.13252584262376882,hydrilla,emersed,hydrilla mgmt.,1,125,no
-Leersia hexandra,net,-0.025839132905211455,-0.2192338314410356,0.13705548301492,hydrilla,emersed,mgmt. + cover,1,125,no
-Lemna/Spirodela spp.,cover,0.009167389878154889,-0.050974880517447,0.06828912118146305,hydrilla,floating,hydrilla cover,2,226,no
-Lemna/Spirodela spp.,management,0.12072340004494235,0.024537440022178086,0.2148690340335166,hydrilla,floating,hydrilla mgmt.,2,226,yes
-Lemna/Spirodela spp.,net,0.136521679197965,0.04468098488167664,0.23237976101647217,hydrilla,floating,mgmt. + cover,2,226,yes
-Limnobium spongia,cover,0.14547162563618854,0.07459405124376248,0.21425369878627148,hydrilla,floating,hydrilla cover,2,227,yes
-Limnobium spongia,management,0.10022134978517212,-0.04082204862941401,0.23390188264068223,hydrilla,floating,hydrilla mgmt.,2,227,no
-Limnobium spongia,net,0.19579240448705346,0.061906488662960515,0.32338028410007585,hydrilla,floating,mgmt. + cover,2,227,yes
-Ludwigia octovalvis/peruviana,cover,0.058787634975530106,-0.021704177433391092,0.14356697203303995,hydrilla,emersed,hydrilla cover,1,128,no
-Ludwigia octovalvis/peruviana,management,0.07419612841520626,-0.07804542376014234,0.222234761090208,hydrilla,emersed,hydrilla mgmt.,1,128,no
-Ludwigia octovalvis/peruviana,net,0.11098526324871223,-0.03046579041062702,0.26348013852093805,hydrilla,emersed,mgmt. + cover,1,128,no
-Ludwigia palustris/repens,cover,-0.018572745152935825,-0.0929765058273628,0.05184947892027503,hydrilla,emersed,hydrilla cover,1,129,no
-Ludwigia palustris/repens,management,-0.03597161898274783,-0.14803892284217518,0.07399498302756191,hydrilla,emersed,hydrilla mgmt.,1,129,no
-Ludwigia palustris/repens,net,-0.03245399072617702,-0.13725489189206727,0.08017238982079919,hydrilla,emersed,mgmt. + cover,1,129,no
-Luziola fluitans,cover,0.0528459659838271,-0.012875689095550178,0.1192691714486801,hydrilla,submersed,hydrilla cover,3,330,no
-Luziola fluitans,management,-0.04454319178013505,-0.15319138058363077,0.0681732852397216,hydrilla,submersed,hydrilla mgmt.,3,330,no
-Luziola fluitans,net,-0.017246824308186127,-0.127696545564178,0.09549360240445309,hydrilla,submersed,mgmt. + cover,3,330,no
-Mayaca fluviatilis,cover,-0.023233935023280885,-0.14942153313862117,0.09281602406808129,hydrilla,submersed,hydrilla cover,3,331,no
-Mayaca fluviatilis,management,-0.10559793819761158,-0.27653528807934474,0.06030178242990655,hydrilla,submersed,hydrilla mgmt.,3,331,no
-Mayaca fluviatilis,net,-0.22996360204680827,-0.41394098285801084,-0.050901910062501776,hydrilla,submersed,mgmt. + cover,3,331,yes
-Micranthemum glomeratum,cover,-0.07958330653595441,-0.16675921110492345,0.005246275660639479,hydrilla,submersed,hydrilla cover,3,332,no
-Micranthemum glomeratum,management,-0.003238827376069498,-0.10476143907996407,0.10286234322864882,hydrilla,submersed,hydrilla mgmt.,3,332,no
-Micranthemum glomeratum,net,-0.05161326337866419,-0.156789814745939,0.050429714034398075,hydrilla,submersed,mgmt. + cover,3,332,no
-Micranthemum umbrosum,cover,-0.08240107966744824,-0.1808163178868214,0.010145732355667332,hydrilla,emersed,hydrilla cover,1,133,no
-Micranthemum umbrosum,management,0.006508786561314449,-0.1099681101037136,0.11989500336128095,hydrilla,emersed,hydrilla mgmt.,1,133,no
-Micranthemum umbrosum,net,-0.012153576661001224,-0.12454510038384153,0.10279761842088703,hydrilla,emersed,mgmt. + cover,1,133,no
-Myriophyllum laxum/pinnatum,cover,0.020256657539052706,-0.09773308042085722,0.13392158664029064,hydrilla,submersed,hydrilla cover,3,334,no
-Myriophyllum laxum/pinnatum,management,0.23329001567291505,0.059921511973103136,0.4089293828505177,hydrilla,submersed,hydrilla mgmt.,3,334,yes
-Myriophyllum laxum/pinnatum,net,0.19940827942833267,0.02481032817669853,0.3781784293891065,hydrilla,submersed,mgmt. + cover,3,334,yes
-Najas guadalupensis,cover,0.04567737656196632,-0.023458884850237626,0.11728587523985323,hydrilla,submersed,hydrilla cover,3,335,no
-Najas guadalupensis,management,0.39240110516342364,0.27459349183518084,0.5240667538333088,hydrilla,submersed,hydrilla mgmt.,3,335,yes
-Najas guadalupensis,net,0.31696833731109236,0.2010857230094853,0.45413597510500264,hydrilla,submersed,mgmt. + cover,3,335,yes
-Nelumbo lutea,cover,0.08550101735640209,-0.029285814495470068,0.18664957300196675,hydrilla,emersed,hydrilla cover,1,136,no
-Nelumbo lutea,management,0.18938547602634248,-0.028866853681901533,0.46308329659224323,hydrilla,emersed,hydrilla mgmt.,1,136,no
-Nelumbo lutea,net,0.24449157791400547,0.022330053676796673,0.534324425101987,hydrilla,emersed,mgmt. + cover,1,136,yes
-Nitella spp.,cover,0.03758547092683016,-0.042825248745316416,0.11021632767051234,hydrilla,submersed,hydrilla cover,3,337,no
-Nitella spp.,management,0.15051606966926595,0.03761815286256633,0.26824422460562053,hydrilla,submersed,hydrilla mgmt.,3,337,yes
-Nitella spp.,net,0.19646014497877626,0.08615160024046183,0.31114246086719544,hydrilla,submersed,mgmt. + cover,3,337,yes
-Nuphar advena,cover,0.011241492152859009,-0.06001369693871936,0.08994740508440219,hydrilla,emersed,hydrilla cover,1,138,no
-Nuphar advena,management,0.08132668406906034,-0.04186630613754235,0.21114297560945552,hydrilla,emersed,hydrilla mgmt.,1,138,no
-Nuphar advena,net,0.092583171383813,-0.030822316345410924,0.21497878978441673,hydrilla,emersed,mgmt. + cover,1,138,no
-Nymphaea mexicana,cover,0.05451099147415723,-0.024970812186664852,0.12060701683005227,hydrilla,emersed,hydrilla cover,1,139,no
-Nymphaea mexicana,management,0.014060841273562046,-0.1300432451263051,0.15733955744454528,hydrilla,emersed,hydrilla mgmt.,1,139,no
-Nymphaea mexicana,net,0.06733880492667066,-0.06924748515272103,0.21020719379929476,hydrilla,emersed,mgmt. + cover,1,139,no
-Nymphaea odorata,cover,0.10643931962030581,0.03286517660089811,0.18668202530041628,hydrilla,emersed,hydrilla cover,1,140,yes
-Nymphaea odorata,management,0.27452042399011894,0.12446386670271345,0.45779330235869936,hydrilla,emersed,hydrilla mgmt.,1,140,yes
-Nymphaea odorata,net,0.3107727789365485,0.16686339322894606,0.4891429832513125,hydrilla,emersed,mgmt. + cover,1,140,yes
-Nymphoides aquatica,cover,8.150742541217117e-4,-0.09375623847513498,0.09858081767463078,hydrilla,emersed,hydrilla cover,1,141,no
-Nymphoides aquatica,management,0.0466083529797149,-0.0755765082620596,0.18575764679411533,hydrilla,emersed,hydrilla mgmt.,1,141,no
-Nymphoides aquatica,net,0.13729682648939198,0.006755376900452354,0.27469842741600653,hydrilla,emersed,mgmt. + cover,1,141,yes
-Panicum hemitomon,cover,-0.023931722916054672,-0.09182009595892801,0.04363385685352501,hydrilla,emersed,hydrilla cover,1,142,no
-Panicum hemitomon,management,0.16198083014948417,0.04102233991746746,0.2832018173798441,hydrilla,emersed,hydrilla mgmt.,1,142,yes
-Panicum hemitomon,net,0.18630296642715552,0.07275359699511699,0.3043610845326415,hydrilla,emersed,mgmt. + cover,1,142,yes
-Paspalidium geminatum,cover,-0.05567913420694653,-0.15721850761026468,0.08580787075292948,hydrilla,emersed,hydrilla cover,1,143,no
-Paspalidium geminatum,management,0.2986592287702692,0.15006257425969222,0.43161985861606333,hydrilla,emersed,hydrilla mgmt.,1,143,yes
-Paspalidium geminatum,net,0.22032173787599127,0.10650900869534408,0.33398775416061965,hydrilla,emersed,mgmt. + cover,1,143,yes
-Paspalum repens,cover,0.023328116452504773,-0.06005030989795512,0.10621268443331133,hydrilla,emersed,hydrilla cover,1,144,no
-Paspalum repens,management,-0.0562469923105757,-0.22941248412000556,0.11374009618146266,hydrilla,emersed,hydrilla mgmt.,1,144,no
-Paspalum repens,net,-0.01757166745851524,-0.18361610805179063,0.14838819777132595,hydrilla,emersed,mgmt. + cover,1,144,no
-Peltandra spp.,cover,-0.032554128335324964,-0.12890857868439898,0.05675677741242845,hydrilla,emersed,hydrilla cover,1,145,no
-Peltandra spp.,management,-0.10832972944376651,-0.2673919476247806,0.039815274083689095,hydrilla,emersed,hydrilla mgmt.,1,145,no
-Peltandra spp.,net,-0.10318568021563601,-0.2610707760991029,0.04292029905099294,hydrilla,emersed,mgmt. + cover,1,145,no
-Phragmites australis,cover,-0.0874259337290197,-0.2123913033678767,0.04962468447051796,hydrilla,emersed,hydrilla cover,1,146,no
-Phragmites australis,management,-1.3754725661636684e-4,-0.2504234788341452,0.2335093034711409,hydrilla,emersed,hydrilla mgmt.,1,146,no
-Phragmites australis,net,-0.16261379329065095,-0.3562383349638266,0.031008928116439925,hydrilla,emersed,mgmt. + cover,1,146,no
-Pontederia cordata,cover,0.16882078981076445,0.06809675195183637,0.2751758288499765,hydrilla,emersed,hydrilla cover,1,147,yes
-Pontederia cordata,management,0.10865388828890556,-0.062136548848816676,0.2867635317368722,hydrilla,emersed,hydrilla mgmt.,1,147,no
-Pontederia cordata,net,0.11428934901973554,-0.05811085171392853,0.30187627976614395,hydrilla,emersed,mgmt. + cover,1,147,no
-Potamogeton illinoensis,cover,0.22023788868495112,0.13901803557055323,0.3062740986596777,hydrilla,submersed,hydrilla cover,3,348,yes
-Potamogeton illinoensis,management,0.2698389736063514,0.12745440077684161,0.4350421390236513,hydrilla,submersed,hydrilla mgmt.,3,348,yes
-Potamogeton illinoensis,net,0.30206980482425666,0.15494649272232197,0.47137799279061954,hydrilla,submersed,mgmt. + cover,3,348,yes
-Rhynchospora spp.,cover,-0.006541253211660518,-0.08073805975895842,0.06620976463392628,hydrilla,emersed,hydrilla cover,1,149,no
-Rhynchospora spp.,management,0.02667362585722723,-0.10381568530436086,0.16433111636084083,hydrilla,emersed,hydrilla mgmt.,1,149,no
-Rhynchospora spp.,net,0.0627920709065387,-0.06570457124527028,0.19222876543726977,hydrilla,emersed,mgmt. + cover,1,149,no
-Sacciolepis striata,cover,-6.633466091199703e-4,-0.05891158024055335,0.05933989595757655,hydrilla,emersed,hydrilla cover,1,150,no
-Sacciolepis striata,management,-0.05467383351548419,-0.1508146648747444,0.04139949584295134,hydrilla,emersed,hydrilla mgmt.,1,150,no
-Sacciolepis striata,net,-0.09495545303737166,-0.18930397742763683,-0.0017746568856917238,hydrilla,emersed,mgmt. + cover,1,150,yes
-Sagittaria lancifolia,cover,0.006251443949528766,-0.06919400016236088,0.07660550474022573,hydrilla,emersed,hydrilla cover,1,151,no
-Sagittaria lancifolia,management,0.20418095537185676,0.07225809835531263,0.3355074661531758,hydrilla,emersed,hydrilla mgmt.,1,151,yes
-Sagittaria lancifolia,net,0.22313296669441504,0.09015025050777484,0.3648719417622217,hydrilla,emersed,mgmt. + cover,1,151,yes
-Sagittaria latifolia,cover,0.09711780926427639,0.009284412190566681,0.17845982423141893,hydrilla,emersed,hydrilla cover,1,152,yes
-Sagittaria latifolia,management,0.12322853000399112,-0.014992732814825615,0.27934844581441115,hydrilla,emersed,hydrilla mgmt.,1,152,no
-Sagittaria latifolia,net,0.23557700576198765,0.09757043882797264,0.40317825090556364,hydrilla,emersed,mgmt. + cover,1,152,yes
-Sagittaria subulata/graminea/gracillima,cover,0.0019141875601408666,-0.08046051657442439,0.07884719468089271,hydrilla,emersed,hydrilla cover,1,153,no
-Sagittaria subulata/graminea/gracillima,management,0.10057465149439988,-0.023063513093209455,0.2237841692573263,hydrilla,emersed,hydrilla mgmt.,1,153,no
-Sagittaria subulata/graminea/gracillima,net,0.13785139360670293,0.014099393465227622,0.2630047218431415,hydrilla,emersed,mgmt. + cover,1,153,yes
-Salix spp.,cover,-0.023369770578757727,-0.10232339470995264,0.056411063720618174,hydrilla,emersed,hydrilla cover,1,154,no
-Salix spp.,management,0.1441352833037604,0.0041814427828845094,0.29193178533071384,hydrilla,emersed,hydrilla mgmt.,1,154,yes
-Salix spp.,net,0.12077506565341867,-0.019235475784931143,0.2782008370489481,hydrilla,emersed,mgmt. + cover,1,154,no
-Saururus cernuus,cover,-0.0028002796077780854,-0.09277636329636033,0.07795225836558711,hydrilla,emersed,hydrilla cover,1,155,no
-Saururus cernuus,management,-0.008465872452788906,-0.15532055129373057,0.1451550074845543,hydrilla,emersed,hydrilla mgmt.,1,155,no
-Saururus cernuus,net,0.013578705619828402,-0.12604828148728603,0.16631153739753024,hydrilla,emersed,mgmt. + cover,1,155,no
-Spartina bakeri,cover,0.020315023357486604,-0.11545608295298262,0.12820267785295975,hydrilla,emersed,hydrilla cover,1,156,no
-Spartina bakeri,management,0.04992305730559339,-0.2208990396112333,0.2540478719976318,hydrilla,emersed,hydrilla mgmt.,1,156,no
-Spartina bakeri,net,0.07885284290002186,-0.22183066155569708,0.29497134103529066,hydrilla,emersed,mgmt. + cover,1,156,no
-Thalia geniculata,cover,0.055852406170834874,-0.045426465982720515,0.16368688433454673,hydrilla,emersed,hydrilla cover,1,157,no
-Thalia geniculata,management,-0.19173958301206262,-0.39797289275198733,0.01435687986014697,hydrilla,emersed,hydrilla mgmt.,1,157,no
-Thalia geniculata,net,-0.14476455096847507,-0.36052773921519043,0.049454676213269474,hydrilla,emersed,mgmt. + cover,1,157,no
-Typha spp.,cover,0.03354329789359549,-0.06691716113551315,0.14364778525549193,hydrilla,emersed,hydrilla cover,1,158,no
-Typha spp.,management,0.32617338990719613,0.1370513939829891,0.525030251977175,hydrilla,emersed,hydrilla mgmt.,1,158,yes
-Typha spp.,net,0.28860336688491045,0.10402088191763036,0.4973629210351528,hydrilla,emersed,mgmt. + cover,1,158,yes
-Utricularia floridana,cover,-0.031213191837416224,-0.16013331213897203,0.08335745754996013,hydrilla,submersed,hydrilla cover,3,359,no
-Utricularia floridana,management,0.06973558417847013,-0.10030138433298319,0.23232044694992876,hydrilla,submersed,hydrilla mgmt.,3,359,no
-Utricularia floridana,net,0.04270737039795492,-0.13609044853947994,0.21863083791451093,hydrilla,submersed,mgmt. + cover,3,359,no
-Utricularia foliosa,cover,0.06319115394458205,-0.01523417000268612,0.13608000086277827,hydrilla,submersed,hydrilla cover,3,360,no
-Utricularia foliosa,management,0.2384947260913945,0.11540875526469481,0.3572949301171607,hydrilla,submersed,hydrilla mgmt.,3,360,yes
-Utricularia foliosa,net,0.2721724850809505,0.14537612945491443,0.39242570091114726,hydrilla,submersed,mgmt. + cover,3,360,yes
-Utricularia gibba,cover,0.04126880945612657,-0.02982230773602567,0.10959237247541037,hydrilla,submersed,hydrilla cover,3,361,no
-Utricularia gibba,management,0.19576260661152728,0.09027128239229215,0.2967166146323834,hydrilla,submersed,hydrilla mgmt.,3,361,yes
-Utricularia gibba,net,0.19640890863968297,0.08860537086157892,0.29852857760532714,hydrilla,submersed,mgmt. + cover,3,361,yes
-Utricularia inflata,cover,0.059411452445382824,-0.019855449934128327,0.13830981107820745,hydrilla,submersed,hydrilla cover,3,362,no
-Utricularia inflata,management,0.23726616200926345,0.10190608593405742,0.3702206136207111,hydrilla,submersed,hydrilla mgmt.,3,362,yes
-Utricularia inflata,net,0.2797111945137445,0.15824044472907955,0.40366795043624437,hydrilla,submersed,mgmt. + cover,3,362,yes
-Utricularia purpurea,cover,0.02366091687561797,-0.0638139978770772,0.10755405595375053,hydrilla,submersed,hydrilla cover,3,363,no
-Utricularia purpurea,management,0.062271017875039934,-0.07701055037833697,0.20629582371442182,hydrilla,submersed,hydrilla mgmt.,3,363,no
-Utricularia purpurea,net,0.011169353370847348,-0.12399713634803192,0.1461144822388278,hydrilla,submersed,mgmt. + cover,3,363,no
-Vallisneria americana,cover,0.1468076558329875,0.05884105035835731,0.244262159220192,hydrilla,submersed,hydrilla cover,3,364,yes
-Vallisneria americana,management,0.4967416779733271,0.3495217872202417,0.664534289306731,hydrilla,submersed,hydrilla mgmt.,3,364,yes
-Vallisneria americana,net,0.49228513516346584,0.3415965377673946,0.6705101225942556,hydrilla,submersed,mgmt. + cover,3,364,yes
-Azolla caroliniana,cover,0.21439557188715996,-0.06493107917655105,0.5287248355220091,water lettuce,floating,water lettuce cover,2,201,no
-Azolla caroliniana,management,0.3279555063254207,0.19948424114859922,0.45140259815392725,water lettuce,floating,water lettuce mgmt.,2,201,yes
-Azolla caroliniana,net,0.20455297453558557,-0.07132031817671047,0.47275515837423543,water lettuce,floating,mgmt. + cover,2,201,no
-Bacopa caroliniana,cover,-0.6791016908506161,-1.5857390817279677,0.0280761535313567,water lettuce,emersed,water lettuce cover,1,102,no
-Bacopa caroliniana,management,-0.07827124920847146,-0.2070159072859073,0.0551139716014135,water lettuce,emersed,water lettuce mgmt.,1,102,no
-Bacopa caroliniana,net,-0.5144336828866168,-1.1144815174706821,-0.021486470327965163,water lettuce,emersed,mgmt. + cover,1,102,yes
-Bacopa monnieri,cover,-0.17658310134030733,-0.7253345202493436,0.23068722417141507,water lettuce,emersed,water lettuce cover,1,103,no
-Bacopa monnieri,management,0.020237786711760294,-0.09011777113171957,0.13922035487830153,water lettuce,emersed,water lettuce mgmt.,1,103,no
-Bacopa monnieri,net,0.03842261186567231,-0.25583008482822356,0.31792187483723006,water lettuce,emersed,mgmt. + cover,1,103,no
-Bidens spp.,cover,-0.11205920267102008,-0.3999057859931917,0.15532381947544888,water lettuce,emersed,water lettuce cover,1,104,no
-Bidens spp.,management,0.05565058816917338,-0.04969818093480209,0.1678438198980023,water lettuce,emersed,water lettuce mgmt.,1,104,no
-Bidens spp.,net,-0.11497389982313738,-0.37387079845925186,0.1348896424028046,water lettuce,emersed,mgmt. + cover,1,104,no
-Brasenia schreberi,cover,-0.9139644722804895,-2.242168770962042,0.12732312239848523,water lettuce,emersed,water lettuce cover,1,105,no
-Brasenia schreberi,management,-0.10516076390842194,-0.33006050179856417,0.12808601484716592,water lettuce,emersed,water lettuce mgmt.,1,105,no
-Brasenia schreberi,net,-0.26549248043154555,-1.0596154825528585,0.35810977026308644,water lettuce,emersed,mgmt. + cover,1,105,no
-Cabomba caroliniana,cover,-0.9191027018732599,-2.0209423309430408,0.03191608472009228,water lettuce,submersed,water lettuce cover,3,306,no
-Cabomba caroliniana,management,0.07003670485380514,-0.0903229464540209,0.22951395530385332,water lettuce,submersed,water lettuce mgmt.,3,306,no
-Cabomba caroliniana,net,-0.24861937867939451,-0.8136438803984205,0.23969782681716637,water lettuce,submersed,mgmt. + cover,3,306,no
-Carex spp.,cover,-1.0754581274716806,-2.0641905780592857,-0.25578680506561186,water lettuce,emersed,water lettuce cover,1,107,yes
-Carex spp.,management,-0.11341660799443579,-0.2625665686915877,0.03329569706645578,water lettuce,emersed,water lettuce mgmt.,1,107,no
-Carex spp.,net,-0.582691058232129,-1.1231214950412705,-0.13623209044205464,water lettuce,emersed,mgmt. + cover,1,107,yes
-Cephalanthus occidentalis,cover,-0.18398601504725723,-0.4771458438248104,0.14526688088246084,water lettuce,emersed,water lettuce cover,1,108,no
-Cephalanthus occidentalis,management,-0.009517228965460211,-0.12073291608025946,0.09901941606667221,water lettuce,emersed,water lettuce mgmt.,1,108,no
-Cephalanthus occidentalis,net,-0.335551257780473,-0.6184369890220989,-0.06358431608968852,water lettuce,emersed,mgmt. + cover,1,108,yes
-Ceratophyllum demersum,cover,0.8795371344496504,0.32799331326422804,1.491506566099118,water lettuce,submersed,water lettuce cover,3,309,yes
-Ceratophyllum demersum,management,0.3326756043125605,0.21357727689069553,0.448696458893036,water lettuce,submersed,water lettuce mgmt.,3,309,yes
-Ceratophyllum demersum,net,0.3752538270973686,0.13616439433853297,0.6386084560297861,water lettuce,submersed,mgmt. + cover,3,309,yes
-Chara spp.,cover,-0.1941293070209696,-0.7018171168565377,0.20836015846358216,water lettuce,submersed,water lettuce cover,3,310,no
-Chara spp.,management,-0.24727931966888012,-0.36488940518040347,-0.12196793582973822,water lettuce,submersed,water lettuce mgmt.,3,310,yes
-Chara spp.,net,-0.6506575342219003,-1.1891860661588318,-0.20427552882411926,water lettuce,submersed,mgmt. + cover,3,310,yes
-Cicuta maculata,cover,0.2274097220357768,-0.10042457590481788,0.648312933847556,water lettuce,emersed,water lettuce cover,1,111,no
-Cicuta maculata,management,0.09702501860480005,-0.044442470391560955,0.2422869341316589,water lettuce,emersed,water lettuce mgmt.,1,111,no
-Cicuta maculata,net,0.06381101280910649,-0.24101762008386132,0.3452803502261252,water lettuce,emersed,mgmt. + cover,1,111,no
-Cladium jamaicense,cover,0.8513667411401323,0.22359496010983704,1.5236133758564203,water lettuce,emersed,water lettuce cover,1,112,yes
-Cladium jamaicense,management,-0.07069716255741607,-0.22226935914338308,0.09854248306165048,water lettuce,emersed,water lettuce mgmt.,1,112,no
-Cladium jamaicense,net,-0.062208210217943025,-0.3492363824731702,0.21539534989187215,water lettuce,emersed,mgmt. + cover,1,112,no
-Crinum americanum,cover,-0.16314746493168686,-0.595623529118428,0.17025770099319382,water lettuce,emersed,water lettuce cover,1,113,no
-Crinum americanum,management,-0.017062292522776308,-0.1635873872356085,0.12883016167276376,water lettuce,emersed,water lettuce mgmt.,1,113,no
-Crinum americanum,net,-0.7316857565364555,-1.2823479821349353,-0.23919515666152108,water lettuce,emersed,mgmt. + cover,1,113,yes
-Cyperus articulatus,cover,-0.11575222079163759,-0.43806033165464836,0.17509258535658623,water lettuce,emersed,water lettuce cover,1,114,no
-Cyperus articulatus,management,-0.11509049063850318,-0.29212958806716527,0.061043456064995213,water lettuce,emersed,water lettuce mgmt.,1,114,no
-Cyperus articulatus,net,-0.5922974761859454,-1.0694847250771824,-0.14206272603445194,water lettuce,emersed,mgmt. + cover,1,114,yes
-Cyperus spp. (other natives),cover,-0.026901780590326444,-0.29626934084582157,0.22515320457945456,water lettuce,emersed,water lettuce cover,1,115,no
-Cyperus spp. (other natives),management,-0.06478341785741867,-0.16441576151872112,0.04376993556381059,water lettuce,emersed,water lettuce mgmt.,1,115,no
-Cyperus spp. (other natives),net,-0.0687919195029463,-0.2957281641944811,0.1588876695035289,water lettuce,emersed,mgmt. + cover,1,115,no
-Decodon verticillatus,cover,-0.8452089744776418,-1.788222594312408,-0.12760558142301479,water lettuce,emersed,water lettuce cover,1,116,yes
-Decodon verticillatus,management,0.11535858482661329,-0.03744341009881468,0.2697074886879409,water lettuce,emersed,water lettuce mgmt.,1,116,no
-Decodon verticillatus,net,-0.3564277478536288,-0.9085342034801629,0.13088234298385334,water lettuce,emersed,mgmt. + cover,1,116,no
-Echinochloa spp.,cover,0.16000762676285463,-0.10107564626707567,0.39641767805546735,water lettuce,emersed,water lettuce cover,1,117,no
-Echinochloa spp.,management,0.056364844258560094,-0.05546775163725502,0.16856472923941512,water lettuce,emersed,water lettuce mgmt.,1,117,no
-Echinochloa spp.,net,-0.12156046645852987,-0.4012220193050389,0.14285757843460148,water lettuce,emersed,mgmt. + cover,1,117,no
-"Eleocharis spp., emersed",cover,0.08258539585413627,-0.2510631751320226,0.3773482711757662,water lettuce,emersed,water lettuce cover,1,118,no
-"Eleocharis spp., emersed",management,-0.04217641637904121,-0.15643104965048898,0.06836092957631333,water lettuce,emersed,water lettuce mgmt.,1,118,no
-"Eleocharis spp., emersed",net,-0.25197136570816986,-0.5063326136493571,-0.0025399476890763965,water lettuce,emersed,mgmt. + cover,1,118,yes
-"Eleocharis spp., sub/floating",cover,-0.2646564276160453,-0.6793541347761777,0.06872276200244501,water lettuce,submersed,water lettuce cover,3,319,no
-"Eleocharis spp., sub/floating",management,0.16661407210612378,0.06052733060864231,0.2714531846393389,water lettuce,submersed,water lettuce mgmt.,3,319,yes
-"Eleocharis spp., sub/floating",net,-0.2889232194153349,-0.6219750660578175,0.02561176195492115,water lettuce,submersed,mgmt. + cover,3,319,no
-Filamentous algae,cover,0.5522753259853518,0.04561281640085556,1.1714605600196828,water lettuce,floating,water lettuce cover,2,220,yes
-Filamentous algae,management,0.02114379358320978,-0.08145100124169238,0.12910178764542077,water lettuce,floating,water lettuce mgmt.,2,220,no
-Filamentous algae,net,-0.16123778666143865,-0.4545357789727122,0.09562932297724591,water lettuce,floating,mgmt. + cover,2,220,no
-Fuirena spp.,cover,0.2615780111343521,-0.20089056679500877,0.6001177125177439,water lettuce,emersed,water lettuce cover,1,121,no
-Fuirena spp.,management,-0.05084149137311899,-0.1930460833728025,0.10274329078502711,water lettuce,emersed,water lettuce mgmt.,1,121,no
-Fuirena spp.,net,-0.07846740403091713,-0.5446813721521261,0.3298651610458553,water lettuce,emersed,mgmt. + cover,1,121,no
-Hydrocotyle spp.,cover,0.19845846880176535,-0.21222276365118956,0.7642861789733457,water lettuce,emersed,water lettuce cover,1,122,no
-Hydrocotyle spp.,management,0.14352001444789902,0.005690808832537839,0.27998902043696666,water lettuce,emersed,water lettuce mgmt.,1,122,yes
-Hydrocotyle spp.,net,0.3810813849509736,-0.033532583775218616,0.8572186668550668,water lettuce,emersed,mgmt. + cover,1,122,no
-Hypericum spp.,cover,-0.5375120492605099,-1.4091707247613732,0.10024581083375955,water lettuce,emersed,water lettuce cover,1,123,no
-Hypericum spp.,management,-0.12140312739949917,-0.27888810533272235,0.02418863498468235,water lettuce,emersed,water lettuce mgmt.,1,123,no
-Hypericum spp.,net,-0.03452109498031126,-0.3807572924375377,0.2647176259508409,water lettuce,emersed,mgmt. + cover,1,123,no
-Juncus effusus,cover,-0.055008746916240865,-0.4667930786909295,0.26790764786616217,water lettuce,emersed,water lettuce cover,1,124,no
-Juncus effusus,management,0.09222002020402331,-0.030793667856601235,0.20515688761343942,water lettuce,emersed,water lettuce mgmt.,1,124,no
-Juncus effusus,net,0.1539108550850649,-0.12884119432226002,0.41572031938931275,water lettuce,emersed,mgmt. + cover,1,124,no
-Leersia hexandra,cover,0.5185097353216681,0.14640424922414108,0.9063474243575687,water lettuce,emersed,water lettuce cover,1,125,yes
-Leersia hexandra,management,-0.233069217900757,-0.3626668660877119,-0.09934945957978454,water lettuce,emersed,water lettuce mgmt.,1,125,yes
-Leersia hexandra,net,-0.09560951459992408,-0.36896496498658615,0.14755650320946612,water lettuce,emersed,mgmt. + cover,1,125,no
-Lemna/Spirodela spp.,cover,1.18659672839494,0.39517233712739497,2.1582596993782355,water lettuce,floating,water lettuce cover,2,226,yes
-Lemna/Spirodela spp.,management,0.2875081894318249,0.18842915756339773,0.39350497236940196,water lettuce,floating,water lettuce mgmt.,2,226,yes
-Lemna/Spirodela spp.,net,0.41636592251249904,0.1450521534569228,0.6786222866053453,water lettuce,floating,mgmt. + cover,2,226,yes
-Limnobium spongia,cover,-0.19716171621178805,-0.5648084123422217,0.1081862895222999,water lettuce,floating,water lettuce cover,2,227,no
-Limnobium spongia,management,0.009393515992913342,-0.14611400696057641,0.15330383390430263,water lettuce,floating,water lettuce mgmt.,2,227,no
-Limnobium spongia,net,-0.2749580651201305,-0.6413628873620234,0.035439033809103515,water lettuce,floating,mgmt. + cover,2,227,no
-Ludwigia octovalvis/peruviana,cover,0.6408181926181382,0.02434735251559854,1.428999083738557,water lettuce,emersed,water lettuce cover,1,128,yes
-Ludwigia octovalvis/peruviana,management,-0.06791200621524603,-0.2271073642447024,0.09153770973801902,water lettuce,emersed,water lettuce mgmt.,1,128,no
-Ludwigia octovalvis/peruviana,net,0.3338914240951439,-0.0869071309289304,0.7901425510817839,water lettuce,emersed,mgmt. + cover,1,128,no
-Ludwigia palustris/repens,cover,0.24698424682629783,-0.04603756613925558,0.5163535804421401,water lettuce,emersed,water lettuce cover,1,129,no
-Ludwigia palustris/repens,management,-0.14128098840023343,-0.2667596761167014,-0.016029856752567132,water lettuce,emersed,water lettuce mgmt.,1,129,yes
-Ludwigia palustris/repens,net,-0.16787908143087743,-0.5287612228970768,0.15865739506263743,water lettuce,emersed,mgmt. + cover,1,129,no
-Luziola fluitans,cover,-0.0639718319992352,-0.4467211199203265,0.27480160781658525,water lettuce,submersed,water lettuce cover,3,330,no
-Luziola fluitans,management,0.06997611674714393,-0.05161085051875767,0.19769992680031545,water lettuce,submersed,water lettuce mgmt.,3,330,no
-Luziola fluitans,net,-0.03861314989588305,-0.35485360993260745,0.24661776578192002,water lettuce,submersed,mgmt. + cover,3,330,no
-Mayaca fluviatilis,cover,-1.7900043954346883,-10.098827941368231,0.47927747803895154,water lettuce,submersed,water lettuce cover,3,331,no
-Mayaca fluviatilis,management,0.065745818753716,-0.1435309091698543,0.2755319178742204,water lettuce,submersed,water lettuce mgmt.,3,331,no
-Mayaca fluviatilis,net,-4.718480693656078,-38.91113575655204,0.31780739904410027,water lettuce,submersed,mgmt. + cover,3,331,no
-Micranthemum glomeratum,cover,0.2611802897681887,-0.12297330912965243,0.593266238068737,water lettuce,submersed,water lettuce cover,3,332,no
-Micranthemum glomeratum,management,0.1908128801100789,0.07064465165432618,0.3261723448257007,water lettuce,submersed,water lettuce mgmt.,3,332,yes
-Micranthemum glomeratum,net,-0.6614445054089293,-1.8647886256943378,0.18810989611584236,water lettuce,submersed,mgmt. + cover,3,332,no
-Micranthemum umbrosum,cover,-0.4445476730852603,-1.4951217594418926,0.2979064636098573,water lettuce,emersed,water lettuce cover,1,133,no
-Micranthemum umbrosum,management,0.28823639494808656,0.1359443595578515,0.43570757413274475,water lettuce,emersed,water lettuce mgmt.,1,133,yes
-Micranthemum umbrosum,net,-0.8467177065449375,-2.104570624070525,0.11602680236661905,water lettuce,emersed,mgmt. + cover,1,133,no
-Myriophyllum laxum/pinnatum,cover,-0.7312346079274243,-2.2677717070954535,0.4463091943278904,water lettuce,submersed,water lettuce cover,3,334,no
-Myriophyllum laxum/pinnatum,management,0.014010005986612199,-0.20437220670275502,0.22629899299782885,water lettuce,submersed,water lettuce mgmt.,3,334,no
-Myriophyllum laxum/pinnatum,net,-1.2401434985143454,-3.840409959409942,0.3509298183972847,water lettuce,submersed,mgmt. + cover,3,334,no
-Najas guadalupensis,cover,0.5925356906722286,0.19934785439547106,1.0626408108852172,water lettuce,submersed,water lettuce cover,3,335,yes
-Najas guadalupensis,management,0.050550208874943776,-0.07235129041987878,0.1699525914718898,water lettuce,submersed,water lettuce mgmt.,3,335,no
-Najas guadalupensis,net,-0.3882401766336281,-0.8121606535925023,-0.01236617798897444,water lettuce,submersed,mgmt. + cover,3,335,yes
-Nelumbo lutea,cover,-0.1719229248590501,-0.5329224416455582,0.18042100137930756,water lettuce,emersed,water lettuce cover,1,136,no
-Nelumbo lutea,management,0.28839547788443654,0.11620388406433743,0.4355907965171583,water lettuce,emersed,water lettuce mgmt.,1,136,yes
-Nelumbo lutea,net,-1.1599217947129254,-1.821380463804469,-0.5841626108487832,water lettuce,emersed,mgmt. + cover,1,136,yes
-Nitella spp.,cover,-0.49275530769193204,-1.584261070280682,0.29657982333446675,water lettuce,submersed,water lettuce cover,3,337,no
-Nitella spp.,management,-0.11814890174265062,-0.2607012766223584,0.02175270972010828,water lettuce,submersed,water lettuce mgmt.,3,337,no
-Nitella spp.,net,-1.4946088737503513,-3.1583656007506127,-0.29993035059156226,water lettuce,submersed,mgmt. + cover,3,337,yes
-Nuphar advena,cover,1.1803573149825157,0.30624594718864356,2.164184056066218,water lettuce,emersed,water lettuce cover,1,138,yes
-Nuphar advena,management,0.17479944738805908,0.03770199590011922,0.3019458894600039,water lettuce,emersed,water lettuce mgmt.,1,138,yes
-Nuphar advena,net,0.5299328006684418,0.05743758720313416,1.115425394821493,water lettuce,emersed,mgmt. + cover,1,138,yes
-Nymphaea mexicana,cover,-0.6886526726522052,-1.3184096935081868,-0.14070547862866764,water lettuce,emersed,water lettuce cover,1,139,yes
-Nymphaea mexicana,management,-0.13312506984185585,-0.3032948233918253,0.021531256930981332,water lettuce,emersed,water lettuce mgmt.,1,139,no
-Nymphaea mexicana,net,-1.0214072945410526,-1.5642575253440858,-0.5393557598341452,water lettuce,emersed,mgmt. + cover,1,139,yes
-Nymphaea odorata,cover,-0.3861411697763586,-0.9395319688971351,0.06252671725189396,water lettuce,emersed,water lettuce cover,1,140,no
-Nymphaea odorata,management,-0.036435956234350156,-0.1669105316049092,0.08898708227587399,water lettuce,emersed,water lettuce mgmt.,1,140,no
-Nymphaea odorata,net,-0.4522480556919404,-0.8690890888294462,-0.09796351046348543,water lettuce,emersed,mgmt. + cover,1,140,yes
-Nymphoides aquatica,cover,-1.2119876004954355,-2.848674384642079,-0.03560615169539065,water lettuce,emersed,water lettuce cover,1,141,yes
-Nymphoides aquatica,management,0.25979713846448554,0.08533042122390083,0.4180520710263895,water lettuce,emersed,water lettuce mgmt.,1,141,yes
-Nymphoides aquatica,net,-1.466088949730594,-2.950193584302002,-0.2642555075838482,water lettuce,emersed,mgmt. + cover,1,141,yes
-Panicum hemitomon,cover,-0.23867255016231528,-0.5299229346594387,0.04733148830125439,water lettuce,emersed,water lettuce cover,1,142,no
-Panicum hemitomon,management,0.2074946205676043,0.07879042460155754,0.336284357943077,water lettuce,emersed,water lettuce mgmt.,1,142,yes
-Panicum hemitomon,net,0.06530907528771097,-0.18982574514747663,0.34650248825616425,water lettuce,emersed,mgmt. + cover,1,142,no
-Paspalidium geminatum,cover,-1.1205611717914266,-1.7002213299997035,-0.5548952186747618,water lettuce,emersed,water lettuce cover,1,143,yes
-Paspalidium geminatum,management,0.29918322627507726,0.1801707454514518,0.42173913407108626,water lettuce,emersed,water lettuce mgmt.,1,143,yes
-Paspalidium geminatum,net,-1.1277660791065245,-1.5564493795976568,-0.7142794340303289,water lettuce,emersed,mgmt. + cover,1,143,yes
-Paspalum repens,cover,-0.4058640215779197,-0.8670179679793425,-0.03501302283068472,water lettuce,emersed,water lettuce cover,1,144,yes
-Paspalum repens,management,-0.07947588128390616,-0.23184821582822485,0.07075861006190554,water lettuce,emersed,water lettuce mgmt.,1,144,no
-Paspalum repens,net,-0.4771327305177429,-0.8768362265556559,-0.11034914557033067,water lettuce,emersed,mgmt. + cover,1,144,yes
-Peltandra spp.,cover,-0.1598055211142411,-0.8135770996700575,0.2846454948245358,water lettuce,emersed,water lettuce cover,1,145,no
-Peltandra spp.,management,0.05326663720658545,-0.10610386597260663,0.20825065212267968,water lettuce,emersed,water lettuce mgmt.,1,145,no
-Peltandra spp.,net,-0.3087149397246081,-0.8934821109018454,0.170884686116198,water lettuce,emersed,mgmt. + cover,1,145,no
-Phragmites australis,cover,0.6131297039814745,0.09157260902170307,1.2549066980010768,water lettuce,emersed,water lettuce cover,1,146,yes
-Phragmites australis,management,0.09353119151553613,-0.09967158302307536,0.2967767262599925,water lettuce,emersed,water lettuce mgmt.,1,146,no
-Phragmites australis,net,0.1946926577655999,-0.12786449612412096,0.5580494726855989,water lettuce,emersed,mgmt. + cover,1,146,no
-Pontederia cordata,cover,0.9763025516077213,0.2930398507758044,1.8163561134421924,water lettuce,emersed,water lettuce cover,1,147,yes
-Pontederia cordata,management,-0.024670836699329617,-0.17114555172206572,0.1229449354448954,water lettuce,emersed,water lettuce mgmt.,1,147,no
-Pontederia cordata,net,-0.24914668530521664,-0.5563420520205956,0.05871412292426985,water lettuce,emersed,mgmt. + cover,1,147,no
-Potamogeton illinoensis,cover,-0.021997696361134897,-0.7395918261773261,0.456022253026207,water lettuce,submersed,water lettuce cover,3,348,no
-Potamogeton illinoensis,management,-3.594371077435869e-4,-0.15805664335978029,0.1582197719377071,water lettuce,submersed,water lettuce mgmt.,3,348,no
-Potamogeton illinoensis,net,-0.07433531406281607,-0.5957720161767475,0.3583437678735733,water lettuce,submersed,mgmt. + cover,3,348,no
-Rhynchospora spp.,cover,-0.3780854051289669,-0.8705882537336245,0.01761270434813402,water lettuce,emersed,water lettuce cover,1,149,no
-Rhynchospora spp.,management,-0.3125390727814594,-0.4476261634455888,-0.17537708528361856,water lettuce,emersed,water lettuce mgmt.,1,149,yes
-Rhynchospora spp.,net,-0.47985421860135313,-0.8150862945195363,-0.17231130148249008,water lettuce,emersed,mgmt. + cover,1,149,yes
-Sacciolepis striata,cover,0.40540342004016905,-0.008543690079535957,0.929035005644548,water lettuce,emersed,water lettuce cover,1,150,no
-Sacciolepis striata,management,0.16187890369775507,0.057978221187397316,0.2698118771919763,water lettuce,emersed,water lettuce mgmt.,1,150,yes
-Sacciolepis striata,net,0.028554898946168916,-0.23519770459523978,0.2986242579696009,water lettuce,emersed,mgmt. + cover,1,150,no
-Sagittaria lancifolia,cover,0.8393786418121202,0.2038604003160847,1.6305131907263173,water lettuce,emersed,water lettuce cover,1,151,yes
-Sagittaria lancifolia,management,0.080000768922701,-0.04319414160846924,0.20233944861405145,water lettuce,emersed,water lettuce mgmt.,1,151,no
-Sagittaria lancifolia,net,0.06439597622130012,-0.2225300107658696,0.3305918906597074,water lettuce,emersed,mgmt. + cover,1,151,no
-Sagittaria latifolia,cover,0.3916699689797487,-0.006218935547428767,0.8788600690677575,water lettuce,emersed,water lettuce cover,1,152,no
-Sagittaria latifolia,management,0.33152834789599733,0.1702551898823177,0.4996052068695826,water lettuce,emersed,water lettuce mgmt.,1,152,yes
-Sagittaria latifolia,net,0.8985091657928473,0.5023342325109608,1.3132472469054601,water lettuce,emersed,mgmt. + cover,1,152,yes
-Sagittaria subulata/graminea/gracillima,cover,-1.000792430561763,-2.215218111077596,-0.05300131877282224,water lettuce,emersed,water lettuce cover,1,153,yes
-Sagittaria subulata/graminea/gracillima,management,0.09121372372342824,-0.06481602578548909,0.24543055147183246,water lettuce,emersed,water lettuce mgmt.,1,153,no
-Sagittaria subulata/graminea/gracillima,net,-0.19500024268217295,-0.7865868263771014,0.28552307784430453,water lettuce,emersed,mgmt. + cover,1,153,no
-Salix spp.,cover,0.37312453440619076,-0.17297324008904327,1.0818761042221263,water lettuce,emersed,water lettuce cover,1,154,no
-Salix spp.,management,0.06964983119671826,-0.06315355603364314,0.1985939493752269,water lettuce,emersed,water lettuce mgmt.,1,154,no
-Salix spp.,net,0.0750534169039794,-0.2754941269055615,0.4477834884481804,water lettuce,emersed,mgmt. + cover,1,154,no
-Saururus cernuus,cover,-0.4784456595649813,-1.236266593202974,0.09967416515241764,water lettuce,emersed,water lettuce cover,1,155,no
-Saururus cernuus,management,-0.039475764530179265,-0.19504729066313736,0.11975343797775259,water lettuce,emersed,water lettuce mgmt.,1,155,no
-Saururus cernuus,net,-0.4793135246368129,-1.077195426789173,0.012660517841893506,water lettuce,emersed,mgmt. + cover,1,155,no
-Spartina bakeri,cover,-0.02573621582940261,-0.36349527002486565,0.26279852451228924,water lettuce,emersed,water lettuce cover,1,156,no
-Spartina bakeri,management,0.04104142328510822,-0.09765746455530461,0.20779382414171899,water lettuce,emersed,water lettuce mgmt.,1,156,no
-Spartina bakeri,net,0.16503693470786432,-0.08521277983311151,0.4141240712747644,water lettuce,emersed,mgmt. + cover,1,156,no
-Thalia geniculata,cover,-0.3388517904378002,-0.7666691997800971,0.04601001660156744,water lettuce,emersed,water lettuce cover,1,157,no
-Thalia geniculata,management,-0.30043581153712473,-0.46988764524208637,-0.10269876381072612,water lettuce,emersed,water lettuce mgmt.,1,157,yes
-Thalia geniculata,net,-0.7942131897854698,-1.2442529054185179,-0.3815361122617797,water lettuce,emersed,mgmt. + cover,1,157,yes
-Typha spp.,cover,-0.22054101689910324,-0.5020341909669415,0.08477860545370955,water lettuce,emersed,water lettuce cover,1,158,no
-Typha spp.,management,0.13915766764649581,-0.027110484156990224,0.2995671866995424,water lettuce,emersed,water lettuce mgmt.,1,158,no
-Typha spp.,net,-0.07137717433733513,-0.3820964472035024,0.27341720989569673,water lettuce,emersed,mgmt. + cover,1,158,no
-Utricularia floridana,cover,0.22679495260209753,-0.16055779834015088,0.5278879221164321,water lettuce,submersed,water lettuce cover,3,359,no
-Utricularia floridana,management,-0.3113113743884798,-0.4995977649272236,-0.11663900696526928,water lettuce,submersed,water lettuce mgmt.,3,359,yes
-Utricularia floridana,net,-0.1423660117139761,-0.6369800660091967,0.23046010172056614,water lettuce,submersed,mgmt. + cover,3,359,no
-Utricularia foliosa,cover,0.2695445988848752,-0.03737466750014332,0.6160634193059782,water lettuce,submersed,water lettuce cover,3,360,no
-Utricularia foliosa,management,0.030673146472000173,-0.09785985843050432,0.15700456840545773,water lettuce,submersed,water lettuce mgmt.,3,360,no
-Utricularia foliosa,net,-0.4367788578660403,-0.8488862677196644,-0.07994678978187535,water lettuce,submersed,mgmt. + cover,3,360,yes
-Utricularia gibba,cover,-0.1738892228744181,-0.6005635866154868,0.16548208171858553,water lettuce,submersed,water lettuce cover,3,361,no
-Utricularia gibba,management,-0.021577029960807927,-0.14088161699765755,0.10138409700535927,water lettuce,submersed,water lettuce mgmt.,3,361,no
-Utricularia gibba,net,-0.2572710931345065,-0.6118988667481606,0.06334771677582532,water lettuce,submersed,mgmt. + cover,3,361,no
-Utricularia inflata,cover,0.19787985834426589,-0.233469230562985,0.545522487703302,water lettuce,submersed,water lettuce cover,3,362,no
-Utricularia inflata,management,0.06465752848702486,-0.1104062033040641,0.23802060094956995,water lettuce,submersed,water lettuce mgmt.,3,362,no
-Utricularia inflata,net,0.17993410493561263,-0.273103404312278,0.544387243261051,water lettuce,submersed,mgmt. + cover,3,362,no
-Utricularia purpurea,cover,0.3448347509293132,0.031531070518409386,0.7062634009072515,water lettuce,submersed,water lettuce cover,3,363,yes
-Utricularia purpurea,management,0.05313553637250757,-0.10351589231719198,0.21396305645876618,water lettuce,submersed,water lettuce mgmt.,3,363,no
-Utricularia purpurea,net,-1.4008220975785486,-2.5755650986000656,-0.37553430702133095,water lettuce,submersed,mgmt. + cover,3,363,yes
-Vallisneria americana,cover,0.653014027336527,0.20577882560943006,1.198145042067194,water lettuce,submersed,water lettuce cover,3,364,yes
-Vallisneria americana,management,0.26143201949753786,0.11850066453822056,0.40498342313430635,water lettuce,submersed,water lettuce mgmt.,3,364,yes
-Vallisneria americana,net,-0.23621724943695652,-0.6419934316156655,0.1463673261724003,water lettuce,submersed,mgmt. + cover,3,364,no
-Azolla caroliniana,cover,-0.030025030738621887,-0.4310704630758796,0.3380059863189766,water hyacinth,floating,water hyacinth cover,2,201,no
-Azolla caroliniana,management,0.23795171258666406,0.1284484104852981,0.34732490183855025,water hyacinth,floating,water hyacinth mgmt.,2,201,yes
-Azolla caroliniana,net,0.36856143117189005,0.06086434689510562,0.6430343840896908,water hyacinth,floating,mgmt. + cover,2,201,yes
-Bacopa caroliniana,cover,-0.3658966840868996,-1.164410120373803,0.2365818055008584,water hyacinth,emersed,water hyacinth cover,1,102,no
-Bacopa caroliniana,management,-0.025656907356296377,-0.14675842038353082,0.09160338516803836,water hyacinth,emersed,water hyacinth mgmt.,1,102,no
-Bacopa caroliniana,net,0.17189128073778825,-0.19194749815918155,0.5156479396038831,water hyacinth,emersed,mgmt. + cover,1,102,no
-Bacopa monnieri,cover,0.09027230462844718,-0.3213075438611321,0.4673444212627724,water hyacinth,emersed,water hyacinth cover,1,103,no
-Bacopa monnieri,management,-0.02834941653428534,-0.12339412473455849,0.06054058698309138,water hyacinth,emersed,water hyacinth mgmt.,1,103,no
-Bacopa monnieri,net,-0.44036990943075055,-0.9184451908079811,-0.004558392983358863,water hyacinth,emersed,mgmt. + cover,1,103,yes
-Bidens spp.,cover,-0.08770335543421473,-0.39238709687781936,0.22894083598273318,water hyacinth,emersed,water hyacinth cover,1,104,no
-Bidens spp.,management,0.06766963998094432,-0.02580268733798579,0.16495536520659076,water hyacinth,emersed,water hyacinth mgmt.,1,104,no
-Bidens spp.,net,-0.5414478684511794,-0.8756972385381426,-0.24497376316753192,water hyacinth,emersed,mgmt. + cover,1,104,yes
-Brasenia schreberi,cover,-1.342150537262255,-2.7067690559030737,-0.14793494190843626,water hyacinth,emersed,water hyacinth cover,1,105,yes
-Brasenia schreberi,management,-0.1353535636604898,-0.32435176879979777,0.082182398311429955,water hyacinth,emersed,water hyacinth mgmt.,1,105,no
-Brasenia schreberi,net,0.34100722194580585,-0.220085552002335,0.8359340716131805,water hyacinth,emersed,mgmt. + cover,1,105,no
-Cabomba caroliniana,cover,0.3108986586007879,-0.14655387419098254,0.7082550087060124,water hyacinth,submersed,water hyacinth cover,3,306,no
-Cabomba caroliniana,management,0.06302580952294311,-0.07151599306848086,0.20733098000701228,water hyacinth,submersed,water hyacinth mgmt.,3,306,no
-Cabomba caroliniana,net,0.5359460694045528,0.1725762894362574,0.8884027600707296,water hyacinth,submersed,mgmt. + cover,3,306,yes
-Carex spp.,cover,-0.8681203373101056,-1.734016659224941,-0.16258495249005475,water hyacinth,emersed,water hyacinth cover,1,107,yes
-Carex spp.,management,-0.11251356942429813,-0.24472652044810667,0.021334028784908244,water hyacinth,emersed,water hyacinth mgmt.,1,107,no
-Carex spp.,net,-0.07406664171508234,-0.4367959756009123,0.2394460748834693,water hyacinth,emersed,mgmt. + cover,1,107,no
-Cephalanthus occidentalis,cover,-0.23562578807173615,-0.5708183141657767,0.11092460417164071,water hyacinth,emersed,water hyacinth cover,1,108,no
-Cephalanthus occidentalis,management,0.11461138602800258,0.02352995215918272,0.20432523624453108,water hyacinth,emersed,water hyacinth mgmt.,1,108,yes
-Cephalanthus occidentalis,net,-0.09403665306495103,-0.35809603368169557,0.1842198856480425,water hyacinth,emersed,mgmt. + cover,1,108,no
-Ceratophyllum demersum,cover,0.3097471641000998,-0.004451289433995111,0.6101556950049969,water hyacinth,submersed,water hyacinth cover,3,309,no
-Ceratophyllum demersum,management,0.2878346637061932,0.17561916945343364,0.3950827099789552,water hyacinth,submersed,water hyacinth mgmt.,3,309,yes
-Ceratophyllum demersum,net,0.38371161865204767,0.08716323944591264,0.6682037496062891,water hyacinth,submersed,mgmt. + cover,3,309,yes
-Chara spp.,cover,0.020318914618095416,-0.4675934034239517,0.43889745942270836,water hyacinth,submersed,water hyacinth cover,3,310,no
-Chara spp.,management,-0.09881209360191409,-0.23642076971682197,0.024704232018084363,water hyacinth,submersed,water hyacinth mgmt.,3,310,no
-Chara spp.,net,-0.16360885168906208,-0.5963108138797808,0.22525587850115356,water hyacinth,submersed,mgmt. + cover,3,310,no
-Cicuta maculata,cover,0.3967589488634002,-0.010329601031514844,0.8292746318893837,water hyacinth,emersed,water hyacinth cover,1,111,no
-Cicuta maculata,management,0.3139537018441224,0.18541983627663744,0.4510655980747761,water hyacinth,emersed,water hyacinth mgmt.,1,111,yes
-Cicuta maculata,net,-0.12492417131473395,-0.5648336061055166,0.3233412243077255,water hyacinth,emersed,mgmt. + cover,1,111,no
-Cladium jamaicense,cover,0.20214196747368743,-0.15474200840327096,0.5393766898002874,water hyacinth,emersed,water hyacinth cover,1,112,no
-Cladium jamaicense,management,0.0017771562003007964,-0.11266082269819619,0.10864388103524228,water hyacinth,emersed,water hyacinth mgmt.,1,112,no
-Cladium jamaicense,net,0.06373107194229786,-0.2804808693451814,0.4011650882212465,water hyacinth,emersed,mgmt. + cover,1,112,no
-Crinum americanum,cover,-0.33929519586219753,-1.0609537315999142,0.19532095749531425,water hyacinth,emersed,water hyacinth cover,1,113,no
-Crinum americanum,management,0.21340038042036366,0.0922736019791659,0.33283065431809356,water hyacinth,emersed,water hyacinth mgmt.,1,113,yes
-Crinum americanum,net,-0.15473223632505573,-0.6222906703345749,0.28593373441407,water hyacinth,emersed,mgmt. + cover,1,113,no
-Cyperus articulatus,cover,0.11858321265821066,-0.2648869250612199,0.476212740602452,water hyacinth,emersed,water hyacinth cover,1,114,no
-Cyperus articulatus,management,-0.08589649791903468,-0.25827508232541807,0.11277420905397348,water hyacinth,emersed,water hyacinth mgmt.,1,114,no
-Cyperus articulatus,net,0.26196822430163363,-0.08069509151219063,0.5957309841260254,water hyacinth,emersed,mgmt. + cover,1,114,no
-Cyperus spp. (other natives),cover,0.10381034958367485,-0.18827564654858206,0.3971024020259406,water hyacinth,emersed,water hyacinth cover,1,115,no
-Cyperus spp. (other natives),management,0.02026227398338213,-0.06298833730712841,0.1063828123446495,water hyacinth,emersed,water hyacinth mgmt.,1,115,no
-Cyperus spp. (other natives),net,0.12264442864361748,-0.13721451081173114,0.39748223582499487,water hyacinth,emersed,mgmt. + cover,1,115,no
-Decodon verticillatus,cover,-0.7957591978880009,-1.6817322092149376,-0.031719396084062844,water hyacinth,emersed,water hyacinth cover,1,116,yes
-Decodon verticillatus,management,0.09601064137725727,-0.02851325677517174,0.2217540703356108,water hyacinth,emersed,water hyacinth mgmt.,1,116,no
-Decodon verticillatus,net,0.060393851109206455,-0.3356557617034353,0.4623171213290584,water hyacinth,emersed,mgmt. + cover,1,116,no
-Echinochloa spp.,cover,0.044753096016736674,-0.2907150394780743,0.34759249189986063,water hyacinth,emersed,water hyacinth cover,1,117,no
-Echinochloa spp.,management,0.02464937838979946,-0.0733215607691709,0.1180085251269603,water hyacinth,emersed,water hyacinth mgmt.,1,117,no
-Echinochloa spp.,net,0.05443888549044551,-0.2352100305407539,0.3423898326381678,water hyacinth,emersed,mgmt. + cover,1,117,no
-"Eleocharis spp., emersed",cover,0.2869224028931325,-0.056806510377008124,0.6603363256798619,water hyacinth,emersed,water hyacinth cover,1,118,no
-"Eleocharis spp., emersed",management,-0.04667947965359183,-0.135889447939397,0.0379200189152269,water hyacinth,emersed,water hyacinth mgmt.,1,118,no
-"Eleocharis spp., emersed",net,0.28284490028891773,-0.0032504360189469454,0.5574356180072366,water hyacinth,emersed,mgmt. + cover,1,118,no
-"Eleocharis spp., sub/floating",cover,0.19894229890943677,-0.1177625928599631,0.5095022978776197,water hyacinth,submersed,water hyacinth cover,3,319,no
-"Eleocharis spp., sub/floating",management,0.13341645552347098,0.03474567366559001,0.22756089096870627,water hyacinth,submersed,water hyacinth mgmt.,3,319,yes
-"Eleocharis spp., sub/floating",net,-0.27855823044160655,-0.5782899466905872,0.020054717585682176,water hyacinth,submersed,mgmt. + cover,3,319,no
-Filamentous algae,cover,-0.04829143637207981,-0.3624832995221503,0.2911444790027097,water hyacinth,floating,water hyacinth cover,2,220,no
-Filamentous algae,management,-0.10007630239634016,-0.22281524974776065,0.015144819231397905,water hyacinth,floating,water hyacinth mgmt.,2,220,no
-Filamentous algae,net,-0.0690368701045901,-0.33494354322168185,0.20764066600091166,water hyacinth,floating,mgmt. + cover,2,220,no
-Fuirena spp.,cover,-0.08644560228008083,-0.8070821139487319,0.4980514155057119,water hyacinth,emersed,water hyacinth cover,1,121,no
-Fuirena spp.,management,-0.08827681963071518,-0.19796955884770667,0.029231389692283356,water hyacinth,emersed,water hyacinth mgmt.,1,121,no
-Fuirena spp.,net,-1.9534584632214371,-3.077060558166097,-0.9412281645577648,water hyacinth,emersed,mgmt. + cover,1,121,yes
-Hydrocotyle spp.,cover,0.21209173403018514,-0.1843443832247213,0.6517735973977306,water hyacinth,emersed,water hyacinth cover,1,122,no
-Hydrocotyle spp.,management,0.26386435573867384,0.12567919233340966,0.4168732104713292,water hyacinth,emersed,water hyacinth mgmt.,1,122,yes
-Hydrocotyle spp.,net,0.018194022494511346,-0.2688128129379286,0.3085296708540105,water hyacinth,emersed,mgmt. + cover,1,122,no
-Hypericum spp.,cover,-1.273956370719655,-2.413366166846383,-0.2176883849392976,water hyacinth,emersed,water hyacinth cover,1,123,yes
-Hypericum spp.,management,-0.08798637232811543,-0.2440099356081138,0.05279646364877255,water hyacinth,emersed,water hyacinth mgmt.,1,123,no
-Hypericum spp.,net,-0.8569571196225071,-1.8007830453055802,-0.11401632529416787,water hyacinth,emersed,mgmt. + cover,1,123,yes
-Juncus effusus,cover,0.0013463320440000595,-0.4586142293902485,0.3920696628913574,water hyacinth,emersed,water hyacinth cover,1,124,no
-Juncus effusus,management,0.13691153993978925,0.009163955957050005,0.2732002274936791,water hyacinth,emersed,water hyacinth mgmt.,1,124,yes
-Juncus effusus,net,0.12352821289237559,-0.15547039124588222,0.39409513433300647,water hyacinth,emersed,mgmt. + cover,1,124,no
-Leersia hexandra,cover,0.10827874888766705,-0.2312060471961653,0.43653820592225523,water hyacinth,emersed,water hyacinth cover,1,125,no
-Leersia hexandra,management,-0.170105600741152,-0.2935318904234483,-0.052280741702194586,water hyacinth,emersed,water hyacinth mgmt.,1,125,yes
-Leersia hexandra,net,0.15239026648599918,-0.12360181190458908,0.4252346321647141,water hyacinth,emersed,mgmt. + cover,1,125,no
-Lemna/Spirodela spp.,cover,1.039967166755932,0.3963368557848678,1.7199793668600627,water hyacinth,floating,water hyacinth cover,2,226,yes
-Lemna/Spirodela spp.,management,0.31617925199427077,0.23233805782151973,0.40157933666332535,water hyacinth,floating,water hyacinth mgmt.,2,226,yes
-Lemna/Spirodela spp.,net,0.4549839017543779,0.1914196832061365,0.7221123854813525,water hyacinth,floating,mgmt. + cover,2,226,yes
-Limnobium spongia,cover,0.11301812827530301,-0.20638317574192716,0.43002532280497074,water hyacinth,floating,water hyacinth cover,2,227,no
-Limnobium spongia,management,0.10938018598981565,-0.005134438255772471,0.21900863754959551,water hyacinth,floating,water hyacinth mgmt.,2,227,no
-Limnobium spongia,net,0.19458785638287077,-0.11708578580359226,0.4923074221074027,water hyacinth,floating,mgmt. + cover,2,227,no
-Ludwigia octovalvis/peruviana,cover,0.4983681033384719,0.04350512951254942,0.985251841874763,water hyacinth,emersed,water hyacinth cover,1,128,yes
-Ludwigia octovalvis/peruviana,management,0.11712618192076654,-0.038477303792345666,0.29184363211906705,water hyacinth,emersed,water hyacinth mgmt.,1,128,no
-Ludwigia octovalvis/peruviana,net,0.010723083347063178,-0.2928239165590998,0.3063679917039871,water hyacinth,emersed,mgmt. + cover,1,128,no
-Ludwigia palustris/repens,cover,0.3423043416691096,-0.026860861861334323,0.711201447438186,water hyacinth,emersed,water hyacinth cover,1,129,no
-Ludwigia palustris/repens,management,-0.09693592398557277,-0.191527566540736,-6.858824198494944e-4,water hyacinth,emersed,water hyacinth mgmt.,1,129,yes
-Ludwigia palustris/repens,net,0.11139966307297502,-0.21563402952860405,0.4085029087990524,water hyacinth,emersed,mgmt. + cover,1,129,no
-Luziola fluitans,cover,0.408952593485949,0.032369574966544294,0.819622731907082,water hyacinth,submersed,water hyacinth cover,3,330,yes
-Luziola fluitans,management,0.11369197957531421,-0.016693554436233556,0.24295692946706843,water hyacinth,submersed,water hyacinth mgmt.,3,330,no
-Luziola fluitans,net,0.14436510656958132,-0.16846919139787186,0.4539616050210915,water hyacinth,submersed,mgmt. + cover,3,330,no
-Mayaca fluviatilis,cover,-0.9680629310948123,-3.331084830788651,0.44420784859936846,water hyacinth,submersed,water hyacinth cover,3,331,no
-Mayaca fluviatilis,management,0.056465117698381445,-0.09771890545218927,0.21638697318484984,water hyacinth,submersed,water hyacinth mgmt.,3,331,no
-Mayaca fluviatilis,net,-1.7881351077253747,-7.213732452020599,0.06052496693709189,water hyacinth,submersed,mgmt. + cover,3,331,no
-Micranthemum glomeratum,cover,-0.30658445537114426,-1.3769343977209791,0.4062758085136614,water hyacinth,submersed,water hyacinth cover,3,332,no
-Micranthemum glomeratum,management,0.22066575027971447,0.10657618608305107,0.34540465673794185,water hyacinth,submersed,water hyacinth mgmt.,3,332,yes
-Micranthemum glomeratum,net,-0.7351605927916803,-1.694850703418114,0.03968002457698308,water hyacinth,submersed,mgmt. + cover,3,332,no
-Micranthemum umbrosum,cover,-0.2699784460492728,-1.1661530948103394,0.383478723940772,water hyacinth,emersed,water hyacinth cover,1,133,no
-Micranthemum umbrosum,management,0.14421536377633673,0.04261816364705877,0.2520442947024364,water hyacinth,emersed,water hyacinth mgmt.,1,133,yes
-Micranthemum umbrosum,net,0.21122247948134695,-0.1483741205298143,0.5329973431531384,water hyacinth,emersed,mgmt. + cover,1,133,no
-Myriophyllum laxum/pinnatum,cover,-1.2448418994427641,-2.783326893646878,0.1262995340399911,water hyacinth,submersed,water hyacinth cover,3,334,no
-Myriophyllum laxum/pinnatum,management,0.10310233960581869,-0.06458937130231443,0.2633470591925269,water hyacinth,submersed,water hyacinth mgmt.,3,334,no
-Myriophyllum laxum/pinnatum,net,-2.0182742828814337,-4.188343635111887,-0.17839200304131428,water hyacinth,submersed,mgmt. + cover,3,334,yes
-Najas guadalupensis,cover,0.40874917293959817,0.11368646679090262,0.7183325562527489,water hyacinth,submersed,water hyacinth cover,3,335,yes
-Najas guadalupensis,management,-0.015972331010821843,-0.11058909977101558,0.07586186298821826,water hyacinth,submersed,water hyacinth mgmt.,3,335,no
-Najas guadalupensis,net,-0.3274475041441101,-0.7239476515754106,0.044871841777693364,water hyacinth,submersed,mgmt. + cover,3,335,no
-Nelumbo lutea,cover,0.3336249205660205,-0.09316811349159893,0.8998452146586573,water hyacinth,emersed,water hyacinth cover,1,136,no
-Nelumbo lutea,management,0.15980279243530193,-0.09246351953756277,0.4386884020621221,water hyacinth,emersed,water hyacinth mgmt.,1,136,no
-Nelumbo lutea,net,-0.20866560210717094,-0.673058567451772,0.1991167271853441,water hyacinth,emersed,mgmt. + cover,1,136,no
-Nitella spp.,cover,-0.024268264702568126,-0.8666442062426902,0.5637503794431107,water hyacinth,submersed,water hyacinth cover,3,337,no
-Nitella spp.,management,-0.09699244794383255,-0.2481379814802394,0.039277838302748,water hyacinth,submersed,water hyacinth mgmt.,3,337,no
-Nitella spp.,net,-0.5400425912301323,-1.4692920645045646,0.1568709043960423,water hyacinth,submersed,mgmt. + cover,3,337,no
-Nuphar advena,cover,0.1709096554504337,-0.2213809379202164,0.6223608190424579,water hyacinth,emersed,water hyacinth cover,1,138,no
-Nuphar advena,management,0.19197168471894643,0.06978619555250411,0.33613099943454655,water hyacinth,emersed,water hyacinth mgmt.,1,138,yes
-Nuphar advena,net,0.057627821037684164,-0.2284286393435921,0.32885993924420054,water hyacinth,emersed,mgmt. + cover,1,138,no
-Nymphaea mexicana,cover,0.06904946512895219,-0.31751080061449,0.41189058106431564,water hyacinth,emersed,water hyacinth cover,1,139,no
-Nymphaea mexicana,management,-0.176671508670906,-0.31073437008502414,-0.04355360104171443,water hyacinth,emersed,water hyacinth mgmt.,1,139,yes
-Nymphaea mexicana,net,-0.15611970626033336,-0.5463789628166742,0.21589661191201415,water hyacinth,emersed,mgmt. + cover,1,139,no
-Nymphaea odorata,cover,0.014529953063606363,-0.4260961662210342,0.39131512250869127,water hyacinth,emersed,water hyacinth cover,1,140,no
-Nymphaea odorata,management,-0.03450383334523727,-0.1318379783218371,0.05973347902214379,water hyacinth,emersed,water hyacinth mgmt.,1,140,no
-Nymphaea odorata,net,-0.0082448404113135,-0.31478770732298017,0.3028074976535712,water hyacinth,emersed,mgmt. + cover,1,140,no
-Nymphoides aquatica,cover,-0.43237853991542846,-1.4816330757278449,0.3238460800271928,water hyacinth,emersed,water hyacinth cover,1,141,no
-Nymphoides aquatica,management,0.19112478350205206,0.07385508528938181,0.30628995539306403,water hyacinth,emersed,water hyacinth mgmt.,1,141,yes
-Nymphoides aquatica,net,-0.29208860488965127,-1.0948316483427536,0.31125150542626173,water hyacinth,emersed,mgmt. + cover,1,141,no
-Panicum hemitomon,cover,-0.05363057243193043,-0.35277757231494095,0.30398558820097066,water hyacinth,emersed,water hyacinth cover,1,142,no
-Panicum hemitomon,management,0.15164988602079574,0.005045776755781562,0.3252652518450866,water hyacinth,emersed,water hyacinth mgmt.,1,142,yes
-Panicum hemitomon,net,0.001643777861467947,-0.32104015624442317,0.3138198366706003,water hyacinth,emersed,mgmt. + cover,1,142,no
-Paspalidium geminatum,cover,-0.8322510897826947,-1.6207359854218013,-0.025184509149787662,water hyacinth,emersed,water hyacinth cover,1,143,yes
-Paspalidium geminatum,management,0.31341504775692014,0.08316683009286788,0.5176526145127562,water hyacinth,emersed,water hyacinth mgmt.,1,143,yes
-Paspalidium geminatum,net,-1.8228034350003135,-2.9685473740753423,-0.462295901269816,water hyacinth,emersed,mgmt. + cover,1,143,yes
-Paspalum repens,cover,-0.20409849167688243,-0.6350252780223706,0.1836126501166772,water hyacinth,emersed,water hyacinth cover,1,144,no
-Paspalum repens,management,-0.01612213317498905,-0.15618100329022783,0.1281699353236463,water hyacinth,emersed,water hyacinth mgmt.,1,144,no
-Paspalum repens,net,-0.16179402435529927,-0.5543776686796964,0.20794647112712267,water hyacinth,emersed,mgmt. + cover,1,144,no
-Peltandra spp.,cover,-0.4858442558285808,-1.5864453252898636,0.31170257517054445,water hyacinth,emersed,water hyacinth cover,1,145,no
-Peltandra spp.,management,0.18170736865653003,0.03595886243111375,0.31928714820874726,water hyacinth,emersed,water hyacinth mgmt.,1,145,yes
-Peltandra spp.,net,-0.0297082708899081,-0.6562057574947793,0.5021407539319578,water hyacinth,emersed,mgmt. + cover,1,145,no
-Phragmites australis,cover,0.14406959541569375,-0.33687362255656084,0.6314092184917952,water hyacinth,emersed,water hyacinth cover,1,146,no
-Phragmites australis,management,0.051906026485213974,-0.2005858083630964,0.2813649974408795,water hyacinth,emersed,water hyacinth mgmt.,1,146,no
-Phragmites australis,net,-0.041523067706935854,-0.4536978023294099,0.34341447858754226,water hyacinth,emersed,mgmt. + cover,1,146,no
-Pontederia cordata,cover,0.509733357612538,0.06548211275582744,0.9833925257339063,water hyacinth,emersed,water hyacinth cover,1,147,yes
-Pontederia cordata,management,0.07633517132506186,-0.09848053293014782,0.291494915293663,water hyacinth,emersed,water hyacinth mgmt.,1,147,no
-Pontederia cordata,net,-0.027757056842505526,-0.3439384271511081,0.30331294115675345,water hyacinth,emersed,mgmt. + cover,1,147,no
-Potamogeton illinoensis,cover,0.12745406630149259,-0.6973405406044867,0.7083961275404871,water hyacinth,submersed,water hyacinth cover,3,348,no
-Potamogeton illinoensis,management,-0.03660658631273967,-0.16424322614351583,0.09030552377503068,water hyacinth,submersed,water hyacinth mgmt.,3,348,no
-Potamogeton illinoensis,net,-0.3208593166943082,-1.0864278753418075,0.4303077382526092,water hyacinth,submersed,mgmt. + cover,3,348,no
-Rhynchospora spp.,cover,0.09410728888819733,-0.26992248444607253,0.44034948293430975,water hyacinth,emersed,water hyacinth cover,1,149,no
-Rhynchospora spp.,management,-0.1344477999229403,-0.23639090591696119,-0.03447926066181278,water hyacinth,emersed,water hyacinth mgmt.,1,149,yes
-Rhynchospora spp.,net,-0.24644744022264142,-0.6207129249456798,0.0918160236038539,water hyacinth,emersed,mgmt. + cover,1,149,no
-Sacciolepis striata,cover,0.09602126936163925,-0.23570585174947378,0.46913034357525674,water hyacinth,emersed,water hyacinth cover,1,150,no
-Sacciolepis striata,management,0.21835287708742143,0.0899449661114435,0.3846837192375552,water hyacinth,emersed,water hyacinth mgmt.,1,150,yes
-Sacciolepis striata,net,0.07160440717764778,-0.17691014335804256,0.3309025695582726,water hyacinth,emersed,mgmt. + cover,1,150,no
-Sagittaria lancifolia,cover,0.5974561257679941,0.10191869703539541,1.1125504078741308,water hyacinth,emersed,water hyacinth cover,1,151,yes
-Sagittaria lancifolia,management,0.059286682832023506,-0.0934077040759577,0.244619737402535,water hyacinth,emersed,water hyacinth mgmt.,1,151,no
-Sagittaria lancifolia,net,0.0527152757376611,-0.20695765986958997,0.3112069294955912,water hyacinth,emersed,mgmt. + cover,1,151,no
-Sagittaria latifolia,cover,0.10797361117566569,-0.2767521767363894,0.5085957462267211,water hyacinth,emersed,water hyacinth cover,1,152,no
-Sagittaria latifolia,management,0.11033639451154076,-0.05254441713045799,0.3164847722126888,water hyacinth,emersed,water hyacinth mgmt.,1,152,no
-Sagittaria latifolia,net,0.022547302279461206,-0.2908485338340798,0.33652030235543773,water hyacinth,emersed,mgmt. + cover,1,152,no
-Sagittaria subulata/graminea/gracillima,cover,-0.08045979620376614,-0.8181225140383661,0.47858139611983186,water hyacinth,emersed,water hyacinth cover,1,153,no
-Sagittaria subulata/graminea/gracillima,management,0.12030404938999004,0.0036650760159844123,0.23318556421088826,water hyacinth,emersed,water hyacinth mgmt.,1,153,yes
-Sagittaria subulata/graminea/gracillima,net,-0.12381226503566808,-0.7718977927442896,0.3680039899915246,water hyacinth,emersed,mgmt. + cover,1,153,no
-Salix spp.,cover,0.34979150968494277,-0.12295291287726622,0.8793722883933859,water hyacinth,emersed,water hyacinth cover,1,154,no
-Salix spp.,management,0.15268662049175818,0.016771498919567515,0.2933960301808415,water hyacinth,emersed,water hyacinth mgmt.,1,154,yes
-Salix spp.,net,-0.0058807337920556615,-0.2939033999137196,0.3075875108603711,water hyacinth,emersed,mgmt. + cover,1,154,no
-Saururus cernuus,cover,-0.12430733225295189,-0.8076514789717133,0.4027086354817104,water hyacinth,emersed,water hyacinth cover,1,155,no
-Saururus cernuus,management,-0.06393776806565274,-0.18176540580367978,0.06212530502525324,water hyacinth,emersed,water hyacinth mgmt.,1,155,no
-Saururus cernuus,net,-0.08602479740354196,-0.4822164464805929,0.29743198427081974,water hyacinth,emersed,mgmt. + cover,1,155,no
-Spartina bakeri,cover,0.2682935835504428,-0.11172811800387383,0.6661633657244885,water hyacinth,emersed,water hyacinth cover,1,156,no
-Spartina bakeri,management,0.12057954955509023,-0.10859480478792591,0.29005971223224986,water hyacinth,emersed,water hyacinth mgmt.,1,156,no
-Spartina bakeri,net,0.021628721119970027,-0.3231037348553119,0.3925993573100126,water hyacinth,emersed,mgmt. + cover,1,156,no
-Thalia geniculata,cover,0.2371505486005456,-0.15835308807648912,0.6979013186368578,water hyacinth,emersed,water hyacinth cover,1,157,no
-Thalia geniculata,management,-0.26467046752024365,-0.4407635977253651,-0.0655145121267115,water hyacinth,emersed,water hyacinth mgmt.,1,157,yes
-Thalia geniculata,net,0.05146451815502851,-0.3902902319190328,0.43082430547259754,water hyacinth,emersed,mgmt. + cover,1,157,no
-Typha spp.,cover,0.1078470997827738,-0.28816847839062,0.5539837865337751,water hyacinth,emersed,water hyacinth cover,1,158,no
-Typha spp.,management,0.21775394361399805,0.058586426724953546,0.39062665820794434,water hyacinth,emersed,water hyacinth mgmt.,1,158,yes
-Typha spp.,net,0.13417620080710685,-0.19042997214094198,0.5023525312091576,water hyacinth,emersed,mgmt. + cover,1,158,no
-Utricularia floridana,cover,-0.07581251182357757,-1.0036781053672799,0.5887186630594906,water hyacinth,submersed,water hyacinth cover,3,359,no
-Utricularia floridana,management,-0.22637926754158477,-0.39303557614103446,-0.05621041309332695,water hyacinth,submersed,water hyacinth mgmt.,3,359,yes
-Utricularia floridana,net,-0.7751492619872367,-1.850614338584342,0.008877899578362398,water hyacinth,submersed,mgmt. + cover,3,359,no
-Utricularia foliosa,cover,0.6031267541459829,0.1657025661989682,1.038671731643673,water hyacinth,submersed,water hyacinth cover,3,360,yes
-Utricularia foliosa,management,-0.009485136421045638,-0.14178453807804026,0.119404933841491,water hyacinth,submersed,water hyacinth mgmt.,3,360,no
-Utricularia foliosa,net,0.29176384192518134,7.695744892314687e-6,0.5840423985539729,water hyacinth,submersed,mgmt. + cover,3,360,yes
-Utricularia gibba,cover,0.22980678898275889,-0.13872096305013182,0.5718386218482135,water hyacinth,submersed,water hyacinth cover,3,361,no
-Utricularia gibba,management,0.05539059229121273,-0.04127927125096266,0.15126775438655826,water hyacinth,submersed,water hyacinth mgmt.,3,361,no
-Utricularia gibba,net,0.28880391530649646,0.0027007937279687542,0.5700737951429842,water hyacinth,submersed,mgmt. + cover,3,361,yes
-Utricularia inflata,cover,0.5229229323666391,0.11041618978313356,0.879072397664852,water hyacinth,submersed,water hyacinth cover,3,362,yes
-Utricularia inflata,management,-0.0904112506899224,-0.20819545646722296,0.025891253687859418,water hyacinth,submersed,water hyacinth mgmt.,3,362,no
-Utricularia inflata,net,-0.03812180443012558,-0.6477428412074723,0.4191596800163061,water hyacinth,submersed,mgmt. + cover,3,362,no
-Utricularia purpurea,cover,0.3822808155169551,-0.013165106264809885,0.83896896806047,water hyacinth,submersed,water hyacinth cover,3,363,no
-Utricularia purpurea,management,0.08906581966644694,-0.060316336399544035,0.22974492619083753,water hyacinth,submersed,water hyacinth mgmt.,3,363,no
-Utricularia purpurea,net,-1.8188360511123167,-3.2276552950749497,-0.5803156233980468,water hyacinth,submersed,mgmt. + cover,3,363,yes
-Vallisneria americana,cover,0.29783298647882467,-0.04901484207248843,0.6190178738132358,water hyacinth,submersed,water hyacinth cover,3,364,no
-Vallisneria americana,management,0.2411478360129923,0.10377435414338222,0.36875090886763295,water hyacinth,submersed,water hyacinth mgmt.,3,364,yes
-Vallisneria americana,net,-0.037074480093001384,-0.4623126470120882,0.34706432567971623,water hyacinth,submersed,mgmt. + cover,3,364,no
+TaxonName,covariate,Mean,quant_2_5,quant_97_5,invader,psrf,ess,Habitat,cov2,habitat_num,tax_num,sig,sig_reliable
+Azolla caroliniana,cover,0.100486875737228,0.038412964696967235,0.16099687459153206,hydrilla,1.081654457006085,2758.753211813726,floating,hydrilla cover,2,201,yes,yes
+Azolla caroliniana,management,0.07722806359285084,-0.04555357966838795,0.19305320744876364,hydrilla,1.0606770175518492,3039.9805927776274,floating,hydrilla mgmt.,2,201,no,no
+Azolla caroliniana,net,0.1736871623288109,0.06167140536887003,0.28012538144676874,hydrilla,1.081654457006085,2758.753211813726,floating,mgmt. + cover,2,201,yes,yes
+Bacopa caroliniana,cover,0.022905400271136505,-0.04583657730139605,0.09295242756991534,hydrilla,1.0032180454905422,2900.705540743105,emersed,hydrilla cover,1,102,no,no
+Bacopa caroliniana,management,0.10610830672642957,-0.012520463917911822,0.221469049978702,hydrilla,1.0068027100958759,3000,emersed,hydrilla mgmt.,1,102,no,no
+Bacopa caroliniana,net,0.17230204798786075,0.06120968977039288,0.27997767472935003,hydrilla,1.0070616369185708,2900.705540743105,emersed,mgmt. + cover,1,102,yes,yes
+Bacopa monnieri,cover,-0.034479325061942144,-0.10144158529469792,0.03517770857677054,hydrilla,1.0027239767936502,3000,emersed,hydrilla cover,1,103,no,no
+Bacopa monnieri,management,0.023767277703958204,-0.07358562524901752,0.11846574275421404,hydrilla,1.0040073787705555,3107.7565551426997,emersed,hydrilla mgmt.,1,103,no,no
+Bacopa monnieri,net,-0.02757656429235075,-0.11953640251507754,0.0657315329433257,hydrilla,1.0063509525380212,4256.448578262838,emersed,mgmt. + cover,1,103,no,no
+Bidens spp.,cover,-0.004215542094309269,-0.06928597867904426,0.05744663633540702,hydrilla,1.1608244444655464,3000,emersed,hydrilla cover,1,104,no,no
+Bidens spp.,management,-0.0037392953188573543,-0.10403895236808547,0.0897100233725913,hydrilla,1.0100325721173904,3000,emersed,hydrilla mgmt.,1,104,no,no
+Bidens spp.,net,-0.00348096145810154,-0.09827442217210298,0.0875023921869684,hydrilla,1.1608244444655464,2946.9137997067464,emersed,mgmt. + cover,1,104,no,no
+Brasenia schreberi,cover,-0.10883223935470662,-0.26044601914236787,0.02858742138299394,hydrilla,1.0001428965249948,1229.1932731024642,emersed,hydrilla cover,1,105,no,no
+Brasenia schreberi,management,0.25644236104009016,0.0562578306350631,0.4616706745782105,hydrilla,1.0156768176972046,1517.4417180017995,emersed,hydrilla mgmt.,1,105,yes,yes
+Brasenia schreberi,net,0.2124909606462281,0.012192801585592947,0.4081745270722925,hydrilla,1.0676238497220845,229.89689536618735,emersed,mgmt. + cover,1,105,yes,no
+Cabomba caroliniana,cover,0.04943655928227206,-0.022470577934556556,0.12001894248359947,hydrilla,1.0020002273064208,2870.801735548561,submersed,hydrilla cover,3,306,no,no
+Cabomba caroliniana,management,0.13660312859162876,0.0026416344457100864,0.27206493792049424,hydrilla,1.0384040013963514,2564.5076169925246,submersed,hydrilla mgmt.,3,306,yes,yes
+Cabomba caroliniana,net,0.1042851175931105,-0.021659931803056285,0.23035016049238996,hydrilla,1.0384040013963514,1980.777332700656,submersed,mgmt. + cover,3,306,no,no
+Carex spp.,cover,0.0042196049367382756,-0.06680238285425995,0.07390534680451492,hydrilla,1.149519691807922,2886.4593386489814,emersed,hydrilla cover,1,107,no,no
+Carex spp.,management,-0.0743142589182026,-0.20391502076967297,0.05212184882361063,hydrilla,1.020092559505811,2668.0702693166277,emersed,hydrilla mgmt.,1,107,no,no
+Carex spp.,net,-0.054696069383438885,-0.17385334523429077,0.06304308207920689,hydrilla,1.149519691807922,2668.0702693166277,emersed,mgmt. + cover,1,107,no,no
+Cephalanthus occidentalis,cover,-0.05233252818598049,-0.11349433569631649,0.006484724793410713,hydrilla,1.0059783472671966,2809.2171301936114,emersed,hydrilla cover,1,108,no,no
+Cephalanthus occidentalis,management,-0.0026238814045658255,-0.09680343745432063,0.0971386115875823,hydrilla,1.0068440993878256,3293.8446166320446,emersed,hydrilla mgmt.,1,108,no,no
+Cephalanthus occidentalis,net,-0.04251122107774935,-0.1331281172167891,0.05028946453998191,hydrilla,1.0068440993878256,3293.8446166320446,emersed,mgmt. + cover,1,108,no,no
+Ceratophyllum demersum,cover,0.13472227127752254,0.07247235290243186,0.19626390665876495,hydrilla,1.0081958265853528,2943.420260799453,submersed,hydrilla cover,3,309,yes,yes
+Ceratophyllum demersum,management,0.33646659523312233,0.2432997143147329,0.43226848971996623,hydrilla,1.0031299698808043,2823.2411050900428,submersed,hydrilla mgmt.,3,309,yes,yes
+Ceratophyllum demersum,net,0.40769639678531094,0.3162047187593952,0.5015647478759863,hydrilla,1.0081958265853528,2823.2411050900428,submersed,mgmt. + cover,3,309,yes,yes
+Chara spp.,cover,0.02827150202461329,-0.03867920764765286,0.09052160070989819,hydrilla,1.0333080010443705,2794.9602435970505,submersed,hydrilla cover,3,310,no,no
+Chara spp.,management,0.1968997642959034,0.09708145753625101,0.29608566017024845,hydrilla,0.9996383398525349,2999.9999999999995,submersed,hydrilla mgmt.,3,310,yes,yes
+Chara spp.,net,0.23606349673413687,0.1415276265064969,0.3340510868449759,hydrilla,1.0624418919443366,2794.9602435970505,submersed,mgmt. + cover,3,310,yes,yes
+Cicuta maculata,cover,-0.026954306340720696,-0.10349676377417615,0.049241683720972006,hydrilla,1.064412258361715,2990.568779711025,emersed,hydrilla cover,1,111,no,no
+Cicuta maculata,management,0.08411765571580662,-0.05761084099838142,0.222246370586802,hydrilla,1.056676118977894,2512.5166272457254,emersed,hydrilla mgmt.,1,111,no,no
+Cicuta maculata,net,0.01931717335866201,-0.11040673699324492,0.14675949362894208,hydrilla,1.1431096015991673,2007.127083038676,emersed,mgmt. + cover,1,111,no,no
+Cladium jamaicense,cover,-0.0030581761483055897,-0.07808746280352814,0.07301408074266878,hydrilla,1.1991885932171524,2877.071806672024,emersed,hydrilla cover,1,112,no,no
+Cladium jamaicense,management,-0.04739382018906855,-0.1667242888866899,0.0696978326557951,hydrilla,1.052859431908126,2862.626003895047,emersed,hydrilla mgmt.,1,112,no,no
+Cladium jamaicense,net,-0.04538070994466727,-0.14917838149880297,0.0633542715819128,hydrilla,1.1991885932171524,2862.626003895047,emersed,mgmt. + cover,1,112,no,no
+Crinum americanum,cover,-0.11018820757087604,-0.2067012160719286,-0.016349868337644773,hydrilla,1.0041296940120266,2334.819933938928,emersed,hydrilla cover,1,113,yes,yes
+Crinum americanum,management,0.04000838965817005,-0.08508347159466471,0.1654112233696704,hydrilla,1.0163270767575636,2828.078535439373,emersed,hydrilla mgmt.,1,113,no,no
+Crinum americanum,net,-0.09126946691449933,-0.2159222316085899,0.03056470242036483,hydrilla,1.0163270767575636,2272.932288132899,emersed,mgmt. + cover,1,113,no,no
+Cyperus articulatus,cover,0.062061680581507066,-0.02946185477056071,0.14724760170672122,hydrilla,1.0290354260776715,2500.447368559234,emersed,hydrilla cover,1,114,no,no
+Cyperus articulatus,management,-0.1070019699926737,-0.26180960900037076,0.053038020550003055,hydrilla,1.0146198427724562,2370.126647175555,emersed,hydrilla mgmt.,1,114,no,no
+Cyperus articulatus,net,-0.021462641777425465,-0.17051976225493357,0.12780161147526314,hydrilla,1.0335934352053635,717.5652972986729,emersed,mgmt. + cover,1,114,no,no
+Cyperus spp. (other natives),cover,-0.04088048428104267,-0.09583738615825228,0.014037143861606687,hydrilla,1.0185463152508836,3008.3867809930616,emersed,hydrilla cover,1,115,no,no
+Cyperus spp. (other natives),management,0.03476004261692905,-0.05639472210482049,0.1200542739352406,hydrilla,1.0348840856957537,2941.132303017696,emersed,hydrilla mgmt.,1,115,no,no
+Cyperus spp. (other natives),net,0.025641066732235124,-0.060894996538738665,0.10825509646883856,hydrilla,1.0348840856957537,3108.676716983602,emersed,mgmt. + cover,1,115,no,no
+Decodon verticillatus,cover,-0.07821832371372295,-0.1634208779485827,0.0030061191414216936,hydrilla,1.0000220808816673,2301.4423285070566,emersed,hydrilla cover,1,116,no,no
+Decodon verticillatus,management,-0.026002208049417993,-0.1763363575321864,0.12050684699692428,hydrilla,1.0085635153689447,2407.005957686188,emersed,hydrilla mgmt.,1,116,no,no
+Decodon verticillatus,net,-0.09427460227996043,-0.2422719449920456,0.04809008176814183,hydrilla,1.0316447651712426,935.7049520524072,emersed,mgmt. + cover,1,116,no,no
+Echinochloa spp.,cover,0.04198977864935731,-0.017453621561735445,0.100562541988509,hydrilla,1.007020480567693,2806.0284695932746,emersed,hydrilla cover,1,117,no,no
+Echinochloa spp.,management,0.06961556828154813,-0.030225633191170435,0.16980111127643488,hydrilla,1.0689313630511454,2899.2874505950062,emersed,hydrilla mgmt.,1,117,no,no
+Echinochloa spp.,net,0.04568799804911044,-0.04499143009095825,0.13862510530838623,hydrilla,1.0689313630511454,2756.1128374498,emersed,mgmt. + cover,1,117,no,no
+"Eleocharis spp., emersed",cover,-0.006874222533747859,-0.07067980773632807,0.055695430634315674,hydrilla,1.000557680200419,3126.3709484002375,emersed,hydrilla cover,1,118,no,no
+"Eleocharis spp., emersed",management,0.23809747279900412,0.14110228023029847,0.333801714722236,hydrilla,1.0005428656037503,3000,emersed,hydrilla mgmt.,1,118,yes,yes
+"Eleocharis spp., emersed",net,0.21048324289046139,0.11725311914063245,0.30033772487123733,hydrilla,1.0020008146595538,3244.6378721959372,emersed,mgmt. + cover,1,118,yes,yes
+"Eleocharis spp., sub/floating",cover,-0.05007382609160198,-0.1080422958139937,0.009680104253197881,hydrilla,1.0010606541958835,3000.0000000000005,submersed,hydrilla cover,3,319,no,no
+"Eleocharis spp., sub/floating",management,0.10877908385080914,0.019493041530259422,0.20201924144316483,hydrilla,1.0058981539639897,3176.474961816628,submersed,hydrilla mgmt.,3,319,yes,yes
+"Eleocharis spp., sub/floating",net,0.09559886759299652,0.006340117775640037,0.18678706181961616,hydrilla,1.0058981539639897,3324.779601829464,submersed,mgmt. + cover,3,319,yes,yes
+Filamentous algae,cover,0.1334668182873854,0.06148189814078684,0.20780607989478683,hydrilla,1.2229681754792445,3000.0000000000005,floating,hydrilla cover,2,220,yes,no
+Filamentous algae,management,0.0840650231955569,-0.01334214036796979,0.17962462382661012,hydrilla,1.1278166398109861,2782.336825241502,floating,hydrilla mgmt.,2,220,no,no
+Filamentous algae,net,0.1364388422714109,0.045987015784348086,0.2240424754903177,hydrilla,1.2229681754792445,2782.336825241502,floating,mgmt. + cover,2,220,yes,no
+Fuirena spp.,cover,-0.020678984726028523,-0.10427785152699633,0.06379707594378764,hydrilla,1.2092833659646711,2814.8702277706625,emersed,hydrilla cover,1,121,no,no
+Fuirena spp.,management,0.05324885718931034,-0.0791679483947473,0.17821995612861138,hydrilla,1.2439584743386018,2761.6569747820686,emersed,hydrilla mgmt.,1,121,no,no
+Fuirena spp.,net,0.02722991466779614,-0.08969098680786607,0.14026902389805354,hydrilla,1.2439584743386018,2761.6569747820686,emersed,mgmt. + cover,1,121,no,no
+Hydrocotyle spp.,cover,0.010510763383827289,-0.06326646948189067,0.08686801115856901,hydrilla,1.0340867937139453,3000,emersed,hydrilla cover,1,122,no,no
+Hydrocotyle spp.,management,0.07071772428501574,-0.05682232403596344,0.19799981365340003,hydrilla,1.0261843000860746,2606.905013533934,emersed,hydrilla mgmt.,1,122,no,no
+Hydrocotyle spp.,net,0.0970796175294897,-0.027448421651144195,0.22561070909624914,hydrilla,1.0340867937139453,2392.0586389468535,emersed,mgmt. + cover,1,122,no,no
+Hypericum spp.,cover,-0.0769653861082431,-0.18625244535485821,0.030921481343919192,hydrilla,1.0032699913759482,2325.064064377907,emersed,hydrilla cover,1,123,no,no
+Hypericum spp.,management,-0.12103686317423493,-0.26020195426026155,0.018878933108128885,hydrilla,0.9993917496054749,2598.795773471655,emersed,hydrilla mgmt.,1,123,no,no
+Hypericum spp.,net,-0.12182615806350228,-0.2602575714765356,0.010978312177173643,hydrilla,1.0051196195533205,1855.55417366551,emersed,mgmt. + cover,1,123,no,no
+Juncus effusus,cover,-0.021519585114070452,-0.08680766256231695,0.04010221288066885,hydrilla,1.2079353758898732,2909.9197917615193,emersed,hydrilla cover,1,124,no,no
+Juncus effusus,management,-0.11147664091994869,-0.20476495442141607,-0.02034829055381575,hydrilla,1.0356991034672087,3000,emersed,hydrilla mgmt.,1,124,yes,yes
+Juncus effusus,net,-0.09873141764031282,-0.18927563782094983,-0.012556624339693128,hydrilla,1.2079353758898732,2909.9197917615193,emersed,mgmt. + cover,1,124,yes,no
+Leersia hexandra,cover,0.026871638398594844,-0.04482419793074347,0.09354413048316618,hydrilla,1.004689684704171,2856.616823281509,emersed,hydrilla cover,1,125,no,no
+Leersia hexandra,management,0.0343802736684331,-0.08505468182022388,0.15134274311270252,hydrilla,1.000189642395428,2791.6391516376093,emersed,hydrilla mgmt.,1,125,no,no
+Leersia hexandra,net,0.03762553572316333,-0.07299787385107663,0.14973959313899898,hydrilla,1.006288403699972,2381.8356264501163,emersed,mgmt. + cover,1,125,no,no
+Lemna/Spirodela spp.,cover,0.00477858140564559,-0.05783370091916143,0.06575893162053417,hydrilla,1.0838209149496418,3156.4686125982166,floating,hydrilla cover,2,226,no,no
+Lemna/Spirodela spp.,management,0.12363183178030308,0.03167133701628,0.2206295365737445,hydrilla,1.103808237717326,2873.54065801786,floating,hydrilla mgmt.,2,226,yes,no
+Lemna/Spirodela spp.,net,0.13820566278069701,0.05034461216689448,0.22710141847316428,hydrilla,1.103808237717326,3318.615957691811,floating,mgmt. + cover,2,226,yes,no
+Limnobium spongia,cover,0.13600119316940468,0.07261224457321318,0.1987560346025929,hydrilla,1.0493888504532554,2922.1613871586856,floating,hydrilla cover,2,227,yes,yes
+Limnobium spongia,management,0.07800078499328958,-0.04787943109150412,0.204160642465804,hydrilla,1.035895088315817,2517.481734956662,floating,hydrilla mgmt.,2,227,no,no
+Limnobium spongia,net,0.1764202580304408,0.0580690898911225,0.29075058062160297,hydrilla,1.0493888504532554,2225.658697602607,floating,mgmt. + cover,2,227,yes,yes
+Ludwigia octovalvis/peruviana,cover,0.05752839357571327,-0.024463872905781402,0.137736781649969,hydrilla,1.047606371796611,2670.4435770751684,emersed,hydrilla cover,1,128,no,no
+Ludwigia octovalvis/peruviana,management,0.06386134773888459,-0.07174274731297174,0.2014203379907618,hydrilla,1.0052594104576995,2408.7069393424476,emersed,hydrilla mgmt.,1,128,no,no
+Ludwigia octovalvis/peruviana,net,0.09965186804716333,-0.03357585886205028,0.23307531264996426,hydrilla,1.0644583596154769,1810.7812342712505,emersed,mgmt. + cover,1,128,no,no
+Ludwigia palustris/repens,cover,-0.012374238753568032,-0.08428342376433466,0.05751605033977576,hydrilla,1.015849793971391,3260.163186441905,emersed,hydrilla cover,1,129,no,no
+Ludwigia palustris/repens,management,-0.026735385469975247,-0.13557747565620806,0.08545927079176135,hydrilla,1.0176147548934935,3000,emersed,hydrilla mgmt.,1,129,no,no
+Ludwigia palustris/repens,net,-0.023150587930228887,-0.12678326994069875,0.0805121272861812,hydrilla,1.0176147548934935,3260.163186441905,emersed,mgmt. + cover,1,129,no,no
+Luziola fluitans,cover,0.05151719842655618,-0.01757390100502065,0.11815333969059334,hydrilla,1.0057185836946847,2451.681937244119,submersed,hydrilla cover,3,330,no,no
+Luziola fluitans,management,-0.051812443544696454,-0.17004446541359963,0.06205294174819938,hydrilla,1.0169004433367264,2895.110016214645,submersed,hydrilla mgmt.,3,330,no,no
+Luziola fluitans,net,-0.022786406889423065,-0.13611235481274467,0.08458764957126588,hydrilla,1.0169004433367264,2451.681937244119,submersed,mgmt. + cover,3,330,no,no
+Mayaca fluviatilis,cover,-0.02659673931145581,-0.15496726510715939,0.09633591475291027,hydrilla,1.0022011344877941,1666.9225527655187,submersed,hydrilla cover,3,331,no,no
+Mayaca fluviatilis,management,-0.11780598986310345,-0.2787396164356671,0.04240386789485566,hydrilla,1.0016287802711108,2127.139602990653,submersed,hydrilla mgmt.,3,331,no,no
+Mayaca fluviatilis,net,-0.22837284546106232,-0.4041275140494056,-0.05916868004953389,hydrilla,2.8993869301659583,144.9649438442877,submersed,mgmt. + cover,3,331,yes,no
+Micranthemum glomeratum,cover,-0.08772468827367155,-0.17979246680086802,-0.002793718634941207,hydrilla,1.0987857616474441,2745.1691988038583,submersed,hydrilla cover,3,332,yes,yes
+Micranthemum glomeratum,management,-0.027447593601548886,-0.13217192719327625,0.08061464718196931,hydrilla,1.0352363173784807,2639.58367176708,submersed,hydrilla mgmt.,3,332,no,no
+Micranthemum glomeratum,net,-0.07671289068447233,-0.17671199543458435,0.027697209596401602,hydrilla,1.0987857616474441,2534.277983013402,submersed,mgmt. + cover,3,332,no,no
+Micranthemum umbrosum,cover,-0.07873347053269092,-0.17950440376427923,0.0144563897100392,hydrilla,1.0382223267988524,2159.6454444912833,emersed,hydrilla cover,1,133,no,no
+Micranthemum umbrosum,management,9.081231448084421e-4,-0.11260586838355358,0.11266778401209804,hydrilla,1.001359309383057,3022.4768534463046,emersed,hydrilla mgmt.,1,133,no,no
+Micranthemum umbrosum,net,-0.01863133189675313,-0.12929511439344132,0.09367175457443841,hydrilla,1.0382223267988524,2159.6454444912833,emersed,mgmt. + cover,1,133,no,no
+Myriophyllum laxum/pinnatum,cover,0.01370325084425539,-0.1024045479882207,0.12012912232098497,hydrilla,1.0038673383210512,1841.440035754893,submersed,hydrilla cover,3,334,no,no
+Myriophyllum laxum/pinnatum,management,0.213710430951226,0.041007667219424324,0.38454517841459207,hydrilla,1.004420742290354,1968.7959919343045,submersed,hydrilla mgmt.,3,334,yes,yes
+Myriophyllum laxum/pinnatum,net,0.19623561793259958,0.021547988090839354,0.3714412389583599,hydrilla,1.228509503292917,489.1661717958992,submersed,mgmt. + cover,3,334,yes,no
+Najas guadalupensis,cover,0.033493424216671654,-0.024397183960445337,0.08927298704751573,hydrilla,1.0430658202591876,3873.8551414639846,submersed,hydrilla cover,3,335,no,no
+Najas guadalupensis,management,0.355163011921584,0.2610833333262119,0.4502446610703341,hydrilla,1.1231383347411095,3000.000000000001,submersed,hydrilla mgmt.,3,335,yes,no
+Najas guadalupensis,net,0.27859066830703944,0.18960041021569696,0.36684560717942827,hydrilla,1.1231383347411095,3873.8551414639846,submersed,mgmt. + cover,3,335,yes,no
+Nelumbo lutea,cover,0.049184618540107694,-0.0346506614282042,0.1461922556259924,hydrilla,1.6041187842269342,2890.3137136116648,emersed,hydrilla cover,1,136,no,no
+Nelumbo lutea,management,0.10595291154926692,-0.03545726887895298,0.2470010314026305,hydrilla,1.033025457915054,2473.8832284760956,emersed,hydrilla mgmt.,1,136,no,no
+Nelumbo lutea,net,0.13589542083471184,-0.001142876116873005,0.26912124085662525,hydrilla,1.79524155472726,378.5423164003794,emersed,mgmt. + cover,1,136,no,no
+Nitella spp.,cover,0.025526725544997124,-0.05238807367969832,0.09742017860042956,hydrilla,1.0559749092014068,2874.522678223363,submersed,hydrilla cover,3,337,no,no
+Nitella spp.,management,0.12042045647545091,0.010852219349275919,0.23243250443213706,hydrilla,0.9991438182976767,2637.542088438322,submersed,hydrilla mgmt.,3,337,yes,yes
+Nitella spp.,net,0.1636068665257597,0.055064461693311924,0.27497771091274564,hydrilla,1.0559749092014068,2637.542088438322,submersed,mgmt. + cover,3,337,yes,yes
+Nuphar advena,cover,0.01095134932526641,-0.05901296852737189,0.08051536222799004,hydrilla,1.0219044342475685,3000,emersed,hydrilla cover,1,138,no,no
+Nuphar advena,management,0.08395589137755843,-0.03205777807349999,0.2046496009239776,hydrilla,1.0116779304265036,2529.6550947190053,emersed,hydrilla mgmt.,1,138,no,no
+Nuphar advena,net,0.09652436124589232,-0.017051794689789363,0.21031457669284315,hydrilla,1.0219044342475685,2512.6505134569898,emersed,mgmt. + cover,1,138,no,no
+Nymphaea mexicana,cover,0.043840769062166475,-0.028362570484872097,0.11128275339168588,hydrilla,1.0061558644290853,2898.310047795257,emersed,hydrilla cover,1,139,no,no
+Nymphaea mexicana,management,0.007006272507597717,-0.12828854693458638,0.1459548205947257,hydrilla,1.1040702723951894,2497.536396985322,emersed,hydrilla mgmt.,1,139,no,no
+Nymphaea mexicana,net,0.060186184330101575,-0.06366065788750572,0.18591868522339147,hydrilla,1.1040702723951894,1656.7774824252601,emersed,mgmt. + cover,1,139,no,no
+Nymphaea odorata,cover,0.10002800592388154,0.030534588546460815,0.17000648017144523,hydrilla,0.999815992229219,3000,emersed,hydrilla cover,1,140,yes,yes
+Nymphaea odorata,management,0.21931540288841544,0.11338906627765438,0.32594437954643907,hydrilla,1.0052509749472243,2500.1418656119313,emersed,hydrilla mgmt.,1,140,yes,yes
+Nymphaea odorata,net,0.25405969732615813,0.15092695270872405,0.352170496483743,hydrilla,1.0052509749472243,2500.1418656119313,emersed,mgmt. + cover,1,140,yes,yes
+Nymphoides aquatica,cover,0.004903786946291011,-0.08378127609519276,0.09713105836149973,hydrilla,1.1177855043124607,2326.1353507604604,emersed,hydrilla cover,1,141,no,no
+Nymphoides aquatica,management,0.06092974865338847,-0.07016604377346045,0.1948185808190043,hydrilla,1.0692068224574909,2804.6033798562535,emersed,hydrilla mgmt.,1,141,no,no
+Nymphoides aquatica,net,0.14614516518617218,0.018975359515299613,0.26843297032792107,hydrilla,1.1177855043124607,1968.790690315609,emersed,mgmt. + cover,1,141,yes,no
+Panicum hemitomon,cover,-0.024296918219142743,-0.08552726349253167,0.0382489475885944,hydrilla,1.0337696436320016,2792.2862500938145,emersed,hydrilla cover,1,142,no,no
+Panicum hemitomon,management,0.14388888795564694,0.035468232105516924,0.2555736033576572,hydrilla,0.9997087910394694,3000,emersed,hydrilla mgmt.,1,142,yes,yes
+Panicum hemitomon,net,0.16797618639352851,0.06098237525181213,0.2741968391419789,hydrilla,1.0337696436320016,2433.7567665457436,emersed,mgmt. + cover,1,142,yes,yes
+Paspalidium geminatum,cover,-0.059371138570405664,-0.14529352206897936,0.047833545925056474,hydrilla,2.1642370743950963,1958.7092986662433,emersed,hydrilla cover,1,143,no,no
+Paspalidium geminatum,management,0.3264241477598753,0.1730436539842292,0.44968921497719155,hydrilla,1.912156428343799,2846.907364987019,emersed,hydrilla mgmt.,1,143,yes,no
+Paspalidium geminatum,net,0.2473272431158221,0.134810412604779,0.3512614640060537,hydrilla,2.1901332274703575,1529.6782856501457,emersed,mgmt. + cover,1,143,yes,no
+Paspalum repens,cover,0.03333314998875303,-0.047770770045724546,0.11315289864052398,hydrilla,1.0303112961488847,3081.3615976711944,emersed,hydrilla cover,1,144,no,no
+Paspalum repens,management,-0.0249816546723237,-0.17390309140259252,0.1299899738702042,hydrilla,1.148000130358928,2627.0220566769517,emersed,hydrilla mgmt.,1,144,no,no
+Paspalum repens,net,0.013904589079106133,-0.12229235689511425,0.15200543012820597,hydrilla,1.148000130358928,1628.3511015002355,emersed,mgmt. + cover,1,144,no,no
+Peltandra spp.,cover,-0.03181515421974073,-0.12916389692638133,0.0656378638088945,hydrilla,1.0013470749022488,2315.9724224012443,emersed,hydrilla cover,1,145,no,no
+Peltandra spp.,management,-0.1341024818592563,-0.2782935381191311,0.011424907631827954,hydrilla,1.0019632342388287,1948.6978413516536,emersed,hydrilla mgmt.,1,145,no,no
+Peltandra spp.,net,-0.13358378004662036,-0.27182760163658465,0.009119869543687705,hydrilla,1.4054442065226915,748.3051948221113,emersed,mgmt. + cover,1,145,no,no
+Phragmites australis,cover,-0.05930965097944067,-0.16860723307925093,0.05982828819434092,hydrilla,1.6785994388191507,2777.4997246094717,emersed,hydrilla cover,1,146,no,no
+Phragmites australis,management,0.05954835768515531,-0.20335763043062768,0.268602715950162,hydrilla,2.403017150071857,2006.0478015623655,emersed,hydrilla mgmt.,1,146,no,no
+Phragmites australis,net,-0.11007058365126846,-0.3090552240702266,0.06788317804051505,hydrilla,2.9557740445816085,1005.9937795191133,emersed,mgmt. + cover,1,146,no,no
+Pontederia cordata,cover,0.16235489561634814,0.0725354619812032,0.25936684790755365,hydrilla,0.9994864887079207,2707.160213758,emersed,hydrilla cover,1,147,yes,yes
+Pontederia cordata,management,0.0651395246162233,-0.07022673845044412,0.20192615921597135,hydrilla,1.0089939883083467,2538.5632450497737,emersed,hydrilla mgmt.,1,147,no,no
+Pontederia cordata,net,0.07165026469324041,-0.05665972187664441,0.19855391023262967,hydrilla,1.0165149908432078,2538.5632450497737,emersed,mgmt. + cover,1,147,no,no
+Potamogeton illinoensis,cover,0.2014683842925632,0.1251680431199243,0.28076955923919755,hydrilla,1.0668664843327664,2825.687633419258,submersed,hydrilla cover,3,348,yes,yes
+Potamogeton illinoensis,management,0.22437638657843434,0.10712608833832235,0.3428629074589682,hydrilla,1.0115397193950035,2905.389927519889,submersed,hydrilla mgmt.,3,348,yes,yes
+Potamogeton illinoensis,net,0.2583384754538729,0.1454019317467498,0.37392089529082917,hydrilla,1.1710800889470234,1683.6217838294397,submersed,mgmt. + cover,3,348,yes,no
+Rhynchospora spp.,cover,0.002389863928225911,-0.07131972315934233,0.07212115540848066,hydrilla,1.023191534514056,3000,emersed,hydrilla cover,1,149,no,no
+Rhynchospora spp.,management,0.07229170179880214,-0.0527270042077951,0.19340466803679487,hydrilla,1.027500364225165,2891.6396586113115,emersed,hydrilla mgmt.,1,149,no,no
+Rhynchospora spp.,net,0.1082111102944577,-0.006847440309125682,0.2218970800444999,hydrilla,1.027500364225165,2879.8716141923915,emersed,mgmt. + cover,1,149,no,no
+Sacciolepis striata,cover,0.004948133958022426,-0.056248862435022674,0.06680358229545763,hydrilla,1.0479447669737119,2854.465692556049,emersed,hydrilla cover,1,150,no,no
+Sacciolepis striata,management,-0.04511652122804018,-0.13838290825161725,0.05133322806694522,hydrilla,1.0759691372394464,2791.6388640531973,emersed,hydrilla mgmt.,1,150,no,no
+Sacciolepis striata,net,-0.08351204041061233,-0.17371775223006125,0.009283839138442997,hydrilla,1.0759691372394464,2791.6388640531973,emersed,mgmt. + cover,1,150,no,no
+Sagittaria lancifolia,cover,0.00403816961187726,-0.06298365540792981,0.07513991909159325,hydrilla,1.0151794483021155,3032.657780800604,emersed,hydrilla cover,1,151,no,no
+Sagittaria lancifolia,management,0.18250549101711788,0.06659017287435885,0.29398551419993996,hydrilla,1.0006258521707674,2778.283500860722,emersed,hydrilla mgmt.,1,151,yes,yes
+Sagittaria lancifolia,net,0.20276114970907144,0.08880380598677275,0.3131647962555012,hydrilla,1.0237102021441091,2778.283500860722,emersed,mgmt. + cover,1,151,yes,yes
+Sagittaria latifolia,cover,0.0925711972211644,0.025715527180074572,0.15564979507524523,hydrilla,1.1593671675083779,3076.474282870487,emersed,hydrilla cover,1,152,yes,no
+Sagittaria latifolia,management,0.08990808068701563,-0.02003481553761883,0.20791984774160227,hydrilla,1.1396369180214534,3050.3567064599056,emersed,hydrilla mgmt.,1,152,no,no
+Sagittaria latifolia,net,0.2009426157743247,0.09637142469108018,0.3099624902613703,hydrilla,1.1593671675083779,3402.3092537124503,emersed,mgmt. + cover,1,152,yes,no
+Sagittaria subulata/graminea/gracillima,cover,0.013363644363675781,-0.06856752184144155,0.09148114151459534,hydrilla,1.0004579886011142,2896.390678346846,emersed,hydrilla cover,1,153,no,no
+Sagittaria subulata/graminea/gracillima,management,0.12113787955193571,-0.0111844791700932,0.25393136561352064,hydrilla,1.0046088386133376,2812.165597699144,emersed,hydrilla mgmt.,1,153,no,no
+Sagittaria subulata/graminea/gracillima,net,0.1584700429935646,0.03920576498391598,0.28134751250360573,hydrilla,1.0046088386133376,2222.3064460916075,emersed,mgmt. + cover,1,153,yes,yes
+Salix spp.,cover,-0.029845290939514525,-0.09639889320378221,0.040964113153100196,hydrilla,1.0067693197472734,3000,emersed,hydrilla cover,1,154,no,no
+Salix spp.,management,0.11849210441199523,-0.005456409251259637,0.24573120901605944,hydrilla,1.0223046428004379,2860.695266876131,emersed,hydrilla mgmt.,1,154,no,no
+Salix spp.,net,0.09319989985577636,-0.02491107494489813,0.21403829670454624,hydrilla,1.0223046428004379,2687.5900276168204,emersed,mgmt. + cover,1,154,no,no
+Saururus cernuus,cover,0.005593980307373526,-0.07829605001848076,0.08388604287941301,hydrilla,1.0184884181670344,2785.8842750807326,emersed,hydrilla cover,1,155,no,no
+Saururus cernuus,management,-0.04023868993587718,-0.1729444587410295,0.09011155829958323,hydrilla,1.00437870465816,3107.0649618810485,emersed,hydrilla mgmt.,1,155,no,no
+Saururus cernuus,net,-0.012929698627490882,-0.138395988088482,0.11299339255437425,hydrilla,1.233489294879635,1595.7010653568398,emersed,mgmt. + cover,1,155,no,no
+Spartina bakeri,cover,0.06165083367897562,-0.010518584396054216,0.13323270326320202,hydrilla,1.0109382632934272,2881.3482920591214,emersed,hydrilla cover,1,156,no,no
+Spartina bakeri,management,0.1735552504759569,0.0646211847454367,0.2855511187646453,hydrilla,1.050098463188328,2444.232727509352,emersed,hydrilla mgmt.,1,156,yes,yes
+Spartina bakeri,net,0.21219673540042458,0.10119785452685096,0.3228957419092296,hydrilla,1.050098463188328,2444.232727509352,emersed,mgmt. + cover,1,156,yes,yes
+Thalia geniculata,cover,0.08919202646147943,-0.006079681939076373,0.18306193468599444,hydrilla,1.2030584433602716,2505.106351995575,emersed,hydrilla cover,1,157,no,no
+Thalia geniculata,management,-0.137581511832664,-0.2772163672145963,-3.148393279829599e-4,hydrilla,1.056840681845519,2934.2069802205388,emersed,hydrilla mgmt.,1,157,yes,yes
+Thalia geniculata,net,-0.08803169539112936,-0.21836614247423863,0.04241452494120468,hydrilla,1.2030584433602716,562.7780722487137,emersed,mgmt. + cover,1,157,no,no
+Typha spp.,cover,0.02087311830240654,-0.06688241445879499,0.11655238879785987,hydrilla,1.0210638752419474,2385.341581241835,emersed,hydrilla cover,1,158,no,no
+Typha spp.,management,0.28319101139017,0.12715407751282037,0.4459428148363347,hydrilla,1.0113671559853397,2181.085616740565,emersed,hydrilla mgmt.,1,158,yes,yes
+Typha spp.,net,0.2442948487099246,0.09185076580105757,0.39684371044355715,hydrilla,1.0210638752419474,1714.8061305555684,emersed,mgmt. + cover,1,158,yes,yes
+Utricularia floridana,cover,-0.033803747925682394,-0.1550993900026174,0.0735629933557958,hydrilla,1.0217565037970688,1872.902293584899,submersed,hydrilla cover,3,359,no,no
+Utricularia floridana,management,0.06115468117828735,-0.08996809559297483,0.21744600286316876,hydrilla,1.0236241634995984,2332.012922293911,submersed,hydrilla mgmt.,3,359,no,no
+Utricularia floridana,net,0.04283579016353065,-0.1101219088376004,0.19489633101591267,hydrilla,1.165406281601468,932.9985063760105,submersed,mgmt. + cover,3,359,no,no
+Utricularia foliosa,cover,0.06467222196220165,-0.0065871308224320175,0.13178280347537805,hydrilla,1.0041269858173758,3000,submersed,hydrilla cover,3,360,no,no
+Utricularia foliosa,management,0.2544480047494085,0.14940375054423666,0.359991019529946,hydrilla,1.0087426131325758,2880.79134703451,submersed,hydrilla mgmt.,3,360,yes,yes
+Utricularia foliosa,net,0.29268976653558304,0.18740236095825352,0.3971167253134347,hydrilla,1.0094152005051242,3254.744809624789,submersed,mgmt. + cover,3,360,yes,yes
+Utricularia gibba,cover,0.03625626619642254,-0.02923183293994875,0.10127258628827764,hydrilla,1.0303136453436361,3000,submersed,hydrilla cover,3,361,no,no
+Utricularia gibba,management,0.17993330847849076,0.08017196628004092,0.28347531457961467,hydrilla,1.0278929689126222,2873.8468442159988,submersed,hydrilla mgmt.,3,361,yes,yes
+Utricularia gibba,net,0.18318305618004052,0.08695832407858474,0.28175731193043957,hydrilla,1.0303136453436361,3324.2128094145705,submersed,mgmt. + cover,3,361,yes,yes
+Utricularia inflata,cover,0.05232944784491139,-0.04055675898977019,0.1330628163471681,hydrilla,1.3053472079782034,2865.682721205745,submersed,hydrilla cover,3,362,no,no
+Utricularia inflata,management,0.2147419575455273,0.08243313680107575,0.3527608678277927,hydrilla,1.2718838413663702,2647.3870657644593,submersed,hydrilla mgmt.,3,362,yes,no
+Utricularia inflata,net,0.2604913186442108,0.13885726449865565,0.3821146120082917,hydrilla,1.3053472079782034,2647.3870657644593,submersed,mgmt. + cover,3,362,yes,no
+Utricularia purpurea,cover,0.02050099827928698,-0.06601421464708701,0.1026808192399874,hydrilla,1.0076831541359654,2759.7501327444966,submersed,hydrilla cover,3,363,no,no
+Utricularia purpurea,management,0.06862347522047993,-0.06299340739772608,0.2087246802383884,hydrilla,1.0124117944133435,2660.7739567040094,submersed,hydrilla mgmt.,3,363,no,no
+Utricularia purpurea,net,0.01739554391879342,-0.11369566522171416,0.14964726979498222,hydrilla,1.014830756700905,1823.902850882987,submersed,mgmt. + cover,3,363,no,no
+Vallisneria americana,cover,0.1239412549559122,0.051498979719597875,0.20012370672935834,hydrilla,1.0375563475064473,3000,submersed,hydrilla cover,3,364,yes,yes
+Vallisneria americana,management,0.4229499788591998,0.3192039423707573,0.5331786689672222,hydrilla,1.0005034915311553,2896.2202329947304,submersed,hydrilla mgmt.,3,364,yes,yes
+Vallisneria americana,net,0.4137857201316404,0.3100016114662212,0.5186099036472087,hydrilla,1.0375563475064473,2896.2202329947304,submersed,mgmt. + cover,3,364,yes,yes
+Azolla caroliniana,cover,0.19191186617968575,-0.08454275525793246,0.49559291532427335,water lettuce,1.0330139039993744,3169.1417521444637,floating,water lettuce cover,2,201,no,no
+Azolla caroliniana,management,0.31717508414731205,0.19234799096963276,0.4409198672051346,water lettuce,1.0492377572200622,2953.30028552842,floating,water lettuce mgmt.,2,201,yes,yes
+Azolla caroliniana,net,0.19115761576695217,-0.09378694650984527,0.45124733762119706,water lettuce,1.0492377572200622,3172.9211201382336,floating,mgmt. + cover,2,201,no,no
+Bacopa caroliniana,cover,-0.6023034392777141,-1.4370224364053708,0.046170472710681885,water lettuce,1.0029874400224104,1019.4321409720501,emersed,water lettuce cover,1,102,no,no
+Bacopa caroliniana,management,-0.0756277055207594,-0.21150587502517787,0.055431312814008905,water lettuce,1.0009693102611028,2733.1249709258886,emersed,water lettuce mgmt.,1,102,no,no
+Bacopa caroliniana,net,-0.5122843316438831,-1.0943503965950798,-0.002172559121967076,water lettuce,1.0044486776464803,1019.4321409720501,emersed,mgmt. + cover,1,102,yes,yes
+Bacopa monnieri,cover,-0.1606787813278682,-0.6752304990214137,0.23080711119155603,water lettuce,1.010621682001534,2231.020988399529,emersed,water lettuce cover,1,103,no,no
+Bacopa monnieri,management,0.021312489332239913,-0.09209957570904187,0.13859203225659145,water lettuce,1.0193767561846572,3108.292713100066,emersed,water lettuce mgmt.,1,103,no,no
+Bacopa monnieri,net,0.03784627908501685,-0.27737755852625356,0.3197523567911987,water lettuce,1.0193767561846572,2231.020988399529,emersed,mgmt. + cover,1,103,no,no
+Bidens spp.,cover,-0.11726263419605301,-0.40576956759194927,0.14618616612700708,water lettuce,1.0003391048087873,3000,emersed,water lettuce cover,1,104,no,no
+Bidens spp.,management,0.0559578070469663,-0.052054062445110794,0.16509544719330344,water lettuce,1.0038640913966836,2882.7381683042267,emersed,water lettuce mgmt.,1,104,no,no
+Bidens spp.,net,-0.11245684745913226,-0.3838555861519002,0.13479886474702474,water lettuce,1.0038640913966836,2882.7381683042267,emersed,mgmt. + cover,1,104,no,no
+Brasenia schreberi,cover,-0.8096857812664953,-2.026112185248208,0.25299218181282485,water lettuce,1.0516057318527274,487.79746699658835,emersed,water lettuce cover,1,105,no,no
+Brasenia schreberi,management,-0.10738901823359771,-0.35256226220873654,0.13535635314355876,water lettuce,1.064944747468359,1402.9428283140815,emersed,water lettuce mgmt.,1,105,no,no
+Brasenia schreberi,net,-0.2847038255794215,-1.1020064423378413,0.38121135613575136,water lettuce,1.064944747468359,244.70275923668785,emersed,mgmt. + cover,1,105,no,no
+Cabomba caroliniana,cover,-1.0248541558001223,-2.1388301254479996,-0.07704322119016276,water lettuce,1.08507221137551,617.7277885874863,submersed,water lettuce cover,3,306,yes,no
+Cabomba caroliniana,management,0.06410712843384359,-0.09312054232070963,0.22195080697161232,water lettuce,1.013460674554182,2513.764107173335,submersed,water lettuce mgmt.,3,306,no,no
+Cabomba caroliniana,net,-0.23208121978030688,-0.8094608188728097,0.22910245870660978,water lettuce,1.08507221137551,617.7277885874863,submersed,mgmt. + cover,3,306,no,no
+Carex spp.,cover,-1.038206219903787,-1.9682547242436719,-0.2389029953493177,water lettuce,1.0466887350284844,800.9289141848943,emersed,water lettuce cover,1,107,yes,no
+Carex spp.,management,-0.1110619750031539,-0.26929804918614964,0.04303611078259869,water lettuce,1.0860111902722305,2186.8338369602434,emersed,water lettuce mgmt.,1,107,no,no
+Carex spp.,net,-0.5741755729007854,-1.069140137587709,-0.1452123143375502,water lettuce,1.0860111902722305,800.9289141848943,emersed,mgmt. + cover,1,107,yes,no
+Cephalanthus occidentalis,cover,-0.18694300183265836,-0.4726634701339009,0.12632503167530335,water lettuce,1.0007924679762146,3112.7329504715885,emersed,water lettuce cover,1,108,no,no
+Cephalanthus occidentalis,management,-0.012200412402218627,-0.12384730218720788,0.0997162477973829,water lettuce,1.0054315069374966,3000,emersed,water lettuce mgmt.,1,108,no,no
+Cephalanthus occidentalis,net,-0.34429796029657445,-0.6199342684459508,-0.0802513096497521,water lettuce,1.0054315069374966,3134.988949169069,emersed,mgmt. + cover,1,108,yes,yes
+Ceratophyllum demersum,cover,0.8328831711248939,0.2855182158878479,1.442964574776834,water lettuce,1.0911515929083428,1857.3235826312848,submersed,water lettuce cover,3,309,yes,yes
+Ceratophyllum demersum,management,0.32977460645424256,0.2126608263455567,0.443582740896442,water lettuce,1.0191297564000976,2752.129588872201,submersed,water lettuce mgmt.,3,309,yes,yes
+Ceratophyllum demersum,net,0.3674450227241199,0.12051879838700033,0.602972942574092,water lettuce,1.0911515929083428,1857.3235826312848,submersed,mgmt. + cover,3,309,yes,yes
+Chara spp.,cover,-0.23090334526794204,-0.777144866800396,0.18808547000302342,water lettuce,1.0042860634925037,2375.6502792813253,submersed,water lettuce cover,3,310,no,no
+Chara spp.,management,-0.2551312587436797,-0.38052627154183477,-0.13471987815728484,water lettuce,1.0123031870544925,3000.0000000000005,submersed,water lettuce mgmt.,3,310,yes,yes
+Chara spp.,net,-0.6297915079859403,-1.1256119725591978,-0.20186401132155268,water lettuce,1.0123031870544925,2375.6502792813253,submersed,mgmt. + cover,3,310,yes,yes
+Cicuta maculata,cover,0.24325656024421669,-0.09280887360029248,0.659141910082145,water lettuce,1.0206225774687208,2765.5507575166484,emersed,water lettuce cover,1,111,no,no
+Cicuta maculata,management,0.10109613925086106,-0.04875471953780647,0.25008420654011615,water lettuce,1.0029156477118586,3111.043209702015,emersed,water lettuce mgmt.,1,111,no,no
+Cicuta maculata,net,0.05996321786334421,-0.2527674224377426,0.3528012503269368,water lettuce,1.0206225774687208,2213.232190442957,emersed,mgmt. + cover,1,111,no,no
+Cladium jamaicense,cover,0.8667584941938172,0.2265341802460461,1.5331597499185685,water lettuce,1.140105465861942,2039.6743285420766,emersed,water lettuce cover,1,112,yes,no
+Cladium jamaicense,management,-0.06543892932925995,-0.21287426448118404,0.10501089041130125,water lettuce,1.4490347771040906,2681.5300193531793,emersed,water lettuce mgmt.,1,112,no,no
+Cladium jamaicense,net,-0.05853478889794334,-0.33945347186389796,0.23469262488620743,water lettuce,1.4490347771040906,2013.640322272365,emersed,mgmt. + cover,1,112,no,no
+Crinum americanum,cover,-0.15198988863449311,-0.5565082216879481,0.1833232580290514,water lettuce,1.0149286891915752,2469.8274050555347,emersed,water lettuce cover,1,113,no,no
+Crinum americanum,management,-0.015004425096906722,-0.15582690840798025,0.1286804276517183,water lettuce,1.0978433111369093,2886.4304113047374,emersed,water lettuce mgmt.,1,113,no,no
+Crinum americanum,net,-0.7159093633914042,-1.2655820334650931,-0.2071467571342862,water lettuce,1.1676560141464831,1932.83885858772,emersed,mgmt. + cover,1,113,yes,no
+Cyperus articulatus,cover,-0.11500480069228326,-0.4355761922441143,0.1773497839529226,water lettuce,1.0167068884786135,3000,emersed,water lettuce cover,1,114,no,no
+Cyperus articulatus,management,-0.10747795432579679,-0.27939099014189817,0.06807002256563466,water lettuce,1.0114391120108008,2394.1466227023107,emersed,water lettuce mgmt.,1,114,no,no
+Cyperus articulatus,net,-0.6051692545724403,-1.134322421032345,-0.15381087011066277,water lettuce,1.0702391599860428,1553.352818259428,emersed,mgmt. + cover,1,114,yes,yes
+Cyperus spp. (other natives),cover,-0.031110008438853042,-0.31116520563434447,0.22718603947606764,water lettuce,1.001642026842838,3237.6456206477756,emersed,water lettuce cover,1,115,no,no
+Cyperus spp. (other natives),management,-0.0625187595051017,-0.1643406681597523,0.03940702542249016,water lettuce,1.0120502216777743,2987.39299780781,emersed,water lettuce mgmt.,1,115,no,no
+Cyperus spp. (other natives),net,-0.06814605762294194,-0.31100299251742464,0.17505259938400172,water lettuce,1.0120502216777743,3237.6456206477756,emersed,mgmt. + cover,1,115,no,no
+Decodon verticillatus,cover,-0.7506588238135001,-1.627231155680104,-0.043943007382184734,water lettuce,1.0978869292588174,1080.0689337294432,emersed,water lettuce cover,1,116,yes,yes
+Decodon verticillatus,management,0.11518984570900032,-0.0497432367237446,0.27958268811761516,water lettuce,1.052461376920619,2373.4163475705227,emersed,water lettuce mgmt.,1,116,no,no
+Decodon verticillatus,net,-0.35384614799677083,-0.898560399550857,0.11653151047210557,water lettuce,1.0978869292588174,1080.0689337294432,emersed,mgmt. + cover,1,116,no,no
+Echinochloa spp.,cover,0.15674072425719493,-0.10539278503594308,0.40291013719797697,water lettuce,1.0031705791641474,2834.8551103678255,emersed,water lettuce cover,1,117,no,no
+Echinochloa spp.,management,0.059366971513283295,-0.0547751045860289,0.17137134142703436,water lettuce,1.0009170655828599,2789.5467866097847,emersed,water lettuce mgmt.,1,117,no,no
+Echinochloa spp.,net,-0.1331146472663327,-0.42459246139925944,0.13273567066568137,water lettuce,1.0061492886640602,2568.171155058083,emersed,mgmt. + cover,1,117,no,no
+"Eleocharis spp., emersed",cover,0.07804462976171629,-0.2838647204362875,0.3873710878785138,water lettuce,1.000481019117997,2997.941244371129,emersed,water lettuce cover,1,118,no,no
+"Eleocharis spp., emersed",management,-0.037253344791269155,-0.14931657749385296,0.07636055708480773,water lettuce,1.0163857461500874,2944.222291500504,emersed,water lettuce mgmt.,1,118,no,no
+"Eleocharis spp., emersed",net,-0.25241706441472483,-0.5148265526833185,0.004829752577905281,water lettuce,1.0163857461500874,2944.222291500504,emersed,mgmt. + cover,1,118,no,no
+"Eleocharis spp., sub/floating",cover,-0.2892859497359241,-0.7191312843326291,0.05345083548443924,water lettuce,1.0183326667897534,2818.248106484077,submersed,water lettuce cover,3,319,no,no
+"Eleocharis spp., sub/floating",management,0.1594141417239423,0.04831553695577126,0.26661721279733774,water lettuce,0.9999578847990259,3069.0115034949968,submersed,water lettuce mgmt.,3,319,yes,yes
+"Eleocharis spp., sub/floating",net,-0.2823132832311335,-0.6286978175019858,0.03450299955275714,water lettuce,1.0183326667897534,2818.248106484077,submersed,mgmt. + cover,3,319,no,no
+Filamentous algae,cover,0.4711267654265494,0.014474005948830975,1.0274747044866173,water lettuce,1.0981608789982464,2157.5668407332278,floating,water lettuce cover,2,220,yes,yes
+Filamentous algae,management,0.011529129594146651,-0.09359696874294775,0.11863511021919942,water lettuce,1.0198581161817066,2798.649102556312,floating,water lettuce mgmt.,2,220,no,no
+Filamentous algae,net,-0.17001332919540801,-0.43976758490197654,0.07868796105896204,water lettuce,1.0981608789982464,2157.5668407332278,floating,mgmt. + cover,2,220,no,no
+Fuirena spp.,cover,0.26246895791328967,-0.20301372867455125,0.6122094021543472,water lettuce,1.0026933095720865,2677.8867655152508,emersed,water lettuce cover,1,121,no,no
+Fuirena spp.,management,-0.04769092320786857,-0.19292034415450787,0.10248260237100197,water lettuce,1.1164978542166608,2785.551517376899,emersed,water lettuce mgmt.,1,121,no,no
+Fuirena spp.,net,-0.0825366021694441,-0.5460369544555916,0.3283040857411943,water lettuce,1.1164978542166608,2496.6940988507354,emersed,mgmt. + cover,1,121,no,no
+Hydrocotyle spp.,cover,0.20852645876581857,-0.20203391758495798,0.7605846705489226,water lettuce,1.019648314484215,2176.851545020866,emersed,water lettuce cover,1,122,no,no
+Hydrocotyle spp.,management,0.14460332895653688,0.007573203964658623,0.2752109267370712,water lettuce,1.0089312242598942,2839.3085604395433,emersed,water lettuce mgmt.,1,122,yes,yes
+Hydrocotyle spp.,net,0.3690106064885668,-0.038631851418559904,0.8299543997167642,water lettuce,1.0328662241258808,2176.851545020866,emersed,mgmt. + cover,1,122,no,no
+Hypericum spp.,cover,-0.4780987967467413,-1.2523860839003549,0.12028610238499449,water lettuce,1.050571897953659,1275.7466735927555,emersed,water lettuce cover,1,123,no,no
+Hypericum spp.,management,-0.117080838600343,-0.26475418787952654,0.02478605777449929,water lettuce,1.0850458923544994,3136.969477846116,emersed,water lettuce mgmt.,1,123,no,no
+Hypericum spp.,net,-0.025537729278081227,-0.37519271943917076,0.28929469239154576,water lettuce,1.318034800403925,1275.7466735927555,emersed,mgmt. + cover,1,123,no,no
+Juncus effusus,cover,-0.04287409212269694,-0.4452188039808918,0.2844452786519634,water lettuce,1.0790271476467128,3000,emersed,water lettuce cover,1,124,no,no
+Juncus effusus,management,0.09364186830038129,-0.0196979707727983,0.20784304387019914,water lettuce,1.1088082910363017,2865.207492714245,emersed,water lettuce mgmt.,1,124,no,no
+Juncus effusus,net,0.14869029663813865,-0.12747558608544213,0.42009636159016556,water lettuce,1.1088082910363017,2865.207492714245,emersed,mgmt. + cover,1,124,no,no
+Leersia hexandra,cover,0.5318649465999186,0.15139811892194047,0.9310754208218276,water lettuce,1.124009826256091,3138.64359954806,emersed,water lettuce cover,1,125,yes,no
+Leersia hexandra,management,-0.22987818131106288,-0.3636254021375677,-0.09430304478962225,water lettuce,1.1502091591396217,2999.9999999999995,emersed,water lettuce mgmt.,1,125,yes,no
+Leersia hexandra,net,-0.09906115609793421,-0.35937955841088975,0.15685553329428184,water lettuce,1.3742689916138056,3138.64359954806,emersed,mgmt. + cover,1,125,no,no
+Lemna/Spirodela spp.,cover,1.0784404391143112,0.3454050470739149,1.9142694895283208,water lettuce,1.007072864250634,868.9350267980144,floating,water lettuce cover,2,226,yes,no
+Lemna/Spirodela spp.,management,0.27937985827929473,0.173973641013307,0.38427381899482116,water lettuce,1.006163288358634,2887.307282390361,floating,water lettuce mgmt.,2,226,yes,yes
+Lemna/Spirodela spp.,net,0.40348971466382066,0.13932155979653174,0.6667909408877142,water lettuce,1.007072864250634,868.9350267980144,floating,mgmt. + cover,2,226,yes,no
+Limnobium spongia,cover,-0.21901205855483813,-0.5891555891812891,0.08927508028735245,water lettuce,1.019172620016238,2701.8772279086893,floating,water lettuce cover,2,227,no,no
+Limnobium spongia,management,-0.004677637336481634,-0.15166591595822687,0.13422040712945887,water lettuce,1.151843431966362,2912.053311793511,floating,water lettuce mgmt.,2,227,no,no
+Limnobium spongia,net,-0.2939738503390143,-0.6407507446278411,0.02550125687684938,water lettuce,1.151843431966362,2701.8772279086893,floating,mgmt. + cover,2,227,no,no
+Ludwigia octovalvis/peruviana,cover,0.6382231308388492,0.03642487898290754,1.3916349102732148,water lettuce,1.021795464682194,1120.024381292086,emersed,water lettuce cover,1,128,yes,yes
+Ludwigia octovalvis/peruviana,management,-0.06445832355663933,-0.21964715735836976,0.0904406982003049,water lettuce,1.0430403746886232,2086.8882297537502,emersed,water lettuce mgmt.,1,128,no,no
+Ludwigia octovalvis/peruviana,net,0.3386340848542321,-0.0754495923746077,0.8044954310911361,water lettuce,1.0430403746886232,1120.024381292086,emersed,mgmt. + cover,1,128,no,no
+Ludwigia palustris/repens,cover,0.24640154861051344,-0.020991353698276646,0.507700049015614,water lettuce,1.0023128219647357,3194.086362079067,emersed,water lettuce cover,1,129,no,no
+Ludwigia palustris/repens,management,-0.13838228871843222,-0.2601870935702454,-0.011935804090424834,water lettuce,1.0073557741268737,2639.553289345613,emersed,water lettuce mgmt.,1,129,yes,yes
+Ludwigia palustris/repens,net,-0.16458812817788113,-0.5327943993902364,0.16127977592863027,water lettuce,1.0073557741268737,2639.553289345613,emersed,mgmt. + cover,1,129,no,no
+Luziola fluitans,cover,-0.06965581478136545,-0.46847099647497237,0.2550865218771082,water lettuce,1.0077501481203517,3102.903019655158,submersed,water lettuce cover,3,330,no,no
+Luziola fluitans,management,0.06823072561565406,-0.05104809849523645,0.191643780180393,water lettuce,1.0140022726568292,3000,submersed,water lettuce mgmt.,3,330,no,no
+Luziola fluitans,net,-0.0316143386869041,-0.33729460073788575,0.26355550477600526,water lettuce,1.0140022726568292,3163.7726982792656,submersed,mgmt. + cover,3,330,no,no
+Mayaca fluviatilis,cover,-0.8486365027776098,-2.366922819090777,0.37694754866332214,water lettuce,1.0479732848800742,303.16722485946957,submersed,water lettuce cover,3,331,no,no
+Mayaca fluviatilis,management,0.04385508401749015,-0.14681816646146584,0.2441824039933119,water lettuce,1.000992556989084,1198.206787431151,submersed,water lettuce mgmt.,3,331,no,no
+Mayaca fluviatilis,net,-1.2093756854096767,-3.025485705785846,0.34881250407345493,water lettuce,1.1836701210391851,220.84499351055743,submersed,mgmt. + cover,3,331,no,no
+Micranthemum glomeratum,cover,0.24947156803618376,-0.15908891503794167,0.5660076002881818,water lettuce,1.003914034143283,2695.006241481039,submersed,water lettuce cover,3,332,no,no
+Micranthemum glomeratum,management,0.18552600924185886,0.056716273186286616,0.3144767755661615,water lettuce,0.9999785985314248,3000,submersed,water lettuce mgmt.,3,332,yes,yes
+Micranthemum glomeratum,net,-0.5446068744505417,-1.5667223819955935,0.23756792181165692,water lettuce,1.0055294588496113,660.7490990678816,submersed,mgmt. + cover,3,332,no,no
+Micranthemum umbrosum,cover,-0.32825969329537275,-1.2426446937950693,0.34132360529560785,water lettuce,1.005897799180388,886.9542781369621,emersed,water lettuce cover,1,133,no,no
+Micranthemum umbrosum,management,0.29466680347869884,0.1504830335221829,0.44067012256256044,water lettuce,1.000120448079506,2513.347843179102,emersed,water lettuce mgmt.,1,133,yes,yes
+Micranthemum umbrosum,net,-0.7400234303749714,-1.9068432945165916,0.20458838994780146,water lettuce,1.015093510244607,649.9936771876207,emersed,mgmt. + cover,1,133,no,no
+Myriophyllum laxum/pinnatum,cover,-0.7161334784119284,-2.163566253347217,0.4263194479444567,water lettuce,1.0091851686037385,385.11114561887325,submersed,water lettuce cover,3,334,no,no
+Myriophyllum laxum/pinnatum,management,0.0014894739078751106,-0.21682701102266286,0.21179974131411616,water lettuce,0.9995643148994561,1706.8861407659244,submersed,water lettuce mgmt.,3,334,no,no
+Myriophyllum laxum/pinnatum,net,-0.94463834668698,-2.853239432763426,0.38048958221286133,water lettuce,1.0091851686037385,309.14986158037414,submersed,mgmt. + cover,3,334,no,no
+Najas guadalupensis,cover,0.5520341482479181,0.15715657857375592,0.9834280407107637,water lettuce,1.02236113292956,2573.594426019054,submersed,water lettuce cover,3,335,yes,yes
+Najas guadalupensis,management,0.044642371923856825,-0.06900453750498112,0.15913771472921617,water lettuce,1.042157688809117,3000,submersed,water lettuce mgmt.,3,335,no,no
+Najas guadalupensis,net,-0.3854064136664687,-0.8137150212041558,-0.01154338613182742,water lettuce,1.042157688809117,2267.3578718176036,submersed,mgmt. + cover,3,335,yes,yes
+Nelumbo lutea,cover,-0.15640526369582114,-0.5279241588949389,0.17689065837034293,water lettuce,1.113874265825244,3000,emersed,water lettuce cover,1,136,no,no
+Nelumbo lutea,management,0.2967562022973893,0.12309952860328101,0.44683101599879,water lettuce,1.6715617224300972,2182.485720880629,emersed,water lettuce mgmt.,1,136,yes,no
+Nelumbo lutea,net,-1.1534706819145573,-1.783164826085717,-0.5758901447823338,water lettuce,1.6715617224300972,1723.8596925899951,emersed,mgmt. + cover,1,136,yes,no
+Nitella spp.,cover,-0.5257104586725759,-1.5966357797304305,0.2467703068041172,water lettuce,1.0010497400641614,607.8989141931816,submersed,water lettuce cover,3,337,no,no
+Nitella spp.,management,-0.12777256662474112,-0.26965034581712444,0.011785459184997417,water lettuce,1.0010991753962057,2888.4872661272007,submersed,water lettuce mgmt.,3,337,no,no
+Nitella spp.,net,-1.2438977769799995,-2.53766518079359,-0.20575239707455087,water lettuce,1.0200046311433868,560.4172899769076,submersed,mgmt. + cover,3,337,yes,no
+Nuphar advena,cover,1.1566917808363422,0.2953702474955245,2.1191785245547723,water lettuce,1.1406342153344529,848.9534189466875,emersed,water lettuce cover,1,138,yes,no
+Nuphar advena,management,0.18201109034990784,0.04816014506144558,0.31630961338410596,water lettuce,1.0089831837586845,2542.550917175951,emersed,water lettuce mgmt.,1,138,yes,yes
+Nuphar advena,net,0.49930637985976956,0.0420985907614158,1.0933031141913032,water lettuce,1.1406342153344529,848.9534189466875,emersed,mgmt. + cover,1,138,yes,no
+Nymphaea mexicana,cover,-0.6550841688356625,-1.2806572338924567,-0.14131791528486776,water lettuce,1.0802499674879726,1923.2602742105882,emersed,water lettuce cover,1,139,yes,yes
+Nymphaea mexicana,management,-0.12945400003279248,-0.2999330216298525,0.0339134989594525,water lettuce,1.2431384602162308,2919.693709411059,emersed,water lettuce mgmt.,1,139,no,no
+Nymphaea mexicana,net,-1.0177214290695167,-1.5950518209123556,-0.5219615872269785,water lettuce,1.2431384602162308,1923.2602742105882,emersed,mgmt. + cover,1,139,yes,no
+Nymphaea odorata,cover,-0.37347216018121265,-0.9030275385897938,0.05976621411569532,water lettuce,1.0094750233173968,2447.9900166012494,emersed,water lettuce cover,1,140,no,no
+Nymphaea odorata,management,-0.03556607697809308,-0.1616990138697651,0.0976393119593723,water lettuce,1.200574212482717,3000,emersed,water lettuce mgmt.,1,140,no,no
+Nymphaea odorata,net,-0.4571407929225328,-0.8552833926401854,-0.08962145999912412,water lettuce,1.200574212482717,2447.9900166012494,emersed,mgmt. + cover,1,140,yes,no
+Nymphoides aquatica,cover,-0.914736415445056,-2.1726996140141477,0.08211872293951678,water lettuce,1.0138926801191306,499.07838837666077,emersed,water lettuce cover,1,141,no,no
+Nymphoides aquatica,management,0.26448143359383397,0.10434509723967479,0.43065630612667,water lettuce,1.0120917171737789,2403.554887662902,emersed,water lettuce mgmt.,1,141,yes,yes
+Nymphoides aquatica,net,-1.292138727307897,-2.604239108356034,-0.21800814439406827,water lettuce,1.0663105035449565,499.07838837666077,emersed,mgmt. + cover,1,141,yes,no
+Panicum hemitomon,cover,-0.22729799225608288,-0.5326358664375852,0.05143863820306259,water lettuce,1.001401109761047,2751.933592148885,emersed,water lettuce cover,1,142,no,no
+Panicum hemitomon,management,0.21243360267192918,0.08064188375990311,0.3377390298889112,water lettuce,1.002743402986503,2781.6820516737944,emersed,water lettuce mgmt.,1,142,yes,yes
+Panicum hemitomon,net,0.07567679814043654,-0.18278120495060415,0.35171691533321126,water lettuce,1.002743402986503,2363.091248854079,emersed,mgmt. + cover,1,142,no,no
+Paspalidium geminatum,cover,-1.0884441169108023,-1.6760443829085634,-0.5498799440870548,water lettuce,1.1229662801798248,1795.7208709511458,emersed,water lettuce cover,1,143,yes,no
+Paspalidium geminatum,management,0.2987368809279748,0.186439659971686,0.41743622204625885,water lettuce,1.1420459793285178,2624.5485713370535,emersed,water lettuce mgmt.,1,143,yes,no
+Paspalidium geminatum,net,-1.1192329971626622,-1.5511004361838583,-0.7250984805045136,water lettuce,1.1420459793285178,1795.7208709511458,emersed,mgmt. + cover,1,143,yes,no
+Paspalum repens,cover,-0.39810955936514475,-0.8552533011378415,-0.043707471274174715,water lettuce,1.0011948351348752,2482.9739717228663,emersed,water lettuce cover,1,144,yes,yes
+Paspalum repens,management,-0.07489201146512726,-0.22255375534802938,0.0826940259424218,water lettuce,1.0022617906301772,2554.4240663203404,emersed,water lettuce mgmt.,1,144,no,no
+Paspalum repens,net,-0.4738423889826698,-0.8769852216110848,-0.11555118553205372,water lettuce,1.0055758673713306,2438.3557609045447,emersed,mgmt. + cover,1,144,yes,yes
+Peltandra spp.,cover,-0.12913416575974132,-0.7234676759457139,0.301051603493886,water lettuce,1.002444842885006,1664.7184811539173,emersed,water lettuce cover,1,145,no,no
+Peltandra spp.,management,0.06119948955892916,-0.10117809470481572,0.22153191070731415,water lettuce,0.9996160804639607,2557.918838748249,emersed,water lettuce mgmt.,1,145,no,no
+Peltandra spp.,net,-0.2996514004007066,-0.8828138031838804,0.20273041960342253,water lettuce,1.0158897399669982,1598.0237152809013,emersed,mgmt. + cover,1,145,no,no
+Phragmites australis,cover,0.6560307532028816,0.10517286866442141,1.2631588689794306,water lettuce,1.104906453133642,1991.5196604409216,emersed,water lettuce cover,1,146,yes,no
+Phragmites australis,management,0.10317825538141748,-0.10231650051277574,0.31693693267907197,water lettuce,1.4649694339937551,2238.4046022813477,emersed,water lettuce mgmt.,1,146,no,no
+Phragmites australis,net,0.19498790369506724,-0.13546622699210625,0.5651105049072113,water lettuce,1.4649694339937551,1100.419357565412,emersed,mgmt. + cover,1,146,no,no
+Pontederia cordata,cover,0.9772555404182955,0.24836495402367476,1.7866462652057866,water lettuce,1.0259643297106522,1071.2217132232217,emersed,water lettuce cover,1,147,yes,yes
+Pontederia cordata,management,-0.022193791584974663,-0.17102364343710205,0.12374980163296909,water lettuce,1.0078201785304706,2572.72572769287,emersed,water lettuce mgmt.,1,147,no,no
+Pontederia cordata,net,-0.24330537215883732,-0.5614821122906407,0.06379725450335427,water lettuce,1.0259643297106522,1071.2217132232217,emersed,mgmt. + cover,1,147,no,no
+Potamogeton illinoensis,cover,-0.05880397841308651,-0.7828851026205906,0.4386351530920436,water lettuce,1.00326910926345,1365.5019111957672,submersed,water lettuce cover,3,348,no,no
+Potamogeton illinoensis,management,-0.007525796621873878,-0.17180577220703944,0.15435897670563148,water lettuce,1.031327260216849,2592.7530754056224,submersed,water lettuce mgmt.,3,348,no,no
+Potamogeton illinoensis,net,-0.06548180870469524,-0.577706321855641,0.35518611422506274,water lettuce,1.031327260216849,1178.1198843556151,submersed,mgmt. + cover,3,348,no,no
+Rhynchospora spp.,cover,-0.36392196796889625,-0.8761115863441634,0.04059688462357043,water lettuce,1.0250249012074621,2461.5587595150278,emersed,water lettuce cover,1,149,no,no
+Rhynchospora spp.,management,-0.3153275952166563,-0.45348596582977035,-0.17942167304628676,water lettuce,1.1058205239758443,2257.261016677686,emersed,water lettuce mgmt.,1,149,yes,no
+Rhynchospora spp.,net,-0.47711300124351824,-0.8302340616726568,-0.16583245978428707,water lettuce,1.1313159992104118,2257.261016677686,emersed,mgmt. + cover,1,149,yes,no
+Sacciolepis striata,cover,0.44266564174782835,-0.01537756740626385,0.9677678706459767,water lettuce,1.0135500399258157,2248.087014799443,emersed,water lettuce cover,1,150,no,no
+Sacciolepis striata,management,0.16718303192902978,0.06136223305994367,0.27158134551681545,water lettuce,0.9994108237144171,3000,emersed,water lettuce mgmt.,1,150,yes,yes
+Sacciolepis striata,net,0.034747956334668845,-0.24794601974826944,0.29776208463715037,water lettuce,1.0135500399258157,2248.087014799443,emersed,mgmt. + cover,1,150,no,no
+Sagittaria lancifolia,cover,0.8701977540490472,0.2045185278081376,1.6455214263215037,water lettuce,1.02061959664861,1283.478304694857,emersed,water lettuce cover,1,151,yes,yes
+Sagittaria lancifolia,management,0.0837678062295351,-0.04174145331126103,0.21201969577509053,water lettuce,1.0180770055242092,2637.501534058917,emersed,water lettuce mgmt.,1,151,no,no
+Sagittaria lancifolia,net,0.07088990734113257,-0.2094357190187986,0.35012513991572525,water lettuce,1.02061959664861,1283.478304694857,emersed,mgmt. + cover,1,151,no,no
+Sagittaria latifolia,cover,0.4139988677932236,0.019735687325715692,0.888302772196414,water lettuce,1.0140431837187935,2564.347321574256,emersed,water lettuce cover,1,152,yes,yes
+Sagittaria latifolia,management,0.339234530029537,0.17728225342713985,0.5008905144302185,water lettuce,1.1933802686429775,2958.149310005882,emersed,water lettuce mgmt.,1,152,yes,no
+Sagittaria latifolia,net,0.887019791867297,0.4909893581455876,1.2952775376024501,water lettuce,1.1933802686429775,2564.347321574256,emersed,mgmt. + cover,1,152,yes,no
+Sagittaria subulata/graminea/gracillima,cover,-0.8847565317841312,-1.9615443780653068,-0.011797009905575025,water lettuce,1.0111227968105545,568.4644454072463,emersed,water lettuce cover,1,153,yes,no
+Sagittaria subulata/graminea/gracillima,management,0.09377564825750437,-0.05966842804747713,0.25206319021055,water lettuce,1.0065111883994486,2269.292615512957,emersed,water lettuce mgmt.,1,153,no,no
+Sagittaria subulata/graminea/gracillima,net,-0.2077200900575988,-0.7879599096250984,0.2694302767295128,water lettuce,1.03072083503799,568.4644454072463,emersed,mgmt. + cover,1,153,no,no
+Salix spp.,cover,0.36549930127252206,-0.1788810514905322,1.066213569810225,water lettuce,1.0561660850563785,1492.3757163111359,emersed,water lettuce cover,1,154,no,no
+Salix spp.,management,0.07050404187660293,-0.06925935508856161,0.20941667433231057,water lettuce,1.0604571183302975,2814.65021645039,emersed,water lettuce mgmt.,1,154,no,no
+Salix spp.,net,0.06280823472961274,-0.26719708038117657,0.4418849635305239,water lettuce,1.3098642717020916,1492.3757163111359,emersed,mgmt. + cover,1,154,no,no
+Saururus cernuus,cover,-0.4580042281092276,-1.209453098396193,0.1220449690372182,water lettuce,1.0187465530491788,1329.0562472327754,emersed,water lettuce cover,1,155,no,no
+Saururus cernuus,management,-0.035266755442090895,-0.1881378503125838,0.11673447356294252,water lettuce,1.0048541903291073,2911.9863018300953,emersed,water lettuce mgmt.,1,155,no,no
+Saururus cernuus,net,-0.4748336905788008,-1.073019056923246,0.03549024889121133,water lettuce,1.028172029250543,1329.0562472327754,emersed,mgmt. + cover,1,155,no,no
+Spartina bakeri,cover,-0.015228208992771953,-0.345218853417931,0.27071544451057983,water lettuce,1.1938930265836054,2813.559690802429,emersed,water lettuce cover,1,156,no,no
+Spartina bakeri,management,0.04752639736336487,-0.09006886138248181,0.21550047985192688,water lettuce,1.8487600482042337,2807.475006525833,emersed,water lettuce mgmt.,1,156,no,no
+Spartina bakeri,net,0.16337448495863705,-0.0899821156208359,0.41032518819057506,water lettuce,1.9041230360776773,2807.475006525833,emersed,mgmt. + cover,1,156,no,no
+Thalia geniculata,cover,-0.3253475909210677,-0.7284811817137895,0.015835396177435564,water lettuce,1.0029974629954939,2999.9999999999995,emersed,water lettuce cover,1,157,no,no
+Thalia geniculata,management,-0.29637559601448854,-0.46559830587665474,-0.10395135022914659,water lettuce,1.5593339573161227,2260.866727917207,emersed,water lettuce mgmt.,1,157,yes,no
+Thalia geniculata,net,-0.8034508379374553,-1.2668374457165092,-0.36772096899788714,water lettuce,2.6552556081245027,1416.6245362838795,emersed,mgmt. + cover,1,157,yes,no
+Typha spp.,cover,-0.22244046491142508,-0.5171996854182318,0.11059745612988635,water lettuce,1.0291275805542581,2739.503062661322,emersed,water lettuce cover,1,158,no,no
+Typha spp.,management,0.13675509800548324,-0.021754758046224267,0.29069478553826267,water lettuce,1.0089281739160392,2424.867964286442,emersed,water lettuce mgmt.,1,158,no,no
+Typha spp.,net,-0.07044519735348195,-0.39054488144293736,0.2945821555945924,water lettuce,1.0702083617805689,1750.1872963266392,emersed,mgmt. + cover,1,158,no,no
+Utricularia floridana,cover,0.20220030817312834,-0.21591775302649274,0.5306477523789689,water lettuce,1.0033914951740883,2885.485508541007,submersed,water lettuce cover,3,359,no,no
+Utricularia floridana,management,-0.32036555886331725,-0.5119471509640555,-0.1336720787403413,water lettuce,1.0531441375373816,1890.7769111282373,submersed,water lettuce mgmt.,3,359,yes,yes
+Utricularia floridana,net,-0.13785635553267617,-0.6347126750098409,0.23948617430467742,water lettuce,1.0531441375373816,1257.1159914920393,submersed,mgmt. + cover,3,359,no,no
+Utricularia foliosa,cover,0.25069819075197636,-0.06172588986424791,0.5848063389872314,water lettuce,1.0158570382825995,3073.3030537827285,submersed,water lettuce cover,3,360,no,no
+Utricularia foliosa,management,0.024850672272616198,-0.10802798118176306,0.15827317396462634,water lettuce,1.1264116760050047,3000,submersed,water lettuce mgmt.,3,360,no,no
+Utricularia foliosa,net,-0.42032098810510626,-0.8098218031980943,-0.06648361360957077,water lettuce,1.1264116760050047,2711.151297883245,submersed,mgmt. + cover,3,360,yes,no
+Utricularia gibba,cover,-0.19340507314987,-0.6161270320333444,0.15495502434705039,water lettuce,1.000201864872572,3000,submersed,water lettuce cover,3,361,no,no
+Utricularia gibba,management,-0.027583563116633382,-0.14464162967343094,0.09168466447300877,water lettuce,1.0281937597298179,3000,submersed,water lettuce mgmt.,3,361,no,no
+Utricularia gibba,net,-0.25880091013967677,-0.5992085860856411,0.042463175399725564,water lettuce,1.0281937597298179,2908.2787442310596,submersed,mgmt. + cover,3,361,no,no
+Utricularia inflata,cover,0.1713950954426522,-0.29607836873837307,0.5326808785207414,water lettuce,1.0317087149314035,2294.8645797560985,submersed,water lettuce cover,3,362,no,no
+Utricularia inflata,management,0.05632177139289117,-0.11317785713031296,0.22692534920461804,water lettuce,1.015731492755351,2400.5066567253352,submersed,water lettuce mgmt.,3,362,no,no
+Utricularia inflata,net,0.17605917374949678,-0.2492823229394202,0.5507921519664137,water lettuce,1.0815128004158006,2174.9837642237953,submersed,mgmt. + cover,3,362,no,no
+Utricularia purpurea,cover,0.3393859573488853,0.03318948684392671,0.6833444028897844,water lettuce,1.0197304583176448,3000,submersed,water lettuce cover,3,363,yes,yes
+Utricularia purpurea,management,0.046145271171249856,-0.10825795493404085,0.21278236270460582,water lettuce,1.0285346890711533,2484.7936236805867,submersed,water lettuce mgmt.,3,363,no,no
+Utricularia purpurea,net,-1.1816823959087241,-2.3122489107251627,-0.2775951351087097,water lettuce,1.049500034857383,473.4360788189358,submersed,mgmt. + cover,3,363,yes,no
+Vallisneria americana,cover,0.613869239843063,0.16695527980595556,1.1370909884364515,water lettuce,1.0164978733411985,2409.1592660509527,submersed,water lettuce cover,3,364,yes,yes
+Vallisneria americana,management,0.2577114707780984,0.1233889477982147,0.3922700444767447,water lettuce,1.0017364002855926,2638.286484771008,submersed,water lettuce mgmt.,3,364,yes,yes
+Vallisneria americana,net,-0.22138671402304771,-0.6158024380346406,0.15774944717785572,water lettuce,1.0164978733411985,2409.1592660509527,submersed,mgmt. + cover,3,364,no,no
+Azolla caroliniana,cover,-0.05032172477543576,-0.4584121514685745,0.3094381627582338,water hyacinth,1.010345541017525,3250.998317337986,floating,water hyacinth cover,2,201,no,no
+Azolla caroliniana,management,0.2417585269811063,0.13060580648034512,0.3494167429865335,water hyacinth,1.1759220200201022,2726.400738313011,floating,water hyacinth mgmt.,2,201,yes,no
+Azolla caroliniana,net,0.35415273021086874,0.0572387168741405,0.6378516723068345,water hyacinth,1.1759220200201022,2726.400738313011,floating,mgmt. + cover,2,201,yes,no
+Bacopa caroliniana,cover,-0.2850056529553451,-1.0192275284491716,0.31705363891057553,water hyacinth,1.0041797978782456,1714.3471258725456,emersed,water hyacinth cover,1,102,no,no
+Bacopa caroliniana,management,-0.08312338701101318,-0.19463452748839577,0.028043623842509406,water hyacinth,1.1016019904207504,2974.4439267256,emersed,water hyacinth mgmt.,1,102,no,no
+Bacopa caroliniana,net,0.14551619104777475,-0.2132542641405014,0.47633690338362866,water hyacinth,1.1016019904207504,1714.3471258725456,emersed,mgmt. + cover,1,102,no,no
+Bacopa monnieri,cover,0.08845867487881172,-0.3052889754036988,0.4531651235280209,water hyacinth,1.0045833461920706,3000,emersed,water hyacinth cover,1,103,no,no
+Bacopa monnieri,management,-0.012186562764892057,-0.10198507053896438,0.08159610813524124,water hyacinth,1.1055615016806855,3000,emersed,water hyacinth mgmt.,1,103,no,no
+Bacopa monnieri,net,-0.47024051825213103,-0.9577723309601102,-0.03653106613312898,water hyacinth,1.1055615016806855,2290.5614710115788,emersed,mgmt. + cover,1,103,yes,no
+Bidens spp.,cover,-0.05027985595388958,-0.3589155336886037,0.27000916865696234,water hyacinth,1.0003028988790112,3043.1726811153253,emersed,water hyacinth cover,1,104,no,no
+Bidens spp.,management,0.11186157078070995,0.025986538938537182,0.19155173937443365,water hyacinth,1.0630529406866405,2899.239664757599,emersed,water hyacinth mgmt.,1,104,yes,yes
+Bidens spp.,net,-0.4909396517960705,-0.8115967509280325,-0.16855918974223794,water hyacinth,1.0630529406866405,3218.8911702670575,emersed,mgmt. + cover,1,104,yes,yes
+Brasenia schreberi,cover,-1.1028781825067184,-2.331438263211951,0.04989877959312498,water hyacinth,1.002400558997143,561.976200813755,emersed,water hyacinth cover,1,105,no,no
+Brasenia schreberi,management,-0.22084248105471588,-0.45959827409790294,0.003009534947830158,water hyacinth,1.8849963655093374,1461.0828346065373,emersed,water hyacinth mgmt.,1,105,no,no
+Brasenia schreberi,net,0.20734500592601274,-0.6014995636623292,0.8681652190749137,water hyacinth,2.9266145970162882,280.2499151814298,emersed,mgmt. + cover,1,105,no,no
+Cabomba caroliniana,cover,0.20801535415775174,-0.33901504021770873,0.6726601723976467,water hyacinth,1.2664431827149025,3000,submersed,water hyacinth cover,3,306,no,no
+Cabomba caroliniana,management,-0.021946976078140275,-0.20379746485480893,0.14336722097628338,water hyacinth,2.1475703384191633,2593.202754947891,submersed,water hyacinth mgmt.,3,306,no,no
+Cabomba caroliniana,net,0.40924108301556716,-0.08443201928892358,0.8363188458219877,water hyacinth,2.9790728725337634,2000.1226317692394,submersed,mgmt. + cover,3,306,no,no
+Carex spp.,cover,-0.859663483392774,-1.7063412420169393,-0.19361860159156596,water hyacinth,1.0065678003959548,1423.289822832964,emersed,water hyacinth cover,1,107,yes,yes
+Carex spp.,management,-0.14289920498990002,-0.2587243331715047,-0.025781393325301348,water hyacinth,1.016344418515182,2573.537318796633,emersed,water hyacinth mgmt.,1,107,yes,yes
+Carex spp.,net,-0.0817085514046634,-0.4313418778409133,0.23185426677613388,water hyacinth,1.0472736817924808,1396.7245989678145,emersed,mgmt. + cover,1,107,no,no
+Cephalanthus occidentalis,cover,-0.18749798862898034,-0.5222792737408614,0.14021484487442376,water hyacinth,1.0016327355016845,3000,emersed,water hyacinth cover,1,108,no,no
+Cephalanthus occidentalis,management,0.14334471685146913,0.056493319807333214,0.23459690191345034,water hyacinth,1.1404254403881733,2999.999999999999,emersed,water hyacinth mgmt.,1,108,yes,no
+Cephalanthus occidentalis,net,-0.05745138361442785,-0.3091713149150242,0.21929621957160012,water hyacinth,1.1404254403881733,2906.738754547101,emersed,mgmt. + cover,1,108,no,no
+Ceratophyllum demersum,cover,0.2656805829979572,-0.05216083872642478,0.5835321369816239,water hyacinth,1.1265895165864388,3177.550298696461,submersed,water hyacinth cover,3,309,no,no
+Ceratophyllum demersum,management,0.20975929404055327,0.09648677669098099,0.3130567643527967,water hyacinth,1.8747554010465193,2800.2221637215484,submersed,water hyacinth mgmt.,3,309,yes,no
+Ceratophyllum demersum,net,0.3349467373433345,0.04641784967238615,0.6147971389450358,water hyacinth,1.8747554010465193,2663.5076366277303,submersed,mgmt. + cover,3,309,yes,no
+Chara spp.,cover,0.022923576622419353,-0.44571901155174093,0.4086049551054808,water hyacinth,1.0481648980337224,3015.0849452987545,submersed,water hyacinth cover,3,310,no,no
+Chara spp.,management,-0.18440299011526093,-0.2900879701220508,-0.08096652719729158,water hyacinth,1.2118189211345223,2779.2192536665984,submersed,water hyacinth mgmt.,3,310,yes,no
+Chara spp.,net,-0.160604759419014,-0.5476525597894848,0.19216344955691722,water hyacinth,1.2118189211345223,2779.2192536665984,submersed,mgmt. + cover,3,310,no,no
+Cicuta maculata,cover,0.35495095907129665,-0.05089003777261875,0.8079088652712951,water hyacinth,1.0262215504984247,2865.946520168267,emersed,water hyacinth cover,1,111,no,no
+Cicuta maculata,management,0.3267562408453175,0.19719432786027238,0.455249453254752,water hyacinth,1.0283547253813434,2416.3917523516952,emersed,water hyacinth mgmt.,1,111,yes,yes
+Cicuta maculata,net,-0.19546224627337666,-0.6781687681405298,0.25037373252458855,water hyacinth,1.0283547253813434,1588.8302376779338,emersed,mgmt. + cover,1,111,no,no
+Cladium jamaicense,cover,0.2559107022111124,-0.07531146579026998,0.5826563436352981,water hyacinth,0.9995981357032652,3083.930241856182,emersed,water hyacinth cover,1,112,no,no
+Cladium jamaicense,management,-0.03685249848539738,-0.15762310921248587,0.07713778577656061,water hyacinth,1.1612238026689061,2464.0884162253724,emersed,water hyacinth mgmt.,1,112,no,no
+Cladium jamaicense,net,0.13028398553514947,-0.19058119017850006,0.43556854177673177,water hyacinth,1.1612238026689061,2464.0884162253724,emersed,mgmt. + cover,1,112,no,no
+Crinum americanum,cover,-0.22737409821183777,-0.8548727879883823,0.27685675563404016,water hyacinth,1.0064203740038047,1928.031342010198,emersed,water hyacinth cover,1,113,no,no
+Crinum americanum,management,0.19709535651625681,0.07689393334964888,0.3159178763834936,water hyacinth,1.0396785244644653,2532.2295926776706,emersed,water hyacinth mgmt.,1,113,yes,yes
+Crinum americanum,net,-0.09812348825434335,-0.5613762585123911,0.31498812218229416,water hyacinth,1.0396785244644653,1928.031342010198,emersed,mgmt. + cover,1,113,no,no
+Cyperus articulatus,cover,0.14267157016954274,-0.21722644950316694,0.490247847035564,water hyacinth,1.0074476172739435,3000,emersed,water hyacinth cover,1,114,no,no
+Cyperus articulatus,management,-0.09731037271868642,-0.26669041732009685,0.08118914033357663,water hyacinth,1.6872691178120534,2093.4994353767984,emersed,water hyacinth mgmt.,1,114,no,no
+Cyperus articulatus,net,0.25419657181806754,-0.075259171767272,0.566592387327769,water hyacinth,1.6872691178120534,1077.1533220931196,emersed,mgmt. + cover,1,114,no,no
+Cyperus spp. (other natives),cover,0.10442570391631761,-0.1930587289871425,0.40925300799569553,water hyacinth,1.0038842076727648,3069.4111690935233,emersed,water hyacinth cover,1,115,no,no
+Cyperus spp. (other natives),management,0.053565285501771975,-0.025732788382469684,0.13374236212174584,water hyacinth,1.132155076413627,2942.453345899418,emersed,water hyacinth mgmt.,1,115,no,no
+Cyperus spp. (other natives),net,0.11549182714238986,-0.1563894398761591,0.39245510856515103,water hyacinth,1.132155076413627,3125.574909986141,emersed,mgmt. + cover,1,115,no,no
+Decodon verticillatus,cover,-0.9113248985770801,-1.8027588267115042,-0.15284182697200566,water hyacinth,1.0196506905306384,1228.5851267187475,emersed,water hyacinth cover,1,116,yes,yes
+Decodon verticillatus,management,0.07404769204126754,-0.058976751618398396,0.2030583259600352,water hyacinth,1.2129044682835788,2507.1956347022724,emersed,water hyacinth mgmt.,1,116,no,no
+Decodon verticillatus,net,-0.027743350081915866,-0.44773236634691693,0.3757599381324353,water hyacinth,1.2129044682835788,1036.4361443292532,emersed,mgmt. + cover,1,116,no,no
+Echinochloa spp.,cover,0.0569522295886945,-0.2738554525645774,0.36210016983678994,water hyacinth,1.0182640704013421,3000,emersed,water hyacinth cover,1,117,no,no
+Echinochloa spp.,management,0.023222495596049705,-0.07379932773237957,0.1252201509927585,water hyacinth,1.449135551083643,2898.908456460726,emersed,water hyacinth mgmt.,1,117,no,no
+Echinochloa spp.,net,0.055480478042292024,-0.2528363065942822,0.3321287821718326,water hyacinth,1.449135551083643,2898.908456460726,emersed,mgmt. + cover,1,117,no,no
+"Eleocharis spp., emersed",cover,0.2642047287001996,-0.08365077495102406,0.6401308082788975,water hyacinth,1.0075748526467039,3000,emersed,water hyacinth cover,1,118,no,no
+"Eleocharis spp., emersed",management,-0.01025594497466622,-0.10307644360016549,0.08542970203358728,water hyacinth,1.3520673565771695,2687.5550243602856,emersed,water hyacinth mgmt.,1,118,no,no
+"Eleocharis spp., emersed",net,0.28879438276001246,0.011463054264794603,0.5839921112350388,water hyacinth,1.3520673565771695,2687.5550243602856,emersed,mgmt. + cover,1,118,yes,no
+"Eleocharis spp., sub/floating",cover,0.2333737188255922,-0.07198513042433588,0.5398370897853135,water hyacinth,1.048059505932713,2797.654338839081,submersed,water hyacinth cover,3,319,no,no
+"Eleocharis spp., sub/floating",management,0.11979890590479052,0.03232684654582487,0.21482112331400582,water hyacinth,1.2728268602954333,2902.645276669201,submersed,water hyacinth mgmt.,3,319,yes,no
+"Eleocharis spp., sub/floating",net,-0.2429463563855205,-0.5433271039426254,0.04395506862070651,water hyacinth,1.2728268602954333,2797.654338839081,submersed,mgmt. + cover,3,319,no,no
+Filamentous algae,cover,-0.03175546786355373,-0.36912936759040843,0.295269160067422,water hyacinth,1.0085723443547612,2845.9361032042248,floating,water hyacinth cover,2,220,no,no
+Filamentous algae,management,-0.16172980552460908,-0.24171436520360948,-0.08261521614424461,water hyacinth,1.0003326235037022,3037.6635084401833,floating,water hyacinth mgmt.,2,220,yes,yes
+Filamentous algae,net,-0.06669787834353408,-0.3203136538249143,0.20737376477078454,water hyacinth,1.0085723443547612,3434.3850778594933,floating,mgmt. + cover,2,220,no,no
+Fuirena spp.,cover,-0.04010865028602183,-0.7613517571749548,0.549305251985191,water hyacinth,1.024039983598219,1637.3795759267346,emersed,water hyacinth cover,1,121,no,no
+Fuirena spp.,management,-0.03719756819821752,-0.1594292164131373,0.09702045535791462,water hyacinth,1.7046911898522341,2530.380198096085,emersed,water hyacinth mgmt.,1,121,no,no
+Fuirena spp.,net,-1.7893872274052032,-2.9992939239294776,-0.6571468411910356,water hyacinth,1.7046911898522341,750.9118977070093,emersed,mgmt. + cover,1,121,yes,no
+Hydrocotyle spp.,cover,0.23355017528700844,-0.19779457418068794,0.7195400184324201,water hyacinth,1.007104198249805,2893.4695852465675,emersed,water hyacinth cover,1,122,no,no
+Hydrocotyle spp.,management,0.3401015180618079,0.2382745989828647,0.44237596946038876,water hyacinth,1.061577069037643,3230.5027808401774,emersed,water hyacinth mgmt.,1,122,yes,yes
+Hydrocotyle spp.,net,0.08536646740576452,-0.18920960186733335,0.350256731603021,water hyacinth,1.061577069037643,2591.602786989733,emersed,mgmt. + cover,1,122,no,no
+Hypericum spp.,cover,-0.9484515686930715,-2.058731093246673,-0.04080103785737926,water hyacinth,1.0050531319893345,702.3366308503807,emersed,water hyacinth cover,1,123,yes,no
+Hypericum spp.,management,-0.12464273407868978,-0.2549271716310951,0.005391338384142505,water hyacinth,1.3080780536368461,2381.373994180374,emersed,water hyacinth mgmt.,1,123,no,no
+Hypericum spp.,net,-0.6932828705887565,-1.563699666948697,-0.010145635057652185,water hyacinth,1.3080780536368461,702.3366308503807,emersed,mgmt. + cover,1,123,yes,no
+Juncus effusus,cover,-0.11922997323309281,-0.5707248592624451,0.24201657742331023,water hyacinth,1.0020273311222856,2719.8399455056315,emersed,water hyacinth cover,1,124,no,no
+Juncus effusus,management,0.21547301923287476,0.13473127298675208,0.2924682931813643,water hyacinth,1.0296745115408708,2900.575682079607,emersed,water hyacinth mgmt.,1,124,yes,yes
+Juncus effusus,net,0.14268113504998062,-0.11578015449798458,0.38230123360934803,water hyacinth,1.0296745115408708,2719.8399455056315,emersed,mgmt. + cover,1,124,no,no
+Leersia hexandra,cover,0.19560148483104137,-0.11433500623451215,0.5094689081549167,water hyacinth,1.0186106057053406,3000,emersed,water hyacinth cover,1,125,no,no
+Leersia hexandra,management,-0.21021494943792055,-0.3032060370451879,-0.11309900066020591,water hyacinth,1.053494015945009,3336.267313805728,emersed,water hyacinth mgmt.,1,125,yes,yes
+Leersia hexandra,net,0.16498563286779988,-0.10353970471398083,0.4347156785580317,water hyacinth,1.053494015945009,3336.267313805728,emersed,mgmt. + cover,1,125,no,no
+Lemna/Spirodela spp.,cover,1.032554379646344,0.43819304555623556,1.679652014347035,water hyacinth,1.007798015832457,2059.278827322803,floating,water hyacinth cover,2,226,yes,yes
+Lemna/Spirodela spp.,management,0.3476152608394215,0.2604245811456444,0.43998559147787264,water hyacinth,1.4210932255354274,3125.019304536873,floating,water hyacinth mgmt.,2,226,yes,no
+Lemna/Spirodela spp.,net,0.44959212691551453,0.18146286189265384,0.7286063351013022,water hyacinth,1.4210932255354274,2059.278827322803,floating,mgmt. + cover,2,226,yes,no
+Limnobium spongia,cover,0.10515549325062051,-0.22412770080935743,0.40261869285019675,water hyacinth,1.0001433606439087,2912.8723670254835,floating,water hyacinth cover,2,227,no,no
+Limnobium spongia,management,0.1307645603664291,0.024839964888435775,0.24212230625166753,water hyacinth,1.0467498623922444,2720.0661476128366,floating,water hyacinth mgmt.,2,227,yes,yes
+Limnobium spongia,net,0.20901288383889374,-0.09522457358682507,0.5074128624904861,water hyacinth,1.0467498623922444,2692.9315325788302,floating,mgmt. + cover,2,227,no,no
+Ludwigia octovalvis/peruviana,cover,0.517643946094428,0.06905245004179646,1.0216020709070786,water hyacinth,1.003774546434625,2810.559288845787,emersed,water hyacinth cover,1,128,yes,yes
+Ludwigia octovalvis/peruviana,management,0.2260001247317865,0.11366235399196621,0.3359296243262223,water hyacinth,1.0255935184160925,2835.3630057175233,emersed,water hyacinth mgmt.,1,128,yes,yes
+Ludwigia octovalvis/peruviana,net,0.10021382470541419,-0.16845920618515667,0.381278488206973,water hyacinth,1.0255935184160925,2575.661663814014,emersed,mgmt. + cover,1,128,no,no
+Ludwigia palustris/repens,cover,0.37449527927367726,0.008686068241326802,0.7314173623581337,water hyacinth,1.0066468401124835,2862.2219162886813,emersed,water hyacinth cover,1,129,yes,yes
+Ludwigia palustris/repens,management,-0.09274900421149268,-0.19221158952544534,0.003924323756294999,water hyacinth,1.0146185682276692,2999.9999999999995,emersed,water hyacinth mgmt.,1,129,no,no
+Ludwigia palustris/repens,net,0.13507411550006282,-0.16841780808825088,0.41859534709133633,water hyacinth,1.0146185682276692,3156.634960398938,emersed,mgmt. + cover,1,129,no,no
+Luziola fluitans,cover,0.37671851136300766,0.013001996938802869,0.7514172816711343,water hyacinth,1.066743782049728,3030.3888010983346,submersed,water hyacinth cover,3,330,yes,yes
+Luziola fluitans,management,0.19821781240716915,0.0940337309625234,0.30429766228895594,water hyacinth,1.4125048034882794,2841.1227311389353,submersed,water hyacinth mgmt.,3,330,yes,no
+Luziola fluitans,net,0.20992436830249664,-0.10947731344887393,0.5202326551316163,water hyacinth,1.4125048034882794,2841.1227311389353,submersed,mgmt. + cover,3,330,no,no
+Mayaca fluviatilis,cover,-0.9109389803647189,-2.330948219344601,0.3748651270320197,water hyacinth,1.0250861659719241,450.98884624255436,submersed,water hyacinth cover,3,331,no,no
+Mayaca fluviatilis,management,0.017141274570139867,-0.12880564752939344,0.16304145796895944,water hyacinth,1.1455891861468444,1698.4142639298084,submersed,water hyacinth mgmt.,3,331,no,no
+Mayaca fluviatilis,net,-1.3758103513472941,-3.1441900177027193,0.022859328417344445,water hyacinth,1.1455891861468444,450.98884624255436,submersed,mgmt. + cover,3,331,no,no
+Micranthemum glomeratum,cover,-0.32214564426121534,-1.2415016342733087,0.3704179998299685,water hyacinth,1.0040275404240948,1322.2436517362694,submersed,water hyacinth cover,3,332,no,no
+Micranthemum glomeratum,management,0.1903030255034902,0.09429508156743754,0.2911908285396274,water hyacinth,1.003565255445294,2831.968926428589,submersed,water hyacinth mgmt.,3,332,yes,yes
+Micranthemum glomeratum,net,-0.5927199678419697,-1.4371699785852416,0.1108432488193846,water hyacinth,1.0040275404240948,1193.2025974037906,submersed,mgmt. + cover,3,332,no,no
+Micranthemum umbrosum,cover,-0.24762960570944287,-1.1045738400114096,0.3830038887736257,water hyacinth,1.0025828545783566,1392.8936826429072,emersed,water hyacinth cover,1,133,no,no
+Micranthemum umbrosum,management,0.16041614837898438,0.05476291239689807,0.270501707409417,water hyacinth,1.0911447318826288,3306.0532681274753,emersed,water hyacinth mgmt.,1,133,yes,yes
+Micranthemum umbrosum,net,0.2186724607076119,-0.13872222829789424,0.5432780700951994,water hyacinth,1.0911447318826288,1392.8936826429072,emersed,mgmt. + cover,1,133,no,no
+Myriophyllum laxum/pinnatum,cover,-1.326718528150015,-2.9238800910842966,0.02426491971043395,water hyacinth,1.0133236085238235,395.16103823245084,submersed,water hyacinth cover,3,334,no,no
+Myriophyllum laxum/pinnatum,management,0.016533904134795493,-0.1874195905859248,0.19646721854537433,water hyacinth,1.8006285400023032,1717.2244593204312,submersed,water hyacinth mgmt.,3,334,no,no
+Myriophyllum laxum/pinnatum,net,-1.8103743647711805,-3.8648527418209766,-0.19182567683709717,water hyacinth,1.8038273389894235,317.31252344486137,submersed,mgmt. + cover,3,334,yes,no
+Najas guadalupensis,cover,0.37173442337024126,0.041768031255166975,0.7015541522447616,water hyacinth,1.1238634698951608,3000.0000000000005,submersed,water hyacinth cover,3,335,yes,no
+Najas guadalupensis,management,-0.0725496754612324,-0.17769043351270936,0.02617425387746386,water hyacinth,1.6607445936374468,3000,submersed,water hyacinth mgmt.,3,335,no,no
+Najas guadalupensis,net,-0.34494846223454995,-0.7767070025467674,0.029087129018832113,water hyacinth,1.6607445936374468,2853.479232054554,submersed,mgmt. + cover,3,335,no,no
+Nelumbo lutea,cover,0.14949847244986306,-0.18319689856608146,0.5120738676368403,water hyacinth,1.0301167606726014,2843.594613538836,emersed,water hyacinth cover,1,136,no,no
+Nelumbo lutea,management,0.34769703213192416,0.24689766757372775,0.4522823057381926,water hyacinth,1.1443255840933921,2775.3684198273077,emersed,water hyacinth mgmt.,1,136,yes,no
+Nelumbo lutea,net,-0.11104434628767164,-0.4492322469367348,0.22910722233332448,water hyacinth,1.299896231632639,2173.685777853369,emersed,mgmt. + cover,1,136,no,no
+Nitella spp.,cover,0.09897692860183867,-0.5772929632584654,0.6066900550181121,water hyacinth,1.013030424725715,1989.1280527646668,submersed,water hyacinth cover,3,337,no,no
+Nitella spp.,management,-0.19649799261887468,-0.3166264225251727,-0.08097358099925973,water hyacinth,1.4682291484358736,3000,submersed,water hyacinth mgmt.,3,337,yes,no
+Nitella spp.,net,-0.39213981784444774,-1.16102383005065,0.1673149379968425,water hyacinth,1.4682291484358736,1460.551973910946,submersed,mgmt. + cover,3,337,no,no
+Nuphar advena,cover,0.1916472900105968,-0.19825270592549857,0.6451287771089447,water hyacinth,1.011007367249506,2761.939103933242,emersed,water hyacinth cover,1,138,no,no
+Nuphar advena,management,0.2621589063731116,0.15234534449847592,0.3694935895716045,water hyacinth,1.1368434239681995,2746.591281658233,emersed,water hyacinth mgmt.,1,138,yes,no
+Nuphar advena,net,0.12375676506476221,-0.1663702601198211,0.4130165088025467,water hyacinth,1.1759033884616683,2479.667907652782,emersed,mgmt. + cover,1,138,no,no
+Nymphaea mexicana,cover,0.05840198425788502,-0.29798261281953137,0.39240124533514725,water hyacinth,1.0054299960424982,3000,emersed,water hyacinth cover,1,139,no,no
+Nymphaea mexicana,management,-0.19234842961811724,-0.3122473132527533,-0.07295846908376384,water hyacinth,1.014697664876204,2279.8975777499195,emersed,water hyacinth mgmt.,1,139,yes,yes
+Nymphaea mexicana,net,-0.22115635010829393,-0.603261007674801,0.1429497248509782,water hyacinth,1.0484579787442734,2279.8975777499195,emersed,mgmt. + cover,1,139,no,no
+Nymphaea odorata,cover,-0.0290722700684256,-0.5048053478252149,0.37976102059395433,water hyacinth,1.0549987842465913,2893.073910918968,emersed,water hyacinth cover,1,140,no,no
+Nymphaea odorata,management,-0.06267767748760901,-0.18122603611101867,0.0465488958823357,water hyacinth,1.7363946034380529,3000,emersed,water hyacinth mgmt.,1,140,no,no
+Nymphaea odorata,net,-0.019365336534284492,-0.3296766056129077,0.28085775801290846,water hyacinth,1.7363946034380529,2893.073910918968,emersed,mgmt. + cover,1,140,no,no
+Nymphoides aquatica,cover,-0.32776181974406976,-1.3345392136940288,0.40896037386894996,water hyacinth,1.0047998541432195,972.0451909994092,emersed,water hyacinth cover,1,141,no,no
+Nymphoides aquatica,management,0.19583346268186022,0.07625775466999928,0.31460343069760344,water hyacinth,1.0874043830093616,2407.9370535837124,emersed,water hyacinth mgmt.,1,141,yes,yes
+Nymphoides aquatica,net,-0.33349185105469603,-1.1063893433955878,0.2689434900658089,water hyacinth,1.0874043830093616,972.0451909994092,emersed,mgmt. + cover,1,141,no,no
+Panicum hemitomon,cover,-0.02782865374171947,-0.34651163237421634,0.3097035156895216,water hyacinth,1.0004021404294057,2968.091648317747,emersed,water hyacinth cover,1,142,no,no
+Panicum hemitomon,management,0.25876242147351025,0.16333786234354916,0.3564280254152289,water hyacinth,1.0112276283897716,2900.2451949255037,emersed,water hyacinth mgmt.,1,142,yes,yes
+Panicum hemitomon,net,0.09496144927583579,-0.19127108686620234,0.38675848684315184,water hyacinth,1.049236665640532,2900.2451949255037,emersed,mgmt. + cover,1,142,no,no
+Paspalidium geminatum,cover,-1.0856926461982597,-1.7305552631047068,-0.45724140090832693,water hyacinth,1.3657749938750663,2102.6911804694855,emersed,water hyacinth cover,1,143,yes,no
+Paspalidium geminatum,management,0.4669654106431103,0.38090650394788794,0.551152919397752,water hyacinth,1.0893397130299396,3000,emersed,water hyacinth mgmt.,1,143,yes,yes
+Paspalidium geminatum,net,-2.17610539816661,-2.952749105179477,-1.3863785176052508,water hyacinth,1.3657749938750663,1621.4537529631475,emersed,mgmt. + cover,1,143,yes,no
+Paspalum repens,cover,-0.11999387935086885,-0.5388161683457231,0.24888903631577444,water hyacinth,1.0813066894958288,2883.9970061711647,emersed,water hyacinth cover,1,144,no,no
+Paspalum repens,management,-0.006583381188487976,-0.14973405628647496,0.14172707344039423,water hyacinth,1.2947095076095902,2343.566385007309,emersed,water hyacinth mgmt.,1,144,no,no
+Paspalum repens,net,-0.11450906753141991,-0.5081092608393497,0.2461369924441485,water hyacinth,1.2947095076095902,1757.6770781040404,emersed,mgmt. + cover,1,144,no,no
+Peltandra spp.,cover,-0.6723721008583166,-1.650665717058243,0.12452918890980483,water hyacinth,1.04525417611096,819.1249528608166,emersed,water hyacinth cover,1,145,no,no
+Peltandra spp.,management,0.22369987839347685,0.09706174334859359,0.3477210671196945,water hyacinth,1.03003486671746,2308.8477513644257,emersed,water hyacinth mgmt.,1,145,yes,yes
+Peltandra spp.,net,-0.14477341964651042,-0.7832504434139107,0.36998328905762834,water hyacinth,1.04525417611096,819.1249528608166,emersed,mgmt. + cover,1,145,no,no
+Phragmites australis,cover,0.29098488253091515,-0.10157507613404917,0.6984021231290498,water hyacinth,1.0020868723867888,2758.6753539791625,emersed,water hyacinth cover,1,146,no,no
+Phragmites australis,management,-0.09739327354962005,-0.22906482932916192,0.03940853355145866,water hyacinth,1.0448818701936928,2395.8880085259575,emersed,water hyacinth mgmt.,1,146,no,no
+Phragmites australis,net,-0.08457877913728017,-0.45121588848818106,0.2677648540141112,water hyacinth,1.7561519565403716,1079.0828903554084,emersed,mgmt. + cover,1,146,no,no
+Pontederia cordata,cover,0.52579242007503,0.10133965471507943,1.0016548318933838,water hyacinth,1.006140207543606,2703.0116625569726,emersed,water hyacinth cover,1,147,yes,yes
+Pontederia cordata,management,0.23181383829669536,0.12484001661731824,0.3426425277638423,water hyacinth,1.0164404128137667,2741.2618492846373,emersed,water hyacinth mgmt.,1,147,yes,yes
+Pontederia cordata,net,0.09023565638825776,-0.17529323431974092,0.369069243946423,water hyacinth,1.0411022953918003,2517.385210731817,emersed,mgmt. + cover,1,147,no,no
+Potamogeton illinoensis,cover,0.0135901762471816,-0.806464942865004,0.6100810883312799,water hyacinth,1.0040064503069304,1631.6411192023606,submersed,water hyacinth cover,3,348,no,no
+Potamogeton illinoensis,management,-0.06957083876184329,-0.2120060483425866,0.06962787200498956,water hyacinth,1.4711110128608307,2727.9553650338203,submersed,water hyacinth mgmt.,3,348,no,no
+Potamogeton illinoensis,net,-0.4189414621089922,-1.218726275093122,0.307111699074415,water hyacinth,1.4711110128608307,1255.438281275694,submersed,mgmt. + cover,3,348,no,no
+Rhynchospora spp.,cover,0.13983927858359155,-0.22231369626176437,0.46986761934603083,water hyacinth,0.9997733809949271,2992.673769629021,emersed,water hyacinth cover,1,149,no,no
+Rhynchospora spp.,management,-0.14668924714372894,-0.24956367634788726,-0.04843596147148512,water hyacinth,1.0196746869600495,2977.1700451316538,emersed,water hyacinth mgmt.,1,149,yes,yes
+Rhynchospora spp.,net,-0.19459373665698307,-0.5513835622314912,0.1521043322996246,water hyacinth,1.0196746869600495,2947.6002382295665,emersed,mgmt. + cover,1,149,no,no
+Sacciolepis striata,cover,0.09366163427686969,-0.2516726504606378,0.47798960153478115,water hyacinth,1.1918809427934736,3012.1159335575076,emersed,water hyacinth cover,1,150,no,no
+Sacciolepis striata,management,0.35505390938768044,0.2575474915996521,0.46145616899482117,water hyacinth,1.9140204298063557,3000,emersed,water hyacinth mgmt.,1,150,yes,no
+Sacciolepis striata,net,0.1373060776253303,-0.11686683716113482,0.4015299660292739,water hyacinth,1.9140204298063557,3012.1159335575076,emersed,mgmt. + cover,1,150,no,no
+Sagittaria lancifolia,cover,0.4986824883788734,0.0650489268034831,0.9342266827477865,water hyacinth,1.0082447621705843,2864.9717583067877,emersed,water hyacinth cover,1,151,yes,yes
+Sagittaria lancifolia,management,0.18204916409591065,0.08427169746450823,0.2796274982954284,water hyacinth,1.0521907110215194,2816.9945762224183,emersed,water hyacinth mgmt.,1,151,yes,yes
+Sagittaria lancifolia,net,0.09664067610129828,-0.1773303653132579,0.3655897591052201,water hyacinth,1.0521907110215194,2801.793548798624,emersed,mgmt. + cover,1,151,no,no
+Sagittaria latifolia,cover,0.011067107068234414,-0.32416644039637305,0.33953790191183925,water hyacinth,0.9996340251391292,2699.53372336522,emersed,water hyacinth cover,1,152,no,no
+Sagittaria latifolia,management,0.25959655878971527,0.16935590634522565,0.35143011346440817,water hyacinth,1.0518224468417097,2850.14971679247,emersed,water hyacinth mgmt.,1,152,yes,yes
+Sagittaria latifolia,net,0.03927494444829524,-0.27646172351657833,0.3438776936682765,water hyacinth,1.0518224468417097,2699.53372336522,emersed,mgmt. + cover,1,152,no,no
+Sagittaria subulata/graminea/gracillima,cover,0.026099048300985077,-0.6903371710746227,0.5330239707730552,water hyacinth,1.0055141140286656,1973.3534245764167,emersed,water hyacinth cover,1,153,no,no
+Sagittaria subulata/graminea/gracillima,management,0.09643429421641249,-0.01652692613596228,0.20749988615454973,water hyacinth,1.0063312933182145,2700.919445608436,emersed,water hyacinth mgmt.,1,153,no,no
+Sagittaria subulata/graminea/gracillima,net,-0.1116631639358939,-0.7733906888758223,0.369406370119622,water hyacinth,1.0067061767238372,1703.1803280229792,emersed,mgmt. + cover,1,153,no,no
+Salix spp.,cover,0.32909523435214827,-0.11721780555264148,0.8710336384311788,water hyacinth,1.0033468625997477,2293.6747564473862,emersed,water hyacinth cover,1,154,no,no
+Salix spp.,management,0.229922397854786,0.12771591841697755,0.3280183012762558,water hyacinth,1.0020655584079265,2876.9378386061153,emersed,water hyacinth mgmt.,1,154,yes,yes
+Salix spp.,net,0.03058939554534577,-0.24033892171342852,0.31731536296594975,water hyacinth,1.017249912638863,2293.6747564473862,emersed,mgmt. + cover,1,154,no,no
+Saururus cernuus,cover,-0.3337711422146398,-0.9809947760853912,0.1638668322877311,water hyacinth,1.004353087475528,2224.2019767427755,emersed,water hyacinth cover,1,155,no,no
+Saururus cernuus,management,-0.05549864075043813,-0.1681433892061111,0.05673507256707244,water hyacinth,1.101761711709115,2718.4093954372656,emersed,water hyacinth mgmt.,1,155,no,no
+Saururus cernuus,net,-0.1656447838294097,-0.5463298848645989,0.18734196332971378,water hyacinth,1.101761711709115,2224.2019767427755,emersed,mgmt. + cover,1,155,no,no
+Spartina bakeri,cover,0.3308382909355416,-0.03779060242711624,0.7444235403563467,water hyacinth,1.0877628960804306,3000,emersed,water hyacinth cover,1,156,no,no
+Spartina bakeri,management,0.006309148130408245,-0.12351266189114914,0.14332122238570985,water hyacinth,2.307828127666054,2758.1142556853792,emersed,water hyacinth mgmt.,1,156,no,no
+Spartina bakeri,net,4.4520124854121164e-4,-0.3618749819016132,0.30288906232532753,water hyacinth,2.307828127666054,2758.1142556853792,emersed,mgmt. + cover,1,156,no,no
+Thalia geniculata,cover,0.275551428262969,-0.11069197416801234,0.7008809205622991,water hyacinth,1.0016335496132476,3000,emersed,water hyacinth cover,1,157,no,no
+Thalia geniculata,management,-0.30255530366633887,-0.44188817135306724,-0.17206699689816038,water hyacinth,1.1776326961233095,2344.888080265388,emersed,water hyacinth mgmt.,1,157,yes,no
+Thalia geniculata,net,0.09771847529765847,-0.2790942436352184,0.44251322067907645,water hyacinth,4.32210925391394,855.2291039285296,emersed,mgmt. + cover,1,157,no,no
+Typha spp.,cover,0.09492281198915324,-0.3102287302138604,0.5594008451023381,water hyacinth,1.023575594451599,2817.6417652582245,emersed,water hyacinth cover,1,158,no,no
+Typha spp.,management,0.30421369467730985,0.1793176259158857,0.42923089736051007,water hyacinth,1.0258204017987738,2471.634223736282,emersed,water hyacinth mgmt.,1,158,yes,yes
+Typha spp.,net,0.1616998297750124,-0.13922568674257424,0.4922562562832745,water hyacinth,1.0258204017987738,2102.5514193509143,emersed,mgmt. + cover,1,158,no,no
+Utricularia floridana,cover,0.13457606732669639,-0.5374728868201845,0.646777193362022,water hyacinth,1.0569035505001911,2033.2234566190214,submersed,water hyacinth cover,3,359,no,no
+Utricularia floridana,management,-0.338713226715345,-0.49300785089756793,-0.1853899256595861,water hyacinth,1.465378206767476,2159.785314280234,submersed,water hyacinth mgmt.,3,359,yes,no
+Utricularia floridana,net,-0.7112253132676448,-1.7613605024178287,0.02671559410195475,water hyacinth,1.5272291799359436,1007.8488355621934,submersed,mgmt. + cover,3,359,no,no
+Utricularia foliosa,cover,0.6162516377587092,0.199893302113776,1.035943232239349,water hyacinth,1.0118009979696592,2897.3241587369357,submersed,water hyacinth cover,3,360,yes,yes
+Utricularia foliosa,management,-0.060696778189001765,-0.1589526261725824,0.04178123583922928,water hyacinth,1.1707951883148249,2803.1721125533527,submersed,water hyacinth mgmt.,3,360,no,no
+Utricularia foliosa,net,0.26682513686159637,-0.018065545496232256,0.5457921531308297,water hyacinth,1.1707951883148249,2803.1721125533527,submersed,mgmt. + cover,3,360,no,no
+Utricularia gibba,cover,0.20028417088553113,-0.15383360049271905,0.5225415555231134,water hyacinth,1.0109628548807235,2867.595096626488,submersed,water hyacinth cover,3,361,no,no
+Utricularia gibba,management,0.07438152118675083,-0.012925212153503875,0.16543632480771858,water hyacinth,1.020507118842615,3000,submersed,water hyacinth mgmt.,3,361,no,no
+Utricularia gibba,net,0.3150950050670828,0.03560474366197988,0.5887629326632708,water hyacinth,1.020507118842615,2867.595096626488,submersed,mgmt. + cover,3,361,yes,yes
+Utricularia inflata,cover,0.48409017660403525,0.10464422367105032,0.838950473381978,water hyacinth,1.0016888971997577,3666.3802473711166,submersed,water hyacinth cover,3,362,yes,yes
+Utricularia inflata,management,-0.10085829549659281,-0.21499495350245149,0.016974300188205338,water hyacinth,1.0199887172196869,2795.7762054971904,submersed,water hyacinth mgmt.,3,362,no,no
+Utricularia inflata,net,0.019934819553360184,-0.5320671399185368,0.44006741410280864,water hyacinth,1.0199887172196869,1863.0114114356247,submersed,mgmt. + cover,3,362,no,no
+Utricularia purpurea,cover,0.4438039435521482,0.05519000317282766,0.8613433647582787,water hyacinth,1.002828323716451,2776.437522304429,submersed,water hyacinth cover,3,363,yes,yes
+Utricularia purpurea,management,0.013269914015759778,-0.1063828607529367,0.1309273338073112,water hyacinth,1.0045752207017586,2397.808526660703,submersed,water hyacinth mgmt.,3,363,no,no
+Utricularia purpurea,net,-1.7147390644233476,-2.942325159745451,-0.62498721613035,water hyacinth,1.005297807743277,409.43548823675224,submersed,mgmt. + cover,3,363,yes,no
+Vallisneria americana,cover,0.23529261414257524,-0.1194195819889874,0.5775612498312206,water hyacinth,1.1123177907951913,3000,submersed,water hyacinth cover,3,364,no,no
+Vallisneria americana,management,0.1465560898292906,0.0035969022656772973,0.28162666014973237,water hyacinth,2.0056719696178633,2248.023465111941,submersed,water hyacinth mgmt.,3,364,yes,no
+Vallisneria americana,net,-0.05657172392007616,-0.47714153412253735,0.3361663707976865,water hyacinth,2.0056719696178633,2248.023465111941,submersed,mgmt. + cover,3,364,no,no

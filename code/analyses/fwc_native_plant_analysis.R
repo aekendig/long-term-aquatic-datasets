@@ -149,52 +149,11 @@ torp_stud <- torp_dat %>%
          GSYear = as.factor(GSYear)) %>%
   data.frame()
 
-# traits
-hydr_hab <- hydr_dat %>%
-  distinct(TaxonName, Habitat) %>%
-  arrange(TaxonName) %>%
-  data.frame()
-rownames(hydr_hab) <- hydr_hab$TaxonName
-hydr_trait <- select(hydr_hab, -TaxonName)
-wale_hab <- wale_dat %>%
-  distinct(TaxonName, Habitat) %>%
-  arrange(TaxonName) %>%
-  data.frame()
-rownames(wale_hab) <- wale_hab$TaxonName
-wale_trait <- select(wale_hab, -TaxonName)
-wahy_hab <- wahy_dat %>%
-  distinct(TaxonName, Habitat) %>%
-  arrange(TaxonName) %>%
-  data.frame()
-rownames(wahy_hab) <- wahy_hab$TaxonName
-wahy_trait <- select(wahy_hab, -TaxonName)
-cubu_hab <- cubu_dat %>%
-  distinct(TaxonName, Habitat) %>%
-  arrange(TaxonName) %>%
-  data.frame()
-rownames(cubu_hab) <- cubu_hab$TaxonName
-cubu_trait <- select(cubu_hab, -TaxonName)
-pagr_hab <- pagr_dat %>%
-  distinct(TaxonName, Habitat) %>%
-  arrange(TaxonName) %>%
-  data.frame()
-rownames(pagr_hab) <- pagr_hab$TaxonName
-pagr_trait <- select(pagr_hab, -TaxonName)
-torp_hab <- torp_dat %>%
-  distinct(TaxonName, Habitat) %>%
-  arrange(TaxonName) %>%
-  data.frame()
-rownames(torp_hab) <- torp_hab$TaxonName
-torp_trait <- select(torp_hab, -TaxonName)
-
-
 #### define models ####
 
 hydr_mod = Hmsc(Y = hydr_mat,
                 XData = hydr_cov, 
                 XFormula = ~PrevPercCovered * Treated,
-                TrData = hydr_trait,
-                TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = hydr_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = hydr_stud$GSYear), 
@@ -203,8 +162,6 @@ hydr_mod = Hmsc(Y = hydr_mat,
 wale_mod = Hmsc(Y = wale_mat,
                 XData = wale_cov, 
                 XFormula = ~PrevPercCovered * Treated,
-                TrData = wale_trait,
-                TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = wale_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = wale_stud$GSYear), 
@@ -213,8 +170,6 @@ wale_mod = Hmsc(Y = wale_mat,
 wahy_mod = Hmsc(Y = wahy_mat,
                 XData = wahy_cov, 
                 XFormula = ~PrevPercCovered * Treated,
-                TrData = wahy_trait,
-                TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = wahy_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = wahy_stud$GSYear), 
@@ -223,8 +178,6 @@ wahy_mod = Hmsc(Y = wahy_mat,
 cubu_mod = Hmsc(Y = cubu_mat,
                 XData = cubu_cov, 
                 XFormula = ~PrevPercCovered * Treated,
-                TrData = cubu_trait,
-                TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = cubu_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = cubu_stud$GSYear), 
@@ -233,8 +186,6 @@ cubu_mod = Hmsc(Y = cubu_mat,
 pagr_mod = Hmsc(Y = pagr_mat,
                 XData = pagr_cov, 
                 XFormula = ~PrevPercCovered * Treated,
-                TrData = pagr_trait,
-                TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = pagr_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = pagr_stud$GSYear), 
@@ -243,8 +194,6 @@ pagr_mod = Hmsc(Y = pagr_mat,
 torp_mod = Hmsc(Y = torp_mat,
                 XData = torp_cov, 
                 XFormula = ~PrevPercCovered * Treated,
-                TrData = torp_trait,
-                TrFormula = ~Habitat,
                 distr = "probit",
                 studyDesign = torp_stud,
                 ranLevels = list(GSYear = HmscRandomLevel(units = torp_stud$GSYear), 
@@ -255,11 +204,8 @@ torp_mod = Hmsc(Y = torp_mat,
 # MCMC settings
 nChains = 3
 thin = 10
-samples = 500
+samples = 1000
 transient = 500
-# compared 3 chains/500 samples/200 transient to
-# 2 chains/1000 samples/500 transient and the distribution
-# of effective sample sizes and PSRF didn't improve
 
 # fit model
 hydr_fit = sampleMcmc(hydr_mod,
@@ -333,58 +279,154 @@ torp_post = convertToCodaObject(torp_fit)
 
 # effective sample sizes
 # total samples = samples * chains
-hist(effectiveSize(hydr_post$Beta))
-hist(effectiveSize(wale_post$Beta))
-hist(effectiveSize(wahy_post$Beta))
-hist(effectiveSize(cubu_post$Beta))
-hist(effectiveSize(pagr_post$Beta)) # almost uniform
-hist(effectiveSize(torp_post$Beta))
+eff_beta_xaxis <- expression(paste("Effective sample sizes: ", beta))
+
+hydr_eff_beta <- ggplot() +
+  aes(effectiveSize(hydr_post$Beta)) +
+  geom_histogram(binwidth = 100) +
+  labs(title = "Hydrilla model", 
+       x = eff_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+                      
+wale_eff_beta <- ggplot() +
+  aes(effectiveSize(wale_post$Beta)) +
+      geom_histogram(binwidth = 100) +
+        labs(title = "Water lettuce model", 
+             x = eff_beta_xaxis,
+             y = "Count") +
+        def_theme_paper
+      
+wahy_eff_beta <- ggplot() +
+  aes(effectiveSize(wahy_post$Beta)) + 
+      geom_histogram(binwidth = 100) +
+        labs(title = "Water hyacinth model", 
+             x = eff_beta_xaxis,
+             y = "Count") +
+  def_theme_paper
+
+cubu_eff_beta <- ggplot() +
+  aes(effectiveSize(cubu_post$Beta)) + 
+      geom_histogram(binwidth = 100) +
+        labs(title = "Cuban bulrush model", 
+             x = eff_beta_xaxis,
+             y = "Count") +
+  def_theme_paper
+
+pagr_eff_beta <- ggplot() +
+  aes(effectiveSize(pagr_post$Beta)) + 
+      geom_histogram(binwidth = 100) +
+        labs(title = "Para grass model", 
+             x = eff_beta_xaxis,
+             y = "Count") +
+  def_theme_paper
+
+torp_eff_beta <- ggplot() +
+  aes(effectiveSize(torp_post$Beta)) +
+      geom_histogram(binwidth = 100) +
+        labs(title = "Torpedograss model", 
+             x = eff_beta_xaxis,
+             y = "Count") +
+  def_theme_paper
+
+eff_beta_hists <- hydr_eff_beta + wale_eff_beta + wahy_eff_beta +
+  cubu_eff_beta + pagr_eff_beta + torp_eff_beta +
+  plot_layout(nrow = 3)
+
+ggsave("output/fwc_native_plant_beta_effective_sample_sizes.png", eff_beta_hists,
+       device = "png", width = 6.5, height = 7, units = "in")
 
 # Gelman diagnostics (potential scale reduction factors)
 # one indicates better convergence among chains
-hist(gelman.diag(hydr_post$Beta, multivariate=FALSE)$psrf)
-hist(gelman.diag(wale_post$Beta, multivariate=FALSE)$psrf)
-hist(gelman.diag(wahy_post$Beta, multivariate=FALSE)$psrf)
-hist(gelman.diag(cubu_post$Beta, multivariate=FALSE)$psrf)
-hist(gelman.diag(pagr_post$Beta, multivariate=FALSE)$psrf)
-hist(gelman.diag(torp_post$Beta, multivariate=FALSE)$psrf)
+psrf_beta_xaxis <- expression(paste("Potential scale reduction factors: ", beta))
+
+hydr_psrf_beta <- ggplot() +
+  aes(gelman.diag(hydr_post$Beta, multivariate=FALSE)$psrf) +
+  geom_histogram(binwidth = 0.1) +
+  labs(title = "Hydrilla model", 
+       x = psrf_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+wale_psrf_beta <- ggplot() +
+  aes(gelman.diag(wale_post$Beta, multivariate=FALSE)$psrf) +
+  geom_histogram(binwidth = 0.1) +
+  labs(title = "Water lettuce model", 
+       x = psrf_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+wahy_psrf_beta <- ggplot() +
+  aes(gelman.diag(wahy_post$Beta, multivariate=FALSE)$psrf) +
+  geom_histogram(binwidth = 0.1) +
+  labs(title = "Water hyacinth model", 
+       x = psrf_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+cubu_psrf_beta <- ggplot() +
+  aes(gelman.diag(cubu_post$Beta, multivariate=FALSE)$psrf) +
+  geom_histogram(binwidth = 0.01) +
+  labs(title = "Cuban bulrush model", 
+       x = psrf_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+pagr_psrf_beta <- ggplot() +
+  aes(gelman.diag(pagr_post$Beta, multivariate=FALSE)$psrf) +
+  geom_histogram(binwidth = 0.1) +
+  labs(title = "Para grass model", 
+       x = psrf_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+torp_psrf_beta <- ggplot() +
+  aes(gelman.diag(torp_post$Beta, multivariate=FALSE)$psrf) +
+  geom_histogram(binwidth = 0.01) +
+  labs(title = "Torpedograss model", 
+       x = psrf_beta_xaxis,
+       y = "Count") +
+  def_theme_paper
+
+psrf_beta_hists <- hydr_psrf_beta + wale_psrf_beta + wahy_psrf_beta +
+  cubu_psrf_beta + pagr_psrf_beta + torp_psrf_beta +
+  plot_layout(nrow = 3)
+
+ggsave("output/fwc_native_plant_beta_potential_scale_reduction_factors.png", psrf_beta_hists,
+       device = "png", width = 6.5, height = 7, units = "in")
 
 # explanatory power, compares posterior distribution to observed values
-hydr_preds = computePredictedValues(hydr_fit)
-hydr_eval = evaluateModelFit(hM = hydr_fit, predY = hydr_preds)
-hist(hydr_eval$RMSE)
-hist(hydr_eval$TjurR2)
-hist(hydr_eval$AUC)
-
-wale_preds = computePredictedValues(wale_fit)
-wale_eval = evaluateModelFit(hM = wale_fit, predY = wale_preds)
-hist(wale_eval$RMSE)
-hist(wale_eval$TjurR2)
-hist(wale_eval$AUC)
-
-wahy_preds = computePredictedValues(wahy_fit)
-wahy_eval = evaluateModelFit(hM = wahy_fit, predY = wahy_preds)
-hist(wahy_eval$RMSE)
-hist(wahy_eval$TjurR2)
-hist(wahy_eval$AUC)
-
-cubu_preds = computePredictedValues(cubu_fit)
-cubu_eval = evaluateModelFit(hM = cubu_fit, predY = cubu_preds)
-hist(cubu_eval$RMSE)
-hist(cubu_eval$TjurR2)
-hist(cubu_eval$AUC)
-
-pagr_preds = computePredictedValues(pagr_fit)
-pagr_eval = evaluateModelFit(hM = pagr_fit, predY = pagr_preds)
-hist(pagr_eval$RMSE)
-hist(pagr_eval$TjurR2)
-hist(pagr_eval$AUC)
-
-torp_preds = computePredictedValues(torp_fit)
-torp_eval = evaluateModelFit(hM = torp_fit, predY = torp_preds)
-hist(torp_eval$RMSE)
-hist(torp_eval$TjurR2)
-hist(torp_eval$AUC)
+# not enough memory to run
+# hydr_preds = computePredictedValues(hydr_fit, nParallel = 3)
+# hydr_eval = evaluateModelFit(hM = hydr_fit, predY = hydr_preds)
+# hist(hydr_eval$RMSE)
+# hist(hydr_eval$TjurR2)
+# hist(hydr_eval$AUC)
+# 
+# wale_preds = computePredictedValues(wale_fit)
+# wale_eval = evaluateModelFit(hM = wale_fit, predY = wale_preds)
+# hist(wale_eval$RMSE)
+# hist(wale_eval$TjurR2)
+# hist(wale_eval$AUC)
+# 
+# wahy_preds = computePredictedValues(wahy_fit)
+# wahy_eval = evaluateModelFit(hM = wahy_fit, predY = wahy_preds)
+# hist(wahy_eval$RMSE)
+# hist(wahy_eval$TjurR2)
+# hist(wahy_eval$AUC)
+# 
+# cubu_preds = computePredictedValues(cubu_fit)
+# cubu_eval = evaluateModelFit(hM = cubu_fit, predY = cubu_preds)
+# hist(cubu_eval$RMSE)
+# hist(cubu_eval$TjurR2)
+# hist(cubu_eval$AUC)
+# 
+# pagr_preds = computePredictedValues(pagr_fit)
+# pagr_eval = evaluateModelFit(hM = pagr_fit, predY = pagr_preds)
+# hist(pagr_eval$RMSE)
+# hist(pagr_eval$TjurR2)
+# hist(pagr_eval$AUC)
+# 
+# torp_preds = computePredictedValues(torp_fit)
+# torp_eval = evaluateModelFit(hM = torp_fit, predY = torp_preds)
+# hist(torp_eval$RMSE)
+# hist(torp_eval$TjurR2)
+# hist(torp_eval$AUC)
 
 
 #### coefficient figures ####
@@ -420,7 +462,31 @@ coef_fun <- function(post_in, inv_name) {
               .groups = "drop") %>%
     mutate(invader = inv_name)
   
-  return(post_long)
+  post_diag <- tibble(var = dimnames(gelman.diag(post_in$Beta, multivariate=FALSE)$psrf)[[1]],
+                      psrf = gelman.diag(post_in$Beta, multivariate=FALSE)$psrf[,1]) %>%
+    full_join(tibble(var = names(effectiveSize(post_in$Beta)),
+                     ess = effectiveSize(post_in$Beta))) %>%
+    mutate(covariate = case_when(str_detect(var, "(Intercept)") == T ~ "intercept",
+                                 str_detect(var, ":Treated") == T ~ "interaction",
+                                 str_detect(var, "PrevPercCovered") == T ~ "cover",
+                                 str_detect(var, "Treated") == T ~ "management")) %>%
+    mutate(TaxonName = str_split_i(var, "\\), ", 2), # column for taxa
+           TaxonName = str_split_i(TaxonName, " \\(S", 1)) %>%
+    select(-var)
+  
+  post_diag_net <- post_diag %>%
+    mutate(ess_diff = abs(ess - nChains * samples)) %>%
+    group_by(TaxonName) %>%
+    summarize(psrf = max(psrf), # for net, use the largest psrf of the three coefficients and the furthest ESS
+              ess = ess[which.max(ess_diff)]) %>%
+    ungroup() %>%
+    mutate(covariate = "net")
+  
+  post_out <- post_long %>%
+    full_join(post_diag %>%
+                full_join(post_diag_net))
+  
+  return(post_out)
   
 }
 
@@ -454,7 +520,9 @@ foc_coef_sum <- full_join(hydr_sum, wale_sum) %>%
          sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "yes",
                          quant_2_5 < 0 & quant_97_5 < 0 ~ "yes",
                          TRUE ~ "no"),
-         Habitat = tolower(Habitat)) %>%
+         Habitat = tolower(Habitat),
+         sig_reliable = if_else(sig == "yes" & psrf <= 1.1 & ess >= (nChains * samples) / 3, 
+                                "yes", "no")) %>%
   filter(covariate %in% c("management", "cover", "net"))
 
 non_foc_coef_sum <- full_join(cubu_sum, pagr_sum) %>%
@@ -478,13 +546,15 @@ non_foc_coef_sum <- full_join(cubu_sum, pagr_sum) %>%
          sig = case_when(quant_2_5 > 0 & quant_97_5 > 0 ~ "yes",
                          quant_2_5 < 0 & quant_97_5 < 0 ~ "yes",
                          TRUE ~ "no"),
-         Habitat = tolower(Habitat)) %>%
+         Habitat = tolower(Habitat),
+         sig_reliable = if_else(sig == "yes" & psrf <= 1.1 & ess >=  (nChains * samples) / 3, 
+                                "yes", "no")) %>%
   filter(covariate %in% c("management", "cover", "net"))
 
 # coefficient plots
 hydr_coef_fig <- foc_coef_sum %>%
   filter(invader == "hydrilla") %>%
-  ggplot(aes(x = Mean, y = TaxonName, color = Habitat, alpha = sig)) +
+  ggplot(aes(x = Mean, y = TaxonName, color = Habitat, alpha = sig_reliable)) +
   geom_vline(xintercept = 0) +
   geom_errorbarh(aes(xmin = quant_2_5,
                      xmax = quant_97_5),
@@ -492,7 +562,7 @@ hydr_coef_fig <- foc_coef_sum %>%
   geom_point() +
   facet_grid(~ cov2, scales = "free") +
   scale_color_manual(values = brewer.set2(n = 3), name = "Growth form") +
-  scale_alpha_manual(values = c(0.2, 1), name = "CI omits zero") +
+  scale_alpha_manual(values = c(0.2, 1), name = "Well supported response") +
   labs(x = "Change in z-score ± 95% CI") +
   def_theme_paper +
   theme(legend.position = "bottom",
@@ -507,8 +577,7 @@ wahy_coef_fig <- hydr_coef_fig %+%
   filter(foc_coef_sum, invader == "water hyacinth")
 
 wale_coef_fig <- hydr_coef_fig %+%
-  filter(foc_coef_sum, invader == "water lettuce" &
-           TaxonName != "Mayaca fluviatilis")
+  filter(foc_coef_sum, invader == "water lettuce")
 
 cubu_coef_fig <- hydr_coef_fig %+%
   filter(non_foc_coef_sum, invader == "Cuban bulrush") +
@@ -545,7 +614,7 @@ pal <- c("#0072B2", "#D55E00")
 # summarize data
 foc_sum_dat <- foc_coef_sum %>%
   mutate(direction = if_else(Mean > 0, "+", "-")) %>%
-  group_by(invader, covariate, cov2, sig, direction) %>%
+  group_by(invader, covariate, cov2, sig_reliable, direction) %>%
   summarize(taxa = n_distinct(TaxonName)) %>%
   ungroup() %>%
   mutate(taxa_plot = if_else(direction == "-", -1 * taxa, taxa),
@@ -555,16 +624,16 @@ foc_sum_dat <- foc_coef_sum %>%
          # covariate = str_replace(covariate, "cover", "PAC") %>%
          #   fct_relevel("management", "PAC"),
          covariate = fct_relevel(covariate, "management", "cover"),
-         sig = fct_relevel(sig, "yes")) %>%
+         sig_reliable = fct_relevel(sig_reliable, "yes")) %>%
   group_by(invader, covariate, direction) %>%
   mutate(taxa_col = sum(taxa_plot)) %>%
   ungroup() %>%
-  mutate(lab_y = if_else(sig == "no", taxa_plot/2,
+  mutate(lab_y = if_else(sig_reliable == "no", taxa_plot/2,
                          taxa_col - taxa_plot/2))
 
 non_foc_sum_dat <- non_foc_coef_sum %>%
   mutate(direction = if_else(Mean > 0, "+", "-")) %>%
-  group_by(invader, covariate, cov2, sig, direction) %>%
+  group_by(invader, covariate, cov2, sig_reliable, direction) %>%
   summarize(taxa = n_distinct(TaxonName)) %>%
   ungroup() %>%
   filter(covariate != "intercept") %>%
@@ -575,22 +644,22 @@ non_foc_sum_dat <- non_foc_coef_sum %>%
          # covariate = str_replace(covariate, "cover", "PAC") %>%
          #   fct_relevel("management", "PAC"),
          covariate = fct_relevel(covariate, "management", "cover"),
-         sig = fct_relevel(sig, "yes")) %>%
+         sig_reliable = fct_relevel(sig_reliable, "yes")) %>%
   group_by(invader, covariate, direction) %>%
   mutate(taxa_col = sum(taxa_plot)) %>%
   ungroup() %>%
-  mutate(lab_y = if_else(sig == "no", taxa_plot/2,
+  mutate(lab_y = if_else(sig_reliable == "no", taxa_plot/2,
                          taxa_col - taxa_plot/2))
 
 # figure function
 foc_sum_fig <- ggplot(foc_sum_dat, aes(x = covariate, y = taxa_plot, 
                           fill = direction)) +
-    geom_col(aes(alpha = sig)) +
+    geom_col(aes(alpha = sig_reliable)) +
     geom_hline(yintercept = 0) +
   geom_text(aes(label = taxa, y = lab_y), size = 3) +
     facet_wrap(~ panel_name) +
     scale_fill_manual(values = pal, name = "Response direction") +
-  scale_alpha_manual(values = c(1, 0.5), name = "CI omits zero") +
+  scale_alpha_manual(values = c(1, 0.5), name = "Well supported response") +
   scale_y_continuous(breaks = c(-50, -25, 0, 25, 50),
                     labels = c(50, 25, 0, 25, 50)) +
     labs(y = "Number of native taxa") +
@@ -606,12 +675,12 @@ ggsave("output/fwc_native_plant_focal_summary_figure_cover.png", foc_sum_fig,
 
 non_foc_sum_fig <- ggplot(non_foc_sum_dat, aes(x = covariate, y = taxa_plot, 
                                                fill = direction)) +
-  geom_col(aes(alpha = sig)) +
+  geom_col(aes(alpha = sig_reliable)) +
   geom_hline(yintercept = 0) +
   geom_text(aes(label = taxa, y = lab_y), size = 3) +
   facet_wrap(~ panel_name) +
   scale_fill_manual(values = pal, name = "Response direction") +
-  scale_alpha_manual(values = c(1, 0.5), name = "CI omits zero") +
+  scale_alpha_manual(values = c(1, 0.5), name = "Well supported response") +
   scale_y_continuous(breaks = c(-50, -25, 0, 25, 50),
                      labels = c(50, 25, 0, 25, 50)) +
   labs(y = "Number of native taxa") +
