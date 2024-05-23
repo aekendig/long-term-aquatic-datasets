@@ -11,20 +11,42 @@ source("code/settings/figure_settings.R")
 
 # import data
 ctrl <- read_csv("intermediate-data/FWC_control_new_formatted.csv")
+inv_dat <- read_csv("intermediate-data/FWC_invasive_plant_analysis_formatted.csv")
 
 
 #### edit data ####
 
-# change management type labels
-ctrl2 <- ctrl %>%
+# split out floating plants
+# format variables
+ctrl2 <- ctrl  %>%
+  filter(Species == "Floating Plants (Eichhornia and Pistia)") %>%
+  mutate(Species = "Eichhornia crassipes") %>%
+  full_join(ctrl %>%
+              filter(Species == "Floating Plants (Eichhornia and Pistia)") %>%
+              mutate(Species = "Pistia stratiotes")) %>%
+  full_join(ctrl %>%
+              filter(Species != "Floating Plants (Eichhornia and Pistia)")) %>%
+  filter(Species %in% c("Eichhornia crassipes", "Pistia stratiotes", "Hydrilla verticillata")) %>%
   mutate(MethodHerbicide = fct_recode(MethodHerbicide,
                                       "chemical" = "herbicide",
-                                      "mechanical/biocontrol/other" = "not herbicide"))
+                                      "mechanical/biocontrol/other" = "not herbicide"),
+         TaxonName = Species,
+         Species = fct_recode(Species, "Pontederia crassipes" = "Eichhornia crassipes"))
+
+# select lakes/years in final analysis dataset
+ctrl3 <- ctrl2 %>%
+  inner_join(inv_dat %>%
+             select(AreaOfInterest, AreaOfInterestID, PermanentID, SurveyDate, GSYear, TaxonName))
+
+#### START HERE ####
+# control method types by species (more detailed version of current supp figure)
+# look for table I made for Candice to combine like methods
+# application date by species
 
 ctrl_sum <- ctrl2 %>%
   group_by(GSYear, MethodHerbicide) %>%
   summarize(Treatments = n()) %>%
-  filter(MethodHerbicide != "unknown" & GSYear > 2010 & GSYear < 2020) %>%
+  filter(MethodHerbicide != "unknown") %>%
   group_by(MethodHerbicide) %>%
   mutate(MeanTreat = mean(Treatments)) %>%
   ungroup()

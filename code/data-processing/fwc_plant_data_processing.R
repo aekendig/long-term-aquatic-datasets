@@ -283,14 +283,14 @@ fwc_plant_new4 <- fwc_plant_new3 %>%
 # this dataset is missing AOI ID's
 # get ID's from other FWC datasets
 fwc_ID2 <- ctrl_old %>%
-  select(AreaOfInterest, County, AreaOfInterestID) %>%
-  full_join(ctrl %>%
-              select(AreaOfInterest, County, AreaOfInterestID)) %>%
-  full_join(fwc_plant_new %>%
-              rename("AreaOfInterest" = "WaterbodyName") %>%
-              select(AreaOfInterest, County, AreaOfInterestID)) %>%
-  full_join(fwc_ID %>%
-              select(AreaOfInterest, County, AreaOfInterestID)) %>%
+  distinct(AreaOfInterest, County, AreaOfInterestID) %>%
+  rbind(ctrl %>%
+          distinct(AreaOfInterest, County, AreaOfInterestID)) %>%
+  rbind(fwc_plant_new %>%
+          rename("AreaOfInterest" = "WaterbodyName") %>%
+          distinct(AreaOfInterest, County, AreaOfInterestID)) %>%
+  rbind(fwc_ID %>%
+          distinct(AreaOfInterest, County, AreaOfInterestID)) %>%
   mutate(County = toupper(County)) %>%
   unique()
 
@@ -607,21 +607,15 @@ fwc_plant7 <- fwc_plant6 %>%
 # check for duplication
 get_dupes(fwc_plant7)
 
-
-#### Growing season year ####
-
-fwc_plant8 <- fwc_plant7 %>%
-  mutate(SurveyMonth = month(SurveyDate),
-         SurveyDay = day(SurveyDate),
-         SurveyYear = year(SurveyDate),
-         GSYear = case_when(SurveyMonth >= 4 ~ SurveyYear, # assume growing season starts in April
-                            SurveyMonth < 4 ~ SurveyYear - 1))
+# check for missing values
+filter(fwc_plant7, is.na(IsDetected))
+filter(fwc_plant7, is.na(SpeciesAcres) & AcreageSurveyed == 1)
 
 
 #### Permanent ID/AOI ####
 
 # one permID per AOI?
-fwc_plant8 %>%
+fwc_plant7 %>%
   group_by(AreaOfInterestID) %>%
   summarize(nPerm = n_distinct(PermanentID)) %>%
   ungroup() %>%
@@ -629,24 +623,24 @@ fwc_plant8 %>%
 # yes
 
 # are AOIs for each Perm ID consistent?
-fwc_plant8 %>%
+fwc_plant7 %>%
   group_by(PermanentID) %>%
   summarize(nAOI = n_distinct(AreaOfInterest),
             nAOI_ID = n_distinct(AreaOfInterestID)) %>%
   ungroup() %>%
   filter(nAOI_ID > 1) %>% # select lakes with multiple AOIs
-  inner_join(fwc_plant8 %>%
-               group_by(PermanentID, GSYear) %>%
+  inner_join(fwc_plant7 %>%
+               group_by(PermanentID, SurveyYear) %>%
                summarize(AOI = paste(sort(unique(AreaOfInterest)), collapse = ", ")) %>%
                ungroup() %>%
                group_by(PermanentID, AOI) %>%
-               summarize(Years = paste(sort(unique(GSYear)), collapse = ", ")) %>%
+               summarize(Years = paste(sort(unique(SurveyYear)), collapse = ", ")) %>%
                ungroup()) %>% # AOIs surveyed each year
   get_dupes(PermanentID) # select lakes with different AOIs over time
 
 # dataset 1: greater temporal coverage
 # remove AOI additions that create inconsistencies across time
-fwc_plant8_time <- fwc_plant8 %>%
+fwc_plant7_time <- fwc_plant7 %>%
   filter(!(AreaOfInterest == "Silver Glen Springs" & PermanentID == "107881197") &
            !(AreaOfInterest == "Wauseon Bay" & PermanentID == "112029141") &
            !(AreaOfInterest == "Red Water, Lake" & PermanentID == "112047993") &
@@ -656,18 +650,18 @@ fwc_plant8_time <- fwc_plant8 %>%
 
 # dataset2: greater spatial coverage
 # remove years when both AOIs weren't sampled
-fwc_plant8_space <- fwc_plant8 %>%
-  filter(!(GSYear %in% c(1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 2017) & PermanentID == "107881197") &
-           !(GSYear %in% c(1983, 1984, 1985) & PermanentID == "112029141") &
-           !(GSYear %in% c(1983, 1984, 1986, 1988, 1989) & PermanentID == "112047993") &
-           !(GSYear %in% c(1983, 1984, 1985, 1986, 1987, 1988) & PermanentID == "112049879") &
-           !(GSYear %in% c(1983, 1984, 2000) & PermanentID == "167180956") &
-           !(GSYear %in% c(2018, 2019) & PermanentID == "68792760"))
+fwc_plant7_space <- fwc_plant7 %>%
+  filter(!(SurveyYear %in% c(1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 2017) & PermanentID == "107881197") &
+           !(SurveyYear %in% c(1983, 1984, 1985) & PermanentID == "112029141") &
+           !(SurveyYear %in% c(1983, 1984, 1986, 1988, 1989) & PermanentID == "112047993") &
+           !(SurveyYear %in% c(1983, 1984, 1985, 1986, 1987, 1988) & PermanentID == "112049879") &
+           !(SurveyYear %in% c(1983, 1984, 2000) & PermanentID == "167180956") &
+           !(SurveyYear %in% c(2018, 2019) & PermanentID == "68792760"))
 
 # reran summarizing function above with _time and _space datasets
 # should return no rows
 
 #### outputs ####
-write_csv(fwc_plant8, "intermediate-data/FWC_plant_formatted.csv")
-write_csv(fwc_plant8_time, "intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
-write_csv(fwc_plant8_space, "intermediate-data/FWC_plant_formatted_spatial_coverage.csv")
+write_csv(fwc_plant7, "intermediate-data/FWC_plant_formatted.csv")
+write_csv(fwc_plant7_time, "intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
+write_csv(fwc_plant7_space, "intermediate-data/FWC_plant_formatted_spatial_coverage.csv")

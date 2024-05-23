@@ -61,6 +61,46 @@ for(i in 1:length(aoi_ids)){
 dev.off()
 
 
+#### waterbody types ####
+
+filter(inv_dat, str_detect(AreaOfInterest, "Lake") == T) %>%
+  distinct(AreaOfInterest)
+
+filter(inv_dat, str_detect(AreaOfInterest, "Pond") == T) %>%
+  distinct(AreaOfInterest)
+
+filter(inv_dat, str_detect(AreaOfInterest, "Reservoir") == T) %>%
+  distinct(AreaOfInterest)
+# Bill Evers (lake), Ed Medard (lake), Rodman (lake)
+
+filter(inv_dat, str_detect(AreaOfInterest, "Lake") == F &
+         str_detect(AreaOfInterest, "Pond") == F &
+         str_detect(AreaOfInterest, "Reservoir") == F) %>%
+  distinct(AreaOfInterest)
+# Lakes: Josephine Creek, Snead's Smokehouse, Wauseon Bay, Swift Creek
+# Bayou: Martin (lake)
+# Old mining pits/now lakes: Ft. Meade Pits, Saddle Creek FMA, Tenoroc Pits
+# Burrow pits/now ponds: Pope Duval West FMA
+
+# duplicate names
+distinct(inv_dat, AreaOfInterestID, AreaOfInterest) %>%
+  get_dupes(AreaOfInterest) %>% # all lakes
+  distinct(AreaOfInterest, dupe_count) %>%
+  mutate(dupes = dupe_count - 1) %>%
+  pull(dupes) %>%
+  sum()
+
+nat_dat %>%
+  distinct(AreaOfInterestID) %>%
+  anti_join(inv_dat)
+# all waterbodies in native analysis also in invasive
+
+inv_dat %>%
+  distinct(AreaOfInterestID, AreaOfInterest) %>%
+  anti_join(nat_dat)
+# one lake in invasion analysis and not native
+
+
 #### invasive plant time series ####
 
 inv_dat2 <- inv_dat %>%
