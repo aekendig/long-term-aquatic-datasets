@@ -273,6 +273,12 @@ fwc_plant_new3 %>%
   unique()
 # all are springs, creeks, run, reservoirs
 
+# duplicate AOI ID's?
+fwc_plant_new3 %>%
+  distinct(AreaOfInterest, AreaOfInterestID) %>%
+  get_dupes()
+# no
+
 # remove missing perm ID
 fwc_plant_new4 <- fwc_plant_new3 %>%
   filter(!is.na(PermanentID))
@@ -294,7 +300,7 @@ fwc_ID2 <- ctrl_old %>%
   mutate(County = toupper(County)) %>%
   unique()
 
-# duplicate AreaOfInterest
+# duplicate AreaOfInterest names/counties
 fwc_ID2 %>%
   mutate(AOI_County = paste(AreaOfInterest, County, sep = "_")) %>%
   get_dupes("AOI_County") %>%
@@ -315,15 +321,49 @@ filter(ctrl, AreaOfInterestID == 218) %>% select(County) %>% unique()
 filter(fwc_plant_new, AreaOfInterestID == 218) %>% select(County) %>% unique()
 # 218 is in Alachua, not Clay
 
-# remove duplicate name-county combos
+# duplicate ID's
+get_dupes(fwc_ID2, AreaOfInterestID) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(names = n_distinct(AreaOfInterest)) %>%
+  ungroup()
+# 387 has multiple spellings
+# 44, 218 fixed above
+# 60 is in both Orange and Lake counties -- more is in Orange
+# 414 has two different county spellings
+# 465 two spellings
+# 975 there are two Saddleback Lakes, one in each county, they're both private
+
+filter(fwc_ID2, County %in% c("SAINT LUCIE", "ST. LUCIE"))
+# 387: use saint
+
+filter(fwc_ID2, County %in% c("SAINT JOHNS", "ST JOHNS"))
+# 414: use saint
+
+filter(fwc_plant_new4, AreaOfInterestID == 465)
+# 465: use 1 "l" for 465
+
+filter(fwc_plant_new4, AreaOfInterestID == 975)
+# not in the new dataset
+filter(fwc_plant2, str_detect(WaterbodyName, "Saddleback"))
+# not in new dataset
+
+# remove duplicates
 fwc_ID3 <- fwc_ID2 %>%
   filter(!(AreaOfInterestID == 44 & County == "POLK") &
            !(AreaOfInterestID == 218 & County == "CLAY") &
-           !(AreaOfInterestID %in% c(714, 872)))
+           !(AreaOfInterestID %in% c(714, 872)) &
+           !(AreaOfInterestID == 387 & County == "ST. LUCIE") &
+           !(AreaOfInterestID == 387 & AreaOfInterest == "Savannas Preserve State Park") &
+           !(AreaOfInterestID == 60 & County == "LAKE") &
+           !(AreaOfInterestID == 414 & County == "ST JOHNS") &
+           !(AreaOfInterestID == 465 & AreaOfInterest == "Watermellon Pond"))
 
+# check duplicates
 fwc_ID3 %>%
   mutate(AOI_County = paste(AreaOfInterest, County, sep = "_")) %>%
   get_dupes("AOI_County") 
+
+get_dupes(fwc_ID3, AreaOfInterestID)
 
 # missing IDs?
 fwc_ID3 %>%
@@ -340,7 +380,7 @@ fwc_plant2 %>%
   unique() %>%
   mutate(County = toupper(County)) %>%
   anti_join(fwc_ID3)
-# all are matched
+# all are matched, except Watermellon
 
 # add ID's
 # format dates
@@ -349,13 +389,18 @@ fwc_plant2 %>%
 # remove duplicate rows
 fwc_plant3 <- fwc_plant2 %>%
   mutate(SurveyDate = as.Date(SurveyDate, "%m/%d/%Y"),
-         County = toupper(County)) %>%
+         County = toupper(County),
+         WaterbodyName = str_replace(WaterbodyName, "Watermellon Pond",
+                                     "Watermelon Pond")) %>%
   rename("AreaOfInterest" = "WaterbodyName") %>%
   left_join(fwc_ID3) %>%
   left_join(gis %>%
               filter(CoordSource %in% c("FWC", "FWC_2")) %>%
               select(AreaOfInterestID, PermanentID, GNISID, GNISName, Elevation, FType, FCode, ShapeArea, JoinNotes, ShapeSource) %>%
               unique())
+
+# all have AOI ID's?
+filter(fwc_plant3, is.na(AreaOfInterestID))
 
 # duplicate rows?
 fwc_plant3 %>%
