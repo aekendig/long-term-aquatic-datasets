@@ -101,54 +101,97 @@ ggplot(plant_surv, aes(x = SurveyDate, y = fct_rev(AreaOfInterest))) +
   geom_point(data = mgmt2, aes(x = TreatmentDate, y = fct_rev(AreaOfInterest),
                                color = CtrlSet), size = 0.4, shape = 1)
 # no mgmt data before 1998
-# all the old treatments are piled on the same date (1998-2010)
+# all the old treatments are piled on the same date within a year (1998-2010)
 # some of the management surveys go beyond the plant surveys
 
+# zoom in on new management
+ggplot(filter(plant_surv, SurveyYear >= 2010), 
+       aes(x = SurveyDate, y = fct_rev(AreaOfInterest))) +
+  geom_point(size = 0.4) +
+  geom_point(data = filter(mgmt2, CtrlSet == "new"), 
+             aes(x = TreatmentDate, y = fct_rev(AreaOfInterest)),
+                 size = 0.4, shape = 1, color = "pink")
 
-#### summarize whether or not waterbody was treated each year ####
-
-# this is for annual changes in response variables
-# between each plant survey we need to know:
-# number of days between surveys
-# whether it was treated
-
-# plant survey timing
-plant_surv2 <- plant_surv %>%
-  arrange(AreaOfInterestID, SurveyDate) %>%
-  group_by(AreaOfInterestID) %>%
-  mutate(LastSurveyDate = lag(SurveyDate)) %>%
-  ungroup() %>%
-  mutate(BetweenSurveyDays = SurveyDate - LastSurveyDate)
-
-# there should be 391 NA's
-filter(plant_surv2, is.na(BetweenSurveyDays)) # yes
-ggplot(plant_surv2, aes(x = BetweenSurveyDays)) +
-  geom_density()
-# some are super long -- will need to cut-off probably, but leave in all for now
-
-#### start here ####
-# add management dates to survey dates
-# how to deal with July 1st control dates?
+# indicate maximum survey date
+waterbodies2 <- waterbodies %>%
+  left_join(plant_surv %>%
+              group_by(AreaOfInterestID) %>%
+              summarize(MaxSurveyDate = max(SurveyDate),
+                        .groups = "drop")) %>%
+  mutate(MaxSurveyYear = year(MaxSurveyDate))
 
 
-#### summarize new treatments per waterbody per year ####
+#### summarize all management data ####
 
-# this is for annual changes in response variables
+# whether or not management occurred each year
+# remove dates older than the max survey date for each waterbody
+# for older management data, this means any management that year is included even if it happened after the last survey
+# isolate waterbodies and years in management dataset
+# add all waterbodies from the plant survey dataset, expanded by all years in the management data
+# remove years older than max survey year
+mgmt_year <- mgmt2 %>%
+  left_join(waterbodies2) %>%
+  filter(TreatmentDate <= MaxSurveyDate) %>%
+  distinct(PermanentID, AreaOfInterest, AreaOfInterestID, TreatmentYear) %>%
+  mutate(Treatment = 1) %>%
+  full_join(plant_surv %>%
+              distinct(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
+              expand_grid(TreatmentYear = min(mgmt2$TreatmentYear):max(mgmt2$TreatmentYear))) %>%
+  mutate(Treatment = replace_na(Treatment, 0)) %>%
+  left_join(waterbodies2 %>%
+              select(-MaxSurveyDate)) %>%
+  filter(TreatmentYear <= MaxSurveyYear)
+
+# waterbodies missing
+anti_join(waterbodies2, mgmt_year) 
+# all of these had surveys that ended before management started
+
+# update waterbodies list
+waterbodies3 <- waterbodies2 %>%
+  filter(AreaOfInterestID %in% mgmt_year$AreaOfInterestID)
+
+# for each waterbody, number of management years
+mgmt_year_sum <- mgmt_year %>%
+  group_by(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
+  summarize(TreatmentYears = sum(Treatment),
+            TotalYears = n_distinct(TreatmentYear),
+            .groups = "drop")
+
+
+#### summarize new management data by survey-span ####
+
+# this is for changes in response variables between surveys
 # between each plant survey we need to know:
 # number of days between surveys
 # management type (herbicide, other categories)
 # timing (month) - maybe just for herbicide
 # proportion of waterbody managed - maybe just for herbicide
 
+# plant survey timing
+# select waterbodies/years surveyed within management data
+plant_surv2 <- plant_surv %>%
+  arrange(AreaOfInterestID, SurveyDate) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(LastSurveyDate = lag(SurveyDate)) %>%
+  ungroup() %>%
+  mutate(BetweenSurveyDays = SurveyDate - LastSurveyDate) %>%
+  filter(SurveyYear >= min(mgmt2$TreatmentYear) & SurveyYear <= max(mgmt2$TreatmentYear))
+
+# NA's for surveys that didn't start until later
+filter(plant_surv2, is.na(BetweenSurveyDays)) # 33
+
+# distribution of survey spans
+ggplot(plant_surv2, aes(x = BetweenSurveyDays)) +
+  geom_density()
+# some are super long -- will need to cut-off probably, but leave in all for now
+
+#### start here #### decide what to do with different targets - write out regression
+# management types between surveys
+# select newer management data
 
 
 ### older code - potentially useful, check before deleting ####
 
-# identify max survey date
-plant_surv_max <- plant_surv %>%
-  group_by(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
-  summarize(MaxSurveyDate = max(SurveyDate),
-            .groups = "drop")
 
 # duplicate lake names? need to specify county
 mgmt_dup_lakes <- mgmt2 %>%

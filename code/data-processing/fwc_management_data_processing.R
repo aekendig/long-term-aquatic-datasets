@@ -24,7 +24,7 @@ plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 # years
 ctrl_old %>% select(FY, Year) %>% unique()
 # fiscal year starts July 1
-# all treatments are 2nd year of FY range
+# all treatments are 2nd year of FY range, not sure how accurate this is
 
 # rename columns
 # add permanent ID based on AreaOfInterestID
@@ -207,6 +207,10 @@ ctrl_old3 %>%
   get_dupes(AreaOfInterestID)
 # change watermellon to one l like plant
 
+# management dates in new dataset
+ggplot(ctrl3, aes(x = TreatmentMonth)) +
+  geom_histogram(binwidth = 1)
+
 # combine datasets
 # add fake date for old ctrl
 # correct mispelled AOI
@@ -214,7 +218,7 @@ ctrl_old3 %>%
 ctrl4 <- ctrl3 %>%
   mutate(TreatmentID = as.character(TreatmentID)) %>%
   full_join(ctrl_old3 %>%
-              mutate(TreatmentDate = as.Date(paste0(TreatmentYear, "-07-01")))) %>%
+              mutate(TreatmentDate = as.Date(paste0(TreatmentYear, "-01-01")))) %>%
   mutate(AreaOfInterest = if_else(AreaOfInterest == "Watermellon Pond" & AreaOfInterestID == 465,
                                   "Watermelon Pond",
                                   AreaOfInterest))
