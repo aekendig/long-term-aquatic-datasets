@@ -68,7 +68,11 @@ plant_surv <- plants2 %>%
 
 # select waterbodies from management data with surveys
 mgmt2 <- mgmt %>%
-  inner_join(waterbodies)
+  inner_join(waterbodies) %>%
+  mutate(TreatmentTarget = case_when(Species == "Hydrilla verticillata" ~ "hydrilla", 
+                                     Species %in% c("Eichhornia crassipes", "Floating Plants (Eichhornia and Pistia)") ~ "hyacinth", 
+                                     Species %in% c("Pistia stratiotes", "Floating Plants (Eichhornia and Pistia)") ~ "lettuce",
+                                     TRUE ~ "other"))
 
 # were any waterbodies not treated?
 (plant_no_mgmt <- plant_surv %>%
@@ -124,23 +128,19 @@ waterbodies2 <- waterbodies %>%
 #### summarize all management data ####
 
 # whether or not management occurred each year
-# remove dates older than the max survey date for each waterbody
-# for older management data, this means any management that year is included even if it happened after the last survey
-# isolate waterbodies and years in management dataset
-# add all waterbodies from the plant survey dataset, expanded by all years in the management data
-# remove years older than max survey year
 mgmt_year <- mgmt2 %>%
   left_join(waterbodies2) %>%
-  filter(TreatmentDate <= MaxSurveyDate) %>%
-  distinct(PermanentID, AreaOfInterest, AreaOfInterestID, TreatmentYear) %>%
+  filter(TreatmentDate <= MaxSurveyDate) %>% # remove dates older than the max survey date for each waterbody (old management, date = 1/1)
+  distinct(PermanentID, AreaOfInterest, AreaOfInterestID, TreatmentYear, TreatmentTarget) %>% # isolate waterbodies and years in management dataset
   mutate(Treatment = 1) %>%
   full_join(plant_surv %>%
-              distinct(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
-              expand_grid(TreatmentYear = min(mgmt2$TreatmentYear):max(mgmt2$TreatmentYear))) %>%
+              distinct(PermanentID, AreaOfInterest, AreaOfInterestID) %>% # add all waterbodies from the plant survey dataset
+              expand_grid(TreatmentYear = min(mgmt2$TreatmentYear):max(mgmt2$TreatmentYear)) %>% # expanded by all years in the management data
+              expand_grid(TreatmentTarget = c("hydrilla", "hyacinth", "lettuce", "other"))) %>% # and all targets
   mutate(Treatment = replace_na(Treatment, 0)) %>%
   left_join(waterbodies2 %>%
-              select(-MaxSurveyDate)) %>%
-  filter(TreatmentYear <= MaxSurveyYear)
+              select(PermanentID, AreaOfInterest, AreaOfInterestID, MaxSurveyYear)) %>%
+  filter(TreatmentYear <= MaxSurveyYear) # remove years older than max survey year
 
 # waterbodies missing
 anti_join(waterbodies2, mgmt_year) 
@@ -150,9 +150,9 @@ anti_join(waterbodies2, mgmt_year)
 waterbodies3 <- waterbodies2 %>%
   filter(AreaOfInterestID %in% mgmt_year$AreaOfInterestID)
 
-# for each waterbody, number of management years
+# for each waterbody, number of management years by target
 mgmt_year_sum <- mgmt_year %>%
-  group_by(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
+  group_by(PermanentID, AreaOfInterest, AreaOfInterestID, TreatmentTarget) %>%
   summarize(TreatmentYears = sum(Treatment),
             TotalYears = n_distinct(TreatmentYear),
             .groups = "drop")
@@ -167,15 +167,14 @@ mgmt_year_sum <- mgmt_year %>%
 # timing (month) - maybe just for herbicide
 # proportion of waterbody managed - maybe just for herbicide
 
-# plant survey timing
-# select waterbodies/years surveyed within management data
+# calculate plant survey timing
 plant_surv2 <- plant_surv %>%
   arrange(AreaOfInterestID, SurveyDate) %>%
   group_by(AreaOfInterestID) %>%
   mutate(LastSurveyDate = lag(SurveyDate)) %>%
   ungroup() %>%
   mutate(BetweenSurveyDays = SurveyDate - LastSurveyDate) %>%
-  filter(SurveyYear >= min(mgmt2$TreatmentYear) & SurveyYear <= max(mgmt2$TreatmentYear))
+  filter(SurveyYear >= min(mgmt2$TreatmentYear) & SurveyYear <= max(mgmt2$TreatmentYear)) # select waterbodies/years surveyed within management data
 
 # NA's for surveys that didn't start until later
 filter(plant_surv2, is.na(BetweenSurveyDays)) # 33
@@ -185,9 +184,36 @@ ggplot(plant_surv2, aes(x = BetweenSurveyDays)) +
   geom_density()
 # some are super long -- will need to cut-off probably, but leave in all for now
 
-#### start here #### decide what to do with different targets - write out regression
-# management types between surveys
-# select newer management data
+# new management data
+mgmt2_new <- mgmt2 %>%
+  filter(CtrlSet == "new")
+
+# select surveys we have new management data for
+plant_surv2_new <- plant_surv2 %>%
+  filter(LastSurveyDate >= min(mgmt2_new$TreatmentDate) &
+           SurveyDate <= max(mgmt2_new$TreatmentDate))
+
+# combine new management and surveys
+mgmt_between <- left_join(mgmt2_new, plant_surv2_new, relationship = "many-to-many") %>%
+  filter(TreatmentDate >= LastSurveyDate & TreatmentDate <= SurveyDate) %>% # select management between surveys
+  full_join(plant_surv2_new %>% # add all surveys (management will be NA)
+              expand_grid(TreatmentTarget = c("hydrilla", "hyacinth", "lettuce", "other"))) # expanded by all targets
+
+# for each survey, what management methods were used?
+mgmt_between_method <- mgmt_between %>%
+  mutate(MethodHerbicide = replace_na(MethodHerbicide, "none") %>%
+           fct_recode(yes = "unknown")) %>%
+  count(PermanentID, AreaOfInterest, AreaOfInterestID, SurveyDate, LastSurveyDate, BetweenSurveyDays, 
+           TreatmentTarget, MethodHerbicide) %>% # 7 cases, seems more likely they'd be herbicide
+  pivot_wider(names_from = MethodHerbicide,
+              values_from = n) %>%
+  mutate(across(.cols = c(none, yes, no), .fns = ~replace_na(.x, 0)),
+         none = if_else(none == 0, 1, 0)) %>%
+  rename(Treatment = none,
+         Herbicide = yes,
+         NonHerbicide = no)
+
+#### start here: herbicide timing and area ####
 
 
 ### older code - potentially useful, check before deleting ####
