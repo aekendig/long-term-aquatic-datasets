@@ -342,6 +342,43 @@ fwc6 <- fwc5 %>%
             .groups = "drop") %>%
   mutate(fwc_PAC = fwc_SpeciesAcres/fwc_WaterbodyAcres)
 
+
+#### screen for issues in detection or area ####
+
+# permIDs
+permids <- sort(unique(fwri8$PermanentID))
+
+# richness
+# initiate pdf
+pdf("output/double_sampling_richness_raw.pdf")
+# cycle through PermanentIDs
+for(i in permids){
+  
+  # subset data for permanentID
+  fwri_sub <- filter(fwri2, PermanentID == i & fwri_Abundance > 0) %>%
+    group_by(fwri_Year, fwri_Lake) %>%
+    summarize(Richness = n_distinct(fwri_CommonName),
+              .groups = "drop")
+  
+  fwc_sub <- filter(fwc2, PermanentID == i & fwc_IsDetected == "Yes") %>%
+    group_by(fwc_Year, fwc_AOI) %>%
+    summarize(Richness = n_distinct(TaxonName),
+              .groups = "drop")
+  
+  # figure of richness over time
+  print(ggplot(fwri_sub, aes(x = fwri_Year, y = Richness)) +
+          geom_point() +
+          geom_line() +
+          ggtitle(paste("FWRI", unique(fwri_sub$fwri_Lake))))
+  
+  print(ggplot(fwc_sub, aes(x = fwc_Year, y = Richness)) +
+          geom_point() +
+          geom_line() +
+          ggtitle(paste("FWC", unique(fwc_sub$fwc_AOI))))
+  
+}
+dev.off()
+
 # export data
 write_csv(fwri8, "intermediate-data/fwri_double_sampling_data.csv")
 write_csv(fwc6, "intermediate-data/fwc_double_sampling_data.csv")

@@ -657,12 +657,6 @@ filter(fwc_plant7, is.na(IsDetected))
 filter(fwc_plant7, is.na(SpeciesAcres) & AcreageSurveyed == 1)
 
 
-#### remove survey that seems to be partial ####
-
-# AOI ID 476
-# year 2017
-
-
 #### Permanent ID/AOI ####
 
 # one permID per AOI?

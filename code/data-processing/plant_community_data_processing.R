@@ -246,6 +246,30 @@ nat_fwc2 <- nat_fwc %>%
 # save
 write_csv(nat_fwc2, "intermediate-data/FWC_common_native_plants_formatted.csv")
 
+# look at richness over time
+
+# get IDs
+AOIs <- sort(unique(nat_fwc2$AreaOfInterestID))
+
+pdf("output/FWC_common_native_richness_raw.pdf")
+# cycle through PermanentIDs
+for(i in AOIs){
+  
+  # subset data for permanentID
+  nat_sub <- filter(nat_fwc2, AreaOfInterestID == i & Detected == 1) %>%
+    group_by(AreaOfInterest, GSYear) %>%
+    summarize(Richness = n_distinct(TaxonName),
+              .groups = "drop")
+  
+  # figure of richness over time
+  print(ggplot(nat_sub, aes(x = GSYear, y = Richness)) +
+          geom_point() +
+          geom_line() +
+          ggtitle(nat_sub$AreaOfInterest))
+  
+}
+dev.off()
+
 
 #### invasion and management data ####
 
