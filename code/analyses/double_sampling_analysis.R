@@ -20,20 +20,31 @@ fwc <- read_csv("intermediate-data/fwc_double_sampling_data.csv")
 
 #### format data ####
 
+# check for problematic FWC survey
+filter(fwc, fwc_AOIs == "Tohopekaliga") %>%
+  group_by(fwc_Year, PermanentID) %>%
+  summarize(richness = sum(fwc_IsDetected == "Yes"))
+# yes, 2017 is abnormally low
+
+# invasive species in incomplete survey
+filter(fwc, fwc_AOIs == "Tohopekaliga" & fwc_IsDetected == "Yes" & fwc_Year == 2017)
+# focal invasives not surveyed
+
 # combine data
 dat <- fwri %>%
   rename(Year = fwri_Year) %>%
   full_join(fwc %>%
               rename(Year = fwc_Year)) %>%
   mutate(DateDiff = fwc_Date - fwri_Date,
-         YearF = as.factor(Year))
+         YearF = as.factor(Year)) %>%
+  filter(!(Year == 2017 & fwc_AOIs == "Tohopekaliga"))
 
 # sample sizes
 n_distinct(dat$TaxonName) # 62 taxa
 n_distinct(dat$PermanentID) # 86 lakes
 n_distinct(dat$Year) # 5 years
-distinct(dat, PermanentID, Year) %>% nrow() # 211 lake-years
-211*62 # each row is each species in each lake-year combo
+distinct(dat, PermanentID, Year) %>% nrow() # 210 lake-years
+211*62 - 62 # each row is each species in each lake-year combo
 
 
 #### richness ####
@@ -50,6 +61,32 @@ dat_rich <- dat %>%
             MethodDiff = FWC - FWRI,
             DetectedTotal = sum(fwri_IsDetected == "Yes" | fwc_IsDetected == "Yes"),
             .groups = "drop")
+
+# waterbodies
+dat_rich_permID <- sort(unique(dat_rich$PermanentID))
+
+# output data to double check for incomplete FWC surveys
+pdf("output/double_sampling_richness_over_time.pdf")
+# cycle through waterbodies
+for(i in dat_rich_permID){
+  
+  # select waterbody
+  dat_sub <- filter(dat_rich, PermanentID == i)
+  
+  # make graph
+  print(ggplot(dat_sub, aes(x = Year, y = FWC)) +
+          geom_point(color = "blue") +
+          geom_line(color = "blue") +
+          geom_point(aes(y = FWRI), color = "red") +
+          geom_line(aes(y = FWRI), color = "red") +
+          ggtitle(i))
+}
+dev.off()
+# these all look okay
+
+# unique years
+sort(unique(dat_rich$Year))
+# checked these years in double_sampling_richness_raw, and these all look okay
 
 # visualize
 ggplot(dat_rich, aes(x = FWRI, y = FWC)) +
@@ -98,11 +135,14 @@ dat_rich_change <- dat_rich %>%
   arrange(PermanentID, Year) %>%
   group_by(PermanentID) %>%
   mutate(FwriChange = FWRI - lag(FWRI),
-         FwcChange = FWC - lag(FWC)) %>%
+         FwcChange = FWC - lag(FWC),
+         YearDiff = Year - lag(Year)) %>%
   ungroup() %>%
   filter(!is.na(FwriChange)) %>%
   mutate(MethodDiff = FwcChange - FwriChange)
 
+# ranges of values
+unique(dat_rich_change$YearDiff)
 range(dat_rich_change$FwriChange)
 range(dat_rich_change$FwcChange)
 
@@ -133,7 +173,7 @@ plot(rich_change_mod_res)
 confint(rich_change_mod, parm = "(Intercept)")
 
 
-#### taxon-specific detections ####
+#### START HERE: taxon-specific detections ####
 
 # make data long
 dat_long <- dat %>%
@@ -173,6 +213,7 @@ mod_sub <- glmmTMB(Detection ~ Method + (1|PermanentID) + (1|YearF),
 
 # taxa with model convergence issues
 # 13: Crinum americanum - only 2 presences in FWRI
+# 32: Nelumbo lutea - not sure why this model isn't converging
 
 # look at models
 summary(mod_sub)
@@ -188,7 +229,7 @@ taxa_coefs <- tidy(mod_sub) %>%
 # loop through taxa
 pdf("output/double_sampling_taxon_detection.pdf")
 
-for(i in taxa[-13]) {
+for(i in taxa[-c(13, 32)]) {
   
   # subset data
   dat_sub <- filter(dat_long, TaxonName == i)
