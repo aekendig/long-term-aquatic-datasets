@@ -26,8 +26,14 @@ filter(fwc, fwc_AOIs == "Tohopekaliga") %>%
   summarize(richness = sum(fwc_IsDetected == "Yes"))
 # yes, 2017 is abnormally low
 
+filter(fwc, fwc_AOIs == "East Tohopekaliga") %>%
+  group_by(fwc_Year, PermanentID) %>%
+  summarize(richness = sum(fwc_IsDetected == "Yes"))
+# yes, 2017 is abnormally low
+
 # invasive species in incomplete survey
 filter(fwc, fwc_AOIs == "Tohopekaliga" & fwc_IsDetected == "Yes" & fwc_Year == 2017)
+filter(fwc, fwc_AOIs == "East Tohopekaliga" & fwc_IsDetected == "Yes" & fwc_Year == 2017)
 # focal invasives not surveyed
 
 # combine data
@@ -134,9 +140,9 @@ confint(rich_mod)
 dat_rich_change <- dat_rich %>%
   arrange(PermanentID, Year) %>%
   group_by(PermanentID) %>%
-  mutate(FwriChange = FWRI - lag(FWRI),
-         FwcChange = FWC - lag(FWC),
-         YearDiff = Year - lag(Year)) %>%
+  mutate(YearDiff = Year - lag(Year),
+         FwriChange = (FWRI - lag(FWRI)) / YearDiff,
+         FwcChange = (FWC - lag(FWC)) / YearDiff) %>%
   ungroup() %>%
   filter(!is.na(FwriChange)) %>%
   mutate(MethodDiff = FwcChange - FwriChange)
@@ -145,6 +151,10 @@ dat_rich_change <- dat_rich %>%
 unique(dat_rich_change$YearDiff)
 range(dat_rich_change$FwriChange)
 range(dat_rich_change$FwcChange)
+
+# averages
+mean(dat_rich_change$FwriChange)
+mean(dat_rich_change$FwcChange)
 
 # visualize
 ggplot(dat_rich_change, aes(x = FwriChange, y = FwcChange)) +
@@ -173,7 +183,7 @@ plot(rich_change_mod_res)
 confint(rich_change_mod, parm = "(Intercept)")
 
 
-#### START HERE: taxon-specific detections ####
+#### taxon-specific detections ####
 
 # make data long
 dat_long <- dat %>%
@@ -252,7 +262,7 @@ for(i in taxa[-c(13, 32)]) {
 dev.off()
 
 # correct method p-values
-taxa_coefs_method <- taxa_coefs %>%
+taxa_coefs_method <- taxa_coefs[-c(1:2),] %>%
   filter(term == "Methodfwri") %>%
   mutate(q.value = p.adjust(p.value, method = "fdr"),
          lower = estimate - 1.96 * std.error,
@@ -353,61 +363,65 @@ hydr_mod_res1 <- simulateResiduals(hydr_mod1c, n = 1000)
 plot(hydr_mod_res1) # no change
 hydr_mod1d <- glmmTMB(MethodDiff1 ~ DateDiff + (1|PermanentID) + (1|YearF),
                       data = dat_hydr, family = "t_family")
-summary(hydr_mod1d) # not fit
-hydr_mod1e <- update(hydr_mod1d, .~.-DateDiff)
-summary(hydr_mod1e)
-hydr_mod_res1 <- simulateResiduals(hydr_mod1e, n = 1000)
-plot(hydr_mod_res1) # good fit
+summary(hydr_mod1d)
+hydr_mod_res1 <- simulateResiduals(hydr_mod1d, n = 1000)
+plot(hydr_mod_res1) 
 mean(dat_hydr$MethodDiff1) # very different from model estimate
 
 # paired tests and correlations
 shapiro.test(dat_hydr$MethodDiff1) # not normal, know this from above
-wilcoxsign_test(dat_hydr$fwc_PAC ~ dat_hydr$fwri_PAC1,
-                distribution = "exact")
 median(dat_hydr$MethodDiff1)
 range(dat_hydr$MethodDiff1)
-cor.test(dat_hydr$fwc_PAC, dat_hydr$fwri_PAC1)
-wilcoxsign_test(dat_hydr$fwc_PAC ~ dat_hydr$fwri_PAC2,
+wilcoxsign_test(dat_hydr$fwc_PAC ~ dat_hydr$fwri_PAC1,
                 distribution = "exact")
+cor.test(dat_hydr$fwc_PAC, dat_hydr$fwri_PAC1)
+
 median(dat_hydr$MethodDiff2)
 range(dat_hydr$MethodDiff2)
-cor.test(dat_hydr$fwc_PAC, dat_hydr$fwri_PAC2)
-wilcoxsign_test(dat_hydr$fwc_PAC ~ dat_hydr$fwri_PAC3,
+wilcoxsign_test(dat_hydr$fwc_PAC ~ dat_hydr$fwri_PAC2,
                 distribution = "exact")
+cor.test(dat_hydr$fwc_PAC, dat_hydr$fwri_PAC2)
+
 median(dat_hydr$MethodDiff3)
 range(dat_hydr$MethodDiff3)
+wilcoxsign_test(dat_hydr$fwc_PAC ~ dat_hydr$fwri_PAC3,
+                distribution = "exact")
 cor.test(dat_hydr$fwc_PAC, dat_hydr$fwri_PAC3)
 
 shapiro.test(dat_eich$MethodDiff1)
-wilcoxsign_test(dat_eich$fwc_PAC ~ dat_eich$fwri_PAC1,
-                distribution = "exact")
 median(dat_eich$MethodDiff1)
 range(dat_eich$MethodDiff1)
-cor.test(dat_eich$fwc_PAC, dat_eich$fwri_PAC1)
-wilcoxsign_test(dat_eich$fwc_PAC ~ dat_eich$fwri_PAC2,
+wilcoxsign_test(dat_eich$fwc_PAC ~ dat_eich$fwri_PAC1,
                 distribution = "exact")
+cor.test(dat_eich$fwc_PAC, dat_eich$fwri_PAC1)
+
 median(dat_eich$MethodDiff2)
 range(dat_eich$MethodDiff2)
-cor.test(dat_eich$fwc_PAC, dat_eich$fwri_PAC2)
-wilcoxsign_test(dat_eich$fwc_PAC ~ dat_eich$fwri_PAC3,
+wilcoxsign_test(dat_eich$fwc_PAC ~ dat_eich$fwri_PAC2,
                 distribution = "exact")
+cor.test(dat_eich$fwc_PAC, dat_eich$fwri_PAC2)
+
 median(dat_eich$MethodDiff3)
 range(dat_eich$MethodDiff3)
+wilcoxsign_test(dat_eich$fwc_PAC ~ dat_eich$fwri_PAC3,
+                distribution = "exact")
 cor.test(dat_eich$fwc_PAC, dat_eich$fwri_PAC3)
 
 shapiro.test(dat_pist$MethodDiff1)
-wilcoxsign_test(dat_pist$fwc_PAC ~ dat_pist$fwri_PAC1,
-                distribution = "exact")
 median(dat_pist$MethodDiff1)
 range(dat_pist$MethodDiff1)
-cor.test(dat_pist$fwc_PAC, dat_pist$fwri_PAC1)
-wilcoxsign_test(dat_pist$fwc_PAC ~ dat_pist$fwri_PAC2,
+wilcoxsign_test(dat_pist$fwc_PAC ~ dat_pist$fwri_PAC1,
                 distribution = "exact")
+cor.test(dat_pist$fwc_PAC, dat_pist$fwri_PAC1)
+
 median(dat_pist$MethodDiff2)
 range(dat_pist$MethodDiff2)
-cor.test(dat_pist$fwc_PAC, dat_pist$fwri_PAC2)
-wilcoxsign_test(dat_pist$fwc_PAC ~ dat_pist$fwri_PAC3,
+wilcoxsign_test(dat_pist$fwc_PAC ~ dat_pist$fwri_PAC2,
                 distribution = "exact")
+cor.test(dat_pist$fwc_PAC, dat_pist$fwri_PAC2)
+
 median(dat_pist$MethodDiff3)
 range(dat_pist$MethodDiff3)
+wilcoxsign_test(dat_pist$fwc_PAC ~ dat_pist$fwri_PAC3,
+                distribution = "exact")
 cor.test(dat_pist$fwc_PAC, dat_pist$fwri_PAC3)

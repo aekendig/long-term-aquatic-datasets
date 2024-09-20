@@ -15,7 +15,7 @@ gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
                                  Lake = col_character()))
 ctrl_old <- read_csv("original-data/PrePMARS_IPMData.csv")
 ctrl <- read_csv("original-data/FWC_Herbicide_Treatments_mid2010-Oct2020.csv")
-herb_type <- read_csv("intermediate-data/herbicide_types.csv")
+herb_type <- read_csv("intermediate-data/herbicide_types_all.csv") # I added a few to Candice's list, she only did ones for the three main invasive plants, her file is herbicide_types_all
 plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 
 

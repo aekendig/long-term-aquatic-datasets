@@ -657,10 +657,88 @@ filter(fwc_plant7, is.na(IsDetected))
 filter(fwc_plant7, is.na(SpeciesAcres) & AcreageSurveyed == 1)
 
 
+#### identify problematic surveys ####
+
+# empty table
+outliers <- tibble(AreaOfInterest = NA,
+                   AreaOfInterestID = NA,
+                   SurveyYear = NA,
+                   DevRich = NA)
+
+# list of AOIs
+AOIs <- sort(unique(fwc_plant7$AreaOfInterestID))
+
+# start pdf
+pdf("output/plant_survey_detected_counts.pdf")
+
+# cycle through AIOs
+for(i in AOIs){
+  
+  # filter data
+  dat_sub <- filter(fwc_plant7, AreaOfInterestID == i)
+  
+  # get name
+  dat_name <- unique(dat_sub$AreaOfInterest)
+  
+  # summarize data
+  dat_rich <- dat_sub %>%
+    inner_join(key_all_pres) %>%
+    group_by(AreaOfInterest, AreaOfInterestID, SurveyYear) %>%
+    summarize(Richness = sum(IsDetected == "Yes"),
+              .groups = "drop") %>%
+    mutate(PrevRich = lag(Richness),
+           NextRich = lead(Richness),
+           MinSurvey = min(Richness),
+           DevRich = case_when((PrevRich - Richness)/PrevRich >= 0.8 &
+                                (NextRich - Richness)/NextRich >= 0.8 &
+                                 Richness == MinSurvey ~ "outlier",
+                               (PrevRich - Richness)/PrevRich >= 0.8 &
+                                 (NextRich - Richness)/NextRich >= 0.8 ~ "deviation",
+                              TRUE ~ "consistent"))
+  
+  dat_acre <- dat_sub %>%
+    inner_join(key_exotic_acre2) %>%
+    filter(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))
+  
+  # plot
+  print(ggplot(dat_rich, aes(x = SurveyYear, y = Richness)) +
+          geom_point(aes(color = DevRich)) +
+          geom_line() +
+          ggtitle(dat_name) +
+          theme_bw())
+  
+  print(ggplot(dat_acre, aes(x = SurveyYear, y = SpeciesAcres, color = TaxonName)) +
+          geom_point() +
+          geom_line() +
+          ggtitle(dat_name) +
+          theme_bw())
+  
+  # save outliers
+  dat_outliers = filter(dat_rich, DevRich != "consistent")
+  
+  if(nrow(dat_outliers >= 1)){
+    
+    outliers <- dat_outliers %>%
+      select(AreaOfInterest, AreaOfInterestID, SurveyYear, DevRich) %>%
+      full_join(outliers)
+    
+  }
+  
+}
+
+dev.off()
+
+# indicate outliers
+fwc_plant8 <- fwc_plant7 %>%
+  left_join(outliers) %>%
+  rename(Outlier = DevRich) %>%
+  mutate(Outlier = if_else(is.na(Outlier), 0, 1))
+
+
 #### Permanent ID/AOI ####
 
 # one permID per AOI?
-fwc_plant7 %>%
+fwc_plant8 %>%
   group_by(AreaOfInterestID) %>%
   summarize(nPerm = n_distinct(PermanentID)) %>%
   ungroup() %>%
@@ -668,13 +746,13 @@ fwc_plant7 %>%
 # yes
 
 # are AOIs for each Perm ID consistent?
-fwc_plant7 %>%
+fwc_plant8 %>%
   group_by(PermanentID) %>%
   summarize(nAOI = n_distinct(AreaOfInterest),
             nAOI_ID = n_distinct(AreaOfInterestID)) %>%
   ungroup() %>%
   filter(nAOI_ID > 1) %>% # select lakes with multiple AOIs
-  inner_join(fwc_plant7 %>%
+  inner_join(fwc_plant8 %>%
                group_by(PermanentID, SurveyYear) %>%
                summarize(AOI = paste(sort(unique(AreaOfInterest)), collapse = ", ")) %>%
                ungroup() %>%
@@ -685,7 +763,7 @@ fwc_plant7 %>%
 
 # dataset 1: greater temporal coverage
 # remove AOI additions that create inconsistencies across time
-fwc_plant7_time <- fwc_plant7 %>%
+fwc_plant8_time <- fwc_plant8 %>%
   filter(!(AreaOfInterest == "Silver Glen Springs" & PermanentID == "107881197") &
            !(AreaOfInterest == "Wauseon Bay" & PermanentID == "112029141") &
            !(AreaOfInterest == "Red Water, Lake" & PermanentID == "112047993") &
@@ -695,7 +773,7 @@ fwc_plant7_time <- fwc_plant7 %>%
 
 # dataset2: greater spatial coverage
 # remove years when both AOIs weren't sampled
-fwc_plant7_space <- fwc_plant7 %>%
+fwc_plant8_space <- fwc_plant8 %>%
   filter(!(SurveyYear %in% c(1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 2017) & PermanentID == "107881197") &
            !(SurveyYear %in% c(1983, 1984, 1985) & PermanentID == "112029141") &
            !(SurveyYear %in% c(1983, 1984, 1986, 1988, 1989) & PermanentID == "112047993") &
@@ -706,7 +784,8 @@ fwc_plant7_space <- fwc_plant7 %>%
 # reran summarizing function above with _time and _space datasets
 # should return no rows
 
+
 #### outputs ####
-write_csv(fwc_plant7, "intermediate-data/FWC_plant_formatted.csv")
-write_csv(fwc_plant7_time, "intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
-write_csv(fwc_plant7_space, "intermediate-data/FWC_plant_formatted_spatial_coverage.csv")
+write_csv(fwc_plant8, "intermediate-data/FWC_plant_formatted.csv")
+write_csv(fwc_plant8_time, "intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
+write_csv(fwc_plant8_space, "intermediate-data/FWC_plant_formatted_spatial_coverage.csv")
