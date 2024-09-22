@@ -20,30 +20,13 @@ fwc <- read_csv("intermediate-data/fwc_double_sampling_data.csv")
 
 #### format data ####
 
-# check for problematic FWC survey
-filter(fwc, fwc_AOIs == "Tohopekaliga") %>%
-  group_by(fwc_Year, PermanentID) %>%
-  summarize(richness = sum(fwc_IsDetected == "Yes"))
-# yes, 2017 is abnormally low
-
-filter(fwc, fwc_AOIs == "East Tohopekaliga") %>%
-  group_by(fwc_Year, PermanentID) %>%
-  summarize(richness = sum(fwc_IsDetected == "Yes"))
-# yes, 2017 is abnormally low
-
-# invasive species in incomplete survey
-filter(fwc, fwc_AOIs == "Tohopekaliga" & fwc_IsDetected == "Yes" & fwc_Year == 2017)
-filter(fwc, fwc_AOIs == "East Tohopekaliga" & fwc_IsDetected == "Yes" & fwc_Year == 2017)
-# focal invasives not surveyed
-
 # combine data
 dat <- fwri %>%
   rename(Year = fwri_Year) %>%
   full_join(fwc %>%
               rename(Year = fwc_Year)) %>%
   mutate(DateDiff = fwc_Date - fwri_Date,
-         YearF = as.factor(Year)) %>%
-  filter(!(Year == 2017 & fwc_AOIs == "Tohopekaliga"))
+         YearF = as.factor(Year))
 
 # sample sizes
 n_distinct(dat$TaxonName) # 62 taxa
@@ -71,7 +54,7 @@ dat_rich <- dat %>%
 # waterbodies
 dat_rich_permID <- sort(unique(dat_rich$PermanentID))
 
-# output data to double check for incomplete FWC surveys
+# double check for issues
 pdf("output/double_sampling_richness_over_time.pdf")
 # cycle through waterbodies
 for(i in dat_rich_permID){
@@ -112,7 +95,7 @@ ggplot(dat_rich, aes(x = DetectedTotal, y = DetectedBoth)) +
   geom_point() +
   def_theme
 # for lower richness waterbody-lake surveys, the number of 
-# taxa detected by both surveys is constant, but when 
+# taxa detected by both surveys is ~constant, but when 
 # richness is high, the number of taxa detected by both
 # surveys increases with higher richness
 
@@ -146,6 +129,10 @@ dat_rich_change <- dat_rich %>%
   ungroup() %>%
   filter(!is.na(FwriChange)) %>%
   mutate(MethodDiff = FwcChange - FwriChange)
+
+# sample sizes
+n_distinct(dat_rich_change$PermanentID) # 45
+nrow(dat_rich_change) # 124
 
 # ranges of values
 unique(dat_rich_change$YearDiff)
@@ -261,6 +248,7 @@ for(i in taxa[-c(13, 32)]) {
 
 dev.off()
 
+# remove redundancy from first taxon
 # correct method p-values
 taxa_coefs_method <- taxa_coefs[-c(1:2),] %>%
   filter(term == "Methodfwri") %>%

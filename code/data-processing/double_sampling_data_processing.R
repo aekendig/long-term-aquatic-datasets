@@ -17,6 +17,7 @@ fwc_syn <- read_csv("intermediate-data/FWC_plant_survey_species_synonyms.csv")
 
 # rename columns
 # format columns to match
+# remove FWC outliers (incomplete surveys)
 fwri2 <- fwri %>%
   rename_with(.cols = -c(PermanentID, ScientificName), 
               .fn = ~ paste0("fwri_", .x)) %>%
@@ -24,6 +25,7 @@ fwri2 <- fwri %>%
   mutate(fwri_Date = as.Date(fwri_Date),
          TaxonName = str_replace(TaxonName, "sp\\.", "spp\\."))
 fwc2 <- fwc %>%
+  filter(Outlier == 0) %>%
   rename(Year = SurveyYear,
          Date = SurveyDate,
          AOI = AreaOfInterest) %>%
