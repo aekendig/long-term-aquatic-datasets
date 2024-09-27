@@ -7,9 +7,6 @@ rm(list = ls())
 library(tidyverse)
 library(janitor)
 
-# figure settings
-source("code/settings/figure_settings.R")
-
 # import data
 plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 mgmt <- read_csv("intermediate-data/FWC_management_formatted.csv")
@@ -83,6 +80,13 @@ plants2 <- plants %>%
 plant_surv <- plants2 %>%
   distinct(PermanentID, AreaOfInterest, AreaOfInterestID, County, WaterbodyAcres, 
            SurveyYear, SurveyDate)
+
+# were any waterbodies not treated?
+(plant_no_mgmt <- plant_surv %>%
+    anti_join(mgmt %>%
+                distinct(PermanentID, AreaOfInterest, AreaOfInterestID)) %>%
+    distinct(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
+    arrange(AreaOfInterest))
 
 # any waterbodies treated, but not surveyed?
 (mgmt_no_plant <- mgmt %>%
@@ -339,7 +343,7 @@ ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear),
 # combine data
 # create a time variable
 rich_dat <- plant_sum %>%
-  full_join(inv_sum) %>%
+  full_join(inv_sum2) %>%
   full_join(mgmt_sum2) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
