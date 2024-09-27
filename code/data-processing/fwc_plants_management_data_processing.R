@@ -13,8 +13,31 @@ source("code/settings/figure_settings.R")
 # import data
 plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 mgmt <- read_csv("intermediate-data/FWC_management_formatted.csv")
-key_all_pres <- read_csv("original-data/FWC_plant_survey_key_all_presence.csv")
-key_exotic_acre <- read_csv("original-data/FWC_plant_survey_key_exotic_acreage.csv")
+key_all_pres <- read_csv("original-data/FWC_plant_survey_key_all_presence.csv") # surveys of all species + acreage of three focal invasives
+
+# function to divide data into categories
+div_fun <- function(dat, orig_dat, colName){
+  
+  # get median value
+  med <- orig_dat %>%
+    filter(!!sym(colName) > 0) %>%
+    pull(!!sym(colName)) %>%
+    median()
+  
+  # increase to 1% if under
+  if(med < 1){
+    med <- 1
+  }
+  
+  # divide data based on median
+  dat_out <- dat %>%
+    mutate(tempNew = case_when(!!sym(colName) == 0 ~"none",
+                               !!sym(colName) > 0 & !!sym(colName) <= med ~ "low",
+                               !!sym(colName) > med ~"high"))
+  
+  # return data with new column
+  return(dat_out)
+}
 
 
 #### format data ####
@@ -56,22 +79,10 @@ filter(plants, PermanentID == "164324612")
 plants2 <- plants %>%
   filter(WaterbodyType == "Lake" & Outlier == 0)
 
-# waterbodies that were surveyed
-waterbodies <- plants2 %>%
-  distinct(PermanentID, AreaOfInterest, AreaOfInterestID, County)
-
 # plant surveys
 plant_surv <- plants2 %>%
   distinct(PermanentID, AreaOfInterest, AreaOfInterestID, County, WaterbodyAcres, 
            SurveyYear, SurveyDate)
-
-# were any waterbodies not treated?
-(plant_no_mgmt <- plant_surv %>%
-    anti_join(mgmt %>%
-                distinct(PermanentID, AreaOfInterest, AreaOfInterestID)) %>%
-    distinct(PermanentID, AreaOfInterest, AreaOfInterestID) %>%
-    arrange(AreaOfInterest))
-# 55
 
 # any waterbodies treated, but not surveyed?
 (mgmt_no_plant <- mgmt %>%
@@ -90,16 +101,23 @@ plant_no_mgmt %>%
 # manually checked names for mispellings/errors
 
 # select plant survey data within management timeframe
+# select years where all species were surveyd
+# select waterbodies with at least three years of data
 plants3 <- plants2 %>%
   cross_join(mgmt %>%
                summarize(MinTreatmentYear = min(TreatmentYear),
                          MaxTreatmentYear = max(TreatmentYear))) %>%
   filter(SurveyYear >= MinTreatmentYear & SurveyYear <= MaxTreatmentYear) %>%
-  select(-c(MinTreatmentYear, MaxTreatmentYear))
+  select(-c(MinTreatmentYear, MaxTreatmentYear)) %>%
+  inner_join(key_all_pres) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(SurveyYears = n_distinct(SurveyYear)) %>%
+  ungroup() %>%
+  filter(SurveyYears >= 3)
 
-# waterbodies now included
+# waterbodies surveyed
 # range of survey years
-waterbodies2 <- plants3 %>%
+waterbodies <- plants3 %>%
   group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County, 
            FType, WaterbodyAcres) %>%
   summarize(MinSurveyYear = min(SurveyYear),
@@ -112,8 +130,9 @@ filter(mgmt, is.na(Species)) %>%
 # 10 records have acres, but no other info
 
 # select waterbodies from management data with surveys
+# select years during survey span
 mgmt2 <- mgmt %>%
-  inner_join(waterbodies2) %>%
+  inner_join(waterbodies) %>%
   filter(TreatmentYear >= MinSurveyYear & TreatmentYear <= MaxSurveyYear) %>%
   mutate(Species = replace_na(Species, "unknown"))
 
@@ -121,12 +140,6 @@ mgmt2 <- mgmt %>%
 mgmt2 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, WaterbodyAcres) %>%
   get_dupes(AreaOfInterestID, County, WaterbodyAcres)
-
-# final waterbodies not treated
-waterbodies2 %>%
-  anti_join(mgmt2 %>%
-              distinct(PermanentID, AreaOfInterest, AreaOfInterestID)) %>%
-  distinct(PermanentID, AreaOfInterest, AreaOfInterestID)
 
 
 #### summarize plant data ####
@@ -143,7 +156,6 @@ plants3 %>%
 
 # richness
 plant_sum <- plants3 %>%
-  inner_join(key_all_pres) %>%
   filter(IsDetected == "Yes" & !(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear, SurveyDate) %>%
   summarize(NativeRichness = sum(Origin == "Native"),
@@ -152,11 +164,7 @@ plant_sum <- plants3 %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear) %>%
   summarize(NativeRichness = max(NativeRichness),
             NonNativeRichness = max(NonNativeRichness),
-            .groups = "drop") %>%
-  group_by(AreaOfInterestID) %>%
-  mutate(SurveyYears = n_distinct(SurveyYear)) %>%
-  ungroup() %>%
-  filter(SurveyYears >= 3)
+            .groups = "drop")
 
 # visualize
 ggplot(plant_sum, aes(x = SurveyYear, y = NativeRichness, 
@@ -173,7 +181,6 @@ ggplot(plant_sum, aes(x = SurveyYear, y = NonNativeRichness,
 
 # mean invasive PAC
 inv_sum <- plants3 %>%
-  inner_join(key_exotic_acre) %>%
   filter(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes")) %>%
   mutate(Invasive = case_when(TaxonName == "Hydrilla verticillata" ~ "Hydr", 
                                      TaxonName == "Eichhornia crassipes" ~ "Hyac", 
@@ -190,11 +197,18 @@ inv_sum <- plants3 %>%
             FloatPAC = mean(100 * (HyacAcres + LettAcres) / WaterbodyAcres), # these two are correlated
             .groups = "drop")
 
+# divide into groups
+inv_sum2 <- inv_sum %>%
+  div_fun(inv_sum, "HydrPAC") %>%
+  rename(HydrPACF = tempNew) %>%
+  div_fun(inv_sum, "FloatPAC") %>%
+  rename(FloatPACF = tempNew)
+
 # distributions
-ggplot(inv_sum, aes(x = HydrPAC)) +
+ggplot(inv_sum2, aes(x = HydrPAC, fill = HydrPACF)) +
   geom_histogram(binwidth = 1)
 
-ggplot(inv_sum, aes(x = FloatPAC)) +
+ggplot(inv_sum2, aes(x = FloatPAC, fill = FloatPACF)) +
   geom_histogram(binwidth = 0.1)
 
 
@@ -205,13 +219,7 @@ mgmt_targets <- mgmt2 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
            TreatmentYear, Species)
 
-# most managed
-mgmt_targets %>%
-  count(Species) %>%
-  arrange(desc(n))
-# floating plants and hydrilla
-
-# summarize across other species
+# summarize across groups
 mgmt_targets_sum <- mgmt2 %>%
   mutate(Target = case_when(Species %in% c("Eichhornia crassipes", "Pistia stratiotes", 
                                            "Floating Plants (Eichhornia and Pistia)") ~ 
@@ -242,7 +250,7 @@ ggplot(mgmt_targets_other, aes(x = Species, y = n)) +
   geom_col() +
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
-# need to clean up synonyms
+# need to clean up synonyms if using this
 
 # summarize by waterbody and Target
 mgmt_sum <- mgmt2 %>%
@@ -259,7 +267,7 @@ mgmt_sum <- mgmt2 %>%
   summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
             TrtArea = mean(100 * PropTreated),
             .groups = "drop") %>%
-  full_join(waterbodies2 %>% # add in waterbodies without management
+  full_join(waterbodies %>% # add in waterbodies without management
               select(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
               expand_grid(Target = c("Float", "Hydr", "Other"))) %>%
   mutate(TrtFreq = replace_na(TrtFreq, 0),
@@ -268,21 +276,42 @@ mgmt_sum <- mgmt2 %>%
               values_from = c(TrtFreq, TrtArea),
               names_glue = "{Target}{.value}")
 
+# divide into low, medium, high
+mgmt_sum2 <- mgmt_sum %>%
+  div_fun(mgmt_sum, "HydrTrtFreq") %>%
+  rename(HydrTrtFreqF = tempNew) %>%
+  div_fun(mgmt_sum, "HydrTrtArea") %>%
+  rename(HydrTrtAreaF = tempNew) %>%
+  div_fun(mgmt_sum, "FloatTrtFreq") %>%
+  rename(FloatTrtFreqF = tempNew) %>%
+  div_fun(mgmt_sum, "FloatTrtArea") %>%
+  rename(FloatTrtAreaF = tempNew) %>%
+  div_fun(mgmt_sum, "OtherTrtFreq") %>%
+  rename(OtherTrtFreqF = tempNew) %>%
+  div_fun(mgmt_sum, "OtherTrtArea") %>%
+  rename(OtherTrtAreaF = tempNew) 
+
 # distribution
-ggplot(mgmt_sum, aes(x = HydrTrtFreq)) +
+ggplot(mgmt_sum2, aes(x = HydrTrtFreq, fill = HydrTrtFreqF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_sum, aes(x = HydrTrtArea)) +
-  geom_histogram(binwidth = 1)
-
-ggplot(mgmt_sum, aes(x = FloatTrtFreq)) +
-  geom_histogram(binwidth = 1)
-ggplot(mgmt_sum, aes(x = FloatTrtArea)) +
+ggplot(mgmt_sum2, aes(x = HydrTrtArea, , fill = HydrTrtAreaF)) +
   geom_histogram(binwidth = 1)
 
-ggplot(mgmt_sum, aes(x = OtherTrtFreq)) +
+ggplot(mgmt_sum2, aes(x = FloatTrtFreq, fill = FloatTrtFreqF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_sum, aes(x = OtherTrtArea)) +
+ggplot(mgmt_sum2, aes(x = FloatTrtArea, fill = FloatTrtAreaF)) +
   geom_histogram(binwidth = 1)
+
+ggplot(mgmt_sum2, aes(x = OtherTrtFreq, fill = OtherTrtFreqF)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_sum2, aes(x = OtherTrtArea, fill = OtherTrtAreaF)) +
+  geom_histogram(binwidth = 1)
+
+
+#### to do: management metrics for lakes with management ####
+
+# average month
+# maybe something related to method
 
 # management methods
 mgmt_methods_sum <- mgmt2 %>%
@@ -305,19 +334,13 @@ ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear),
 # add names as text on last bar for clarity
 
 
-#### to do: management metrics for lakes with management ####
-
-# average month
-# maybe something related to method
-
-
 #### combine data ####
 
 # combine data
 # create a time variable
 rich_dat <- plant_sum %>%
-  inner_join(inv_sum) %>%
-  inner_join(mgmt_sum) %>%
+  full_join(inv_sum) %>%
+  full_join(mgmt_sum2) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
 # any missing rich_data?
