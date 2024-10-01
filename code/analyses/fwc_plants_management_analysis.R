@@ -9,7 +9,6 @@ library(broom.mixed)
 library(glmmTMB)
 library(DHARMa)
 library(GGally)
-library(msm)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -60,7 +59,15 @@ summary(nat_mod1)
 # floating PAC changes directions
 
 # better fit with negative binomial?
-nat_mod1a <- update(nat_mod1, family = "nbinom2")
+nat_mod1a <- update(nat_mod1, family = "nbinom2",
+                    control=glmmTMBControl(optimizer=optim,
+                                           optArgs=list(method="BFGS")))
+
+# save model (slow to fit)
+save(nat_mod1a, file = "output/native_richness_frequency_model.rda")
+load("output/native_richness_frequency_model.rda")
+
+# model diagnostics
 nat_res1a <- simulateResiduals(nat_mod1a, n = 1000)
 plot(nat_res1a)
 summary(nat_mod1a)
@@ -81,24 +88,94 @@ summary(nat_mod2)
 nat_mod2a <- update(nat_mod2, family = "nbinom2",
                     control=glmmTMBControl(optimizer=optim,
                                            optArgs=list(method="BFGS")))
+
+# save model (slow to fit)
+save(nat_mod2a, file = "output/native_richness_area_model.rda")
+load("output/native_richness_area_model.rda")
+
+# model diagnostics
 nat_res2a <- simulateResiduals(nat_mod2a, n = 1000)
 plot(nat_res2a)
 summary(nat_mod2a)
 
 # fit model with non-linear relationships?
-nat_mod3 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + HydrTrtFreq + FloatPAC + I(FloatPAC^2) + 
-                                                    FloatTrtFreq + OtherTrtFreq + HydrTrtArea + I(HydrTrtArea^2) +
-                                                    FloatTrtArea + OtherTrtArea + I(OtherTrtArea^2)) + 
-                      (1|AreaOfInterestID),
-                    data = rich_dat2,
-                    family = poisson)
+# nat_mod3 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + HydrTrtFreq + FloatPAC + I(FloatPAC^2) + 
+#                                                     FloatTrtFreq + OtherTrtFreq + HydrTrtArea + I(HydrTrtArea^2) +
+#                                                     FloatTrtArea + OtherTrtArea + I(OtherTrtArea^2)) + 
+#                       (1|AreaOfInterestID),
+#                     data = rich_dat2,
+#                     family = "nbinom2",
+#                     control=glmmTMBControl(optimizer=optim,
+#                                            optArgs=list(method="BFGS")))
 # can't converge
+
+
+#### native richness predicted values ####
+
+# START HERE: try out function below
+
+# function for predictions
+pred_fun <- function(variable, model){
+  
+  pred_dat <- tibble(AreaOfInterestID = "A",
+                     Time = min(rich_dat2$Time):max(rich_dat2$Time),
+                     HydrPACF = "none",
+                     HydrTrtFreqF = "none",
+                     HydrTrtAreaF = "none",
+                     FloatPACF = "none",
+                     FloatTrtFreqF = "none",
+                     FloatTrtAreaF = "none",
+                     OtherTrtFreqF = "none",
+                     OtherTrtAreaF = "none") %>%
+    select(-{{variabe}}) %>%
+    expand_grid({{variable}} = c("none", "low", "high"))%>%
+    mutate(Pred = predict(model, newdata = ., type = "response",
+                          allow.new.levels = T),
+           PredSE = predict(model, newdata = ., type = "response",
+                          allow.new.levels = T, se.fit = T)$se.fit)
+  
+  return(pred_dat)
+  
+  
+}
+
+# predicted richness for different levels of floating plant PAC
+nat_pred_float_pac <- tibble(AreaOfInterestID = "A",
+                             Time = 0:500,
+                             HydrTrtFreqF = "none",
+                             HydrPACF = "none",
+                             FloatTrtFreqF = "none",
+                             OtherTrtFreqF = "none") %>%
+  expand_grid(FloatPACF = c("none", "low", "high")) %>%
+  mutate(Pred = predict(nat_mod1a, newdata = ., type = "response",
+                        allow.new.levels = T),
+         PredLog = predict(nat_mod1a, newdata = ., allow.new.levels = T)) %>%
+  left_join(filter(., FloatPACF == "none") %>% 
+              select(Time, Pred) %>%
+              rename(PredNone = Pred)) %>%
+  mutate(PercChange = 100 * (Pred - PredNone) / PredNone, # % change relative to none
+         Level = str_to_sentence(FloatPACF) %>%
+           fct_relevel("None", "Low"))
+
+# richness over time on log scale
+ggplot(nat_pred_float_pac, aes(x = Time, y = PredLog, color = Level)) +
+  geom_line()
+
+# richness over time
+ggplot(nat_pred_float_pac, aes(x = Time, y = Pred, color = Level)) +
+  geom_line()
+# not linear (exponential increase)
+
+# change in richness relative to "none" over time
+ggplot(nat_pred_float_pac, aes(x = Time, y = PercChange, color = Level)) +
+  geom_line()
+# percent change isn't stable over time
 
 
 #### native richness coefficients ####
 
 # extract coefficients and 95% CI
-# transform to response scale by exponentiating and subtracting 1 (proportional change in richness when everything else is 0 and time is 1)
+# transform to response scale by exponentiating (incidence rate ratio)
 nat_est <- confint(nat_mod1a) %>%
   as_tibble() %>%
   mutate(Coef = rownames(confint(nat_mod1a)),
@@ -129,86 +206,9 @@ nat_est <- confint(nat_mod1a) %>%
                             str_detect(Coef, "Other") ~ "other",
                             TRUE ~ "none") %>%
            fct_relevel("none", "hydrilla", "floating plants"),
-         PercChangeY1 = 100 * (exp(Estimate) - 1),
-         PercChangeY20 = 100 * (exp(Estimate * 20) - 1),
-         LowerPercChangeY1 = 100 * (exp(Lower) - 1),
-         UpperPercChangeY1 = 100 * (exp(Upper) - 1))
-
-# # extract estimates for delta methods
-# nat_coef1 <- nat_est %>%
-#   filter(Mod == "Freq") %>%
-#   pull(Estimate)
-# nat_coef2 <- nat_est %>%
-#   filter(Mod == "Area") %>%
-#   pull(Estimate)
-# 
-# # extract variance covariance matrix
-# nat_vcov1 <- vcov(nat_mod1a)[[1]][2:12,2:12]
-# nat_vcov2 <- vcov(nat_mod2a)[[1]][2:12,2:12]
-# 
-# # delta method using percent change transformation
-# nat_sd1 <- deltamethod(list(~100 * (exp(x1) - 1), ~100 * (exp(x2) - 1), ~100 * (exp(x3) - 1), ~100 * (exp(x4) - 1),
-#                             ~100 * (exp(x5) - 1), ~100 * (exp(x6) - 1), ~100 * (exp(x7) - 1), ~100 * (exp(x8) - 1),
-#                             ~100 * (exp(x9) - 1), ~100 * (exp(x10) - 1), ~100 * (exp(x11) - 1)),
-#                        nat_coef1, nat_vcov1)
-# nat_sd2 <- deltamethod(list(~100 * (exp(x1) - 1), ~100 * (exp(x2) - 1), ~100 * (exp(x3) - 1), ~100 * (exp(x4) - 1),
-#                             ~100 * (exp(x5) - 1), ~100 * (exp(x6) - 1), ~100 * (exp(x7) - 1), ~100 * (exp(x8) - 1),
-#                             ~100 * (exp(x9) - 1), ~100 * (exp(x10) - 1), ~100 * (exp(x11) - 1)),
-#                        nat_coef2, nat_vcov2)
-# 
-# # update etimates
-# nat_est2 <- nat_est %>%
-#   mutate(SDPercChange = c(nat_sd1, nat_sd2),
-#          EstLowerPercChange = PercChangeY1 - SDPercChange * 1.26,
-#          EstUpperPercChange = PercChangeY1 + SDPercChange * 1.26)
-# # confidence intervals less conservative than transformed confint and not always consistent with p-value
+         IRR = exp(Estimate), # assumes time = 1, relative to estimate with this variable = "none"
+         LowerIRR = exp(Lower),
+         UpperIRR = exp(Upper))
 
 
-#### visualize native richness model ####
 
-# figure
-nat_est %>%
-  filter(Mod == "Freq" & (CoefType == "PAC" | is.na(CoefType))) %>%
-  ggplot(aes(x = Level, y = PercChangeY1, color = Target)) +
-  geom_hline(yintercept = 0, linewidth = 0.2) +
-  geom_errorbar(aes(ymin = LowerPercChangeY1, ymax = UpperPercChangeY1), 
-                width = 0.1, position = position_dodge(0.3)) +
-  geom_point(size = 2, position = position_dodge(0.3)) +
-  labs(x = "Abundance (PAC)", y = "Annual percent change in native richness") +
-  def_theme_paper
-
-nat_est %>%
-  filter(Mod == "Area" & (CoefType == "PAC" | is.na(CoefType))) %>%
-  ggplot(aes(x = Level, y = PercChangeY1, color = Target)) +
-  geom_hline(yintercept = 0, linewidth = 0.2) +
-  geom_errorbar(aes(ymin = LowerPercChangeY1, ymax = UpperPercChangeY1), 
-                width = 0.1, position = position_dodge(0.3)) +
-  geom_point(size = 2, position = position_dodge(0.3)) +
-  labs(x = "Percentage of waterbody covered", y = "Annual percent change in native richness") +
-  def_theme_paper
-# pretty similar
-
-nat_est %>%
-  filter(Mod == "Freq" & (CoefType == "Trt" | is.na(CoefType))) %>%
-  ggplot(aes(x = Level, y = PercChangeY1, color = Target)) +
-  geom_hline(yintercept = 0, linewidth = 0.2) +
-  geom_errorbar(aes(ymin = LowerPercChangeY1, ymax = UpperPercChangeY1), 
-                width = 0.1, position = position_dodge(0.3)) +
-  geom_point(size = 2, position = position_dodge(0.3)) +
-  labs(x = "Percentage of years treated", 
-       y = "Annual percent change in native richness") +
-  def_theme_paper
-
-nat_est %>%
-  filter(Mod == "Area" & (CoefType == "Trt" | is.na(CoefType))) %>%
-  ggplot(aes(x = Level, y = PercChangeY1, color = Target)) +
-  geom_hline(yintercept = 0, linewidth = 0.2) +
-  geom_errorbar(aes(ymin = LowerPercChangeY1, ymax = UpperPercChangeY1), 
-                width = 0.1, position = position_dodge(0.3)) +
-  geom_point(size = 2, position = position_dodge(0.3)) +
-  labs(x = "Percentage of waterbody treated", 
-       y = "Annual percent change in native richness") +
-  def_theme_paper
-
-
-#### to do - check estimates against predicted values ####
