@@ -392,23 +392,42 @@ mgmt_methods_sum3 <- mgmt_methods %>%
   mutate(across(.cols = starts_with("Trt"), 
                 .fns = ~replace_na(.x, 0))) 
 
+# create factors
+mgmt_methods_sum4 <- mgmt_methods_sum3 %>%
+  div_fun(mgmt_methods_sum3, "TrtAreaCon") %>%
+  rename(TrtAreaConF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtAreaSys") %>%
+  rename(TrtAreaSysF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtAreaNon") %>%
+  rename(TrtAreaNonF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtAreaUnk") %>%
+  rename(TrtAreaUnkF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtFreqCon") %>%
+  rename(TrtFreqConF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtFreqSys") %>%
+  rename(TrtFreqSysF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtFreqNon") %>%
+  rename(TrtFreqNonF = tempNew)  %>%
+  div_fun(mgmt_methods_sum3, "TrtFreqUnk") %>%
+  rename(TrtFreqUnkF = tempNew) 
+
 # distributions
-ggplot(mgmt_methods_sum3, aes(x = TrtAreaCon)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtAreaCon, fill = TrtAreaConF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_methods_sum3, aes(x = TrtAreaSys)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtAreaSys, fill = TrtAreaSysF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_methods_sum3, aes(x = TrtAreaNon)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtAreaNon, fill = TrtAreaNonF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_methods_sum3, aes(x = TrtAreaUnk)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtAreaUnk, fill = TrtAreaUnkF)) +
   geom_histogram(binwidth = 1) # don't use this one
 
-ggplot(mgmt_methods_sum3, aes(x = TrtFreqCon)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtFreqCon, fill = TrtFreqConF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_methods_sum3, aes(x = TrtFreqSys)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtFreqSys, fill = TrtFreqSysF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_methods_sum3, aes(x = TrtFreqNon)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtFreqNon, fill = TrtFreqNonF)) +
   geom_histogram(binwidth = 1)
-ggplot(mgmt_methods_sum3, aes(x = TrtFreqUnk)) +
+ggplot(mgmt_methods_sum4, aes(x = TrtFreqUnk, fill = TrtFreqUnkF)) +
   geom_histogram(binwidth = 1) # don't use this one
 
 # management timing
@@ -444,7 +463,20 @@ ggplot(mgmt_timing_sum, aes(x = TrtFreqQ2)) +
 ggplot(mgmt_timing_sum, aes(x = TrtFreqQ3)) +
   geom_histogram(binwidth = 1)
 ggplot(mgmt_timing_sum, aes(x = TrtFreqQ4)) +
-  geom_histogram(binwidth = 1) # don't use this one
+  geom_histogram(binwidth = 1)
+
+# average management month
+mgmt_month_sum <- mgmt_methods %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
+  summarize(TrtMonth = mean(TreatmentMonth),
+            .groups = "drop") %>%
+  mutate(TrtMonthF = case_when(TrtMonth < 4 ~ "Q1",
+                               TrtMonth < 7 ~ "Q2",
+                               TrtMonth < 8 ~ "Q3",
+                               TRUE ~ "Q4"))
+
+ggplot(mgmt_month_sum, aes(x = TrtMonth, fill = TrtMonthF)) +
+  geom_histogram(binwidth = 1)
 
 
 #### combine data ####
@@ -482,28 +514,28 @@ rich_dat %>%
   pull(AreaOfInterestID) %>%
   n_distinct()
 
-# plot richness
-pdf("output/analysis_data_richness_time_series.pdf")
-for(i in AOIs){
-  
-  # filter rich_data
-  rich_dat_sub <- filter(rich_dat, AreaOfInterestID == i) %>%
-    pivot_longer(cols = c(NativeRichness, NonNativeRichness),
-                 names_to = "Origin",
-                 values_to = "Richness") %>%
-    mutate(Origin = if_else(Origin == "NativeRichness", "native", "non-native"))
-  
-  # get name
-  rich_dat_name <- unique(rich_dat_sub$AreaOfInterest)
-  
-  # figure
-  print(ggplot(rich_dat_sub, aes(x = SurveyYear, y = Richness, color = Origin)) +
-          geom_point() + 
-          geom_line() +
-          ggtitle(rich_dat_name) +
-          theme_bw())
-}
-dev.off()
+# # plot richness
+# pdf("output/analysis_data_richness_time_series.pdf")
+# for(i in AOIs){
+#   
+#   # filter rich_data
+#   rich_dat_sub <- filter(rich_dat, AreaOfInterestID == i) %>%
+#     pivot_longer(cols = c(NativeRichness, NonNativeRichness),
+#                  names_to = "Origin",
+#                  values_to = "Richness") %>%
+#     mutate(Origin = if_else(Origin == "NativeRichness", "native", "non-native"))
+#   
+#   # get name
+#   rich_dat_name <- unique(rich_dat_sub$AreaOfInterest)
+#   
+#   # figure
+#   print(ggplot(rich_dat_sub, aes(x = SurveyYear, y = Richness, color = Origin)) +
+#           geom_point() + 
+#           geom_line() +
+#           ggtitle(rich_dat_name) +
+#           theme_bw())
+# }
+# dev.off()
 
 # for individual species
 taxa_dat <- plants3 %>%
@@ -513,8 +545,10 @@ taxa_dat <- plants3 %>%
   
 # for specific management methods
 methods_dat <- plant_sum %>%
-  inner_join(mgmt_methods_sum3 %>% 
-               full_join(mgmt_timing_sum))
+  inner_join(mgmt_methods_sum4 %>% 
+               full_join(mgmt_timing_sum) %>%
+               full_join(mgmt_month_sum)) %>%
+  mutate(Time = SurveyYear - min(SurveyYear))
 
 
 #### save data ####

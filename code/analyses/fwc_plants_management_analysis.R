@@ -14,10 +14,114 @@ library(GGally)
 source("code/settings/figure_settings.R")
 
 # import data
+methods_dat <- read_csv("intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
 rich_dat <- read_csv("intermediate-data/FWC_plant_management_richness_analysis_formatted.csv")
 
 
-#### examine richness data ####
+#### examine methods data ####
+
+# correlations among explanatory variables
+methods_dat %>%
+  select(c(AreaOfInterestID, ends_with(c("Con", "Sys", "Non", "Month")))) %>%
+  distinct() %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# correlations >= 0.4 and sig
+# TrtFreqSys & TrtFreqCon: 0.6
+# higher values are correlated - driven by high values
+
+methods_dat %>%
+  select(c(AreaOfInterestID, ends_with(c("Q1", "Q2", "Q3", "Q4")))) %>%
+  distinct() %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# correlations >= 0.4 and sig
+# TrtFreqQ1 and Q2: 0.7 (visible)
+# TrtFreqQ1 and Q3: 0.7 (visible)
+# TrtFreqQ1 and Q4: 0.7 (visible)
+# lots more --> just use average month
+
+# quarter to set as intercept in categorical model
+methods_dat %>%
+  distinct(AreaOfInterestID, TrtMonthF) %>%
+  count(TrtMonthF)
+
+methods_dat2 <- methods_dat %>%
+  mutate(across(.cols = (!starts_with("TrtMonth") & ends_with("F")), 
+                .fns = ~ fct_relevel(.x, "none", "low")),
+         TrtMonthF = fct_relevel(TrtMonthF, "Q2", "Q3", "Q4", "Q1"))
+
+
+#### native richness methods model ####
+
+# response variable
+ggplot(methods_dat, aes(x = NativeRichness)) +
+  geom_density()
+
+# fit frequency model
+method_mod1 <- glmmTMB(NativeRichness ~ Time + Time*(TrtFreqConF + TrtFreqSysF + TrtFreqNonF +
+                                                       TrtMonthF) + (1|AreaOfInterestID),
+                    data = methods_dat2,
+                    family = poisson)
+method_res1 <- simulateResiduals(method_mod1, n = 1000)
+plot(method_res1)
+summary(method_mod1)
+# TrtFreqCon same for low and high
+# TrtFreqNon only positive with low
+# month is maybe quadratic
+
+# fit area model
+method_mod2 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaConF + TrtAreaSysF + TrtAreaNonF +
+                                                       TrtMonthF) + (1|AreaOfInterestID),
+                       data = methods_dat2,
+                       family = poisson)
+method_res2 <- simulateResiduals(method_mod2, n = 1000)
+plot(method_res2)
+summary(method_mod2)
+# TrtAreaSys higher with low than high
+
+# transform variables
+methods_dat3 <- methods_dat2 %>%
+  mutate(TrtFreqConLog = log(TrtFreqCon + 0.01),
+         TrtFreqNonSq = TrtFreqNon^2,
+         TrtAreaSysSq = TrtAreaSys^2,
+         TrtMonthSq = TrtMonth^2)
+
+# check correlations
+methods_dat3 %>%
+  distinct(AreaOfInterestID, TrtAreaCon, TrtAreaSys, TrtAreaSysSq, TrtAreaNon,
+           TrtFreqConLog, TrtFreqSys, TrtFreqNon, TrtFreqNonSq,
+           TrtMonth, TrtMonthSq) %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# only squared values
+
+# fit continuous model
+method_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaCon + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
+                                                       TrtFreqConLog + TrtFreqSys + TrtFreqNon + TrtFreqNonSq +
+                                                       TrtMonth + TrtMonthSq) + (1|AreaOfInterestID),
+                       data = methods_dat3,
+                       family = poisson,
+                       control=glmmTMBControl(optimizer=optim,
+                                              optArgs=list(method="BFGS")))
+method_res3 <- simulateResiduals(method_mod3, n = 1000)
+plot(method_res3)
+summary(method_mod3)
+
+# better fit with negative binomial?
+method_mod3a <- update(method_mod3, family = "nbinom2")
+
+# save model (slow to fit)
+save(method_mod3a, file = "output/native_richness_methods_model.rda")
+load("output/native_richness_methods_model.rda")
+
+# model diagnostics
+method_res3a <- simulateResiduals(method_mod3a, n = 1000)
+plot(method_res3a)
+summary(method_mod3a)
+
+
+#### examine target data ####
 
 # correlations among explanatory variables
 rich_dat %>%
@@ -32,75 +136,97 @@ rich_dat %>%
 
 # order factors
 rich_dat2 <- rich_dat %>%
-  mutate(HydrPACF = fct_relevel(HydrPACF, "none", "low"),
-         FloatPACF = fct_relevel(FloatPACF, "none", "low"),
-         HydrTrtFreqF = fct_relevel(HydrTrtFreqF, "none", "low"),
-         HydrTrtAreaF = fct_relevel(HydrTrtAreaF, "none", "low"),
-         FloatTrtFreqF = fct_relevel(FloatTrtFreqF, "none", "low"),
-         FloatTrtAreaF = fct_relevel(FloatTrtAreaF, "none", "low"),
-         OtherTrtFreqF = fct_relevel(OtherTrtFreqF, "none", "low"),
-         OtherTrtAreaF = fct_relevel(OtherTrtAreaF, "none", "low"),)
+  mutate(across(.cols = ends_with("F"), 
+                .fns = ~ fct_relevel(.x, "none", "low")))
 
 
-#### native richness model ####
+#### native richness target model ####
 
 # response variable
 ggplot(rich_dat, aes(x = NativeRichness)) +
   geom_density()
 
 # fit frequency model
-nat_mod1 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPACF + HydrTrtFreqF + FloatPACF + FloatTrtFreqF + 
+target_mod1 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPACF + HydrTrtFreqF + FloatPACF + FloatTrtFreqF + 
                                              OtherTrtFreqF) + (1|AreaOfInterestID),
                     data = rich_dat2,
                     family = poisson)
-nat_res1 <- simulateResiduals(nat_mod1, n = 1000)
-plot(nat_res1)
-summary(nat_mod1)
+target_res1 <- simulateResiduals(target_mod1, n = 1000)
+plot(target_res1)
+summary(target_mod1)
+# interactions with time:
 # floating PAC changes directions
+# Hydr PAC similar low and high
+# others seem linear
 
 # fit area model
-nat_mod2 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPACF + HydrTrtAreaF + FloatPACF + FloatTrtAreaF + 
+target_mod2 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPACF + HydrTrtAreaF + FloatPACF + FloatTrtAreaF + 
                                                     OtherTrtAreaF) + (1|AreaOfInterestID),
                     data = rich_dat2,
                     family = poisson)
-nat_res2 <- simulateResiduals(nat_mod2, n = 1000)
-plot(nat_res2)
-summary(nat_mod2)
-# floating PAC changes directions
-# hydr area not better with high than low
+target_res2 <- simulateResiduals(target_mod2, n = 1000)
+plot(target_res2)
+summary(target_mod2)
+# interactions with time:
+# floating area similar with low and high
 # other area changes directions
 
 # transform variables with nonlinearities
 rich_dat3 <- rich_dat2 %>%
-  mutate(FloatPACLog = log(FloatPAC + 0.01),
-         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
-         OtherTrtAreaLog = log(OtherTrtArea + 0.01))
+  mutate(FloatPACSq = FloatPAC^2,
+         HydrPACLog = log(HydrPAC + 0.01),
+         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
+         OtherTrtAreaSq = OtherTrtArea^2)
+
+# check correlations
+rich_dat3 %>%
+  distinct(AreaOfInterestID, HydrPACLog, FloatPAC, FloatPACSq,
+             HydrTrtFreq,FloatTrtFreq, OtherTrtFreq, 
+             HydrTrtArea, FloatTrtAreaLog, 
+             OtherTrtArea, OtherTrtAreaSq) %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# HydrTrtFreq and HydrPACLog: 0.6
+# HydrTrtArea and HydrPACLog: 0.6 (visible)
+# OtherTrtFreq and FloatTrtFreq: 0.6
+# FloatTrtAreaLog and FloatTrtFreq: 0.5
+
+# take out transformation of hydrPAC
+rich_dat3 %>%
+  distinct(AreaOfInterestID, HydrPAC, FloatPAC, FloatPACSq,
+           HydrTrtFreq,FloatTrtFreq, OtherTrtFreq, 
+           HydrTrtArea, FloatTrtAreaLog, 
+           OtherTrtArea, OtherTrtAreaSq) %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# no longer correlated
 
 # fit model with continuous variables
-nat_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPAC + FloatPACLog +
-                                                    FloatTrtFreq + OtherTrtFreq + HydrTrtFreq + 
-                                                    HydrTrtAreaLog + FloatTrtArea + OtherTrtAreaLog) +
+target_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPAC + FloatPAC + FloatPACSq +
+                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
+                                                       HydrTrtArea + FloatTrtAreaLog + 
+                                                       OtherTrtArea + OtherTrtAreaSq) +
                       (1|AreaOfInterestID),
                     data = rich_dat3,
                     family = "poisson",
                     control=glmmTMBControl(optimizer=optim,
                                            optArgs=list(method="BFGS")))
-# okay to ignore function evaluation warnings if there are no convergence warnings
-nat_res3 <- simulateResiduals(nat_mod3, n = 1000)
-plot(nat_res3)
-summary(nat_mod3)
+
+target_res3 <- simulateResiduals(target_mod3, n = 1000)
+plot(target_res3)
+summary(target_mod3)
 
 # better fit with negative binomial?
-nat_mod3a <- update(nat_mod3, family = "nbinom2")
+target_mod3a <- update(target_mod3, family = "nbinom2")
 
 # save model (slow to fit)
-save(nat_mod3a, file = "output/native_richness_continuous_model.rda")
-load("output/native_richness_continuous_model.rda")
+save(target_mod3a, file = "output/native_richness_target_model.rda")
+load("output/native_richness_target_model.rda")
 
 # model diagnostics
-nat_res3a <- simulateResiduals(nat_mod3a, n = 1000)
-plot(nat_res3a)
-summary(nat_mod3a)
+target_res3a <- simulateResiduals(target_mod3a, n = 1000)
+plot(target_res3a)
+summary(target_mod3a)
 # very large dispersion parameter
 # results are very similar
 
@@ -142,14 +268,14 @@ pred_fun <- function(variable, model){
 }
 
 # hydr PAC
-nat_pred_hydr_pac <- pred_fun(HydrPAC, nat_mod3a)
+nat_pred_hydr_pac <- pred_fun(HydrPAC, target_mod3a)
 ggplot(nat_pred_hydr_pac, aes(x = Time, y = Pred, 
                               color = HydrPAC,
                               group = HydrPAC)) +
   geom_line()
 
 # floating PAC
-nat_pred_float_pac <- pred_fun(FloatPACLog, nat_mod3a) %>%
+nat_pred_float_pac <- pred_fun(FloatPACLog, target_mod3a) %>%
   mutate(FloatPAC = exp(FloatPACLog) - 0.01)
 ggplot(nat_pred_float_pac, aes(x = Time, y = Pred, 
                               color = FloatPAC,
@@ -157,7 +283,7 @@ ggplot(nat_pred_float_pac, aes(x = Time, y = Pred,
   geom_line()
 
 # floating PAC trt freq
-nat_pred_float_freq <- pred_fun(FloatTrtFreq, nat_mod3a)
+nat_pred_float_freq <- pred_fun(FloatTrtFreq, target_mod3a)
 ggplot(nat_pred_float_freq, aes(x = Time, y = Pred, 
                                color = FloatTrtFreq,
                                group = FloatTrtFreq)) +
@@ -165,6 +291,8 @@ ggplot(nat_pred_float_freq, aes(x = Time, y = Pred,
 
 
 #### native richness coefficients ####
+
+# update: just do tidy table for supp and confint for coefficient figure (no transformations)
 
 # extract coefficients and 95% CI
 # transform to response scale by exponentiating (incidence rate ratio)
@@ -203,4 +331,11 @@ nat_est <- confint(nat_mod1a) %>%
          UpperIRR = exp(Upper))
 
 
+#### individual species models ####
+
+# for each species, only choose waterbodies where it has been detected at least once within this dataset
+# model is same as richness: change over time in presence/absence, variation in change over time due to PAC, trt freq, and trt area
+# use same variable transformations as native richness model to keep things simpler
+# bonferoni correction all p-values
+# require X lakes to analyze species
 
