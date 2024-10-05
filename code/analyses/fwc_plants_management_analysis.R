@@ -49,7 +49,7 @@ ggplot(rich_dat, aes(x = NativeRichness)) +
   geom_density()
 
 # fit frequency model
-nat_mod1 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACF + HydrTrtFreqF + FloatPACF + FloatTrtFreqF + 
+nat_mod1 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPACF + HydrTrtFreqF + FloatPACF + FloatTrtFreqF + 
                                              OtherTrtFreqF) + (1|AreaOfInterestID),
                     data = rich_dat2,
                     family = poisson)
@@ -58,77 +58,80 @@ plot(nat_res1)
 summary(nat_mod1)
 # floating PAC changes directions
 
-# better fit with negative binomial?
-nat_mod1a <- update(nat_mod1, family = "nbinom2",
-                    control=glmmTMBControl(optimizer=optim,
-                                           optArgs=list(method="BFGS")))
-
-# save model (slow to fit)
-save(nat_mod1a, file = "output/native_richness_frequency_model.rda")
-load("output/native_richness_frequency_model.rda")
-
-# model diagnostics
-nat_res1a <- simulateResiduals(nat_mod1a, n = 1000)
-plot(nat_res1a)
-summary(nat_mod1a)
-# very large dispersion parameter
-
 # fit area model
-nat_mod2 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACF + HydrTrtAreaF + FloatPACF + FloatTrtAreaF + 
+nat_mod2 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPACF + HydrTrtAreaF + FloatPACF + FloatTrtAreaF + 
                                                     OtherTrtAreaF) + (1|AreaOfInterestID),
                     data = rich_dat2,
                     family = poisson)
 nat_res2 <- simulateResiduals(nat_mod2, n = 1000)
 plot(nat_res2)
 summary(nat_mod2)
+# floating PAC changes directions
 # hydr area not better with high than low
 # other area changes directions
 
-# better fit with negative binomial?
-nat_mod2a <- update(nat_mod2, family = "nbinom2",
+# transform variables with nonlinearities
+rich_dat3 <- rich_dat2 %>%
+  mutate(FloatPACLog = log(FloatPAC + 0.01),
+         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
+         OtherTrtAreaLog = log(OtherTrtArea + 0.01))
+
+# fit model with continuous variables
+nat_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(HydrPAC + FloatPACLog +
+                                                    FloatTrtFreq + OtherTrtFreq + HydrTrtFreq + 
+                                                    HydrTrtAreaLog + FloatTrtArea + OtherTrtAreaLog) +
+                      (1|AreaOfInterestID),
+                    data = rich_dat3,
+                    family = "poisson",
                     control=glmmTMBControl(optimizer=optim,
                                            optArgs=list(method="BFGS")))
+# okay to ignore function evaluation warnings if there are no convergence warnings
+nat_res3 <- simulateResiduals(nat_mod3, n = 1000)
+plot(nat_res3)
+summary(nat_mod3)
+
+# better fit with negative binomial?
+nat_mod3a <- update(nat_mod3, family = "nbinom2")
 
 # save model (slow to fit)
-save(nat_mod2a, file = "output/native_richness_area_model.rda")
-load("output/native_richness_area_model.rda")
+save(nat_mod3a, file = "output/native_richness_continuous_model.rda")
+load("output/native_richness_continuous_model.rda")
 
 # model diagnostics
-nat_res2a <- simulateResiduals(nat_mod2a, n = 1000)
-plot(nat_res2a)
-summary(nat_mod2a)
-
-# fit model with non-linear relationships?
-# nat_mod3 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + HydrTrtFreq + FloatPAC + I(FloatPAC^2) + 
-#                                                     FloatTrtFreq + OtherTrtFreq + HydrTrtArea + I(HydrTrtArea^2) +
-#                                                     FloatTrtArea + OtherTrtArea + I(OtherTrtArea^2)) + 
-#                       (1|AreaOfInterestID),
-#                     data = rich_dat2,
-#                     family = "nbinom2",
-#                     control=glmmTMBControl(optimizer=optim,
-#                                            optArgs=list(method="BFGS")))
-# can't converge
+nat_res3a <- simulateResiduals(nat_mod3a, n = 1000)
+plot(nat_res3a)
+summary(nat_mod3a)
+# very large dispersion parameter
+# results are very similar
 
 
 #### native richness predicted values ####
 
-# START HERE: try out function below
+# remove time component
+rich_dat_var <- rich_dat3 %>%
+  distinct(AreaOfInterestID, HydrPAC, HydrTrtFreq, HydrTrtArea, HydrTrtAreaLog,
+           FloatPAC, FloatPACLog, FloatTrtFreq, FloatTrtArea,
+           OtherTrtFreq, OtherTrtArea, OtherTrtAreaLog)
 
 # function for predictions
 pred_fun <- function(variable, model){
   
   pred_dat <- tibble(AreaOfInterestID = "A",
-                     Time = min(rich_dat2$Time):max(rich_dat2$Time),
-                     HydrPACF = "none",
-                     HydrTrtFreqF = "none",
-                     HydrTrtAreaF = "none",
-                     FloatPACF = "none",
-                     FloatTrtFreqF = "none",
-                     FloatTrtAreaF = "none",
-                     OtherTrtFreqF = "none",
-                     OtherTrtAreaF = "none") %>%
-    select(-{{variabe}}) %>%
-    expand_grid({{variable}} = c("none", "low", "high"))%>%
+                     Time = min(rich_dat3$Time):max(rich_dat3$Time),
+                     HydrPAC = mean(rich_dat_var$HydrPAC),
+                     HydrTrtFreq = 0,
+                     HydrTrtArea = 0,
+                     HydrTrtAreaLog = log(0.01),
+                     FloatPAC = mean(rich_dat_var$FloatPAC),
+                     FloatPACLog = mean(rich_dat_var$FloatPACLog),
+                     FloatTrtFreq = 0,
+                     FloatTrtArea = 0,
+                     OtherTrtFreq = 0,
+                     OtherTrtArea = 0,
+                     OtherTrtAreaLog = log(0.01)) %>%
+    select(-{{variable}}) %>%
+    expand_grid(rich_dat_var %>%
+                  select({{variable}}))%>%
     mutate(Pred = predict(model, newdata = ., type = "response",
                           allow.new.levels = T),
            PredSE = predict(model, newdata = ., type = "response",
@@ -136,40 +139,29 @@ pred_fun <- function(variable, model){
   
   return(pred_dat)
   
-  
 }
 
-# predicted richness for different levels of floating plant PAC
-nat_pred_float_pac <- tibble(AreaOfInterestID = "A",
-                             Time = 0:500,
-                             HydrTrtFreqF = "none",
-                             HydrPACF = "none",
-                             FloatTrtFreqF = "none",
-                             OtherTrtFreqF = "none") %>%
-  expand_grid(FloatPACF = c("none", "low", "high")) %>%
-  mutate(Pred = predict(nat_mod1a, newdata = ., type = "response",
-                        allow.new.levels = T),
-         PredLog = predict(nat_mod1a, newdata = ., allow.new.levels = T)) %>%
-  left_join(filter(., FloatPACF == "none") %>% 
-              select(Time, Pred) %>%
-              rename(PredNone = Pred)) %>%
-  mutate(PercChange = 100 * (Pred - PredNone) / PredNone, # % change relative to none
-         Level = str_to_sentence(FloatPACF) %>%
-           fct_relevel("None", "Low"))
-
-# richness over time on log scale
-ggplot(nat_pred_float_pac, aes(x = Time, y = PredLog, color = Level)) +
+# hydr PAC
+nat_pred_hydr_pac <- pred_fun(HydrPAC, nat_mod3a)
+ggplot(nat_pred_hydr_pac, aes(x = Time, y = Pred, 
+                              color = HydrPAC,
+                              group = HydrPAC)) +
   geom_line()
 
-# richness over time
-ggplot(nat_pred_float_pac, aes(x = Time, y = Pred, color = Level)) +
+# floating PAC
+nat_pred_float_pac <- pred_fun(FloatPACLog, nat_mod3a) %>%
+  mutate(FloatPAC = exp(FloatPACLog) - 0.01)
+ggplot(nat_pred_float_pac, aes(x = Time, y = Pred, 
+                              color = FloatPAC,
+                              group = FloatPAC)) +
   geom_line()
-# not linear (exponential increase)
 
-# change in richness relative to "none" over time
-ggplot(nat_pred_float_pac, aes(x = Time, y = PercChange, color = Level)) +
+# floating PAC trt freq
+nat_pred_float_freq <- pred_fun(FloatTrtFreq, nat_mod3a)
+ggplot(nat_pred_float_freq, aes(x = Time, y = Pred, 
+                               color = FloatTrtFreq,
+                               group = FloatTrtFreq)) +
   geom_line()
-# percent change isn't stable over time
 
 
 #### native richness coefficients ####

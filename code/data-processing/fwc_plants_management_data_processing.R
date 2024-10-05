@@ -223,14 +223,16 @@ mgmt_targets <- mgmt2 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
            TreatmentYear, Species)
 
-# summarize across groups
-mgmt_targets_sum <- mgmt2 %>%
+# rename targets
+mgmt3 <- mgmt2 %>%
   mutate(Target = case_when(Species %in% c("Eichhornia crassipes", "Pistia stratiotes", 
                                            "Floating Plants (Eichhornia and Pistia)") ~ 
-                              "water hyacinth and/or water lettuce",
-                            Species == "Hydrilla verticillata" ~ "hydrilla",
-                            TRUE ~ "other") %>%
-           fct_relevel("hydrilla", "water hyacinth and/or water lettuce")) %>%
+                              "Float",
+                            Species == "Hydrilla verticillata" ~ "Hydr",
+                            TRUE ~ "Other")) 
+
+# summarize across groups
+mgmt_targets_sum <- mgmt3 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
            TreatmentYear, Target) %>%
   count(TreatmentYear, Target)
@@ -257,13 +259,8 @@ ggplot(mgmt_targets_other, aes(x = Species, y = n)) +
 # need to clean up synonyms if using this
 
 # summarize by waterbody and Target
-mgmt_sum <- mgmt2 %>%
+mgmt_sum <- mgmt3 %>%
   mutate(SurveyYears = MaxSurveyYear - MinSurveyYear + 1,
-         Target = case_when(Species %in% c("Eichhornia crassipes", "Pistia stratiotes", 
-                                           "Floating Plants (Eichhornia and Pistia)") ~ 
-                              "Float",
-                            Species == "Hydrilla verticillata" ~ "Hydr",
-                            TRUE ~ "Other"),
          PropTreated = if_else(TotalAcres <= WaterbodyAcres, # Some exceed waterbody acres. Not sure why.
                                TotalAcres / WaterbodyAcres,
                                1)) %>%
@@ -312,13 +309,13 @@ ggplot(mgmt_sum2, aes(x = OtherTrtArea, fill = OtherTrtAreaF)) +
   geom_histogram(binwidth = 1)
 
 
-#### to do: management metrics for lakes with management ####
+#### management metrics for lakes with management ####
 
 # average month
 # maybe something related to method
 
 # management methods
-mgmt_methods_sum <- mgmt2 %>%
+mgmt_methods_sum <- mgmt3 %>%
   filter(CtrlSet == "new") %>%
   mutate(Method = case_when(!is.na(MechanismOfAction) ~ str_to_lower(MechanismOfAction),
                             !is.na(ControlMethod) ~ str_to_lower(ControlMethod), # format these names
@@ -336,6 +333,118 @@ ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear),
   geom_col() +
   theme_bw()
 # add names as text on last bar for clarity
+
+# make fewer groups
+mgmt_methods <- mgmt3 %>%
+  filter(CtrlSet == "new") %>%
+  mutate(Method = case_when(MethodHerbicide == "yes" & Contact == 1 ~ "Con", # contact
+                            MethodHerbicide == "yes" & Contact == 0 ~ "Sys", # systemtic
+                            MethodHerbicide == "no" ~ "Non", # non-herbicide
+                            TRUE ~ "Unk"), # unknown
+         SurveyYears = MaxSurveyYear - MinSurveyYear + 1,
+         PropTreated = if_else(TotalAcres <= WaterbodyAcres, # Some exceed waterbody acres. Not sure why.
+                               TotalAcres / WaterbodyAcres,
+                               1))
+
+mgmt_methods_sum2 <- mgmt_methods %>%
+  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
+           TreatmentYear, Method, Target) %>%
+  count(TreatmentYear, Method, Target) %>%
+  group_by(TreatmentYear) %>%
+  mutate(Prop = n / sum(n)) %>%
+  ungroup() %>%
+  group_by(TreatmentYear, Target) %>%
+  mutate(TargetProp = n / sum(n)) %>%
+  ungroup()
+
+ggplot(mgmt_methods_sum2, aes(x = as.character(TreatmentYear), 
+                             y = Prop, fill = Method)) +
+  geom_col() +
+  theme_bw()
+
+ggplot(mgmt_methods_sum2, aes(x = as.character(TreatmentYear), 
+                              y = TargetProp, fill = Method)) +
+  geom_col() +
+  theme_bw() +
+  facet_wrap(~ Target)
+
+# have any lakes with hydrilla management been only non-herbicide?
+mgmt_methods %>%
+  filter(Target == "Hydr") %>%
+  distinct(AreaOfInterestID, Method) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(methods = n_distinct(Method)) %>%
+  ungroup() %>%
+  filter(methods == 1 & Method == "Non")
+
+filter(mgmt_methods, Target == "Hydr" & AreaOfInterestID == 290)
+# just one, and it was only treated in one year in the new data
+
+# summed area treated for each method
+mgmt_methods_sum3 <- mgmt_methods %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, Method) %>%
+  summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
+            TrtArea = mean(100 * PropTreated),
+            .groups = "drop") %>%
+  pivot_wider(names_from = Method,
+              values_from = c(TrtArea, TrtFreq),
+              names_glue = "{.value}{Method}") %>%
+  mutate(across(.cols = starts_with("Trt"), 
+                .fns = ~replace_na(.x, 0))) 
+
+# distributions
+ggplot(mgmt_methods_sum3, aes(x = TrtAreaCon)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_methods_sum3, aes(x = TrtAreaSys)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_methods_sum3, aes(x = TrtAreaNon)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_methods_sum3, aes(x = TrtAreaUnk)) +
+  geom_histogram(binwidth = 1) # don't use this one
+
+ggplot(mgmt_methods_sum3, aes(x = TrtFreqCon)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_methods_sum3, aes(x = TrtFreqSys)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_methods_sum3, aes(x = TrtFreqNon)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_methods_sum3, aes(x = TrtFreqUnk)) +
+  geom_histogram(binwidth = 1) # don't use this one
+
+# management timing
+mgmt_timing_sum <- mgmt_methods %>%
+  mutate(TreatmentQuarter = case_when(TreatmentMonth %in% 1:3 ~ "Q1",
+                                      TreatmentMonth %in% 4:6 ~ "Q2",
+                                      TreatmentMonth %in% 7:9 ~ "Q3",
+                                      TreatmentMonth %in% 10:12 ~ "Q4")) %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, TreatmentQuarter) %>%
+  summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
+            TrtArea = mean(100 * PropTreated),
+            .groups = "drop") %>%
+  pivot_wider(names_from = TreatmentQuarter,
+              values_from = c(TrtArea, TrtFreq),
+              names_glue = "{.value}{TreatmentQuarter}") %>%
+  mutate(across(.cols = starts_with("Trt"), 
+                .fns = ~replace_na(.x, 0))) 
+
+# distributions
+ggplot(mgmt_timing_sum, aes(x = TrtAreaQ1)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_timing_sum, aes(x = TrtAreaQ2)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_timing_sum, aes(x = TrtAreaQ3)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_timing_sum, aes(x = TrtAreaQ4)) +
+  geom_histogram(binwidth = 1)
+
+ggplot(mgmt_timing_sum, aes(x = TrtFreqQ1)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_timing_sum, aes(x = TrtFreqQ2)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_timing_sum, aes(x = TrtFreqQ3)) +
+  geom_histogram(binwidth = 1)
+ggplot(mgmt_timing_sum, aes(x = TrtFreqQ4)) +
+  geom_histogram(binwidth = 1) # don't use this one
 
 
 #### combine data ####
@@ -396,295 +505,20 @@ for(i in AOIs){
 }
 dev.off()
 
+# for individual species
+taxa_dat <- plants3 %>%
+  mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
+  full_join(inv_sum2) %>%
+  full_join(mgmt_sum2)
+  
+# for specific management methods
+methods_dat <- plant_sum %>%
+  inner_join(mgmt_methods_sum3 %>% 
+               full_join(mgmt_timing_sum))
 
 
 #### save data ####
 
 write_csv(rich_dat, "intermediate-data/FWC_plant_management_richness_analysis_formatted.csv")
-
-
-#### older code ####
-
-# duplicate rows with floating plants
-# add treatment targets
-mgmt3 <- mgmt2 %>%
-  mutate(Species = if_else(Species == "Floating Plants (Eichhornia and Pistia)", 
-                           "Floating (Eichhornia)",
-                           Species)) %>%
-  full_join(mgmt2 %>%
-              mutate(Species = if_else(Species == "Floating Plants (Eichhornia and Pistia)", 
-                                       "Floating (Pistia)",
-                                       Species))) %>%
-  mutate(TreatmentTarget = case_when(Species == "Hydrilla verticillata" ~ "hydrilla", 
-                                     Species %in% c("Eichhornia crassipes", "Floating (Eichhornia)") ~ "hyacinth", 
-                                     Species %in% c("Pistia stratiotes", "Floating (Pistia)") ~ "lettuce",
-                                     TRUE ~ "other"))
-
-# check that the row duplication worked correctly
-filter(mgmt2, Species == "Floating Plants (Eichhornia and Pistia)") %>% nrow() == nrow(mgmt3) - nrow(mgmt2)
-
-
-
-# plot to explore
-ggplot(plant_surv, aes(x = SurveyDate, y = fct_rev(AreaOfInterest))) +
-  geom_hline(aes(yintercept = fct_rev(AreaOfInterest)), linewidth = 0.2) +
-  geom_point(size = 0.4) +
-  geom_point(data = mgmt2, aes(x = TreatmentDate, y = fct_rev(AreaOfInterest),
-                               color = CtrlSet), size = 0.4, shape = 1)
-# no mgmt data before 1998
-# all the old treatments are piled on the same date within a year (1998-2010)
-# some of the management surveys go beyond the plant surveys
-
-# zoom in on new management
-ggplot(filter(plant_surv, SurveyYear >= 2010), 
-       aes(x = SurveyDate, y = fct_rev(AreaOfInterest))) +
-  geom_point(size = 0.4) +
-  geom_point(data = filter(mgmt2, CtrlSet == "new"), 
-             aes(x = TreatmentDate, y = fct_rev(AreaOfInterest)),
-                 size = 0.4, shape = 1, color = "pink")
-
-
-
-#### summarize all management data ####
-
-# whether or not management occurred each year
-mgmt_year <- mgmt3 %>%
-  left_join(waterbodies2) %>%
-  filter(TreatmentDate <= MaxSurveyDate) %>% # remove dates older than the max survey date for each waterbody (old management, date = 1/1)
-  distinct(PermanentID, AreaOfInterest, AreaOfInterestID, TreatmentYear, TreatmentTarget) %>% # isolate waterbodies and years in management dataset
-  mutate(Treatment = 1) %>%
-  full_join(plant_surv %>%
-              distinct(PermanentID, AreaOfInterest, AreaOfInterestID, County) %>% # add all waterbodies from the plant survey dataset
-              expand_grid(TreatmentYear = min(mgmt2$TreatmentYear):max(mgmt2$TreatmentYear)) %>% # expanded by all years in the management data
-              expand_grid(TreatmentTarget = c("hydrilla", "hyacinth", "lettuce", "other"))) %>% # and all targets
-  mutate(Treatment = replace_na(Treatment, 0)) %>%
-  left_join(waterbodies2 %>%
-              select(PermanentID, AreaOfInterest, AreaOfInterestID, MaxSurveyYear)) %>%
-  filter(TreatmentYear <= MaxSurveyYear) # remove years older than max survey year
-
-# waterbodies missing
-anti_join(waterbodies2, mgmt_year) 
-# all of these had surveys that ended before management started
-
-# update waterbodies list
-waterbodies3 <- waterbodies2 %>%
-  filter(AreaOfInterestID %in% mgmt_year$AreaOfInterestID)
-
-# duplicate lake names? need to specify county
-wb3_dup_lakes <- waterbodies3 %>%
-  distinct(PermanentID, AreaOfInterest, AreaOfInterestID, County) %>%
-  get_dupes(AreaOfInterest)
-
-# for each waterbody, number of management years by target
-mgmt_year_sum <- mgmt_year %>%
-  group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County, TreatmentTarget) %>%
-  summarize(TreatmentYears = sum(Treatment),
-            TotalTreatmentYears = n_distinct(TreatmentYear),
-            .groups = "drop") %>%
-  full_join(mgmt_year %>%
-              filter(TreatmentTarget %in% c("hyacinth", "lettuce")) %>%
-              group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County, TreatmentYear) %>% # summarize by waterbody and year
-              summarize(Treatment = if_else(sum(Treatment) > 0, 1, 0), # if either species was treated, count
-                        .groups = "drop") %>%
-              group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County) %>% # summarize by waterbody
-              summarize(TreatmentYears = sum(Treatment),
-                        TotalTreatmentYears = n_distinct(TreatmentYear),
-                        .groups = "drop") %>%
-              mutate(TreatmentTarget = "floating")) %>%
-  mutate(WaterbodyName = if_else(AreaOfInterest %in% wb3_dup_lakes$AreaOfInterest,
-                                 paste0(AreaOfInterest, " (", str_to_sentence(County), ")"),
-                                 AreaOfInterest),
-         PropTreatmentYears = TreatmentYears / TotalTreatmentYears)
-
-# waterbodies
-n_distinct(mgmt_year_sum$AreaOfInterestID) # 386
-# targets
-n_distinct(mgmt_year_sum$TreatmentTarget) # 5
-# check rows
-nrow(mgmt_year_sum) == n_distinct(mgmt_year_sum$AreaOfInterestID) * n_distinct(mgmt_year_sum$TreatmentTarget)
-
-# distribution of values
-ggplot(mgmt_year_sum, aes(x = PropTreatmentYears)) +
-  geom_histogram(binwidth = 0.1)
-
-
-#### summarize all invasive plant data ####
-
-# select lakes and years in management data time span
-plants3 <- plants2 %>%
-  filter(AreaOfInterestID %in% waterbodies3$AreaOfInterestID &
-           SurveyYear >= min(mgmt_year$TreatmentYear) &
-           SurveyYear <= max(mgmt_year$TreatmentYear))
-
-# select target species
-# calculate proportion waterbody covered
-inv_plants <- plants3 %>%
-  filter(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes")) %>%
-  mutate(PropSpeciesAcres = SpeciesAcres / WaterbodyAcres,
-         TreatmentTarget = case_when(TaxonName == "Hydrilla verticillata" ~ "hydrilla", 
-                                     TaxonName == "Eichhornia crassipes" ~ "hyacinth", 
-                                     TaxonName == "Pistia stratiotes" ~ "lettuce"))
-
-# waterbodies
-n_distinct(inv_plants$AreaOfInterestID) # 386
-# species
-n_distinct(inv_plants$TaxonName) # 3
-
-# combine with management
-inv_plants_mgmt <- left_join(inv_plants, mgmt_year_sum) %>%
-  mutate(PropTreatmentYearsF = as.factor(round_half_up(PropTreatmentYears, 1)))
-
-# visualize
-ggplot(inv_plants_mgmt, aes(x = SurveyYear, y = PropSpeciesAcres, group = AreaOfInterestID)) +
-  geom_smooth(method = "lm", se = F, linewidth = 0.5) +
-  facet_grid(TreatmentTarget ~ PropTreatmentYearsF, scales = "free")
-
-# save
-write_csv(inv_plants_mgmt, "intermediate-data/FWC_invasive_plant_management_long_term.csv")
-
-
-#### summarize all native plant data ####
-
-# select native plants
-native_plants <- plants3 %>%
-  filter(Origin == "Native" & str_detect(TaxonName, "spp.") == F &
-           TaxonName != "Filamentous algae")
-
-# see if any are very rare
-native_plants_freq <- native_plants %>%
-  filter(IsDetected == "Yes") %>%
-  group_by(TaxonName) %>%
-  summarize(Waterbodies = n_distinct(AreaOfInterestID),
-            Years = n_distinct(SurveyYear),
-            Occurrences = n_distinct(paste(AreaOfInterestID, SurveyYear, sep = "_")),
-            .groups = "drop")
-
-ggplot(native_plants_freq, aes(x = Waterbodies)) +
-  geom_histogram(binwidth = 1)
-min(native_plants_freq$Waterbodies)
-
-ggplot(native_plants_freq, aes(x = Years)) +
-  geom_histogram(binwidth = 1)
-min(native_plants_freq$Years)
-
-ggplot(native_plants_freq, aes(x = Occurrences)) +
-  geom_histogram(binwidth = 10)
-min(native_plants_freq$Occurrences)
-
-ggplot(native_plants_freq, aes(x = Waterbodies, y = Occurrences)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 5) # number of years present
-# there are a handful with waterbodies < 50
-# look at these more closely
-
-
-
-#### summarize new management data by survey-span ####
-
-# this is for changes in response variables between surveys
-# between each plant survey we need to know:
-# number of days between surveys
-# management type (herbicide, other categories)
-# timing (month) - maybe just for herbicide
-# proportion of waterbody managed - maybe just for herbicide
-
-# calculate plant survey timing
-plant_surv2 <- plant_surv %>%
-  arrange(AreaOfInterestID, SurveyDate) %>%
-  group_by(AreaOfInterestID) %>%
-  mutate(LastSurveyDate = lag(SurveyDate)) %>%
-  ungroup() %>%
-  mutate(BetweenSurveyDays = SurveyDate - LastSurveyDate) %>%
-  filter(SurveyYear >= min(mgmt2$TreatmentYear) & SurveyYear <= max(mgmt2$TreatmentYear)) # select waterbodies/years surveyed within management data
-
-# NA's for surveys that didn't start until later
-filter(plant_surv2, is.na(BetweenSurveyDays)) # 33
-
-# distribution of survey spans
-ggplot(plant_surv2, aes(x = BetweenSurveyDays)) +
-  geom_density()
-# some are super long -- will need to cut-off probably, but leave in all for now
-
-# new management data
-mgmt2_new <- mgmt2 %>%
-  filter(CtrlSet == "new")
-
-# select surveys we have new management data for
-plant_surv2_new <- plant_surv2 %>%
-  filter(LastSurveyDate >= min(mgmt2_new$TreatmentDate) &
-           SurveyDate <= max(mgmt2_new$TreatmentDate))
-
-# combine new management and surveys
-mgmt_between <- left_join(mgmt2_new, plant_surv2_new, relationship = "many-to-many") %>%
-  filter(TreatmentDate >= LastSurveyDate & TreatmentDate <= SurveyDate) %>% # select management between surveys
-  full_join(plant_surv2_new %>% # add all surveys (management will be NA)
-              expand_grid(TreatmentTarget = c("hydrilla", "hyacinth", "lettuce", "other"))) %>% # expanded by all targets
-  mutate(WaterbodyName = if_else(AreaOfInterest %in% wb3_dup_lakes$AreaOfInterest,
-                                 paste0(AreaOfInterest, " (", str_to_sentence(County), ")"),
-                                 AreaOfInterest))
-
-# for each survey, what management methods were used?
-mgmt_between_method <- mgmt_between %>%
-  mutate(MethodHerbicide = replace_na(MethodHerbicide, "none") %>%
-           fct_recode(yes = "unknown")) %>% # 7 cases, seems more likely they'd be herbicide
-  count(PermanentID, AreaOfInterest, AreaOfInterestID, County, WaterbodyName, SurveyDate, LastSurveyDate, 
-        BetweenSurveyDays, TreatmentTarget, MethodHerbicide) %>%
-  pivot_wider(names_from = MethodHerbicide,
-              values_from = n) %>%
-  mutate(across(.cols = c(none, yes, no), .fns = ~replace_na(.x, 0)),
-         none = if_else(none == 0, 1, 0)) %>%
-  rename(Treatment = none,
-         Herbicide = yes,
-         NonHerbicide = no)
-
-# for each survey with herbicide used in between, when was it applied?
-mgmt_between_time <- mgmt_between %>%
-  filter(MethodHerbicide == "yes") %>%
-  count(PermanentID, AreaOfInterest, AreaOfInterestID, County, WaterbodyName, SurveyDate, LastSurveyDate, 
-        BetweenSurveyDays, TreatmentTarget, TreatmentMonth) %>% # number of treatments per month
-  mutate(TreatmentQuarter = case_when(TreatmentMonth %in% 1:3 ~ "Q1",
-                                      TreatmentMonth %in% 4:6 ~ "Q2",
-                                      TreatmentMonth %in% 7:9 ~ "Q3",
-                                      TreatmentMonth %in% 10:12 ~ "Q4")) %>%
-  group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County, SurveyDate, LastSurveyDate, 
-           BetweenSurveyDays, TreatmentTarget, TreatmentQuarter) %>%
-  summarize(n = sum(n), # number of treatments per quarter
-            .groups = "drop") %>%
-  pivot_wider(names_from = TreatmentQuarter,
-              values_from = n) %>%
-  mutate(across(.cols = starts_with("Q"), .fns = ~ replace_na(.x, 0)))
-
-ggplot(mgmt_between_time) +
-  geom_density(aes(x = log(Q1 + 1))) +
-  geom_density(aes(x = log(Q2 + 1)), color = "blue") +
-  geom_density(aes(x = log(Q3 + 1)), color = "green") +
-  geom_density(aes(x = log(Q4 + 1)), color = "yellow") +
-  facet_wrap(~ TreatmentTarget)
-
-# for each survey with herbicide used in between how much was treated?
-mgmt_between_space <- mgmt_between %>%
-  filter(MethodHerbicide == "yes") %>%
-  mutate(PropTreated = TotalAcres / WaterbodyAcres) %>%
-  group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County, WaterbodyName, SurveyDate, LastSurveyDate, 
-           BetweenSurveyDays, TreatmentTarget) %>%
-  summarize(PropTreated = mean(PropTreated),
-            .groups = "drop")
-
-ggplot(mgmt_between_space, aes(x = log(PropTreated))) +
-  geom_density() +
-  facet_wrap(~ TreatmentTarget)
-
-# combine space and time data
-mgmt_between_herb <- full_join(mgmt_between_space, mgmt_between_time) %>%
-  mutate(LogPropTreated = log(PropTreated),
-         LogQ1 = log(Q1 + 1),
-         LogQ2 = log(Q2 + 1),
-         LogQ3 = log(Q3 + 1),
-         LogQ4 = log(Q4 + 1))
-
-#### start here: summarize plant responses ####
-
-
-
-
-
+write_csv(taxa_dat, "intermediate-data/FWC_plant_management_taxa_analysis_formatted.csv")
+write_csv(methods_dat, "intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
