@@ -27,8 +27,9 @@ methods_dat %>%
   select(-AreaOfInterestID) %>%
   ggpairs()
 # correlations >= 0.4 and sig
+# TrtAreaSys & TrtAreaCon = 0.4
 # TrtFreqSys & TrtFreqCon: 0.6
-# higher values are correlated - driven by high values
+# visual patterns aren't super strong
 
 methods_dat %>%
   select(c(AreaOfInterestID, ends_with(c("Q1", "Q2", "Q3", "Q4")))) %>%
@@ -67,6 +68,7 @@ method_res1 <- simulateResiduals(method_mod1, n = 1000)
 plot(method_res1)
 summary(method_mod1)
 # TrtFreqCon same for low and high
+# TrtFreqSys is negative then positive, but negative effect is very small
 # TrtFreqNon only positive with low
 # month is maybe quadratic
 
@@ -78,28 +80,37 @@ method_mod2 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaConF + TrtAreaSysF +
 method_res2 <- simulateResiduals(method_mod2, n = 1000)
 plot(method_res2)
 summary(method_mod2)
+# TrtAreaCon lower with low than high, but somewhat similar
 # TrtAreaSys higher with low than high
+
+# get average treatment month to standardize
+trt_month_avg <- methods_dat2 %>%
+  distinct(AreaOfInterestID, TrtMonth) %>%
+  pull(TrtMonth) %>%
+  mean()
 
 # transform variables
 methods_dat3 <- methods_dat2 %>%
   mutate(TrtFreqConLog = log(TrtFreqCon + 0.01),
          TrtFreqNonSq = TrtFreqNon^2,
+         TrtAreaConLog = log(TrtAreaCon + 0.01),
          TrtAreaSysSq = TrtAreaSys^2,
-         TrtMonthSq = TrtMonth^2)
+         TrtMonthStd = TrtMonth - trt_month_avg,
+         TrtMonthStdSq = TrtMonthStd^2)
 
 # check correlations
 methods_dat3 %>%
-  distinct(AreaOfInterestID, TrtAreaCon, TrtAreaSys, TrtAreaSysSq, TrtAreaNon,
+  distinct(AreaOfInterestID, TrtAreaConLog, TrtAreaSys, TrtAreaSysSq, TrtAreaNon,
            TrtFreqConLog, TrtFreqSys, TrtFreqNon, TrtFreqNonSq,
-           TrtMonth, TrtMonthSq) %>%
+           TrtMonthStd, TrtMonthStdSq) %>%
   select(-AreaOfInterestID) %>%
   ggpairs()
-# only squared values
+# TreatAreaConLog + TrtFreqConLog: 0.5, driven by zeros
 
 # fit continuous model
-method_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaCon + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
+method_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaConLog + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
                                                        TrtFreqConLog + TrtFreqSys + TrtFreqNon + TrtFreqNonSq +
-                                                       TrtMonth + TrtMonthSq) + (1|AreaOfInterestID),
+                                                       TrtMonthStd + TrtMonthStdSq) + (1|AreaOfInterestID),
                        data = methods_dat3,
                        family = poisson,
                        control=glmmTMBControl(optimizer=optim,
@@ -143,7 +154,7 @@ rich_dat2 <- rich_dat %>%
 #### native richness target model ####
 
 # response variable
-ggplot(rich_dat, aes(x = NativeRichness)) +
+ggplot(rich_dat2, aes(x = NativeRichness)) +
   geom_density()
 
 # fit frequency model
@@ -234,30 +245,42 @@ summary(target_mod3a)
 #### native richness predicted values ####
 
 # remove time component
-rich_dat_var <- rich_dat3 %>%
-  distinct(AreaOfInterestID, HydrPAC, HydrTrtFreq, HydrTrtArea, HydrTrtAreaLog,
-           FloatPAC, FloatPACLog, FloatTrtFreq, FloatTrtArea,
-           OtherTrtFreq, OtherTrtArea, OtherTrtAreaLog)
+rich_dat_var <- methods_dat3 %>%
+  distinct(AreaOfInterestID, TrtAreaCon, TrtAreaSys, TrtAreaSysSq, TrtAreaNon,
+           TrtFreqCon, TrtFreqConLog, TrtFreqSys, TrtFreqNon, TrtFreqNonSq,
+           TrtMonth, TrtMonthSq) %>%
+  full_join(rich_dat3 %>%
+  distinct(AreaOfInterestID, HydrPAC, FloatPAC, FloatPACSq,
+           HydrTrtFreq, FloatTrtFreq, OtherTrtFreq,
+           HydrTrtArea, FloatTrtArea, FloatTrtAreaLog, OtherTrtArea, OtherTrtAreaSq))
 
 # function for predictions
-pred_fun <- function(variable, model){
+pred_fun <- function(variable, model, dat){
   
   pred_dat <- tibble(AreaOfInterestID = "A",
-                     Time = min(rich_dat3$Time):max(rich_dat3$Time),
-                     HydrPAC = mean(rich_dat_var$HydrPAC),
-                     HydrTrtFreq = 0,
-                     HydrTrtArea = 0,
-                     HydrTrtAreaLog = log(0.01),
+                     Time = min(dat$Time):max(dat$Time),
+                     TrtAreaCon = 0, 
+                     TrtAreaSys = 0, 
+                     TrtAreaNon = 0,
+                     TrtFreqCon = 0, 
+                     TrtFreqSys = 0, 
+                     TrtFreqNon = 0, 
+                     TrtMonthStd = 0,
+                     HydrPAC = mean(rich_dat_var$HydrPAC), 
                      FloatPAC = mean(rich_dat_var$FloatPAC),
-                     FloatPACLog = mean(rich_dat_var$FloatPACLog),
-                     FloatTrtFreq = 0,
-                     FloatTrtArea = 0,
+                     HydrTrtFreq = 0, 
+                     FloatTrtFreq = 0, 
                      OtherTrtFreq = 0,
-                     OtherTrtArea = 0,
-                     OtherTrtAreaLog = log(0.01)) %>%
+                     HydrTrtArea = 0, 
+                     FloatTrtArea = 0, 
+                     OtherTrtArea = 0) %>%
     select(-{{variable}}) %>%
-    expand_grid(rich_dat_var %>%
-                  select({{variable}}))%>%
+    expand_grid(rich_dat_var%>%
+                  filter(!is.na({{variable}}))  %>%
+                  select({{variable}})) %>%
+    mutate(across(.cols = -c(AreaOfInterestID, Time), 
+                  .fns = list(Sq = ~.x^2, Log = ~log(.x + 0.01)),
+                  .names = "{.col}{.fn}")) %>%
     mutate(Pred = predict(model, newdata = ., type = "response",
                           allow.new.levels = T),
            PredSE = predict(model, newdata = ., type = "response",
@@ -268,26 +291,48 @@ pred_fun <- function(variable, model){
 }
 
 # hydr PAC
-nat_pred_hydr_pac <- pred_fun(HydrPAC, target_mod3a)
+nat_pred_hydr_pac <- pred_fun(HydrPAC, target_mod3a, rich_dat3)
 ggplot(nat_pred_hydr_pac, aes(x = Time, y = Pred, 
                               color = HydrPAC,
                               group = HydrPAC)) +
   geom_line()
 
 # floating PAC
-nat_pred_float_pac <- pred_fun(FloatPACLog, target_mod3a) %>%
-  mutate(FloatPAC = exp(FloatPACLog) - 0.01)
+nat_pred_float_pac <- pred_fun(FloatPAC, target_mod3a, rich_dat3)
 ggplot(nat_pred_float_pac, aes(x = Time, y = Pred, 
                               color = FloatPAC,
                               group = FloatPAC)) +
   geom_line()
 
 # floating PAC trt freq
-nat_pred_float_freq <- pred_fun(FloatTrtFreq, target_mod3a)
+nat_pred_float_freq <- pred_fun(FloatTrtFreq, target_mod3a, rich_dat3)
 ggplot(nat_pred_float_freq, aes(x = Time, y = Pred, 
                                color = FloatTrtFreq,
                                group = FloatTrtFreq)) +
   geom_line()
+
+# other PAC trt area
+nat_pred_other_area <- pred_fun(OtherTrtArea, target_mod3a, rich_dat3)
+ggplot(nat_pred_other_area, aes(x = Time, y = Pred, 
+                                color = OtherTrtArea,
+                                group = OtherTrtArea)) +
+  geom_line()
+
+# area treated with systemic herbicide
+nat_pred_sys_area <- pred_fun(TrtAreaSys, method_mod3a, methods_dat3)
+ggplot(nat_pred_sys_area, aes(x = Time, y = Pred, 
+                                color = TrtAreaSys,
+                                group = TrtAreaSys)) +
+  geom_line()
+
+# frequency treated with non-herbicide
+nat_pred_non_freq <- pred_fun(TrtFreqNon, method_mod3a, methods_dat3)
+ggplot(nat_pred_non_freq, aes(x = Time, y = Pred, 
+                              color = TrtFreqNon,
+                              group = TrtFreqNon)) +
+  geom_line()
+
+
 
 
 #### native richness coefficients ####

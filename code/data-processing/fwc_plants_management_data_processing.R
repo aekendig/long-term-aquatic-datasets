@@ -314,30 +314,55 @@ ggplot(mgmt_sum2, aes(x = OtherTrtArea, fill = OtherTrtAreaF)) +
 # average month
 # maybe something related to method
 
-# management methods
-mgmt_methods_sum <- mgmt3 %>%
+# management from new dataset
+mgmt_new <- mgmt3 %>%
   filter(CtrlSet == "new") %>%
-  mutate(Method = case_when(!is.na(MechanismOfAction) ~ str_to_lower(MechanismOfAction),
+  select(-c(MinSurveyYear, MaxSurveyYear))
+  
+# get surveys within time frame
+plants_new <- plants3 %>%
+  cross_join(mgmt_new %>%
+               summarize(MinTreatmentYear = min(TreatmentYear),
+                         MaxTreatmentYear = max(TreatmentYear))) %>%
+  filter(SurveyYear >= MinTreatmentYear & SurveyYear <= MaxTreatmentYear) %>%
+  select(-c(MinTreatmentYear, MaxTreatmentYear)) %>%
+  group_by(AreaOfInterestID) %>%
+  mutate(SurveyYears = n_distinct(SurveyYear)) %>%
+  ungroup() %>%
+  filter(SurveyYears >= 3)
+
+# richness
+plant_sum_new <- plants_new %>%
+  filter(IsDetected == "Yes" & !(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear, SurveyDate) %>%
+  summarize(NativeRichness = sum(Origin == "Native"),
+            NonNativeRichness = sum(Origin == "Exotic"),
+            .groups = "drop") %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear) %>%
+  summarize(NativeRichness = max(NativeRichness),
+            NonNativeRichness = max(NonNativeRichness),
+            .groups = "drop")
+
+# waterbodies surveyed
+# range of survey years
+waterbodies_new <- plants_new %>%
+  group_by(PermanentID, AreaOfInterest, AreaOfInterestID, County, 
+           FType, WaterbodyAcres) %>%
+  summarize(MinSurveyYear = min(SurveyYear),
+            MaxSurveyYear = max(SurveyYear),
+            .groups = "drop")
+
+# select waterbodies from management data with surveys
+# select years during survey span
+# make methods categories
+# get survey years and prop treated for summaries
+mgmt_new2 <- mgmt_new %>%
+  inner_join(waterbodies_new) %>%
+  filter(TreatmentYear >= MinSurveyYear & TreatmentYear <= MaxSurveyYear) %>%
+  mutate(SpecificMethod = case_when(!is.na(MechanismOfAction) ~ str_to_lower(MechanismOfAction),
                             !is.na(ControlMethod) ~ str_to_lower(ControlMethod), # format these names
-                            TRUE ~ "unknown")) %>%
-  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
-           TreatmentYear, Method) %>%
-  count(TreatmentYear, Method) %>%
-  group_by(TreatmentYear) %>%
-  mutate(Prop = n / sum(n)) %>%
-  ungroup()
-
-# visualize
-ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear), 
-                             y = Prop, fill = Method)) +
-  geom_col() +
-  theme_bw()
-# add names as text on last bar for clarity
-
-# make fewer groups
-mgmt_methods <- mgmt3 %>%
-  filter(CtrlSet == "new") %>%
-  mutate(Method = case_when(MethodHerbicide == "yes" & Contact == 1 ~ "Con", # contact
+                            TRUE ~ "unknown"),
+         Method = case_when(MethodHerbicide == "yes" & Contact == 1 ~ "Con", # contact
                             MethodHerbicide == "yes" & Contact == 0 ~ "Sys", # systemtic
                             MethodHerbicide == "no" ~ "Non", # non-herbicide
                             TRUE ~ "Unk"), # unknown
@@ -346,7 +371,24 @@ mgmt_methods <- mgmt3 %>%
                                TotalAcres / WaterbodyAcres,
                                1))
 
-mgmt_methods_sum2 <- mgmt_methods %>%
+# specific management methods
+mgmt_methods_sum <- mgmt_new2 %>%
+  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
+           TreatmentYear, SpecificMethod) %>%
+  count(TreatmentYear, SpecificMethod) %>%
+  group_by(TreatmentYear) %>%
+  mutate(Prop = n / sum(n)) %>%
+  ungroup()
+
+# visualize
+ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear), 
+                             y = Prop, fill = SpecificMethod)) +
+  geom_col() +
+  theme_bw()
+# add names as text on last bar for clarity
+
+# broader management methods
+mgmt_methods_sum2 <- mgmt_new2 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
            TreatmentYear, Method, Target) %>%
   count(TreatmentYear, Method, Target) %>%
@@ -381,7 +423,7 @@ filter(mgmt_methods, Target == "Hydr" & AreaOfInterestID == 290)
 # just one, and it was only treated in one year in the new data
 
 # summed area treated for each method
-mgmt_methods_sum3 <- mgmt_methods %>%
+mgmt_methods_sum3 <- mgmt_new2 %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, Method) %>%
   summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
             TrtArea = mean(100 * PropTreated),
@@ -431,7 +473,7 @@ ggplot(mgmt_methods_sum4, aes(x = TrtFreqUnk, fill = TrtFreqUnkF)) +
   geom_histogram(binwidth = 1) # don't use this one
 
 # management timing
-mgmt_timing_sum <- mgmt_methods %>%
+mgmt_timing_sum <- mgmt_new2 %>%
   mutate(TreatmentQuarter = case_when(TreatmentMonth %in% 1:3 ~ "Q1",
                                       TreatmentMonth %in% 4:6 ~ "Q2",
                                       TreatmentMonth %in% 7:9 ~ "Q3",
@@ -466,7 +508,7 @@ ggplot(mgmt_timing_sum, aes(x = TrtFreqQ4)) +
   geom_histogram(binwidth = 1)
 
 # average management month
-mgmt_month_sum <- mgmt_methods %>%
+mgmt_month_sum <- mgmt_new2 %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
   summarize(TrtMonth = mean(TreatmentMonth),
             .groups = "drop") %>%
@@ -544,7 +586,7 @@ taxa_dat <- plants3 %>%
   full_join(mgmt_sum2)
   
 # for specific management methods
-methods_dat <- plant_sum %>%
+methods_dat <- plant_sum_new %>%
   inner_join(mgmt_methods_sum4 %>% 
                full_join(mgmt_timing_sum) %>%
                full_join(mgmt_month_sum)) %>%
