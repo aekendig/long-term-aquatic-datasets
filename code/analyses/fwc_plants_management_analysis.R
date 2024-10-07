@@ -9,6 +9,7 @@ library(broom.mixed)
 library(glmmTMB)
 library(DHARMa)
 library(GGally)
+library(betareg)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -18,7 +19,32 @@ methods_dat <- read_csv("intermediate-data/FWC_plant_management_methods_analysis
 rich_dat <- read_csv("intermediate-data/FWC_plant_management_richness_analysis_formatted.csv")
 
 
-#### examine methods data ####
+#### examine full dataset ####
+rich_dat_var <- rich_dat %>%
+  select(AreaOfInterestID, HydrPAC, FloatPAC, HydrTrtFreq, HydrTrtArea, FloatTrtFreq, FloatTrtArea,
+           OtherTrtFreq, OtherTrtArea, ends_with("F")) %>%
+  distinct() %>%
+  mutate(HydrTrt = if_else(HydrTrtFreq == 0, 0, 1),
+         FloatTrt = if_else(FloatTrtFreq == 0, 0, 1),
+         across(.cols = ends_with("F"), 
+                .fns = ~ fct_relevel(.x, "none", "low")))
+
+# correlations among explanatory variables
+rich_dat_var %>%
+  select(-c(AreaOfInterestID, HydrTrt, FloatTrt, ends_with("F"))) %>%
+  ggpairs()
+# correlations >= 0.4 and sig
+# OtherTrtFreq and FloatTrtFreq: 0.6
+# OtherTrtArea and FloatTrtArea: 0.4
+# neither looks like a particularly strong relationship
+
+# order factors
+rich_dat2 <- rich_dat %>%
+  mutate(across(.cols = ends_with("F"), 
+                .fns = ~ fct_relevel(.x, "none", "low")))
+
+
+#### examine newer data ####
 
 # correlations among explanatory variables
 methods_dat %>%
@@ -51,6 +77,50 @@ methods_dat2 <- methods_dat %>%
   mutate(across(.cols = (!starts_with("TrtMonth") & ends_with("F")), 
                 .fns = ~ fct_relevel(.x, "none", "low")),
          TrtMonthF = fct_relevel(TrtMonthF, "Q2", "Q3", "Q4", "Q1"))
+
+
+#### management efficacy models ####
+
+# format PAC for beta distribution
+rich_dat_var2 <- rich_dat_var %>%
+  mutate(HydrProp = HydrPAC / 100,
+         FloatProp = FloatPAC / 100)
+
+# hydrilla binary model
+hydr_mod1 <- betareg(HydrProp ~ HydrTrt, data = rich_dat_var2)
+plot(hydr_mod1)
+summary(hydr_mod1)
+
+# hydrilla categorical models
+hydr_mod2 <- betareg(HydrProp ~ HydrTrtFreqF, data = rich_dat_var2)
+summary(hydr_mod2)
+# linear
+hydr_mod3 <- betareg(HydrProp ~ HydrTrtAreaF, data = rich_dat_var2)
+summary(hydr_mod3)
+# linear
+
+# hydrilla continuous model
+hydr_mod4 <- betareg(HydrProp ~ HydrTrtFreq + HydrTrtArea, data = rich_dat_var2)
+plot(hydr_mod4)
+summary(hydr_mod4)
+
+# floating plant binary model
+float_mod1 <- betareg(FloatProp ~ FloatTrt, data = rich_dat_var2)
+plot(float_mod1)
+summary(float_mod1)
+
+# floating plant categorical models
+float_mod2 <- betareg(FloatProp ~ FloatTrtFreqF, data = rich_dat_var2)
+summary(float_mod2)
+# linear
+float_mod3 <- betareg(FloatProp ~ FloatTrtAreaF, data = rich_dat_var2)
+summary(float_mod3)
+# linear
+
+# floating plant continuous model
+float_mod4 <- betareg(FloatProp ~ FloatTrtFreq + FloatTrtArea, data = rich_dat_var2)
+plot(float_mod4)
+summary(float_mod4)
 
 
 #### native richness methods model ####
@@ -130,25 +200,6 @@ load("output/native_richness_methods_model.rda")
 method_res3a <- simulateResiduals(method_mod3a, n = 1000)
 plot(method_res3a)
 summary(method_mod3a)
-
-
-#### examine target data ####
-
-# correlations among explanatory variables
-rich_dat %>%
-  distinct(AreaOfInterestID, HydrPAC, FloatPAC, HydrTrtFreq, HydrTrtArea, FloatTrtFreq, FloatTrtArea,
-           OtherTrtFreq, OtherTrtArea) %>%
-  select(-AreaOfInterestID) %>%
-  ggpairs()
-# correlations >= 0.4 and sig
-# OtherTrtFreq and FloatTrtFreq: 0.6
-# OtherTrtArea and FloatTrtArea: 0.4
-# neither looks like a particularly strong relationship
-
-# order factors
-rich_dat2 <- rich_dat %>%
-  mutate(across(.cols = ends_with("F"), 
-                .fns = ~ fct_relevel(.x, "none", "low")))
 
 
 #### native richness target model ####
@@ -245,7 +296,7 @@ summary(target_mod3a)
 #### native richness predicted values ####
 
 # remove time component
-rich_dat_var <- methods_dat3 %>%
+mod_dat_var <- methods_dat3 %>%
   distinct(AreaOfInterestID, TrtAreaCon, TrtAreaSys, TrtAreaSysSq, TrtAreaNon,
            TrtFreqCon, TrtFreqConLog, TrtFreqSys, TrtFreqNon, TrtFreqNonSq,
            TrtMonth, TrtMonthSq) %>%
@@ -266,8 +317,8 @@ pred_fun <- function(variable, model, dat){
                      TrtFreqSys = 0, 
                      TrtFreqNon = 0, 
                      TrtMonthStd = 0,
-                     HydrPAC = mean(rich_dat_var$HydrPAC), 
-                     FloatPAC = mean(rich_dat_var$FloatPAC),
+                     HydrPAC = mean(mod_dat_var$HydrPAC), 
+                     FloatPAC = mean(mod_dat_var$FloatPAC),
                      HydrTrtFreq = 0, 
                      FloatTrtFreq = 0, 
                      OtherTrtFreq = 0,
@@ -275,7 +326,7 @@ pred_fun <- function(variable, model, dat){
                      FloatTrtArea = 0, 
                      OtherTrtArea = 0) %>%
     select(-{{variable}}) %>%
-    expand_grid(rich_dat_var%>%
+    expand_grid(mod_dat_var%>%
                   filter(!is.na({{variable}}))  %>%
                   select({{variable}})) %>%
     mutate(across(.cols = -c(AreaOfInterestID, Time), 
