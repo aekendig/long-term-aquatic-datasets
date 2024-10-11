@@ -1,0 +1,5 @@
+TaxonName,Habitat,frequency_estimate,frequency2_estimate,frequency_std.error,frequency2_std.error,frequency_q.value,frequency2_q.value
+Brasenia schreberi,emersed,0.0904,-0.0013,0.0291,4e-4,0.038,0.04
+Ludwigia palustris/repens,emersed,0.0224,-2e-4,0.0044,1e-4,0,0.004
+Micranthemum glomeratum,submersed,0.0165,-2e-4,0.0052,1e-4,0.032,0.041
+Spartina bakeri,emersed,0.0219,-3e-4,0.0073,1e-4,0.044,0.071

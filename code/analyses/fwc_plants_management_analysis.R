@@ -10,6 +10,7 @@ library(glmmTMB)
 library(DHARMa)
 library(GGally)
 library(betareg)
+library(janitor)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -17,6 +18,8 @@ source("code/settings/figure_settings.R")
 # import data
 methods_dat <- read_csv("intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
 rich_dat <- read_csv("intermediate-data/FWC_plant_management_richness_analysis_formatted.csv")
+taxa_dat <- read_csv("intermediate-data/FWC_plant_management_taxa_analysis_formatted.csv")
+methods_taxa_dat <- read_csv("intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
 
 
 #### examine full dataset ####
@@ -130,7 +133,7 @@ ggplot(methods_dat, aes(x = NativeRichness)) +
   geom_density()
 
 # fit frequency model
-method_mod1 <- glmmTMB(NativeRichness ~ Time + Time*(TrtFreqConF + TrtFreqSysF + TrtFreqNonF +
+method_mod1 <- glmmTMB(NativeRichness ~ Time*(TrtFreqConF + TrtFreqSysF + TrtFreqNonF +
                                                        TrtMonthF) + (1|AreaOfInterestID),
                     data = methods_dat2,
                     family = poisson)
@@ -143,7 +146,7 @@ summary(method_mod1)
 # month is maybe quadratic
 
 # fit area model
-method_mod2 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaConF + TrtAreaSysF + TrtAreaNonF +
+method_mod2 <- glmmTMB(NativeRichness ~ Time*(TrtAreaConF + TrtAreaSysF + TrtAreaNonF +
                                                        TrtMonthF) + (1|AreaOfInterestID),
                        data = methods_dat2,
                        family = poisson)
@@ -178,7 +181,7 @@ methods_dat3 %>%
 # TreatAreaConLog + TrtFreqConLog: 0.5, driven by zeros
 
 # fit continuous model
-method_mod3 <- glmmTMB(NativeRichness ~ Time + Time*(TrtAreaConLog + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
+method_mod3 <- glmmTMB(NativeRichness ~ Time*(TrtAreaConLog + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
                                                        TrtFreqConLog + TrtFreqSys + TrtFreqNon + TrtFreqNonSq +
                                                        TrtMonthStd + TrtMonthStdSq) + (1|AreaOfInterestID),
                        data = methods_dat3,
@@ -200,6 +203,178 @@ load("output/native_richness_methods_model.rda")
 method_res3a <- simulateResiduals(method_mod3a, n = 1000)
 plot(method_res3a)
 summary(method_mod3a)
+
+
+#### taxon-specific methods models ####
+
+# select native taxa
+# standardize treatment month using average from above
+methods_taxa_dat2 <- methods_taxa_dat %>%
+  filter(Origin == "Native") %>%
+  mutate(TrtFreqConLog = log(TrtFreqCon + 0.01),
+         TrtFreqNonSq = TrtFreqNon^2,
+         TrtAreaConLog = log(TrtAreaCon + 0.01),
+         TrtAreaSysSq = TrtAreaSys^2,
+         TrtMonthStd = TrtMonth - trt_month_avg,
+         TrtMonthStdSq = TrtMonthStd^2)
+
+# check taxa for all 1's or 0's
+taxa_methods_sum <- methods_taxa_dat2 %>%
+  group_by(TaxonName) %>%
+  summarize(Detections = sum(Detected) / n(),
+            .groups = "drop")
+
+arrange(taxa_methods_sum, Detections)
+arrange(taxa_methods_sum, desc(Detections))
+# check the two extremes
+
+# list of taxa
+methods_taxa <- sort(unique(methods_taxa_dat2$TaxonName))
+
+# set i
+i <- 1
+
+# subset data
+methods_taxa_sub <- filter(methods_taxa_dat2, TaxonName == methods_taxa[i])
+
+# fit model
+methods_taxa_mod <- glmmTMB(Detected ~ Time*(TrtAreaConLog + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
+                                               TrtFreqConLog + TrtFreqSys + TrtFreqNon + TrtFreqNonSq +
+                                               TrtMonthStd + TrtMonthStdSq) + (1|AreaOfInterestID),
+                                  data = methods_taxa_sub, family = "binomial")
+
+# use this to manually cycle through taxa (some models had warnings below)
+# i <- i + 1
+# taxa with model convergence issues:
+# 22: Fontinalis spp.
+# 43: Najas marina
+# 50: Orontium aquaticum
+# 60: Proserpinaca spp.
+# 62: Ruppia maritima
+# 64: Sagittaria kurziana
+# 70: Sparganium americanum
+# 72: Stuckenia pectinata
+
+# other notes: 
+# covariance matrix estimated for Juncus roemerianus uses potentiall less
+# accurate method, so standard errors may be off
+
+# # look at models
+summary(methods_taxa_mod)
+methods_taxa_res <- simulateResiduals(methods_taxa_mod, n = 1000)
+plot(methods_taxa_res, title = methods_taxa[i])
+
+# # save
+# save(methods_taxa_mod, file = paste0("output/methods_model_",
+#                                            str_to_lower(methods_taxa[i]) %>%
+#                                              str_replace_all(" ", "_"),
+#                                            ".rda"))
+
+# save results when i <- 1
+methods_taxa_coefs <- tidy(methods_taxa_mod) %>%
+  filter(str_detect(term, "Time:")) %>%
+  mutate(TaxonName = methods_taxa[1]) %>%
+  relocate(TaxonName)
+
+# loop through taxa
+pdf("output/taxa_specific_methods_models.pdf")
+
+for(i in methods_taxa[-c(22, 43, 50, 60, 62, 64, 70, 72)]) {
+  
+  # subset data
+  methods_taxa_sub <- filter(methods_taxa_dat2, TaxonName == i)
+  
+  # fit model
+  methods_taxa_mod <- glmmTMB(Detected ~ Time*(TrtAreaConLog + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
+                                                 TrtFreqConLog + TrtFreqSys + TrtFreqNon + TrtFreqNonSq +
+                                                 TrtMonthStd + TrtMonthStdSq) + (1|AreaOfInterestID),
+                              data = methods_taxa_sub, family = "binomial")
+  
+  # extract and plot residuals
+  methods_taxa_res <- simulateResiduals(methods_taxa_mod, n = 1000)
+  plot(methods_taxa_res, title = i)
+  
+  # save model
+  save(methods_taxa_mod, file = paste0("output/methods_model_",
+                                       str_to_lower(i) %>%
+                                         str_remove_all("\\.|\\(|\\)")%>%
+                                         str_replace_all("/|, | ", "_"),
+                                       ".rda"))
+  
+  # save model coefficients
+  methods_taxa_coefs <- methods_taxa_coefs %>%
+    full_join(tidy(methods_taxa_mod) %>%
+                filter(str_detect(term, "Time:")) %>%
+                mutate(TaxonName = i) %>%
+                relocate(TaxonName))
+}
+
+dev.off()
+
+# correct p-values
+# remove taxon that the estimates didn't work
+methods_taxa_coefs2 <- methods_taxa_coefs %>%
+  filter(TaxonName != "Juncus roemerianus") %>%
+  mutate(q.value = p.adjust(p.value, method = "fdr"),
+         lower = estimate - 1.96 * std.error,
+         upper = estimate + 1.96 * std.error,
+         odds_perc = 100 * (exp(estimate) - 1),
+         lower_odds_perc = 100 * (exp(lower) - 1),
+         upper_odds_perc = 100 * (exp(upper) - 1))
+
+# save
+write_csv(methods_taxa_coefs2, "output/methods_model_taxa_interaction_coefficients.csv")
+
+# contact herbicide frequency
+methods_taxa_coefs2 %>%
+  filter(q.value < 0.05 & estimate < 0 & term == "Time:TrtFreqConLog") %>% 
+  select(TaxonName, estimate, std.error, q.value)
+
+# systemic herbicide intensity
+methods_taxa_coefs2 %>%
+  filter(q.value < 0.05 & 
+           (estimate < 0 & term == "Time:TrtAreaSys") |
+           (estimate > 0 & term == "Time:TrtAreaSysSq"))%>% 
+  select(TaxonName, term, estimate, std.error, q.value) %>%
+  group_by(TaxonName) %>%
+  mutate(n = n()) %>%
+  ungroup() %>%
+  filter(n == 2) %>%
+  select(-n) %>%
+  left_join(distinct(methods_taxa_dat2, TaxonName, Habitat)) %>%
+  mutate(term = str_replace_all(term, "Time:TrtAreaSysSq", "intensity2") %>%
+           str_replace_all("Time:TrtAreaSys", "intensity"),
+         estimate = round_half_up(estimate, 4),
+         std.error = round_half_up(std.error, 4),
+         q.value = round_half_up(q.value, 3),
+         Habitat = str_to_lower(Habitat)) %>%
+  pivot_wider(names_from = term, 
+              values_from = c(estimate, std.error, q.value),
+              names_glue = "{term}_{.value}") %>%
+  write_csv("output/methods_model_taxa_systemic_intensity_interaction_table.csv")
+
+# non-herbicide frequency
+methods_taxa_coefs2 %>%
+  filter(q.value < 0.05 & 
+           (estimate > 0 & term == "Time:TrtFreqNon") |
+           (estimate < 0 & term == "Time:TrtFreqNonSq"))%>% 
+  select(TaxonName, term, estimate, std.error, q.value) %>%
+  group_by(TaxonName) %>%
+  mutate(n = n()) %>%
+  ungroup() %>%
+  filter(n == 2) %>%
+  select(-n) %>%
+  left_join(distinct(methods_taxa_dat2, TaxonName, Habitat)) %>%
+  mutate(term = str_replace_all(term, "Time:TrtFreqNonSq", "frequency2") %>%
+           str_replace_all("Time:TrtFreqNon", "frequency"),
+         estimate = round_half_up(estimate, 4),
+         std.error = round_half_up(std.error, 4),
+         q.value = round_half_up(q.value, 3),
+         Habitat = str_to_lower(Habitat)) %>%
+  pivot_wider(names_from = term, 
+              values_from = c(estimate, std.error, q.value),
+              names_glue = "{term}_{.value}") %>%
+  write_csv("output/methods_model_taxa_nonherbicide_frequency_interaction_table.csv")
 
 
 #### native richness target model ####

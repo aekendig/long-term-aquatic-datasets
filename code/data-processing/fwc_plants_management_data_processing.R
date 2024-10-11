@@ -61,7 +61,7 @@ plants %>%
 # 466: swamp/marsh
 
 # look more closely at swamp/marsh
-plants%>%
+plants %>%
   filter(FType == 466) %>%
   distinct(PermanentID, AreaOfInterest, AreaOfInterestID)
 # Lafayette Lake looks like a wetland, but it borders an open waterbody names Lafayette
@@ -581,12 +581,23 @@ rich_dat %>%
 
 # for individual species
 taxa_dat <- plants3 %>%
+  filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
   mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
   full_join(inv_sum2) %>%
-  full_join(mgmt_sum2)
+  full_join(mgmt_sum2) %>%
+  mutate(Time = SurveyYear - min(SurveyYear))
   
 # for specific management methods
 methods_dat <- plant_sum_new %>%
+  inner_join(mgmt_methods_sum4 %>% 
+               full_join(mgmt_timing_sum) %>%
+               full_join(mgmt_month_sum)) %>%
+  mutate(Time = SurveyYear - min(SurveyYear))
+
+# taxa dat for specific methods
+taxa_dat_new <- plants_new %>%
+  filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
+  mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
   inner_join(mgmt_methods_sum4 %>% 
                full_join(mgmt_timing_sum) %>%
                full_join(mgmt_month_sum)) %>%
@@ -598,3 +609,4 @@ methods_dat <- plant_sum_new %>%
 write_csv(rich_dat, "intermediate-data/FWC_plant_management_richness_analysis_formatted.csv")
 write_csv(taxa_dat, "intermediate-data/FWC_plant_management_taxa_analysis_formatted.csv")
 write_csv(methods_dat, "intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
+write_csv(taxa_dat_new, "intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
