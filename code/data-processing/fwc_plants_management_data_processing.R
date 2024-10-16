@@ -159,16 +159,20 @@ plants3 %>%
   get_dupes(AreaOfInterestID, SurveyYear)
 
 # richness
+# choose the survey with the highest richness for a given waterbody and year
 plant_sum <- plants3 %>%
   filter(IsDetected == "Yes" & !(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear, SurveyDate) %>%
   summarize(NativeRichness = sum(Origin == "Native"),
-            NonNativeRichness = sum(Origin == "Exotic"),
             .groups = "drop") %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear) %>%
-  summarize(NativeRichness = max(NativeRichness),
-            NonNativeRichness = max(NonNativeRichness),
-            .groups = "drop")
+  mutate(MaxNativeRichness = max(NativeRichness)) %>%
+  ungroup() %>%
+  filter(NativeRichness == MaxNativeRichness) %>% 
+  select(-MaxNativeRichness)
+
+# check for duplicates
+get_dupes(plant_sum, AreaOfInterestID, SurveyYear) # none
 
 # visualize
 ggplot(plant_sum, aes(x = SurveyYear, y = NativeRichness, 
@@ -336,12 +340,15 @@ plant_sum_new <- plants_new %>%
   filter(IsDetected == "Yes" & !(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear, SurveyDate) %>%
   summarize(NativeRichness = sum(Origin == "Native"),
-            NonNativeRichness = sum(Origin == "Exotic"),
             .groups = "drop") %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear) %>%
-  summarize(NativeRichness = max(NativeRichness),
-            NonNativeRichness = max(NonNativeRichness),
-            .groups = "drop")
+  mutate(MaxNativeRichness = max(NativeRichness)) %>%
+  ungroup() %>%
+  filter(NativeRichness == MaxNativeRichness) %>% 
+  select(-MaxNativeRichness)
+
+# check for duplicates
+get_dupes(plant_sum_new, AreaOfInterestID, SurveyYear) # none
 
 # waterbodies surveyed
 # range of survey years
@@ -525,66 +532,60 @@ ggplot(mgmt_month_sum, aes(x = TrtMonth, fill = TrtMonthF)) +
 
 # combine data
 # create a time variable
-rich_dat <- plant_sum %>%
+target_dat <- plant_sum %>%
   full_join(inv_sum2) %>%
   full_join(mgmt_sum2) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
-# any missing rich_data?
-filter(rich_dat, is.na(NativeRichness))
-filter(rich_dat, is.na(NonNativeRichness))
-filter(rich_dat, is.na(HydrPAC))
-filter(rich_dat, is.na(FloatPAC))
-filter(rich_dat, is.na(HydrTrtFreq))
-filter(rich_dat, is.na(HydrTrtArea))
-filter(rich_dat, is.na(FloatTrtFreq))
-filter(rich_dat, is.na(FloatTrtArea))
-filter(rich_dat, is.na(OtherTrtFreq))
-filter(rich_dat, is.na(OtherTrtArea))
+# any missing target_data?
+filter(target_dat, is.na(NativeRichness))
+filter(target_dat, is.na(HydrPAC))
+filter(target_dat, is.na(FloatPAC))
+filter(target_dat, is.na(HydrTrtFreq))
+filter(target_dat, is.na(HydrTrtArea))
+filter(target_dat, is.na(FloatTrtFreq))
+filter(target_dat, is.na(FloatTrtArea))
+filter(target_dat, is.na(OtherTrtFreq))
+filter(target_dat, is.na(OtherTrtArea))
 
 # total waterbodies
-AOIs <- sort(unique(rich_dat$AreaOfInterestID))
+AOIs <- sort(unique(target_dat$AreaOfInterestID))
 
 # types of waterbodies
-rich_dat %>%
+target_dat %>%
   distinct(AreaOfInterestID, FType) %>%
   count(FType)
 
 # waterbodies without management
-rich_dat %>%
+target_dat %>%
   filter(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0) %>%
   pull(AreaOfInterestID) %>%
   n_distinct()
 
-# # plot richness
+# plot richness
 # pdf("output/analysis_data_richness_time_series.pdf")
 # for(i in AOIs){
-#   
+# 
 #   # filter rich_data
-#   rich_dat_sub <- filter(rich_dat, AreaOfInterestID == i) %>%
-#     pivot_longer(cols = c(NativeRichness, NonNativeRichness),
-#                  names_to = "Origin",
-#                  values_to = "Richness") %>%
-#     mutate(Origin = if_else(Origin == "NativeRichness", "native", "non-native"))
-#   
+#   target_dat_sub <- filter(target_dat, AreaOfInterestID == i)
+# 
 #   # get name
-#   rich_dat_name <- unique(rich_dat_sub$AreaOfInterest)
-#   
+#   target_dat_name <- unique(target_dat_sub$AreaOfInterest)
+# 
 #   # figure
-#   print(ggplot(rich_dat_sub, aes(x = SurveyYear, y = Richness, color = Origin)) +
-#           geom_point() + 
+#   print(ggplot(target_dat_sub, aes(x = SurveyYear, y = NativeRichness)) +
+#           geom_point() +
 #           geom_line() +
-#           ggtitle(rich_dat_name) +
+#           ggtitle(target_dat_name) +
 #           theme_bw())
 # }
 # dev.off()
 
 # for individual species
-taxa_dat <- plants3 %>%
+target_taxa_dat <- plants3 %>%
   filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
+  inner_join(target_dat) %>%
   mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
-  full_join(inv_sum2) %>%
-  full_join(mgmt_sum2) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
   
 # for specific management methods
@@ -595,18 +596,16 @@ methods_dat <- plant_sum_new %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
 # taxa dat for specific methods
-taxa_dat_new <- plants_new %>%
+methods_taxa_dat <- plants_new %>%
   filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
   mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
-  inner_join(mgmt_methods_sum4 %>% 
-               full_join(mgmt_timing_sum) %>%
-               full_join(mgmt_month_sum)) %>%
+  inner_join(methods_dat) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
 
 #### save data ####
 
-write_csv(rich_dat, "intermediate-data/FWC_plant_management_richness_analysis_formatted.csv")
-write_csv(taxa_dat, "intermediate-data/FWC_plant_management_taxa_analysis_formatted.csv")
+write_csv(target_dat, "intermediate-data/FWC_plant_management_target_analysis_formatted.csv")
+write_csv(target_taxa_dat, "intermediate-data/FWC_plant_management_target_taxa_analysis_formatted.csv")
 write_csv(methods_dat, "intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
-write_csv(taxa_dat_new, "intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
+write_csv(methods_taxa_dat, "intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
