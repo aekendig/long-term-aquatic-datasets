@@ -984,11 +984,3 @@ target_fig <- target_fig1 + target_fig2 + target_fig3 + inset_element(change_flo
 
 ggsave("output/target_figure.png", target_fig,
        width = 7.5, height = 9)
-
-
-#### values for text ####
-
-# summarize taxa by habitat
-methods_taxa_dat2 %>%
-  distinct(TaxonName, Habitat) %>%
-  count(Habitat)

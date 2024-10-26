@@ -6,6 +6,11 @@ rm(list = ls())
 # load packages
 library(tidyverse)
 library(janitor)
+library(ggtext)
+library(patchwork)
+
+# figure settings
+source("code/settings/figure_settings.R")
 
 # import data
 plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
@@ -129,7 +134,7 @@ waterbodies <- plants3 %>%
             .groups = "drop")
 
 # mgmt record with missing info
-filter(mgmt, is.na(Species)) %>%
+filter(mgmt, is.na(Species) | is.na(TaxonName)) %>%
   data.frame()
 # 10 records have acres, but no other info
 
@@ -138,7 +143,8 @@ filter(mgmt, is.na(Species)) %>%
 mgmt2 <- mgmt %>%
   inner_join(waterbodies) %>%
   filter(TreatmentYear >= MinSurveyYear & TreatmentYear <= MaxSurveyYear) %>%
-  mutate(Species = replace_na(Species, "unknown"))
+  mutate(TaxonName = replace_na(TaxonName, "unknown"),
+         Species = replace_na(Species, "unknown"))
 
 # check for duplicates
 mgmt2 %>%
@@ -222,11 +228,6 @@ ggplot(inv_sum2, aes(x = FloatPAC, fill = FloatPACF)) +
 
 #### summarize management data ####
 
-# management targets
-mgmt_targets <- mgmt2 %>%
-  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
-           TreatmentYear, Species)
-
 # rename targets
 mgmt3 <- mgmt2 %>%
   mutate(Target = case_when(Species %in% c("Eichhornia crassipes", "Pistia stratiotes", 
@@ -239,28 +240,70 @@ mgmt3 <- mgmt2 %>%
 mgmt_targets_sum <- mgmt3 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
            TreatmentYear, Target) %>%
-  count(TreatmentYear, Target)
+  count(TreatmentYear, Target) %>%
+  mutate(Target = fct_recode(Target,
+                             "*Hydrilla verticillata*" = "Hydr",
+                             "floating plants" = "Float",
+                             "other" = "Other"))
 
 # visualize
-ggplot(mgmt_targets_sum, aes(x = TreatmentYear, y = n, color = Target)) +
+mgmt_time_fig <- ggplot(mgmt_targets_sum, aes(x = TreatmentYear, y = n, color = Target)) +
   geom_line() + 
   geom_point() +
-  theme_bw()
+  # geom_smooth(method = "lm", se = F) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  labs(x = "Year", y = "Number of waterbodies managed") +
+  def_theme_paper +
+  theme(legend.position = "inside",
+        legend.position.inside = c(0.75, 0.15),
+        legend.text = element_markdown(),
+        axis.text.x = element_text(hjust = 0.7))
 
 # expand on other species
-mgmt_targets_other <- mgmt_targets %>%
+mgmt_targets_other <- mgmt3 %>%
   filter(!(Species %in% c("Eichhornia crassipes", "Pistia stratiotes", 
                           "Floating Plants (Eichhornia and Pistia)",
                           "Hydrilla verticillata"))) %>%
-  count(Species) %>%
-  mutate(Species = fct_reorder(Species, -n))
+  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
+           TreatmentYear, TaxonName) %>%
+  mutate(TaxonName = case_when(TaxonName %in% c("Mixed Grasses", "Trees (blocking navigation)",
+                                                "Tussocks", "Other", "unknown") ~ "unknown taxa",
+                           str_detect(TaxonName, "AHRES") ~ "unknown taxa",
+                           TRUE ~ TaxonName) %>%
+           str_replace_all(" spp.| spp| sp.| sp", " spp.") %>%
+           str_replace("Limnobium spp.ngia", "Limnobium spongia") %>% # not sure how to exclude from above
+           str_remove_all(", sub| \\(exotic\\)| \\(other natives\\)| \\(other\\)|, natives|, emersed|, sub/floating") %>%
+           str_remove_all("\\/floating"),
+         Genus = word(TaxonName, 1, 1)) %>%
+  count(TaxonName) %>%
+  mutate(Taxon = if_else(str_detect(TaxonName, "spp.") == F &
+                           TaxonName != "unknown taxa",
+                         paste0("*", TaxonName, "*"),
+                         TaxonName),
+         Taxon = fct_reorder(Taxon, n))
+
+# all taxa
+ggplot(mgmt_targets_other, aes(y = Taxon, x = n)) +
+  geom_col() +
+  def_theme_paper +
+  theme(axis.text.y = element_markdown())
 
 # visualize
-ggplot(mgmt_targets_other, aes(x = Species, y = n)) +
-  geom_col() +
-  theme_bw() + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-# need to clean up synonyms if using this
+mgmt_other_fig <- mgmt_targets_other %>%
+  filter(n >= 20) %>%
+  ggplot(aes(y = Taxon, x = n)) +
+  geom_col(fill = "#7570b3") +
+  labs(y = "Other targets", x = "Number of management events") +
+  def_theme_paper +
+  theme(axis.text.y = element_markdown())
+
+# save figures
+mgmt_target_fig <- mgmt_time_fig + mgmt_other_fig +
+  plot_layout(nrow = 1, widths = c(1, 0.7)) +
+  plot_annotation(tag_levels = "A")
+
+ggsave("output/management_target_time_series.png",
+       mgmt_target_fig, width = 7.5, height = 4)
 
 # summarize by waterbody and Target
 mgmt_sum <- mgmt3 %>%
@@ -313,10 +356,7 @@ ggplot(mgmt_sum2, aes(x = OtherTrtArea, fill = OtherTrtAreaF)) +
   geom_histogram(binwidth = 1)
 
 
-#### management metrics for lakes with management ####
-
-# average month
-# maybe something related to method
+#### management methods ####
 
 # management from new dataset
 mgmt_new <- mgmt3 %>%
@@ -392,30 +432,43 @@ ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear),
                              y = Prop, fill = SpecificMethod)) +
   geom_col() +
   theme_bw()
-# add names as text on last bar for clarity
+# add names as text on last bar for clarity if using
 
 # broader management methods
 mgmt_methods_sum2 <- mgmt_new2 %>%
-  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
-           TreatmentYear, Method, Target) %>%
   count(TreatmentYear, Method, Target) %>%
-  group_by(TreatmentYear) %>%
+  group_by(TreatmentYear, Target) %>%
   mutate(Prop = n / sum(n)) %>%
   ungroup() %>%
-  group_by(TreatmentYear, Target) %>%
-  mutate(TargetProp = n / sum(n)) %>%
-  ungroup()
+  mutate(Method = fct_recode(Method,
+                             "contact herbicide" = "Con",
+                             "systemic herbicide" = "Sys",
+                             "non-herbicide" = "Non",
+                             "unknown" = "Unk") %>%
+           fct_relevel("contact herbicide", "systemic herbicide"),
+         Target = fct_recode(Target,
+                             "Floating plants" = "Float",
+                             "*Hydrilla verticillata*" = "Hydr",
+                             "Other plants" = "Other") %>%
+           fct_relevel("*Hydrilla verticillata*"),
+         TreatmentYear = paste0("'", str_sub(TreatmentYear, 3, 4)))
 
-ggplot(mgmt_methods_sum2, aes(x = as.character(TreatmentYear), 
-                             y = Prop, fill = Method)) +
+mgmt_methods_fig <- ggplot(mgmt_methods_sum2, 
+       aes(x = TreatmentYear,
+           y = Prop, fill = Method)) +
   geom_col() +
-  theme_bw()
+  facet_wrap(~ Target) +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  labs(x = "Year (20XX)", y = "Proportion of management events") +
+  def_theme_paper +
+  theme(strip.text = element_markdown(),
+        legend.position = "inside",
+        legend.position.inside = c(0.114, 0.7),
+        legend.background = element_rect(fill = "white", color = NA),
+        legend.margin = margin(0, 0, 0, 0, unit = "cm"))
 
-ggplot(mgmt_methods_sum2, aes(x = as.character(TreatmentYear), 
-                              y = TargetProp, fill = Method)) +
-  geom_col() +
-  theme_bw() +
-  facet_wrap(~ Target)
+ggsave("output/management_methods_time_series.png",
+       mgmt_methods_fig, width = 6, height = 3)
 
 # have any lakes with hydrilla management been only non-herbicide?
 mgmt_methods %>%
@@ -527,6 +580,38 @@ mgmt_month_sum <- mgmt_new2 %>%
 ggplot(mgmt_month_sum, aes(x = TrtMonth, fill = TrtMonthF)) +
   geom_histogram(binwidth = 1)
 
+# management target (for the new dataset)
+mgmt_sum_new <- mgmt_new2 %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, Target) %>%
+  summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
+            TrtArea = mean(100 * PropTreated),
+            .groups = "drop") %>%
+  full_join(waterbodies_new %>% # add in waterbodies without management
+              select(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
+              expand_grid(Target = c("Float", "Hydr", "Other"))) %>%
+  mutate(TrtFreq = replace_na(TrtFreq, 0),
+         TrtArea = replace_na(TrtArea, 0)) %>%
+  pivot_wider(names_from = Target,
+              values_from = c(TrtFreq, TrtArea),
+              names_glue = "{Target}{.value}")
+
+inv_sum_new <- plants_new %>%
+  filter(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes")) %>%
+  mutate(Invasive = case_when(TaxonName == "Hydrilla verticillata" ~ "Hydr", 
+                              TaxonName == "Eichhornia crassipes" ~ "Hyac", 
+                              TaxonName == "Pistia stratiotes" ~ "Lett")) %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, Invasive,
+           WaterbodyAcres, SurveyYear) %>%
+  summarize(SpeciesAcres = max(SpeciesAcres), # for multiple surveys within a year
+            .groups = "drop") %>%
+  pivot_wider(names_from = Invasive,
+              values_from = SpeciesAcres,
+              names_glue = "{Invasive}Acres") %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
+  summarize(HydrPAC = mean(100 * HydrAcres / WaterbodyAcres),
+            FloatPAC = mean(100 * (HyacAcres + LettAcres) / WaterbodyAcres), # these two are correlated
+            .groups = "drop")
+
 
 #### combine data ####
 
@@ -602,10 +687,25 @@ methods_taxa_dat <- plants_new %>%
   inner_join(methods_dat) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
+# target data for new management dataset
+target_dat_new <- plant_sum_new %>%
+  full_join(inv_sum_new) %>%
+  full_join(mgmt_sum_new) %>%
+  mutate(Time = SurveyYear - min(SurveyYear))
+
 
 #### save data ####
 
 write_csv(target_dat, "intermediate-data/FWC_plant_management_target_analysis_formatted.csv")
+write_csv(target_dat_new, "intermediate-data/FWC_plant_management_new_target_analysis_formatted.csv")
 write_csv(target_taxa_dat, "intermediate-data/FWC_plant_management_target_taxa_analysis_formatted.csv")
 write_csv(methods_dat, "intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
 write_csv(methods_taxa_dat, "intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
+
+
+#### values for text ####
+
+# summarize taxa by habitat
+methods_taxa_dat2 %>%
+  distinct(TaxonName, Habitat) %>%
+  count(Habitat)

@@ -4,6 +4,7 @@
 rm(list = ls())
 
 # load packages
+library(data.table)
 library(tidyverse)
 library(janitor)
 library(taxize)

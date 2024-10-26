@@ -4,9 +4,11 @@
 rm(list = ls())
 
 # load packages
+library(data.table)
 library(tidyverse)
 library(janitor)
 library(lubridate)
+library(taxize)
 
 # load data
 gis <- read_csv("intermediate-data/gis_fwc_lakewatch_fwri.csv",
@@ -293,15 +295,101 @@ ctrl4 %>%
   get_dupes(AreaOfInterestID)
 # yes
 
-
-#### final formatting ####
-
 # remove wetlands that aren't in plant surveys
 ctrl5 <- ctrl4 %>%
   filter(!(AreaOfInterest == "DeLeon Springs St Park Wetlands" & PermanentID == "107776163"))
 
+
+#### resolve species names ####
+
+# notes:
+# AHRES = Aquatic Habitat Restoration & Enhancement Section
+
+# list of taxa
+taxa_list <- ctrl5 %>%
+  distinct(Species) %>%
+  mutate(Taxon = str_replace_all(Species, " spp.| spp| sp.| sp", ""), # for genus-level
+         Taxon = str_replace_all(Taxon, ", sub| \\(exotic\\)| \\(other natives\\)| \\(other\\)|, natives|, emersed|, sub/floating", ""), # for origin/growth type
+         Taxon = str_replace(Taxon, "\\/.*", ""), # anything after / removed
+         Taxon = str_replace(Taxon, "sub\\.", "ssp."), # format sub-species
+         words = str_count(Taxon, pattern = " ") + 1) %>%
+  full_join(ctrl5 %>%
+              distinct(Species) %>%
+              filter(str_detect(Species, "\\/") & str_detect(Species, "spp") == F) %>%
+              mutate(Taxon = paste(word(Species, 1, 1),
+                                   str_replace(Species, ".*\\/", "")), # match genus with second species name
+                     words = str_count(Taxon, pattern = " ") + 1)) %>%
+  filter(words > 1 & str_detect(Taxon, "AHRES") == F & 
+           !(Taxon %in% c("Mixed Grasses", "Trees (blocking navigation)",
+                          "Floating Plants (Eichhornia and Pistia)"))) %>%
+  arrange(Species)
+
+# synonyms from ITIS
+# taxa_syn <- synonyms(taxa_list$Taxon, db = "itis")
+# manually accepted duplicate names
+# chose accepted ones and checked on website
+# date run: 10/26/24
+
+# make into dataframe
+# taxa_syn2 <- rbindlist(lapply(taxa_syn, as.data.table), use.names = T, fill = T, idcol = "Taxon") %>%
+#   select(-V1) %>%
+#   as_tibble()
+
+# manually check missing species
+# taxa_syn2 %>%
+#   filter(is.na(sub_tsn)) %>%
+#   select(Taxon)
+# one is general algae
+# Cyperus blepharoleptos not in ITIS database - Oxycarum is the accepted name; IFAS uses C. bleph
+# Egeria najas not in ITIS database, neither of synonyms Elodea najas and Anacharis najas
+# type-os: 
+# Mormodica charantia = Momordica charantia - no synonyms
+
+
+# save
+# write_csv(taxa_syn2, "intermediate-data/FWC_management_species_synonyms.csv")
+
+# import
+taxa_syn2 <- read_csv("intermediate-data/FWC_management_species_synonyms.csv")
+
+# identify synonyms to rename
+(taxa_acc <- taxa_syn2 %>%
+    filter(!is.na(acc_name) & Taxon != acc_name) %>%
+    distinct(Taxon, acc_name) %>%
+    add_row(Taxon = "Oxycaryum cubense", acc_name = "Cyperus blepharoleptos") %>%
+    add_row(Taxon = "Mormodica charantia", acc_name = "Momordica charantia"))
+
+# are accepted names used in list?
+taxa_list %>%
+  filter(Taxon %in% taxa_acc$acc_name)
+# 2
+
+# update synonyms
+taxa_list2 <- taxa_list %>%
+  left_join(taxa_acc %>%
+              rename(TaxonName = acc_name)) %>%
+  mutate(TaxonName = if_else(is.na(TaxonName), Species, TaxonName))
+
+# look at taxa with multiple species
+get_dupes(taxa_list2, Species)
+
+# manually update taxa with multiple species and accepted names
+taxa_list3 <- taxa_list2 %>%
+  mutate(TaxonName = if_else(Species == "Schoenoplectus californicus/validus",
+                             "Schoenoplectus californicus/tabernaemontani",
+                             TaxonName)) %>%
+  distinct(Species, TaxonName)
+
+# add taxon name to data
+ctrl6 <- ctrl5 %>%
+  left_join(taxa_list3) %>%
+  mutate(TaxonName = if_else(is.na(TaxonName), Species, TaxonName))
+  
+
+#### final formatting ####
+
 # remove AOIs for temporal consistency
-ctrl5_time <- ctrl5 %>%
+ctrl6_time <- ctrl6 %>%
   filter(!(AreaOfInterest == "Silver Glen Springs" & PermanentID == "107881197") &
            !(AreaOfInterest == "Wauseon Bay" & PermanentID == "112029141") &
            !(AreaOfInterest == "Red Water, Lake" & PermanentID == "112047993") &
@@ -310,5 +398,5 @@ ctrl5_time <- ctrl5 %>%
            !(AreaOfInterest == "Tarpon, Lake Outfall Canal" & PermanentID == "68792760"))
 
 # save
-write_csv(ctrl5, "intermediate-data/FWC_management_formatted.csv")
-write_csv(ctrl5_time, "intermediate-data/FWC_management_formatted_temporal_coverage.csv")
+write_csv(ctrl6, "intermediate-data/FWC_management_formatted.csv")
+write_csv(ctrl6_time, "intermediate-data/FWC_management_formatted_temporal_coverage.csv")
