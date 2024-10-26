@@ -21,6 +21,7 @@ target_dat <- read_csv("intermediate-data/FWC_plant_management_target_analysis_f
 target_taxa_dat <- read_csv("intermediate-data/FWC_plant_management_target_taxa_analysis_formatted.csv")
 methods_dat <- read_csv("intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
 methods_taxa_dat <- read_csv("intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
+target_dat_new <- read_csv("intermediate-data/FWC_plant_management_new_target_analysis_formatted.csv")
 
 
 #### examine full dataset ####
@@ -413,7 +414,8 @@ taxa_method_fig <- ggplot(method_taxa_est,
        aes(x = term, y = n, fill = Habitat)) +
   geom_col() +
   geom_hline(yintercept = 0, linewidth = 0.25) +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(type = "qual", palette = "Dark2",
+                    name = "Growth form") +
   labs(x = "Covariate interaction with time",
        y = "Number of taxa (in direction of response)") +
   def_theme_paper +
@@ -759,7 +761,7 @@ taxa_target_fig <- ggplot(target_taxa_est,
                           aes(x = term, y = n, fill = Habitat)) +
   geom_col() +
   geom_hline(yintercept = 0, linewidth = 0.25) +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(type = "qual", palette = "Dark2", name = "Growth form") +
   labs(x = "Covariate interaction with time",
        y = "Number of taxa (in direction of response)") +
   def_theme_paper +
@@ -824,7 +826,9 @@ method_fig1 <- ggplot(pred_cont_ints, aes(x = Time, y = Pred,
                               color = TrtAreaCon,
                               group = TrtAreaCon)) +
   geom_line() +
-  scale_color_viridis_c(option = "A", direction = -1, begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$TrtAreaCon, na.rm = T),
+                                          max(mod_dat_var$TrtAreaCon, na.rm = T))),
                         name = "Contact\nherbicide\nintensity") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -835,7 +839,9 @@ method_fig2 <- ggplot(pred_sys_ints, aes(x = Time, y = Pred,
                                            color = TrtAreaSys,
                                            group = TrtAreaSys)) +
   geom_line() +
-  scale_color_viridis_c(option = "H", begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$TrtAreaSys, na.rm = T),
+                                          max(mod_dat_var$TrtAreaSys, na.rm = T))),
                         name = "Systemic\nherbicide\nintensity") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -846,7 +852,9 @@ method_fig3 <- ggplot(pred_non_freq, aes(x = Time, y = Pred,
                                           color = TrtFreqNon,
                                           group = TrtFreqNon)) +
   geom_line() +
-  scale_color_viridis_c(option = "A", direction = -1, begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$TrtFreqNon, na.rm = T),
+                                          max(mod_dat_var$TrtFreqNon, na.rm = T))),
                         name = "Non-\nherbicide\nfrequency") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -857,7 +865,9 @@ target_fig1 <- ggplot(pred_hydr_freq, aes(x = Time, y = Pred,
                                           color = HydrTrtFreq,
                                           group = HydrTrtFreq)) +
   geom_line() +
-  scale_color_viridis_c(option = "A", direction = -1, begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$HydrTrtFreq, na.rm = T),
+                                          max(mod_dat_var$HydrTrtFreq, na.rm = T))),
                         name = "Hydrilla\nmanagement\nfrequency") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -868,7 +878,9 @@ target_fig2 <- ggplot(pred_hydr_ints, aes(x = Time, y = Pred,
                                           color = HydrTrtArea,
                                           group = HydrTrtArea)) +
   geom_line() +
-  scale_color_viridis_c(option = "A", direction = -1, begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$HydrTrtArea, na.rm = T),
+                                          max(mod_dat_var$HydrTrtArea, na.rm = T))),
                         name = "Hydrilla\nmanagement\nintensity") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -879,7 +891,9 @@ target_fig3 <- ggplot(pred_float_pac, aes(x = Time, y = Pred,
                                          color = FloatPAC,
                                          group = FloatPAC)) +
   geom_line() +
-  scale_color_viridis_c(option = "H", begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$FloatPAC, na.rm = T),
+                                          max(mod_dat_var$FloatPAC, na.rm = T))),
                         name = "Floating plant\nPAC") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -890,7 +904,9 @@ target_fig4 <- ggplot(pred_float_freq, aes(x = Time, y = Pred,
                                color = FloatTrtFreq,
                                group = FloatTrtFreq)) +
   geom_line() +
-  scale_color_viridis_c(option = "A", direction = -1, begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$FloatTrtFreq, na.rm = T),
+                                          max(mod_dat_var$FloatTrtFreq, na.rm = T))),
                         name = "Floating\nmanagement\nfrequency") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -902,7 +918,9 @@ target_fig5 <- ggplot(pred_other_freq, aes(x = Time, y = Pred,
                                 group = OtherTrtFreq)) +
   geom_line() +
   geom_line() +
-  scale_color_viridis_c(option = "A", direction = -1, begin = 0, end = 0.9,
+  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+                        midpoint = mean(c(min(mod_dat_var$OtherTrtFreq, na.rm = T),
+                                          max(mod_dat_var$OtherTrtFreq, na.rm = T))),
                         name = "Other\nmanagement\nfrequency") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
@@ -910,6 +928,7 @@ target_fig5 <- ggplot(pred_other_freq, aes(x = Time, y = Pred,
 
 #### native richness coefficient plots ####
 
+# systemic intensity
 change_sys_ints <- confint(method_mod3a, parm = c("Time", "Time:TrtAreaSys", "Time:TrtAreaSysSq")) %>%
    cbind(tibble(Term = c("c", "b", "a"))) %>%
    select(Term, Estimate) %>%
@@ -938,6 +957,7 @@ pred_sys_ints %>%
   geom_point() +
   facet_wrap(~ Time, scales = "free")
 
+# floating plant PAC
 change_float_pac <- confint(target_mod3b, parm = c("Time", "Time:FloatPAC", "Time:FloatPACSq")) %>%
   cbind(tibble(Term = c("c", "b", "a"))) %>%
   select(Term, Estimate) %>%
@@ -984,3 +1004,89 @@ target_fig <- target_fig1 + target_fig2 + target_fig3 + inset_element(change_flo
 
 ggsave("output/target_figure.png", target_fig,
        width = 7.5, height = 9)
+
+
+#### variations of target model ####
+
+# remove waterbodies with no management
+target_dat3_mgmt <- target_dat3 %>%
+  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0))
+
+# compare number of waterbodies
+n_distinct(target_dat3_mgmt$AreaOfInterestID)
+n_distinct(target_dat3$AreaOfInterestID)
+
+# fit model
+target_mod3_mgmt <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
+                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
+                                                       HydrTrtAreaLog + FloatTrtAreaLog + 
+                                                       OtherTrtArea + OtherTrtAreaSq) +
+                         (1|AreaOfInterestID),
+                       data = target_dat3_mgmt,
+                       family = "poisson",
+                       control=glmmTMBControl(optimizer=optim,
+                                              optArgs=list(method="BFGS")))
+summary(target_mod3_mgmt)
+
+# refit with negative binomial
+# target_mod3a_mgmt <- update(target_mod3_mgmt, family = "nbinom2")
+# couldn't converge
+
+# remove squared terms that aren't needed
+target_mod3b_mgmt <- update(target_mod3_mgmt, .~. -Time:OtherTrtAreaSq)
+
+# compare estimates
+summary(target_mod3b_mgmt)
+summary(target_mod3b)
+# same direction, similar magnitude
+
+# target dataset from "new" management period (used for methods model)
+# remove waterbodies with no management
+target_dat_new2 <- target_dat_new %>%
+  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0)) %>%
+  mutate(HydrPACLog = log(HydrPAC + 0.01),
+         FloatPACSq = FloatPAC^2,
+         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
+         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
+         OtherTrtAreaSq = OtherTrtArea^2)
+
+# compare number of waterbodies
+n_distinct(target_dat_new2$AreaOfInterestID)
+n_distinct(methods_dat3$AreaOfInterestID)
+# same
+
+# compare sample size
+nrow(target_dat_new2)
+nrow(methods_dat3)
+# same
+
+# fit model
+target_mod3_new <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
+                                                            HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
+                                                            HydrTrtAreaLog + FloatTrtAreaLog + 
+                                                            OtherTrtArea + OtherTrtAreaSq) +
+                              (1|AreaOfInterestID),
+                            data = target_dat_new2,
+                            family = "poisson",
+                            control=glmmTMBControl(optimizer=optim,
+                                                   optArgs=list(method="BFGS")))
+
+# refit with negative binomial
+# target_mod3a_new <- update(target_mod3_new, family = "nbinom2")
+# couldn't converge
+
+# squared term significance are different - keep all in for comparison
+summary(target_mod3_new)
+summary(target_mod3b)
+
+# comparison with same terms
+target_mod3b_new <- update(target_mod3_new, .~. -Time:OtherTrtAreaSq)
+summary(target_mod3b_new)
+summary(target_mod3b)
+
+# export tables
+tidy(target_mod3b_mgmt) %>%
+  write_csv("output/target_model_all_mgmt_summary.csv")
+
+tidy(target_mod3b_new) %>%
+  write_csv("output/target_model_new_mgmt_summary.csv")
