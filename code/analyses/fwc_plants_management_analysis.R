@@ -46,7 +46,8 @@ target_dat_var %>%
 # order factors
 target_dat2 <- target_dat %>%
   mutate(across(.cols = ends_with("F"), 
-                .fns = ~ fct_relevel(.x, "none", "low")))
+                .fns = ~ fct_relevel(.x, "none", "low")),
+         SurveyDay = yday(SurveyDate))
 
 
 #### examine newer data ####
@@ -82,6 +83,40 @@ methods_dat2 <- methods_dat %>%
   mutate(across(.cols = (!starts_with("TrtMonth") & ends_with("F")), 
                 .fns = ~ fct_relevel(.x, "none", "low")),
          TrtMonthF = fct_relevel(TrtMonthF, "Q2", "Q3", "Q4", "Q1"))
+
+
+#### survey date ####
+
+# change in survey dates over time
+day_mod1 <- glmmTMB(SurveyDay ~ Time + (1|AreaOfInterestID), data = target_dat2,
+                    family = poisson)
+day_res1 <- simulateResiduals(day_mod1, n = 1000)
+plot(day_res1) # need to refit
+
+day_mod2 <- update(day_mod1, family = "nbinom1")
+day_res2 <- simulateResiduals(day_mod2, n = 1000)
+plot(day_res2) # better
+
+day_mod3 <- update(day_mod1, family = "nbinom2")
+day_res3 <- simulateResiduals(day_mod3, n = 1000)
+plot(day_res3) # same as above
+
+summary(day_mod2)
+
+# visualize
+day_pred <- tibble(Time = min(target_dat2$Time):max(target_dat2$Time),
+                   AreaOfInterestID = "A") %>%
+  mutate(PredSurveyDay = predict(day_mod2, newdata = ., type = "response",
+                                 allow.new.levels = T),
+         PredSurveyDaySE = predict(day_mod2, newdata = ., type = "response",
+                                   allow.new.levels = T, se.fit = T)$se.fit)
+
+ggplot(day_pred, aes(x = Time, y = PredSurveyDay)) +
+  geom_ribbon(aes(ymin = PredSurveyDay - PredSurveyDaySE,
+                  ymax = PredSurveyDay + PredSurveyDaySE),
+              alpha = 0.5) +
+  geom_line() +
+  def_theme_paper
 
 
 #### management efficacy models ####
