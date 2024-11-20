@@ -406,9 +406,12 @@ waterbodies_new <- plants_new %>%
 mgmt_new2 <- mgmt_new %>%
   inner_join(waterbodies_new) %>%
   filter(TreatmentYear >= MinSurveyYear & TreatmentYear <= MaxSurveyYear) %>%
-  mutate(SpecificMethod = case_when(!is.na(MechanismOfAction) ~ str_to_lower(MechanismOfAction),
-                            !is.na(ControlMethod) ~ str_to_lower(ControlMethod), # format these names
-                            TRUE ~ "unknown"),
+  mutate(SpecificMethod = if_else(!is.na(ControlMethod), 
+                                  str_to_lower(ControlMethod) %>%
+                                    str_remove("\\(granular\\)") %>%
+                                    str_remove("\\(liquid\\)") %>%
+                                    str_remove("\\(for shading\\)"),
+                                  "unknown"),
          Method = case_when(MethodHerbicide == "yes" & Contact == 1 ~ "Con", # contact
                             MethodHerbicide == "yes" & Contact == 0 ~ "Sys", # systemtic
                             MethodHerbicide == "no" ~ "Non", # non-herbicide
@@ -433,6 +436,15 @@ ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear),
   geom_col() +
   theme_bw()
 # add names as text on last bar for clarity if using
+
+
+# text
+mgmt_new2 %>%
+  distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
+           TreatmentYear, Method, SpecificMethod) %>%
+  count(SpecificMethod, Method) %>%
+  arrange(desc(n)) %>%
+  data.frame()
 
 # broader management methods
 mgmt_methods_sum2 <- mgmt_new2 %>%
