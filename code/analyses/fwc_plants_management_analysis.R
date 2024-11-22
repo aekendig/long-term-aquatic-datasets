@@ -929,7 +929,7 @@ target_fig3 <- ggplot(pred_float_pac, aes(x = Time, y = Pred,
   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
                         midpoint = mean(c(min(mod_dat_var$FloatPAC, na.rm = T),
                                           max(mod_dat_var$FloatPAC, na.rm = T))),
-                        name = "Floating plant\nPAC") +
+                        name = "Floating\nplant\ncover") +
   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
   def_theme_paper
 
@@ -1004,7 +1004,7 @@ change_float_pac <- confint(target_mod3b, parm = c("Time", "Time:FloatPAC", "Tim
 change_float_pac_fig <- ggplot(change_float_pac, aes(x = PAC, y = ExpChange)) +
   geom_point() +
   scale_y_continuous(breaks = 1) +
-  labs(x = "PAC", y = "Rate of change") + 
+  labs(x = "Cover", y = "Rate of change") + 
   def_theme_paper +
   theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
         axis.title = element_text(size = 8))

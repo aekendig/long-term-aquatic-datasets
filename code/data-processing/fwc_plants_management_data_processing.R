@@ -244,7 +244,7 @@ mgmt_targets_sum <- mgmt3 %>%
   mutate(Target = fct_recode(Target,
                              "*Hydrilla verticillata*" = "Hydr",
                              "floating plants" = "Float",
-                             "other" = "Other"))
+                             "other plants" = "Other"))
 
 # visualize
 mgmt_time_fig <- ggplot(mgmt_targets_sum, aes(x = TreatmentYear, y = n, color = Target)) +
@@ -293,7 +293,7 @@ mgmt_other_fig <- mgmt_targets_other %>%
   filter(n >= 20) %>%
   ggplot(aes(y = Taxon, x = n)) +
   geom_col(fill = "#7570b3") +
-  labs(y = "Other targets", x = "Number of management events") +
+  labs(y = "Other plants", x = "Number of management events") +
   def_theme_paper +
   theme(axis.text.y = element_markdown())
 
