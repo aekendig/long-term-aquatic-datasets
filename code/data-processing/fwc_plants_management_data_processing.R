@@ -437,7 +437,6 @@ ggplot(mgmt_methods_sum, aes(x = as.character(TreatmentYear),
   theme_bw()
 # add names as text on last bar for clarity if using
 
-
 # text
 mgmt_new2 %>%
   distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County, 
@@ -718,6 +717,24 @@ write_csv(methods_taxa_dat, "intermediate-data/FWC_plant_management_methods_taxa
 #### values for text ####
 
 # summarize taxa by habitat
-methods_taxa_dat2 %>%
-  distinct(TaxonName, Habitat) %>%
-  count(Habitat)
+plants3 %>%
+  distinct(TaxonName, Origin, Habitat) %>%
+  count(Origin, Habitat)
+
+plants_new %>%
+  distinct(TaxonName, Origin, Habitat) %>%
+  count(Origin, Habitat)
+
+# table of taxa in surveys
+plants3 %>%
+  distinct(TaxonName, Origin, Habitat) %>%
+  full_join(plants_new %>%
+              distinct(TaxonName, Origin, Habitat)) %>%
+  mutate(Habitat = tolower(Habitat) %>%
+           fct_recode("emergent" = "emersed") %>%
+           fct_relevel("submersed"),
+         Origin = tolower(Origin) %>%
+           fct_recode("non-native" = "exotic") %>%
+           fct_relevel("native")) %>%
+  arrange(Origin, Habitat, TaxonName) %>%
+  write_csv("output/surveyed_taxa_table.csv")

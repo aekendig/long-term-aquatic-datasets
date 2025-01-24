@@ -1125,15 +1125,3 @@ tidy(target_mod3b_mgmt) %>%
 
 tidy(target_mod3b_new) %>%
   write_csv("output/target_model_new_mgmt_summary.csv")
-
-
-#### list of native taxa ####
-
-# both datasets should be 83 species
-methods_taxa_dat2 %>%
-  distinct(TaxonName, Habitat) %>%
-  full_join(target_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  mutate(Habitat = fct_relevel(Habitat, "submersed")) %>%
-  arrange(Habitat, TaxonName) %>%
-  write_csv("output/native_taxa_table.csv")
