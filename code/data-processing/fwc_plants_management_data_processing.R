@@ -8,6 +8,7 @@ library(tidyverse)
 library(janitor)
 library(ggtext)
 library(patchwork)
+library(khroma)
 
 # figure settings
 source("code/settings/figure_settings.R")

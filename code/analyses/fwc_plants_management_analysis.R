@@ -12,6 +12,7 @@ library(GGally)
 library(betareg)
 library(janitor)
 library(patchwork)
+library(khroma)
 
 # figure settings
 source("code/settings/figure_settings.R")
@@ -25,6 +26,7 @@ target_dat_new <- read_csv("intermediate-data/FWC_plant_management_new_target_an
 
 
 #### examine full dataset ####
+
 target_dat_var <- target_dat %>%
   select(AreaOfInterestID, HydrPAC, FloatPAC, HydrTrtFreq, HydrTrtArea, FloatTrtFreq, FloatTrtArea,
            OtherTrtFreq, OtherTrtArea, ends_with("F")) %>%
@@ -63,6 +65,7 @@ methods_dat %>%
 # TrtFreqSys & TrtFreqCon: 0.6
 # visual patterns aren't super strong
 
+# quarter-specific frequency/intensity
 methods_dat %>%
   select(c(AreaOfInterestID, ends_with(c("Q1", "Q2", "Q3", "Q4")))) %>%
   distinct() %>%
@@ -72,13 +75,14 @@ methods_dat %>%
 # TrtFreqQ1 and Q2: 0.7 (visible)
 # TrtFreqQ1 and Q3: 0.7 (visible)
 # TrtFreqQ1 and Q4: 0.7 (visible)
-# lots more --> just use average month
+# lots more correlated --> just use average month
 
-# quarter to set as intercept in categorical model
+# decide quarter to set as intercept in categorical model
 methods_dat %>%
   distinct(AreaOfInterestID, TrtMonthF) %>%
   count(TrtMonthF)
 
+# rearrange factor levels
 methods_dat2 <- methods_dat %>%
   mutate(across(.cols = (!starts_with("TrtMonth") & ends_with("F")), 
                 .fns = ~ fct_relevel(.x, "none", "low")),
@@ -103,7 +107,7 @@ plot(day_res3) # same as above
 
 summary(day_mod2)
 
-# visualize
+# model predictions
 day_pred <- tibble(Time = min(target_dat2$Time):max(target_dat2$Time),
                    AreaOfInterestID = "A") %>%
   mutate(PredSurveyDay = predict(day_mod2, newdata = ., type = "response",
@@ -111,6 +115,7 @@ day_pred <- tibble(Time = min(target_dat2$Time):max(target_dat2$Time),
          PredSurveyDaySE = predict(day_mod2, newdata = ., type = "response",
                                    allow.new.levels = T, se.fit = T)$se.fit)
 
+# visualize
 ggplot(day_pred, aes(x = Time, y = PredSurveyDay)) +
   geom_ribbon(aes(ymin = PredSurveyDay - PredSurveyDaySE,
                   ymax = PredSurveyDay + PredSurveyDaySE),
@@ -161,6 +166,55 @@ summary(float_mod3)
 float_mod4 <- betareg(FloatProp ~ FloatTrtFreq + FloatTrtArea, data = target_dat_var2)
 plot(float_mod4)
 summary(float_mod4)
+
+
+#### native richness model function ####
+
+# combine model variables without time component
+mod_dat_var <- methods_dat2 %>%
+  distinct(AreaOfInterestID, TrtAreaCon, TrtAreaSys, TrtAreaNon,
+           TrtFreqCon, TrtFreqSys, TrtFreqNon, 
+           TrtMonth) %>%
+  full_join(target_dat2 %>%
+              distinct(AreaOfInterestID, HydrPAC, FloatPAC,
+                       HydrTrtFreq, FloatTrtFreq, OtherTrtFreq,
+                       HydrTrtArea, FloatTrtArea, OtherTrtArea))
+
+# function for native plant model predictions
+pred_fun <- function(variable, model, dat){
+  
+  pred_dat <- tibble(AreaOfInterestID = "A",
+                     Time = max(dat$Time),
+                     TrtAreaCon = 0, 
+                     TrtAreaSys = 0, 
+                     TrtAreaNon = 0,
+                     TrtFreqCon = 0, 
+                     TrtFreqSys = 0, 
+                     TrtFreqNon = 0, 
+                     TrtMonthStd = 0,
+                     HydrPAC = mean(mod_dat_var$HydrPAC), 
+                     FloatPAC = mean(mod_dat_var$FloatPAC),
+                     HydrTrtFreq = 0, 
+                     FloatTrtFreq = 0, 
+                     OtherTrtFreq = 0,
+                     HydrTrtArea = 0, 
+                     FloatTrtArea = 0, 
+                     OtherTrtArea = 0) %>%
+    select(-{{variable}}) %>%
+    expand_grid(mod_dat_var%>%
+                  filter(!is.na({{variable}}))  %>%
+                  distinct({{variable}})) %>%
+    mutate(across(.cols = -c(AreaOfInterestID, Time), 
+                  .fns = list(Sq = ~.x^2, Log = ~log(.x + 0.01)),
+                  .names = "{.col}{.fn}")) %>%
+    mutate(Pred = predict(model, newdata = ., type = "response",
+                          allow.new.levels = T),
+           PredSE = predict(model, newdata = ., type = "response",
+                            allow.new.levels = T, se.fit = T)$se.fit)
+  
+  return(pred_dat)
+  
+}
 
 
 #### native richness methods model ####
@@ -231,13 +285,75 @@ method_res3a <- simulateResiduals(method_mod3a, n = 1000)
 plot(method_res3a)
 summary(method_mod3a)
 
-# better fit with negative binomial?
-method_mod3b <- update(method_mod3a, family = "nbinom1") 
+# evaluate non-linear effect of systemic area
+method_pred_TrtAreaSys <- pred_fun(TrtAreaSys, method_mod3a, methods_dat3)
+method_pred_TrtAreaSys %>%
+  filter(Time == max(Time)) %>%
+  ggplot(aes(TrtAreaSys, Pred)) +
+  geom_point()
+methods_dat %>%
+  filter(TrtAreaSys > 50 & Time == max(Time)) %>%
+  select(AreaOfInterestID, TrtAreaSys, NativeRichness)
+# 3 points
+
+# evaluate non-linear effect of contact frequency
+method_pred_TrtFreqCon <- pred_fun(TrtFreqCon, method_mod3a, methods_dat3)
+method_pred_TrtFreqCon %>%
+  filter(Time == max(Time)) %>%
+  ggplot(aes(TrtFreqCon, Pred)) +
+  geom_point()
+methods_dat %>%
+  filter(TrtFreqCon < 25 & Time == max(Time)) %>%
+  group_by(TrtFreqCon) %>%
+  summarize(n = n(),
+            NativeRichness = mean(NativeRichness))
+# there are a lot of points, but it's non significant
+
+# remove squared term
+method_mod3b <- update(method_mod3a, .~. -Time:TrtAreaSysSq)
+method_res3b <- simulateResiduals(method_mod3b, n = 1000)
+plot(method_res3b)
 summary(method_mod3b)
-# convergence problem with both nbinom1 and 2
-# note dispersion parameter explanation in family_glmmTMB
-# couldn't fit with method_mod3 either
-# dispersion parameter is very small (1*10^-7), which could cause it
+
+# remove log-transformation
+method_mod3c <- update(method_mod3b, .~. -Time:TrtFreqConLog + Time:TrtFreqCon)
+method_res3c <- simulateResiduals(method_mod3c, n = 1000)
+plot(method_res3c)
+summary(method_mod3c)
+
+# negative binomial response dist.
+method_mod3d <- update(method_mod3c, family = "nbinom2") 
+method_res3d <- simulateResiduals(method_mod3d, n = 1000)
+plot(method_res3d)
+summary(method_mod3d)
+# similar diagnostics and estimates
+
+# data for figures
+cont_ext_fig_dat <- pred_fun(TrtAreaCon, method_mod3d, methods_dat3)
+sys_ext_fig_dat <- pred_fun(TrtAreaSys, method_mod3d, methods_dat3)
+non_freq_fig_dat <- pred_fun(TrtFreqNon, method_mod3d, methods_dat3)
+
+# figures
+cont_ext_fig <- ggplot(cont_ext_fig_dat, aes(x = TrtAreaCon, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Contact herbicide extent",
+       y = "Native plant richness") +
+  def_theme_paper
+
+sys_ext_fig <- ggplot(sys_ext_fig_dat, aes(x = TrtAreaSys, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Systemic herbicide extent",
+       y = "Native plant richness") +
+  def_theme_paper
+
+non_freq_fig <- ggplot(non_freq_fig_dat, aes(x = TrtFreqNon, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Non-herbicide frequency",
+       y = "Native plant richness") +
+  def_theme_paper
 
 
 #### taxon-specific methods models ####
@@ -247,7 +363,6 @@ summary(method_mod3b)
 methods_taxa_dat2 <- methods_taxa_dat %>%
   filter(Origin == "Native") %>%
   mutate(TrtFreqConLog = log(TrtFreqCon + 0.01),
-         TrtAreaSysSq = TrtAreaSys^2,
          TrtMonthStd = TrtMonth - trt_month_avg,
          Habitat = tolower(Habitat) %>%
            fct_recode("emergent" = "emersed"))
@@ -272,15 +387,14 @@ i <- 1
 methods_taxa_sub <- filter(methods_taxa_dat2, TaxonName == methods_taxa[i])
 
 # fit model
-methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(TrtAreaCon + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
-                                                      TrtFreqConLog + TrtFreqSys + TrtFreqNon +
+methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(TrtAreaCon + TrtAreaSys + TrtAreaNon +
+                                                      TrtFreqCon + TrtFreqSys + TrtFreqNon +
                                                       TrtMonthStd) + (1|AreaOfInterestID),
                                   data = methods_taxa_sub, family = "binomial")
 
 # use this to manually cycle through taxa (some models had warnings below)
-i <- i + 1
+# i <- i + 1
 # taxa with model convergence issues:
-# 22: Fontinalis spp.
 # 43: Najas marina
 
 # # look at models
@@ -302,14 +416,14 @@ methods_taxa_coefs <- tidy(methods_taxa_mod) %>%
 # loop through taxa
 pdf("output/taxa_specific_methods_models.pdf")
 
-for(i in methods_taxa[-c(22, 43)]) {
+for(i in methods_taxa[-43]) {
   
   # subset data
   methods_taxa_sub <- filter(methods_taxa_dat2, TaxonName == i)
   
   # fit model
-  methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(TrtAreaCon + TrtAreaSys + TrtAreaSysSq + TrtAreaNon +
-                                                        TrtFreqConLog + TrtFreqSys + TrtFreqNon +
+  methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(TrtAreaCon + TrtAreaSys + TrtAreaNon +
+                                                        TrtFreqCon + TrtFreqSys + TrtFreqNon +
                                                         TrtMonthStd) + (1|AreaOfInterestID),
                               data = methods_taxa_sub, family = "binomial")
   
@@ -338,8 +452,7 @@ write_csv(methods_taxa_coefs, "output/methods_model_taxa_coefficients.csv")
 # import if needed
 # methods_taxa_coefs <- read_csv("output/methods_model_taxa_coefficients.csv")
 
-# correct p-values
-# remove taxon that the estimates didn't work
+# correct p-values for interaction terms
 methods_taxa_coefs2 <- methods_taxa_coefs %>%
   filter(str_detect(term, "Time:")) %>%
   mutate(q.value = p.adjust(p.value, method = "fdr"),
@@ -354,111 +467,79 @@ write_csv(methods_taxa_coefs2, "output/methods_model_taxa_interaction_coefficien
 # import if needed
 # methods_taxa_coefs2 <- read_csv("output/methods_model_taxa_interaction_coefficients.csv")
 
-# contact herbicide intensity
-taxa_cont_ints <- methods_taxa_coefs2 %>%
-  filter(q.value < 0.05 & term == "Time:TrtAreaCon") %>% 
-  select(TaxonName, estimate, std.error, q.value) %>%
+# significant interactions
+methods_taxa_coefs3 <- methods_taxa_coefs2 %>%
+  filter(q.value < 0.05) %>% 
+  select(TaxonName, estimate, std.error, q.value, term) %>%
   left_join(methods_taxa_dat2 %>%
               distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1)
+  relocate(Habitat) %>%
+  mutate(Habitat = fct_relevel(Habitat, "floating"))
 
-write_csv(taxa_cont_ints, "output/methods_model_taxa_contact_intensity_interaction_table.csv")
+# significant coefficients table
+methods_taxa_tab <- methods_taxa_coefs3 %>%
+  mutate(across(.cols = c(estimate, std.error, q.value), .fns = ~round_half_up(.x, 3)),
+         q.value = if_else(q.value == 0, "< 0.001", as.character(q.value)),
+         response = paste0(estimate, " (", std.error, ")\n", q.value),
+         term = str_remove(term, "Time:Trt")) %>%
+  select(Habitat, TaxonName, response, term) %>%
+  pivot_wider(names_from = "term",
+              values_from = "response") %>%
+  arrange(Habitat, TaxonName) %>%
+  relocate(c(FreqCon, AreaCon, FreqSys, AreaSys, FreqNon, AreaNon, MonthStd), .after = TaxonName) %>%
+  mutate(across(.cols = c(FreqCon, AreaCon, FreqSys, AreaSys, FreqNon, AreaNon, MonthStd),
+                .fns = ~replace_na(.x, "")),
+         TaxonName = str_replace_all(TaxonName, " ", "\n") %>%
+           str_replace_all("\\/", "\\/\n"))
 
-# systemic herbicide intensity
-taxa_sys_ints <- methods_taxa_coefs2 %>%
-  filter(term == "Time:TrtAreaSys") %>%
-  select(TaxonName, estimate, std.error, q.value) %>%
-  rename_with(~ paste0("intensity_", .), .cols = -TaxonName) %>%
-  right_join(methods_taxa_coefs2 %>%
-               filter(q.value < 0.05 & term == "Time:TrtAreaSysSq") %>% 
-               select(TaxonName, estimate, std.error, q.value) %>%
-               rename_with(~ paste0("intensity2_", .), .cols = -TaxonName)) %>%
-  full_join(methods_taxa_coefs2 %>%
-              filter(q.value < 0.05 & term == "Time:TrtAreaSys") %>%
-              select(TaxonName, estimate, std.error, q.value) %>%
-              rename_with(~ paste0("intensity_", .), .cols = -TaxonName) %>%
-              left_join(methods_taxa_coefs2 %>%
-                           filter(term == "Time:TrtAreaSysSq") %>% 
-                           select(TaxonName, estimate, std.error, q.value) %>%
-                           rename_with(~ paste0("intensity2_", .), .cols = -TaxonName))) %>%
-  left_join(methods_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1) %>%
-  arrange(TaxonName)
+write_csv(methods_taxa_tab, "output/methods_model_taxa_interactions_table.csv")
 
-write_csv(taxa_sys_ints , "output/methods_model_taxa_systemic_intensity_interaction_table.csv")
-
-# non-herbicide frequency
-taxa_non_freq <- methods_taxa_coefs2 %>%
-  filter(q.value < 0.05 & term == "Time:TrtFreqNon") %>% 
-  select(TaxonName, estimate, std.error, q.value) %>%
-  left_join(methods_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1)
-
-write_csv(taxa_non_freq, "output/methods_model_taxa_nonherbicide_frequency_interaction_table.csv")
-
-# format estimates
-# squared: choose squared estimate if significant, linear if not; make long
-# add estimates that don't have tables
-method_taxa_est <- taxa_cont_ints %>%
-  mutate(term = "contact\nherbicide\nintensity") %>%
-  full_join(taxa_sys_ints %>%
-              mutate(intensity_estimate = if_else(intensity2_q.value < 0.05, NA_real_,
-                                                  intensity_estimate),
-                     intensity2_estimate = if_else(intensity2_q.value < 0.05, intensity2_estimate,
-                                                   NA_real_)) %>%
-              pivot_longer(cols = starts_with("intensity"),
-                          names_to = c("term", ".value"),
-                          names_sep = "_") %>%
-              mutate(term = fct_recode(term,
-                                       "systemic\nherbicide\nintensity" = "intensity",
-                                       "squared\nsystemic\nherbicide\nintensity" = "intensity2")) %>%
-              filter(!is.na(estimate))) %>%
-  full_join(taxa_non_freq %>%
-              mutate(term = "non-\nherbicide\nfrequency")) %>%
-  full_join(methods_taxa_coefs2 %>%
-              filter(q.value < 0.05 & term %in% c("Time:TrtAreaNon",
-                                                  "Time:TrtFreqConLog",
-                                                  "Time:TrtFreqSys",
-                                                  "Time:TrtMonthStd")) %>% 
-              select(TaxonName, estimate, std.error, q.value, term) %>%
-              left_join(methods_taxa_dat2 %>%
-                          distinct(TaxonName, Habitat)) %>%
-              relocate(Habitat, .after = 1) %>%
-              mutate(term = fct_recode(term,
-                                       "non-\nherbicide\nintensity" = "Time:TrtAreaNon",
-                                       "contact\nherbicide\nfrequency" = "Time:TrtFreqConLog",
-                                       "systemic\nherbicide\nfrequency" = "Time:TrtFreqSys",
-                                       "average\nmanagement\nmonth" = "Time:TrtMonthStd"))) %>%
-  mutate(sign = if_else(estimate > 0, "pos", "neg")) %>%
+# format estimates for figure
+method_taxa_est <- methods_taxa_coefs3 %>%
+  mutate(term = fct_recode(term,
+                           "contact\nherbicide\nextent" = "Time:TrtAreaCon",
+                           "systemic\nherbicide\nextent" = "Time:TrtAreaSys",
+                           "non-\nherbicide\nextent" = "Time:TrtAreaNon",
+                           "contact\nherbicide\nfrequency" = "Time:TrtFreqCon",
+                           "systemic\nherbicide\nfrequency" = "Time:TrtFreqSys",
+                           "non-\nherbicide\nfrequency" = "Time:TrtFreqNon",
+                           "average\nmanagement\nmonth" = "Time:TrtMonthStd"),
+         sign = if_else(estimate > 0, "pos", "neg")) %>%
   count(term, sign, Habitat) %>%
-  mutate(Habitat = fct_relevel(Habitat, "floating"),
+  complete(term, sign, Habitat) %>%
+  mutate(n = replace_na(n, 0),
          n = if_else(sign == "neg", -1 * n, n),
          term = fct_relevel(term, 
                             "contact\nherbicide\nfrequency",
-                            "contact\nherbicide\nintensity",
+                            "contact\nherbicide\nextent",
                             "systemic\nherbicide\nfrequency",
-                            "systemic\nherbicide\nintensity",
-                            "squared\nsystemic\nherbicide\nintensity",
+                            "systemic\nherbicide\nextent",
                             "non-\nherbicide\nfrequency",
-                            "non-\nherbicide\nintensity",
+                            "non-\nherbicide\nextent",
                             "average\nmanagement\nmonth"))
 
+# figure
 taxa_method_fig <- ggplot(method_taxa_est,
        aes(x = term, y = n, fill = Habitat)) +
-  geom_col() +
+  geom_col(position = position_dodge()) +
   geom_hline(yintercept = 0, linewidth = 0.25) +
-  scale_fill_brewer(type = "qual", palette = "Dark2",
-                    name = "Growth form") +
+  scale_fill_manual(values = colour("muted")(7)[c(7, 5, 3)]) +
+  # scale_fill_brewer(type = "qual", palette = "Dark2",
+  #                   name = "Growth form") +
   labs(x = "Covariate interaction with time",
-       y = "Number of taxa (in direction of response)") +
+       y = "Number of taxa\n(in direction of response)") +
   def_theme_paper +
   theme(legend.position = "inside",
-        legend.position.inside = c(0.85, 0.2))
+        legend.position.inside = c(0.24, 0.78))
 
-ggsave("output/taxa_method_figure.png", taxa_method_fig,
-       width = 6, height = 4)
+# combine figures
+method_fig <- (cont_ext_fig + sys_ext_fig + non_freq_fig) /
+  taxa_method_fig +
+  plot_layout(heights = c(0.9, 1)) &
+  plot_annotation(tag_levels = "A")
+
+ggsave("output/method_figure.png", method_fig,
+       width = 6.5, height = 5.5)
 
 
 #### native richness target model ####
@@ -808,52 +889,6 @@ ggsave("output/taxa_target_figure.png", taxa_target_fig,
 
 
 #### native richness predicted values ####
-
-# remove time component
-mod_dat_var <- methods_dat2 %>%
-  distinct(AreaOfInterestID, TrtAreaCon, TrtAreaSys, TrtAreaNon,
-           TrtFreqCon, TrtFreqSys, TrtFreqNon, 
-           TrtMonth) %>%
-  full_join(target_dat2 %>%
-  distinct(AreaOfInterestID, HydrPAC, FloatPAC,
-           HydrTrtFreq, FloatTrtFreq, OtherTrtFreq,
-           HydrTrtArea, FloatTrtArea, OtherTrtArea))
-
-# function for predictions
-pred_fun <- function(variable, model, dat){
-  
-  pred_dat <- tibble(AreaOfInterestID = "A",
-                     Time = min(dat$Time):max(dat$Time),
-                     TrtAreaCon = 0, 
-                     TrtAreaSys = 0, 
-                     TrtAreaNon = 0,
-                     TrtFreqCon = 0, 
-                     TrtFreqSys = 0, 
-                     TrtFreqNon = 0, 
-                     TrtMonthStd = 0,
-                     HydrPAC = mean(mod_dat_var$HydrPAC), 
-                     FloatPAC = mean(mod_dat_var$FloatPAC),
-                     HydrTrtFreq = 0, 
-                     FloatTrtFreq = 0, 
-                     OtherTrtFreq = 0,
-                     HydrTrtArea = 0, 
-                     FloatTrtArea = 0, 
-                     OtherTrtArea = 0) %>%
-    select(-{{variable}}) %>%
-    expand_grid(mod_dat_var%>%
-                  filter(!is.na({{variable}}))  %>%
-                  distinct({{variable}})) %>%
-    mutate(across(.cols = -c(AreaOfInterestID, Time), 
-                  .fns = list(Sq = ~.x^2, Log = ~log(.x + 0.01)),
-                  .names = "{.col}{.fn}")) %>%
-    mutate(Pred = predict(model, newdata = ., type = "response",
-                          allow.new.levels = T),
-           PredSE = predict(model, newdata = ., type = "response",
-                          allow.new.levels = T, se.fit = T)$se.fit)
-  
-  return(pred_dat)
-  
-}
 
 # contact herb intensity
 pred_cont_ints <- pred_fun(TrtAreaCon, method_mod3a, methods_dat3)
