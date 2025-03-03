@@ -17,6 +17,7 @@ source("code/settings/figure_settings.R")
 plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 mgmt <- read_csv("intermediate-data/FWC_management_formatted.csv")
 key_all_pres <- read_csv("original-data/FWC_plant_survey_key_all_presence.csv") # surveys of all species + acreage of three focal invasives
+methods_comp <- read_csv("intermediate-data/fwc_double_sampling_data.csv")
 
 # function to divide data into categories
 div_fun <- function(dat, orig_dat, colName){
@@ -252,7 +253,7 @@ mgmt_time_fig <- ggplot(mgmt_targets_sum, aes(x = TreatmentYear, y = n, color = 
   geom_line() + 
   geom_point() +
   # geom_smooth(method = "lm", se = F) +
-  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_color_manual(values = colour("muted")(7)[c(7, 3, 5)]) +
   labs(x = "Year", y = "Number of waterbodies managed") +
   def_theme_paper +
   theme(legend.position = "inside",
@@ -293,7 +294,7 @@ ggplot(mgmt_targets_other, aes(y = Taxon, x = n)) +
 mgmt_other_fig <- mgmt_targets_other %>%
   filter(n >= 20) %>%
   ggplot(aes(y = Taxon, x = n)) +
-  geom_col(fill = "#7570b3") +
+  geom_col(fill = colour("muted")(5)[5]) +
   labs(y = "Other plants", x = "Number of management events") +
   def_theme_paper +
   theme(axis.text.y = element_markdown())
@@ -301,10 +302,14 @@ mgmt_other_fig <- mgmt_targets_other %>%
 # save figures
 mgmt_target_fig <- mgmt_time_fig + mgmt_other_fig +
   plot_layout(nrow = 1, widths = c(1, 0.7)) +
-  plot_annotation(tag_levels = "A")
+  plot_annotation(tag_levels = "a", tag_prefix = "(",
+                  tag_suffix = ")") & 
+  theme(plot.tag.position = c(0, 1),
+        plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
 
 ggsave("output/management_target_time_series.png",
-       mgmt_target_fig, width = 7.5, height = 4)
+       mgmt_target_fig, width = 18, height = 9,
+       units = "cm", dpi = 600)
 
 # summarize by waterbody and Target
 mgmt_sum <- mgmt3 %>%
@@ -462,25 +467,26 @@ mgmt_methods_sum2 <- mgmt_new2 %>%
                              "Floating plants" = "Float",
                              "*Hydrilla verticillata*" = "Hydr",
                              "Other plants" = "Other") %>%
-           fct_relevel("*Hydrilla verticillata*"),
-         TreatmentYear = paste0("'", str_sub(TreatmentYear, 3, 4)))
+           fct_relevel("*Hydrilla verticillata*"))
 
-mgmt_methods_fig <- ggplot(mgmt_methods_sum2, 
-       aes(x = TreatmentYear,
-           y = Prop, fill = Method)) +
-  geom_col() +
+mgmt_methods_fig <- mgmt_methods_sum2 %>%
+  filter(Method != "unknown") %>%
+  ggplot(aes(x = as.character(TreatmentYear),
+                               y = Prop, fill = Method)) +
+  geom_col(color = "white", linewidth = 0.2) +
   facet_wrap(~ Target) +
-  scale_fill_brewer(type = "qual", palette = "Dark2") +
-  labs(x = "Year (20XX)", y = "Proportion of management events") +
+  scale_fill_manual(values = colour("muted")(7)[c(7, 5, 3)]) +
+  labs(x = "Year", y = "Proportion of management events") +
   def_theme_paper +
   theme(strip.text = element_markdown(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "inside",
         legend.position.inside = c(0.114, 0.7),
         legend.background = element_rect(fill = "white", color = NA),
         legend.margin = margin(0, 0, 0, 0, unit = "cm"))
 
 ggsave("output/management_methods_time_series.png",
-       mgmt_methods_fig, width = 6, height = 3)
+       mgmt_methods_fig, width = 18, height = 9.5, units = "cm", dpi = 600)
 
 # have any lakes with hydrilla management been only non-herbicide?
 mgmt_methods %>%
@@ -705,6 +711,51 @@ target_dat_new <- plant_sum_new %>%
   full_join(mgmt_sum_new) %>%
   mutate(Time = SurveyYear - min(SurveyYear))
 
+# waterbody list
+permID <- target_dat %>%
+  distinct(PermanentID) %>%
+  mutate(x = NA, y = NA)
+# this include perm ids from all other datasets
+
+
+#### timeline figure ####
+
+# create dataset
+timeline_dat <- target_dat %>%
+  summarize(startYear = min(SurveyYear),
+            endYear = max(SurveyYear),
+            midYear = (endYear + startYear) / 2,
+            waterbodies = n_distinct(AreaOfInterestID)) %>%
+  mutate(dataset = "full") %>%
+  full_join(methods_dat %>%
+              summarize(startYear = min(SurveyYear),
+                        endYear = max(SurveyYear),
+                        midYear = (endYear + startYear) / 2,
+                        waterbodies = n_distinct(AreaOfInterestID)) %>%
+              mutate(dataset = "detailed\nmgmt.\nrecords")) %>%
+  full_join(methods_comp %>%
+              summarize(startYear = min(fwc_Year),
+                        endYear = max(fwc_Year),
+                        midYear = (endYear + startYear) / 2,
+                        waterbodies = n_distinct(PermanentID)) %>%
+              mutate(dataset = "methods\ncomparison")) %>%
+  mutate(dataset = fct_relevel(dataset,
+                               "methods\ncomparison", "detailed\nmgmt.\nrecords", "full"))
+
+# figure
+timeline_fig <- ggplot(timeline_dat, aes(y = dataset)) +
+  geom_segment(aes(x = startYear, xend = endYear, color = dataset),
+               linewidth = 15) +
+  geom_text(aes(x = midYear, label = waterbodies), size = paper_text_size) +
+  scale_color_manual(values = colour("muted")(7)[c(3, 5, 7)]) +
+  labs(x = "Year", y = "Dataset") +
+  def_theme_paper +
+  theme(legend.position = "none",
+        axis.text.x = element_text(hjust = 0.8))
+
+ggsave("output/dataset_timeline.png", timeline_fig, 
+       width = 9, height = 5, units = "cm", dpi = 600)
+
 
 #### save data ####
 
@@ -713,6 +764,7 @@ write_csv(target_dat_new, "intermediate-data/FWC_plant_management_new_target_ana
 write_csv(target_taxa_dat, "intermediate-data/FWC_plant_management_target_taxa_analysis_formatted.csv")
 write_csv(methods_dat, "intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
 write_csv(methods_taxa_dat, "intermediate-data/FWC_plant_management_methods_taxa_analysis_formatted.csv")
+write_csv(permID, "intermediate-data/FWC_plant_management_permanent_IDs.csv")
 
 
 #### values for text ####

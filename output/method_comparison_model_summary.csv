@@ -1,0 +1,6 @@
+effect,component,group,term,estimate,std.error,statistic,p.value
+fixed,cond,NA,(Intercept),12.574861644894918,0.9325753849135577,13.484016250397287,1.9423896668928492e-41
+fixed,cond,NA,DateDiff,0.007256242133887826,0.006440816742959074,1.126602793321228,0.2599104575878218
+ran_pars,cond,PermanentID,sd__(Intercept),5.116352002441266,NA,NA,NA
+ran_pars,cond,YearF,sd__(Intercept),1.3706335942719634,NA,NA,NA
+ran_pars,cond,Residual,sd__Observation,4.281028043095206,NA,NA,NA

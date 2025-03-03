@@ -1,0 +1,4 @@
+effect,component,group,term,estimate,std.error,statistic,p.value
+fixed,cond,NA,(Intercept),5.434755351925216,0.008879312274408089,612.0694017699143,0
+fixed,cond,NA,Time,-9.320359055621006e-4,5.164924367202585e-4,-1.804548991037613,0.07114528628641958
+ran_pars,cond,AreaOfInterestID,sd__(Intercept),0.10888672671856318,NA,NA,NA

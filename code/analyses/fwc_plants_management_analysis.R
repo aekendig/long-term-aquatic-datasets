@@ -97,31 +97,13 @@ day_mod1 <- glmmTMB(SurveyDay ~ Time + (1|AreaOfInterestID), data = target_dat2,
 day_res1 <- simulateResiduals(day_mod1, n = 1000)
 plot(day_res1) # need to refit
 
-day_mod2 <- update(day_mod1, family = "nbinom1")
+day_mod2 <- update(day_mod1, family = "nbinom2")
 day_res2 <- simulateResiduals(day_mod2, n = 1000)
 plot(day_res2) # better
 
-day_mod3 <- update(day_mod1, family = "nbinom2")
-day_res3 <- simulateResiduals(day_mod3, n = 1000)
-plot(day_res3) # same as above
-
 summary(day_mod2)
 
-# model predictions
-day_pred <- tibble(Time = min(target_dat2$Time):max(target_dat2$Time),
-                   AreaOfInterestID = "A") %>%
-  mutate(PredSurveyDay = predict(day_mod2, newdata = ., type = "response",
-                                 allow.new.levels = T),
-         PredSurveyDaySE = predict(day_mod2, newdata = ., type = "response",
-                                   allow.new.levels = T, se.fit = T)$se.fit)
-
-# visualize
-ggplot(day_pred, aes(x = Time, y = PredSurveyDay)) +
-  geom_ribbon(aes(ymin = PredSurveyDay - PredSurveyDaySE,
-                  ymax = PredSurveyDay + PredSurveyDaySE),
-              alpha = 0.5) +
-  geom_line() +
-  def_theme_paper
+write_csv(tidy(day_mod2), "output/survey_date_model_summary.csv")
 
 
 #### management efficacy models ####
@@ -136,36 +118,48 @@ hydr_mod1 <- betareg(HydrProp ~ HydrTrt, data = target_dat_var2)
 plot(hydr_mod1)
 summary(hydr_mod1)
 
-# hydrilla categorical models
-hydr_mod2 <- betareg(HydrProp ~ HydrTrtFreqF, data = target_dat_var2)
-summary(hydr_mod2)
-# linear
-hydr_mod3 <- betareg(HydrProp ~ HydrTrtAreaF, data = target_dat_var2)
-summary(hydr_mod3)
-# linear
+# save
+write_csv(tidy(hydr_mod1), "output/hydrilla_mgmt_efficacy_binary_model_summary.csv")
+
+# # hydrilla categorical models
+# hydr_mod2 <- betareg(HydrProp ~ HydrTrtFreqF, data = target_dat_var2)
+# summary(hydr_mod2)
+# # linear
+# hydr_mod3 <- betareg(HydrProp ~ HydrTrtAreaF, data = target_dat_var2)
+# summary(hydr_mod3)
+# # linear
 
 # hydrilla continuous model
-hydr_mod4 <- betareg(HydrProp ~ HydrTrtFreq + HydrTrtArea, data = target_dat_var2)
-plot(hydr_mod4)
-summary(hydr_mod4)
+hydr_mod2 <- betareg(HydrProp ~ HydrTrtFreq + HydrTrtArea, data = target_dat_var2)
+plot(hydr_mod2)
+summary(hydr_mod2)
+
+# save
+write_csv(tidy(hydr_mod2), "output/hydrilla_mgmt_efficacy_continuous_model_summary.csv")
 
 # floating plant binary model
 float_mod1 <- betareg(FloatProp ~ FloatTrt, data = target_dat_var2)
 plot(float_mod1)
 summary(float_mod1)
 
-# floating plant categorical models
-float_mod2 <- betareg(FloatProp ~ FloatTrtFreqF, data = target_dat_var2)
-summary(float_mod2)
-# linear
-float_mod3 <- betareg(FloatProp ~ FloatTrtAreaF, data = target_dat_var2)
-summary(float_mod3)
-# linear
+# save
+write_csv(tidy(float_mod1), "output/floating_mgmt_efficacy_binary_model_summary.csv")
+
+# # floating plant categorical models
+# float_mod2 <- betareg(FloatProp ~ FloatTrtFreqF, data = target_dat_var2)
+# summary(float_mod2)
+# # linear
+# float_mod3 <- betareg(FloatProp ~ FloatTrtAreaF, data = target_dat_var2)
+# summary(float_mod3)
+# # linear
 
 # floating plant continuous model
-float_mod4 <- betareg(FloatProp ~ FloatTrtFreq + FloatTrtArea, data = target_dat_var2)
-plot(float_mod4)
-summary(float_mod4)
+float_mod2 <- betareg(FloatProp ~ FloatTrtFreq + FloatTrtArea, data = target_dat_var2)
+plot(float_mod2)
+summary(float_mod2)
+
+# save
+write_csv(tidy(float_mod2), "output/floating_mgmt_efficacy_continuous_model_summary.csv")
 
 
 #### native richness model function ####
@@ -217,6 +211,423 @@ pred_fun <- function(variable, model, dat){
 }
 
 
+#### native richness target model ####
+
+# response variable
+ggplot(target_dat2, aes(x = NativeRichness)) +
+  geom_density()
+
+# fit frequency model
+target_mod1 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACF + HydrTrtFreqF + FloatPACF + FloatTrtFreqF + 
+                                             OtherTrtFreqF) + (1|AreaOfInterestID),
+                    data = target_dat2,
+                    family = poisson)
+target_res1 <- simulateResiduals(target_mod1, n = 1000)
+plot(target_res1)
+summary(target_mod1)
+# interactions with time:
+# Hydr PAC similar low and high
+# floating PAC changes directions
+
+# others seem linear
+
+# fit area model
+target_mod2 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACF + HydrTrtAreaF + FloatPACF + FloatTrtAreaF + 
+                                                    OtherTrtAreaF) + (1|AreaOfInterestID),
+                    data = target_dat2,
+                    family = poisson)
+target_res2 <- simulateResiduals(target_mod2, n = 1000)
+plot(target_res2)
+summary(target_mod2)
+# interactions with time:
+# hydr area similar with low and high
+# floating area similar with low and high
+# other area positive then very low
+# hydr pac now linear
+
+# transform variables with nonlinearities
+target_dat3 <- target_dat2 %>%
+  mutate(HydrPACLog = log(HydrPAC + 0.01),
+         FloatPACSq = FloatPAC^2,
+         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
+         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
+         OtherTrtAreaSq = OtherTrtArea^2)
+
+# check correlations
+target_dat3 %>%
+  distinct(AreaOfInterestID, HydrPACLog, FloatPAC, FloatPACSq,
+             HydrTrtFreq, FloatTrtFreq, OtherTrtFreq, 
+             HydrTrtAreaLog, FloatTrtAreaLog, 
+             OtherTrtArea, OtherTrtAreaSq) %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# HydrTrtFreq and HydrPACLog: 0.6
+# HydrTrtAreaLog and HydrPACLog: 0.7 (visible)
+# HydrTrtAreaLog and HydrTrtFreq: 0.7
+# OtherTrtFreq and FloatTrtFreq: 0.6
+# FloatTrtAreaLog and FloatTrtFreq: 0.5
+
+# take out transformation of hydrPAC
+target_dat3 %>%
+  distinct(AreaOfInterestID, HydrPAC, FloatPAC, FloatPACSq,
+           HydrTrtFreq, FloatTrtFreq, OtherTrtFreq, 
+           HydrTrtAreaLog, FloatTrtAreaLog, 
+           OtherTrtArea, OtherTrtAreaSq) %>%
+  select(-AreaOfInterestID) %>%
+  ggpairs()
+# no longer correlated
+
+# fit model with continuous variables
+target_mod3 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
+                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
+                                                       HydrTrtAreaLog + FloatTrtAreaLog + 
+                                                       OtherTrtArea + OtherTrtAreaSq) +
+                      (1|AreaOfInterestID),
+                    data = target_dat3,
+                    family = "poisson",
+                    control=glmmTMBControl(optimizer=optim,
+                                           optArgs=list(method="BFGS")))
+
+target_res3 <- simulateResiduals(target_mod3, n = 1000)
+plot(target_res3)
+summary(target_mod3)
+
+# remove non-significant squared terms
+target_mod3a <- update(target_mod3, .~. - Time:OtherTrtAreaSq)
+summary(target_mod3a)
+
+# evaluate non-linear terms
+target_pred_FloatPAC <- pred_fun(FloatPAC, target_mod3a, target_dat3)
+target_pred_FloatPAC %>%
+  ggplot(aes(FloatPAC, Pred)) +
+  geom_point()
+target_dat %>%
+  filter(FloatPAC > 7 & Time == max(Time)) %>%
+  select(AreaOfInterestID, FloatPAC, NativeRichness)
+# 2 waterbodies
+
+target_pred_HydrTrtArea <- pred_fun(HydrTrtArea, target_mod3a, target_dat3)
+target_pred_HydrTrtArea %>%
+  ggplot(aes(HydrTrtArea, Pred)) +
+  geom_point()
+target_dat %>%
+  filter(HydrTrtArea < 10 & Time == max(Time)) %>%
+  select(AreaOfInterestID, HydrTrtArea, NativeRichness)
+# a lot of points
+
+target_pred_FloatTrtArea <- pred_fun(FloatTrtArea, target_mod3a, target_dat3)
+target_pred_FloatTrtArea %>%
+  ggplot(aes(FloatTrtArea, Pred)) +
+  geom_point()
+target_dat %>%
+  filter(FloatTrtArea < 5 & Time == max(Time)) %>%
+  select(AreaOfInterestID, FloatTrtArea, NativeRichness)
+# a lot of points
+
+# remove squared term
+target_mod3b <- update(target_mod3a, .~. - Time:FloatPACSq)
+summary(target_mod3b)
+
+# change marginally sig log to linear?
+target_mod3c <- update(target_mod3b, .~. - Time:FloatTrtAreaLog + Time:FloatTrtArea)
+summary(target_mod3c)
+# keep as log
+
+# better fit with negative binomial?
+target_mod3d <- update(target_mod3b, family = "nbinom2")
+target_res3d <- simulateResiduals(target_mod3d, n = 1000)
+plot(target_res3d)
+summary(target_mod3d)
+# almost identical to poisson
+
+# save model (slow to fit)
+save(target_mod3d, file = "output/native_richness_target_model.rda")
+load("output/native_richness_target_model.rda")
+
+# data for figures
+flt_pac_fig_dat <- pred_fun(FloatPAC, target_mod3d, target_dat3)
+hyd_frq_fig_dat <- pred_fun(HydrTrtFreq , target_mod3d, target_dat3)
+flt_frq_fig_dat <- pred_fun(FloatTrtFreq, target_mod3d, target_dat3)
+oth_frq_fig_dat <- pred_fun(OtherTrtFreq, target_mod3d, target_dat3)
+hyd_ext_fig_dat <- pred_fun(HydrTrtArea, target_mod3d, target_dat3)
+oth_ext_fig_dat <- pred_fun(OtherTrtArea, target_mod3d, target_dat3)
+flt_ext_fig_dat <- pred_fun(FloatTrtArea, target_mod3d, target_dat3)
+
+# figures
+hyd_ext_fig <- ggplot(hyd_ext_fig_dat, aes(x = HydrTrtArea, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Hydrilla mgmt. extent",
+       y = "Native plant richness") +
+  def_theme_paper
+
+flt_ext_fig <- ggplot(flt_ext_fig_dat, aes(x = FloatTrtArea, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Floating plant mgmt. extent",
+       y = "Native plant richness") +
+  def_theme_paper
+
+# the log-transformed values have very little change in richness
+target_mod3e <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC +
+                                                        HydrTrtFreq + FloatTrtFreq + OtherTrtFreq + 
+                                                        HydrTrtArea + FloatTrtArea + OtherTrtArea) +
+                          (1|AreaOfInterestID),
+                        data = target_dat3,
+                        family = "nbinom2",
+                        control=glmmTMBControl(optimizer=optim,
+                                               optArgs=list(method="BFGS")))
+target_res3e <- simulateResiduals(target_mod3e, n = 1000)
+plot(target_res3e)
+summary(target_mod3e)
+
+# save model (slow to fit)
+save(target_mod3e, file = "output/native_richness_target_model.rda")
+write_csv(tidy(target_mod3e), "output/native_richness_target_model_summary.csv")
+load("output/native_richness_target_model.rda")
+
+# data for figures
+flt_pac_fig_dat <- pred_fun(FloatPAC, target_mod3e, target_dat3)
+hyd_frq_fig_dat <- pred_fun(HydrTrtFreq , target_mod3e, target_dat3)
+flt_frq_fig_dat <- pred_fun(FloatTrtFreq, target_mod3e, target_dat3)
+oth_frq_fig_dat <- pred_fun(OtherTrtFreq, target_mod3e, target_dat3)
+hyd_ext_fig_dat <- pred_fun(HydrTrtArea, target_mod3e, target_dat3)
+
+# figures
+flt_pac_fig <- ggplot(flt_pac_fig_dat, aes(x = FloatPAC, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Floating plant cover",
+       y = "Native plant richness") +
+  def_theme_paper
+
+hyd_frq_fig <- ggplot(hyd_frq_fig_dat, aes(x = HydrTrtFreq, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Hydrilla mgmt. frequency",
+       y = "Native plant richness") +
+  def_theme_paper
+
+flt_frq_fig <- ggplot(flt_frq_fig_dat, aes(x = FloatTrtFreq, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Floating plant mgmt. frequency",
+       y = "Native plant richness") +
+  def_theme_paper
+
+oth_frq_fig <- ggplot(oth_frq_fig_dat, aes(x = OtherTrtFreq, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Other plant mgmt. frequency",
+       y = "Native plant richness") +
+  def_theme_paper
+
+hyd_ext_fig <- ggplot(hyd_ext_fig_dat, aes(x = HydrTrtArea, y = Pred)) +
+  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Hydrilla mgmt. extent",
+       y = "Native plant richness") +
+  def_theme_paper
+
+
+#### taxon-specific target models ####
+
+# select native taxa
+# add columns
+target_taxa_dat2 <- target_taxa_dat %>%
+  filter(Origin == "Native") %>%
+  mutate(HydrTrtAreaLog = log(HydrTrtArea + 0.01),
+         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
+         Habitat = tolower(Habitat) %>%
+           fct_recode("emergent" = "emersed"))
+
+# check taxa for all 1's or 0's
+taxa_target_sum <- target_taxa_dat2 %>%
+  group_by(TaxonName) %>%
+  summarize(Detections = sum(Detected) / n(),
+            .groups = "drop")
+
+arrange(taxa_target_sum, Detections)
+arrange(taxa_target_sum, desc(Detections))
+# check the two extremes
+
+# list of taxa
+target_taxa <- sort(unique(target_taxa_dat2$TaxonName))
+
+# set i
+i <- 1
+
+# subset data
+target_taxa_sub <- filter(target_taxa_dat2, TaxonName == target_taxa[i])
+
+# fit model
+target_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrPAC + FloatPAC +
+                                               HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
+                                               HydrTrtArea + FloatTrtArea + OtherTrtArea) + 
+                             (1|AreaOfInterestID),
+                            data = target_taxa_sub, family = "binomial")
+
+# use this to manually cycle through taxa (some models had warnings below)
+# i <- i + 1
+# taxa with model convergence issues:
+
+# # look at models
+summary(target_taxa_mod)
+target_taxa_res <- simulateResiduals(target_taxa_mod, n = 1000)
+plot(target_taxa_res, title = target_taxa[i])
+
+# save
+save(target_taxa_mod, file = paste0("output/target_model_",
+                                     str_to_lower(target_taxa[i]) %>%
+                                       str_replace_all(" ", "_"),
+                                     ".rda"))
+
+# save results when i <- 1
+target_taxa_coefs <- tidy(target_taxa_mod) %>%
+  filter(str_detect(term, "Time:")) %>%
+  mutate(TaxonName = target_taxa[1]) %>%
+  relocate(TaxonName)
+
+# loop through taxa
+pdf("output/taxa_specific_target_models.pdf")
+
+for(i in target_taxa) {
+  
+  # subset data
+  target_taxa_sub <- filter(target_taxa_dat2, TaxonName == i)
+  
+  # fit model
+  target_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrPAC + FloatPAC +
+                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
+                                                       HydrTrtArea + FloatTrtArea + OtherTrtArea) + 
+                               (1|AreaOfInterestID),
+                              data = target_taxa_sub, family = "binomial")
+  
+  # extract and plot residuals
+  target_taxa_res <- simulateResiduals(target_taxa_mod, n = 1000)
+  plot(target_taxa_res, title = i)
+  
+  # save model
+  save(target_taxa_mod, file = paste0("output/target_model_",
+                                       str_to_lower(i) %>%
+                                         str_remove_all("\\.|\\(|\\)")%>%
+                                         str_replace_all("/|, | ", "_"),
+                                       ".rda"))
+  
+  target_taxa_coefs <- target_taxa_coefs %>%
+    full_join(tidy(target_taxa_mod) %>%
+                mutate(TaxonName = i) %>%
+                relocate(TaxonName))
+}
+
+dev.off()
+
+# save
+write_csv(target_taxa_coefs, "output/target_model_taxa_coefficients.csv")
+# import if needed
+# target_taxa_coefs <- read_csv("output/target_model_taxa_coefficients.csv")
+
+# correct p-values
+# remove taxon that the estimates didn't work
+target_taxa_coefs2 <- target_taxa_coefs %>%
+  filter(str_detect(term, "Time:")) %>%
+  mutate(q.value = p.adjust(p.value, method = "fdr"),
+         lower = estimate - 1.96 * std.error,
+         upper = estimate + 1.96 * std.error,
+         odds_perc = 100 * (exp(estimate) - 1),
+         lower_odds_perc = 100 * (exp(lower) - 1),
+         upper_odds_perc = 100 * (exp(upper) - 1))
+
+# save
+write_csv(target_taxa_coefs2, "output/target_model_taxa_interaction_coefficients.csv")
+# import if needed
+# target_taxa_coefs2 <- read_csv("output/target_model_taxa_interaction_coefficients.csv")
+
+# significant interactions
+target_taxa_coefs3 <- target_taxa_coefs2 %>%
+  filter(q.value < 0.05) %>% 
+  select(TaxonName, estimate, std.error, q.value, term) %>%
+  left_join(target_taxa_dat2 %>%
+              distinct(TaxonName, Habitat)) %>%
+  relocate(Habitat) %>%
+  mutate(Habitat = fct_relevel(Habitat, "floating"))
+
+# significant coefficients table
+target_taxa_tab <- target_taxa_coefs3 %>%
+  mutate(across(.cols = c(estimate, std.error), 
+                .fns = ~round_half_up(.x, 4) %>%
+                  format(scientific = F)),
+         q.value = round_half_up(q.value, 3),
+         q.value = if_else(q.value == 0, "< 0.001", as.character(q.value)),
+         response = paste0(estimate, " (", std.error, ")\n", q.value),
+         term = str_remove(term, "Time:")) %>%
+  select(Habitat, TaxonName, response, term) %>%
+  pivot_wider(names_from = "term",
+              values_from = "response") %>%
+  arrange(Habitat, TaxonName) %>%
+  relocate(c(HydrPAC, HydrTrtFreq, HydrTrtArea, 
+             FloatPAC, FloatTrtFreq, FloatTrtArea, 
+             OtherTrtFreq, OtherTrtArea), 
+           .after = TaxonName) %>%
+  mutate(across(.cols = c(HydrPAC, HydrTrtFreq, HydrTrtArea, 
+                          FloatPAC, FloatTrtFreq, FloatTrtArea, 
+                          OtherTrtFreq, OtherTrtArea),
+                .fns = ~replace_na(.x, "")),
+         TaxonName = str_replace_all(TaxonName, " ", "\n") %>%
+           str_replace_all("\\/", "\\/\n"))
+
+write_csv(target_taxa_tab, "output/target_model_taxa_interactions_table.csv")
+
+# format estimates for figure
+target_taxa_est <- target_taxa_coefs3 %>%
+  mutate(term = fct_recode(term,
+                           "hydrilla\nPAC" = "Time:HydrPAC",
+                           "hydrilla\nmgmt.\nfrequency" = "Time:HydrTrtFreq",
+                           "hydrilla\nmgmt.\nintensity" = "Time:HydrTrtArea",
+                           "floating\nplant\nPAC" = "Time:FloatPAC",
+                           "floating\nplant\nmgmt.\nfrequency" = "Time:FloatTrtFreq",
+                           "floating\nplant\nmgmt.\nintensity" = "Time:FloatTrtArea",
+                           "other\nplant\nmgmt.\nfrequency" = "Time:OtherTrtFreq",
+                           "other\nplant\nmgmt.\nintensity" = "Time:OtherTrtArea"),
+         sign = if_else(estimate > 0, "pos", "neg")) %>%
+  count(term, sign, Habitat) %>%
+  complete(term, sign, Habitat) %>%
+  mutate(n = replace_na(n, 0),
+         n = if_else(sign == "neg", -1 * n, n),
+         term = fct_relevel(term, "hydrilla\nPAC",
+                            "hydrilla\nmgmt.\nfrequency",
+                            "hydrilla\nmgmt.\nintensity",
+                            "floating\nplant\nPAC",
+                            "floating\nplant\nmgmt.\nfrequency",
+                            "floating\nplant\nmgmt.\nintensity",
+                            "other\nplant\nmgmt.\nfrequency",
+                            "other\nplant\nmgmt.\nintensity"))
+
+# figure
+taxa_target_fig <- ggplot(target_taxa_est,
+                          aes(x = term, y = n, fill = Habitat)) +
+  geom_col(position = position_dodge()) +
+  geom_hline(yintercept = 0, linewidth = 0.25) +
+  scale_fill_manual(values = colour("muted")(7)[c(7, 5, 3)]) +
+  labs(x = "Covariate interaction with time",
+       y = "Number of native taxa\n(in direction of response)") +
+  def_theme_paper +
+  theme(legend.position = "inside",
+        legend.position.inside = c(0.5, 0.78))
+
+# combine figures
+target_fig1 <- hyd_frq_fig + hyd_ext_fig + flt_pac_fig
+target_fig2 <- plot_spacer() + flt_frq_fig + oth_frq_fig + plot_spacer() +
+  plot_layout(widths = c(1/4, 1, 1, 1/4))
+target_fig <- target_fig1 / target_fig2 / taxa_target_fig +
+  plot_layout(nrow = 3, heights = c(0.6, 0.6, 1)) &
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & 
+  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
+
+ggsave("output/target_figure.png", target_fig,
+       width = 6.5, height = 8)
+
+
 #### native richness methods model ####
 
 # response variable
@@ -226,8 +637,8 @@ ggplot(methods_dat, aes(x = NativeRichness)) +
 # fit frequency model
 method_mod1 <- glmmTMB(NativeRichness ~ Time + Time:(TrtFreqConF + TrtFreqSysF + TrtFreqNonF +
                                                        TrtMonthF) + (1|AreaOfInterestID),
-                    data = methods_dat2,
-                    family = poisson)
+                       data = methods_dat2,
+                       family = poisson)
 method_res1 <- simulateResiduals(method_mod1, n = 1000)
 plot(method_res1)
 summary(method_mod1)
@@ -288,7 +699,6 @@ summary(method_mod3a)
 # evaluate non-linear effect of systemic area
 method_pred_TrtAreaSys <- pred_fun(TrtAreaSys, method_mod3a, methods_dat3)
 method_pred_TrtAreaSys %>%
-  filter(Time == max(Time)) %>%
   ggplot(aes(TrtAreaSys, Pred)) +
   geom_point()
 methods_dat %>%
@@ -299,12 +709,11 @@ methods_dat %>%
 # evaluate non-linear effect of contact frequency
 method_pred_TrtFreqCon <- pred_fun(TrtFreqCon, method_mod3a, methods_dat3)
 method_pred_TrtFreqCon %>%
-  filter(Time == max(Time)) %>%
   ggplot(aes(TrtFreqCon, Pred)) +
   geom_point()
 methods_dat %>%
-  filter(TrtFreqCon < 25 & Time == max(Time)) %>%
-  group_by(TrtFreqCon) %>%
+  filter(TrtFreqCon < 25) %>%
+  group_by(TrtFreqCon & Time == max(Time)) %>%
   summarize(n = n(),
             NativeRichness = mean(NativeRichness))
 # there are a lot of points, but it's non significant
@@ -327,6 +736,11 @@ method_res3d <- simulateResiduals(method_mod3d, n = 1000)
 plot(method_res3d)
 summary(method_mod3d)
 # similar diagnostics and estimates
+
+# save model (slow to fit)
+save(method_mod3d, file = "output/native_richness_method_model.rda")
+write_csv(tidy(method_mod3d), "output/native_richness_method_model_summary.csv")
+load("output/native_richness_method_model.rda")
 
 # data for figures
 cont_ext_fig_dat <- pred_fun(TrtAreaCon, method_mod3d, methods_dat3)
@@ -390,7 +804,7 @@ methods_taxa_sub <- filter(methods_taxa_dat2, TaxonName == methods_taxa[i])
 methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(TrtAreaCon + TrtAreaSys + TrtAreaNon +
                                                       TrtFreqCon + TrtFreqSys + TrtFreqNon +
                                                       TrtMonthStd) + (1|AreaOfInterestID),
-                                  data = methods_taxa_sub, family = "binomial")
+                            data = methods_taxa_sub, family = "binomial")
 
 # use this to manually cycle through taxa (some models had warnings below)
 # i <- i + 1
@@ -404,9 +818,9 @@ plot(methods_taxa_res, title = methods_taxa[i])
 
 # save
 save(methods_taxa_mod, file = paste0("output/methods_model_",
-                                           str_to_lower(methods_taxa[i]) %>%
-                                             str_replace_all(" ", "_"),
-                                           ".rda"))
+                                     str_to_lower(methods_taxa[i]) %>%
+                                       str_replace_all(" ", "_"),
+                                     ".rda"))
 
 # save results when i <- 1
 methods_taxa_coefs <- tidy(methods_taxa_mod) %>%
@@ -520,14 +934,14 @@ method_taxa_est <- methods_taxa_coefs3 %>%
 
 # figure
 taxa_method_fig <- ggplot(method_taxa_est,
-       aes(x = term, y = n, fill = Habitat)) +
+                          aes(x = term, y = n, fill = Habitat)) +
   geom_col(position = position_dodge()) +
   geom_hline(yintercept = 0, linewidth = 0.25) +
   scale_fill_manual(values = colour("muted")(7)[c(7, 5, 3)]) +
   # scale_fill_brewer(type = "qual", palette = "Dark2",
   #                   name = "Growth form") +
   labs(x = "Covariate interaction with time",
-       y = "Number of taxa\n(in direction of response)") +
+       y = "Number of native taxa\n(in direction of response)") +
   def_theme_paper +
   theme(legend.position = "inside",
         legend.position.inside = c(0.24, 0.78))
@@ -535,547 +949,202 @@ taxa_method_fig <- ggplot(method_taxa_est,
 # combine figures
 method_fig <- (cont_ext_fig + sys_ext_fig + non_freq_fig) /
   taxa_method_fig +
-  plot_layout(heights = c(0.9, 1)) &
-  plot_annotation(tag_levels = "A")
+  plot_layout(heights = c(0.6, 1)) &
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & 
+  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
 
 ggsave("output/method_figure.png", method_fig,
-       width = 6.5, height = 5.5)
-
-
-#### native richness target model ####
-
-# response variable
-ggplot(target_dat2, aes(x = NativeRichness)) +
-  geom_density()
-
-# fit frequency model
-target_mod1 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACF + HydrTrtFreqF + FloatPACF + FloatTrtFreqF + 
-                                             OtherTrtFreqF) + (1|AreaOfInterestID),
-                    data = target_dat2,
-                    family = poisson)
-target_res1 <- simulateResiduals(target_mod1, n = 1000)
-plot(target_res1)
-summary(target_mod1)
-# interactions with time:
-# Hydr PAC similar low and high
-# floating PAC changes directions
-
-# others seem linear
-
-# fit area model
-target_mod2 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACF + HydrTrtAreaF + FloatPACF + FloatTrtAreaF + 
-                                                    OtherTrtAreaF) + (1|AreaOfInterestID),
-                    data = target_dat2,
-                    family = poisson)
-target_res2 <- simulateResiduals(target_mod2, n = 1000)
-plot(target_res2)
-summary(target_mod2)
-# interactions with time:
-# hydr area similar with low and high
-# floating area similar with low and high
-# other area positive then very low
-# hydr pac now linear
-
-# transform variables with nonlinearities
-target_dat3 <- target_dat2 %>%
-  mutate(HydrPACLog = log(HydrPAC + 0.01),
-         FloatPACSq = FloatPAC^2,
-         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
-         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
-         OtherTrtAreaSq = OtherTrtArea^2)
-
-# check correlations
-target_dat3 %>%
-  distinct(AreaOfInterestID, HydrPACLog, FloatPAC, FloatPACSq,
-             HydrTrtFreq, FloatTrtFreq, OtherTrtFreq, 
-             HydrTrtAreaLog, FloatTrtAreaLog, 
-             OtherTrtArea, OtherTrtAreaSq) %>%
-  select(-AreaOfInterestID) %>%
-  ggpairs()
-# HydrTrtFreq and HydrPACLog: 0.6
-# HydrTrtAreaLog and HydrPACLog: 0.7 (visible)
-# HydrTrtAreaLog and HydrTrtFreq: 0.7
-# OtherTrtFreq and FloatTrtFreq: 0.6
-# FloatTrtAreaLog and FloatTrtFreq: 0.5
-
-# take out transformation of hydrPAC
-target_dat3 %>%
-  distinct(AreaOfInterestID, HydrPAC, FloatPAC, FloatPACSq,
-           HydrTrtFreq, FloatTrtFreq, OtherTrtFreq, 
-           HydrTrtAreaLog, FloatTrtAreaLog, 
-           OtherTrtArea, OtherTrtAreaSq) %>%
-  select(-AreaOfInterestID) %>%
-  ggpairs()
-# no longer correlated
-
-# fit model with continuous variables
-target_mod3 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
-                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
-                                                       HydrTrtAreaLog + FloatTrtAreaLog + 
-                                                       OtherTrtArea + OtherTrtAreaSq) +
-                      (1|AreaOfInterestID),
-                    data = target_dat3,
-                    family = "poisson",
-                    control=glmmTMBControl(optimizer=optim,
-                                           optArgs=list(method="BFGS")))
-
-target_res3 <- simulateResiduals(target_mod3, n = 1000)
-plot(target_res3)
-summary(target_mod3)
-
-# better fit with negative binomial?
-target_mod3a <- update(target_mod3, family = "nbinom2")
-
-# model diagnostics
-target_res3a <- simulateResiduals(target_mod3a, n = 1000)
-plot(target_res3a)
-summary(target_mod3a)
-# very small dispersion parameter
-# results are very similar
-
-# remove squared terms that aren't needed
-target_mod3b <- update(target_mod3a, .~. -Time:OtherTrtAreaSq)
-
-# save model (slow to fit)
-save(target_mod3b, file = "output/native_richness_target_model.rda")
-load("output/native_richness_target_model.rda")
-
-# model diagnostics
-target_res3b <- simulateResiduals(target_mod3b, n = 1000)
-plot(target_res3b)
-summary(target_mod3b)
-
-
-#### taxon-specific target models ####
-
-# select native taxa
-# add columns
-target_taxa_dat2 <- target_taxa_dat %>%
-  filter(Origin == "Native") %>%
-  mutate(FloatPACSq = FloatPAC^2,
-         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
-         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
-         Habitat = tolower(Habitat) %>%
-           fct_recode("emergent" = "emersed"))
-
-# check taxa for all 1's or 0's
-taxa_target_sum <- target_taxa_dat2 %>%
-  group_by(TaxonName) %>%
-  summarize(Detections = sum(Detected) / n(),
-            .groups = "drop")
-
-arrange(taxa_target_sum, Detections)
-arrange(taxa_target_sum, desc(Detections))
-# check the two extremes
-
-# list of taxa
-target_taxa <- sort(unique(target_taxa_dat2$TaxonName))
-
-# set i
-i <- 1
-
-# subset data
-target_taxa_sub <- filter(target_taxa_dat2, TaxonName == target_taxa[i])
-
-# fit model
-target_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
-                                               HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
-                                               HydrTrtAreaLog + FloatTrtAreaLog + OtherTrtArea) + 
-                             (1|AreaOfInterestID),
-                            data = target_taxa_sub, family = "binomial")
-
-# use this to manually cycle through taxa (some models had warnings below)
-i <- i + 1
-# taxa with model convergence issues:
-
-# # look at models
-summary(target_taxa_mod)
-target_taxa_res <- simulateResiduals(target_taxa_mod, n = 1000)
-plot(target_taxa_res, title = target_taxa[i])
-
-# save
-save(target_taxa_mod, file = paste0("output/target_model_",
-                                     str_to_lower(target_taxa[i]) %>%
-                                       str_replace_all(" ", "_"),
-                                     ".rda"))
-
-# save results when i <- 1
-target_taxa_coefs <- tidy(target_taxa_mod) %>%
-  filter(str_detect(term, "Time:")) %>%
-  mutate(TaxonName = target_taxa[1]) %>%
-  relocate(TaxonName)
-
-# loop through taxa
-pdf("output/taxa_specific_target_models.pdf")
-
-for(i in target_taxa) {
-  
-  # subset data
-  target_taxa_sub <- filter(target_taxa_dat2, TaxonName == i)
-  
-  # fit model
-  target_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
-                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
-                                                       HydrTrtAreaLog + FloatTrtAreaLog + OtherTrtArea) + 
-                               (1|AreaOfInterestID),
-                              data = target_taxa_sub, family = "binomial")
-  
-  # extract and plot residuals
-  target_taxa_res <- simulateResiduals(target_taxa_mod, n = 1000)
-  plot(target_taxa_res, title = i)
-  
-  # save model
-  save(target_taxa_mod, file = paste0("output/target_model_",
-                                       str_to_lower(i) %>%
-                                         str_remove_all("\\.|\\(|\\)")%>%
-                                         str_replace_all("/|, | ", "_"),
-                                       ".rda"))
-  
-  target_taxa_coefs <- target_taxa_coefs %>%
-    full_join(tidy(target_taxa_mod) %>%
-                mutate(TaxonName = i) %>%
-                relocate(TaxonName))
-}
-
-dev.off()
-
-# save
-write_csv(target_taxa_coefs, "output/target_model_taxa_coefficients.csv")
-# import if needed
-# target_taxa_coefs <- read_csv("output/target_model_taxa_coefficients.csv")
-
-# correct p-values
-# remove taxon that the estimates didn't work
-target_taxa_coefs2 <- target_taxa_coefs %>%
-  filter(str_detect(term, "Time:")) %>%
-  mutate(q.value = p.adjust(p.value, method = "fdr"),
-         lower = estimate - 1.96 * std.error,
-         upper = estimate + 1.96 * std.error,
-         odds_perc = 100 * (exp(estimate) - 1),
-         lower_odds_perc = 100 * (exp(lower) - 1),
-         upper_odds_perc = 100 * (exp(upper) - 1))
-
-# save
-write_csv(target_taxa_coefs2, "output/target_model_taxa_interaction_coefficients.csv")
-# import if needed
-# target_taxa_coefs2 <- read_csv("output/target_model_taxa_interaction_coefficients.csv")
-
-# hydrilla treatment frequency
-taxa_hydr_freq <- target_taxa_coefs2 %>%
-  filter(q.value < 0.05 & term == "Time:HydrTrtFreq") %>% 
-  select(TaxonName, estimate, std.error, q.value) %>%
-  left_join(target_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1)
-
-write_csv(taxa_hydr_freq, "output/target_model_taxa_hydrilla_frequency_interaction_table.csv")
-
-# hydrilla treatment intensity
-taxa_hydr_ints <- target_taxa_coefs2 %>%
-  filter(q.value < 0.05 & term == "Time:HydrTrtAreaLog") %>% 
-  select(TaxonName, estimate, std.error, q.value) %>%
-  left_join(target_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1)
-
-write_csv(taxa_hydr_ints, "output/target_model_taxa_hydrilla_intensity_interaction_table.csv")
-
-# floating PAC
-taxa_float_pac <- target_taxa_coefs2 %>%
-  filter(term == "Time:FloatPAC") %>%
-  select(TaxonName, estimate, std.error, q.value) %>%
-  rename_with(~ paste0("pac_", .), .cols = -TaxonName) %>%
-  right_join(target_taxa_coefs2 %>%
-               filter(q.value < 0.05 & term == "Time:FloatPACSq") %>% 
-               select(TaxonName, estimate, std.error, q.value) %>%
-               rename_with(~ paste0("pac2_", .), .cols = -TaxonName)) %>%
-  full_join(target_taxa_coefs2 %>%
-              filter(q.value < 0.05 & term == "Time:FloatPAC") %>%
-              select(TaxonName, estimate, std.error, q.value) %>%
-              rename_with(~ paste0("pac_", .), .cols = -TaxonName) %>%
-              left_join(target_taxa_coefs2 %>%
-                          filter(term == "Time:FloatPACSq") %>% 
-                          select(TaxonName, estimate, std.error, q.value) %>%
-                          rename_with(~ paste0("pac2_", .), .cols = -TaxonName))) %>%
-  left_join(target_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1) %>%
-  arrange(TaxonName)
-
-write_csv(taxa_float_pac, "output/target_model_taxa_floating_PAC_interaction_table.csv")
-
-# floating treatment frequency
-taxa_float_freq <- target_taxa_coefs2 %>%
-  filter(q.value < 0.05 & term == "Time:FloatTrtFreq") %>% 
-  select(TaxonName, estimate, std.error, q.value) %>%
-  left_join(target_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1)
-
-write_csv(taxa_float_freq, "output/target_model_taxa_floating_frequency_interaction_table.csv")
-
-# other treatment frequency
-taxa_other_freq <- target_taxa_coefs2 %>%
-  filter(q.value < 0.05 & term == "Time:OtherTrtFreq") %>% 
-  select(TaxonName, estimate, std.error, q.value) %>%
-  left_join(target_taxa_dat2 %>%
-              distinct(TaxonName, Habitat)) %>%
-  relocate(Habitat, .after = 1)
-
-write_csv(taxa_other_freq, "output/target_model_taxa_other_frequency_interaction_table.csv")
-
-# format estimates
-# squared: choose squared estimate if significant, linear if not; make long
-# add estimates that don't have tables
-target_taxa_est <- taxa_hydr_freq %>%
-  mutate(term = "hydrilla\nmgmt.\nfrequency") %>%
-  full_join(taxa_hydr_ints %>%
-              mutate(term = "hydrilla\nmgmt.\nintensity")) %>%
-  full_join(taxa_float_pac %>%
-              mutate(pac_estimate = if_else(pac2_q.value < 0.05, NA_real_,
-                                                  pac_estimate),
-                     pac2_estimate = if_else(pac2_q.value < 0.05, pac2_estimate,
-                                                   NA_real_)) %>%
-              pivot_longer(cols = starts_with("pac"),
-                           names_to = c("term", ".value"),
-                           names_sep = "_") %>%
-              mutate(term = fct_recode(term,
-                                       "floating\nplant\nPAC" = "pac",
-                                       "squared\nfloating\nplant\nPAC" = "pac2")) %>%
-              filter(!is.na(estimate))) %>%
-  full_join(taxa_float_freq %>%
-              mutate(term = "floating\nplant\nmgmt.\nfrequency")) %>%
-    full_join(taxa_other_freq %>%
-                mutate(term = "other\nplant\nmgmt.\nfrequency")) %>%
-  full_join(target_taxa_coefs2 %>%
-              filter(q.value < 0.05 & term %in% c("Time:HydrPAC",
-                                                  "Time:FloatTrtAreaLog",
-                                                  "Time:OtherTrtArea")) %>% 
-              select(TaxonName, estimate, std.error, q.value, term) %>%
-              left_join(target_taxa_dat2 %>%
-                          distinct(TaxonName, Habitat)) %>%
-              relocate(Habitat, .after = 1) %>%
-              mutate(term = fct_recode(term,
-                                       "hydrilla\nPAC" = "Time:HydrPAC",
-                                       "floating\nplant\nmgmt.\nintensity" = "Time:FloatTrtAreaLog",
-                                       "other\nplant\nmgmt.\nintensity" = "Time:OtherTrtArea"))) %>%
-  mutate(sign = if_else(estimate > 0, "pos", "neg")) %>%
-  count(term, sign, Habitat) %>%
-  mutate(Habitat = fct_relevel(Habitat, "floating"),
-         n = if_else(sign == "neg", -1 * n, n),
-         term = fct_relevel(term, "hydrilla\nPAC",
-                            "hydrilla\nmgmt.\nfrequency",
-                            "hydrilla\nmgmt.\nintensity",
-                            "floating\nplant\nPAC",
-                            "squared\nfloating\nplant\nPAC",
-                            "floating\nplant\nmgmt.\nfrequency",
-                            "floating\nplant\nmgmt.\nintensity",
-                            "other\nplant\nmgmt.\nfrequency",
-                            "other\nplant\nmgmt.\nintensity"))
-
-taxa_target_fig <- ggplot(target_taxa_est,
-                          aes(x = term, y = n, fill = Habitat)) +
-  geom_col() +
-  geom_hline(yintercept = 0, linewidth = 0.25) +
-  scale_fill_brewer(type = "qual", palette = "Dark2", name = "Growth form") +
-  labs(x = "Covariate interaction with time",
-       y = "Number of taxa (in direction of response)") +
-  def_theme_paper +
-  theme(legend.position = "inside",
-        legend.position.inside = c(0.12, 0.85))
-
-ggsave("output/taxa_target_figure.png", taxa_target_fig,
-       width = 6, height = 4)
-
-
-#### native richness predicted values ####
-
-# contact herb intensity
-pred_cont_ints <- pred_fun(TrtAreaCon, method_mod3a, methods_dat3)
-method_fig1 <- ggplot(pred_cont_ints, aes(x = Time, y = Pred, 
-                              color = TrtAreaCon,
-                              group = TrtAreaCon)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$TrtAreaCon, na.rm = T),
-                                          max(mod_dat_var$TrtAreaCon, na.rm = T))),
-                        name = "Contact\nherbicide\nintensity") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# systemic herb intensity
-pred_sys_ints <- pred_fun(TrtAreaSys, method_mod3a, methods_dat3)
-method_fig2 <- ggplot(pred_sys_ints, aes(x = Time, y = Pred, 
-                                           color = TrtAreaSys,
-                                           group = TrtAreaSys)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$TrtAreaSys, na.rm = T),
-                                          max(mod_dat_var$TrtAreaSys, na.rm = T))),
-                        name = "Systemic\nherbicide\nintensity") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# non-herb frequency
-pred_non_freq <- pred_fun(TrtFreqNon, method_mod3a, methods_dat3)
-method_fig3 <- ggplot(pred_non_freq, aes(x = Time, y = Pred, 
-                                          color = TrtFreqNon,
-                                          group = TrtFreqNon)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$TrtFreqNon, na.rm = T),
-                                          max(mod_dat_var$TrtFreqNon, na.rm = T))),
-                        name = "Non-\nherbicide\nfrequency") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# hydr trt frequency
-pred_hydr_freq <- pred_fun(HydrTrtFreq, target_mod3b, target_dat3)
-target_fig1 <- ggplot(pred_hydr_freq, aes(x = Time, y = Pred, 
-                                          color = HydrTrtFreq,
-                                          group = HydrTrtFreq)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$HydrTrtFreq, na.rm = T),
-                                          max(mod_dat_var$HydrTrtFreq, na.rm = T))),
-                        name = "Hydrilla\nmanagement\nfrequency") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# hydr trt intensity
-pred_hydr_ints <- pred_fun(HydrTrtArea, target_mod3b, target_dat3)
-target_fig2 <- ggplot(pred_hydr_ints, aes(x = Time, y = Pred, 
-                                          color = HydrTrtArea,
-                                          group = HydrTrtArea)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$HydrTrtArea, na.rm = T),
-                                          max(mod_dat_var$HydrTrtArea, na.rm = T))),
-                        name = "Hydrilla\nmanagement\nintensity") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# floating PAC
-pred_float_pac <- pred_fun(FloatPAC, target_mod3b, target_dat3)
-target_fig3 <- ggplot(pred_float_pac, aes(x = Time, y = Pred, 
-                                         color = FloatPAC,
-                                         group = FloatPAC)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$FloatPAC, na.rm = T),
-                                          max(mod_dat_var$FloatPAC, na.rm = T))),
-                        name = "Floating\nplant\ncover") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# floating trt freq
-pred_float_freq <- pred_fun(FloatTrtFreq, target_mod3b, target_dat3)
-target_fig4 <- ggplot(pred_float_freq, aes(x = Time, y = Pred, 
-                               color = FloatTrtFreq,
-                               group = FloatTrtFreq)) +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$FloatTrtFreq, na.rm = T),
-                                          max(mod_dat_var$FloatTrtFreq, na.rm = T))),
-                        name = "Floating\nmanagement\nfrequency") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-# other trt freq
-pred_other_freq <- pred_fun(OtherTrtFreq, target_mod3b, target_dat3)
-target_fig5 <- ggplot(pred_other_freq, aes(x = Time, y = Pred, 
-                                color = OtherTrtFreq,
-                                group = OtherTrtFreq)) +
-  geom_line() +
-  geom_line() +
-  scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
-                        midpoint = mean(c(min(mod_dat_var$OtherTrtFreq, na.rm = T),
-                                          max(mod_dat_var$OtherTrtFreq, na.rm = T))),
-                        name = "Other\nmanagement\nfrequency") +
-  labs(x = "Years of monitoring", y = "Native taxonomic richness") +
-  def_theme_paper
-
-
-#### native richness coefficient plots ####
-
-# systemic intensity
-change_sys_ints <- confint(method_mod3a, parm = c("Time", "Time:TrtAreaSys", "Time:TrtAreaSysSq")) %>%
-   cbind(tibble(Term = c("c", "b", "a"))) %>%
-   select(Term, Estimate) %>%
-   pivot_wider(names_from = Term, values_from = Estimate) %>%
-   expand_grid(tibble(Intensity = sort(unique(methods_dat3$TrtAreaSys)))) %>%
-   mutate(Change = a * Intensity^2 + b * Intensity + c,
-          ExpChange = exp(Change))
-
-change_sys_ints_fig <- ggplot(change_sys_ints, aes(x = Intensity, y = ExpChange)) +
-  geom_point() +
-  scale_y_continuous(breaks = 1) +
-  labs(x = "Intensity", y = "Rate of change") + 
-  def_theme_paper +
-  theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
-        axis.title = element_text(size = 8))
-
-# check understanding of meaning
-pred_sys_ints %>%
-  select(Time, TrtAreaSys, Pred) %>%
-  full_join(pred_sys_ints %>%
-              filter(Time == 0) %>%
-              select(TrtAreaSys, Pred) %>%
-              rename(Pred0 = Pred)) %>%
-  mutate(RelChange = Pred/Pred0) %>%
-  ggplot(aes(x = TrtAreaSys, y = RelChange)) +
-  geom_point() +
-  facet_wrap(~ Time, scales = "free")
-
-# floating plant PAC
-change_float_pac <- confint(target_mod3b, parm = c("Time", "Time:FloatPAC", "Time:FloatPACSq")) %>%
-  cbind(tibble(Term = c("c", "b", "a"))) %>%
-  select(Term, Estimate) %>%
-  pivot_wider(names_from = Term, values_from = Estimate) %>%
-  expand_grid(tibble(PAC = sort(unique(target_dat3$FloatPAC)))) %>%
-  mutate(Change = a * PAC^2 + b * PAC + c,
-         ExpChange = exp(Change))
-
-change_float_pac_fig <- ggplot(change_float_pac, aes(x = PAC, y = ExpChange)) +
-  geom_point() +
-  scale_y_continuous(breaks = 1) +
-  labs(x = "Cover", y = "Rate of change") + 
-  def_theme_paper +
-  theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
-        axis.title = element_text(size = 8))
-
-# check understanding of meaning
-pred_float_pac %>%
-  select(Time, FloatPAC, Pred) %>%
-  full_join(pred_float_pac %>%
-              filter(Time == 0) %>%
-              select(FloatPAC, Pred) %>%
-              rename(Pred0 = Pred)) %>%
-  mutate(RelChange = Pred/Pred0) %>%
-  ggplot(aes(x = FloatPAC, y = RelChange)) +
-  geom_point() +
-  facet_wrap(~ Time, scales = "free")
-
-
-#### combine figures ####
-
-method_fig <- method_fig1 + 
-  method_fig2 + inset_element(change_sys_ints_fig, left = 0.01, bottom = 0.01, right = 0.4, top = 0.45) +
-  method_fig3 +
-  plot_layout(ncol = 1) +
-  plot_annotation(tag_levels = list(c("A", "B", "", "C")))
-
-ggsave("output/methods_figure.png", method_fig,
-       width = 4, height = 9)
-
-target_fig <- target_fig1 + target_fig2 + target_fig3 + inset_element(change_float_pac_fig, left = 0.01, bottom = 0.01, right = 0.38, top = 0.42) + target_fig4 + target_fig5 +
-  plot_layout(ncol = 2) +
-  plot_annotation(tag_levels = list(c("A", "B", "C", "", "D", "E")))
-
-ggsave("output/target_figure.png", target_fig,
-       width = 7.5, height = 9)
-
-
+       width = 18, height = 16, units = "cm", dpi = 600)
+
+
+# #### native richness predicted values ####
+# 
+# # contact herb intensity
+# pred_cont_ints <- pred_fun(TrtAreaCon, method_mod3a, methods_dat3)
+# method_fig1 <- ggplot(pred_cont_ints, aes(x = Time, y = Pred, 
+#                               color = TrtAreaCon,
+#                               group = TrtAreaCon)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$TrtAreaCon, na.rm = T),
+#                                           max(mod_dat_var$TrtAreaCon, na.rm = T))),
+#                         name = "Contact\nherbicide\nintensity") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # systemic herb intensity
+# pred_sys_ints <- pred_fun(TrtAreaSys, method_mod3a, methods_dat3)
+# method_fig2 <- ggplot(pred_sys_ints, aes(x = Time, y = Pred, 
+#                                            color = TrtAreaSys,
+#                                            group = TrtAreaSys)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$TrtAreaSys, na.rm = T),
+#                                           max(mod_dat_var$TrtAreaSys, na.rm = T))),
+#                         name = "Systemic\nherbicide\nintensity") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # non-herb frequency
+# pred_non_freq <- pred_fun(TrtFreqNon, method_mod3a, methods_dat3)
+# method_fig3 <- ggplot(pred_non_freq, aes(x = Time, y = Pred, 
+#                                           color = TrtFreqNon,
+#                                           group = TrtFreqNon)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$TrtFreqNon, na.rm = T),
+#                                           max(mod_dat_var$TrtFreqNon, na.rm = T))),
+#                         name = "Non-\nherbicide\nfrequency") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # hydr trt frequency
+# pred_hydr_freq <- pred_fun(HydrTrtFreq, target_mod3b, target_dat3)
+# target_fig1 <- ggplot(pred_hydr_freq, aes(x = Time, y = Pred, 
+#                                           color = HydrTrtFreq,
+#                                           group = HydrTrtFreq)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$HydrTrtFreq, na.rm = T),
+#                                           max(mod_dat_var$HydrTrtFreq, na.rm = T))),
+#                         name = "Hydrilla\nmanagement\nfrequency") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # hydr trt intensity
+# pred_hydr_ints <- pred_fun(HydrTrtArea, target_mod3b, target_dat3)
+# target_fig2 <- ggplot(pred_hydr_ints, aes(x = Time, y = Pred, 
+#                                           color = HydrTrtArea,
+#                                           group = HydrTrtArea)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$HydrTrtArea, na.rm = T),
+#                                           max(mod_dat_var$HydrTrtArea, na.rm = T))),
+#                         name = "Hydrilla\nmanagement\nintensity") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # floating PAC
+# pred_float_pac <- pred_fun(FloatPAC, target_mod3b, target_dat3)
+# target_fig3 <- ggplot(pred_float_pac, aes(x = Time, y = Pred, 
+#                                          color = FloatPAC,
+#                                          group = FloatPAC)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$FloatPAC, na.rm = T),
+#                                           max(mod_dat_var$FloatPAC, na.rm = T))),
+#                         name = "Floating\nplant\ncover") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # floating trt freq
+# pred_float_freq <- pred_fun(FloatTrtFreq, target_mod3b, target_dat3)
+# target_fig4 <- ggplot(pred_float_freq, aes(x = Time, y = Pred, 
+#                                color = FloatTrtFreq,
+#                                group = FloatTrtFreq)) +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$FloatTrtFreq, na.rm = T),
+#                                           max(mod_dat_var$FloatTrtFreq, na.rm = T))),
+#                         name = "Floating\nmanagement\nfrequency") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# # other trt freq
+# pred_other_freq <- pred_fun(OtherTrtFreq, target_mod3b, target_dat3)
+# target_fig5 <- ggplot(pred_other_freq, aes(x = Time, y = Pred, 
+#                                 color = OtherTrtFreq,
+#                                 group = OtherTrtFreq)) +
+#   geom_line() +
+#   geom_line() +
+#   scale_color_gradient2(low = "#1b9e77", mid = "#d95f02", high = "#7570b3",
+#                         midpoint = mean(c(min(mod_dat_var$OtherTrtFreq, na.rm = T),
+#                                           max(mod_dat_var$OtherTrtFreq, na.rm = T))),
+#                         name = "Other\nmanagement\nfrequency") +
+#   labs(x = "Years of monitoring", y = "Native taxonomic richness") +
+#   def_theme_paper
+# 
+# 
+# #### native richness coefficient plots ####
+# 
+# # systemic intensity
+# change_sys_ints <- confint(method_mod3a, parm = c("Time", "Time:TrtAreaSys", "Time:TrtAreaSysSq")) %>%
+#    cbind(tibble(Term = c("c", "b", "a"))) %>%
+#    select(Term, Estimate) %>%
+#    pivot_wider(names_from = Term, values_from = Estimate) %>%
+#    expand_grid(tibble(Intensity = sort(unique(methods_dat3$TrtAreaSys)))) %>%
+#    mutate(Change = a * Intensity^2 + b * Intensity + c,
+#           ExpChange = exp(Change))
+# 
+# change_sys_ints_fig <- ggplot(change_sys_ints, aes(x = Intensity, y = ExpChange)) +
+#   geom_point() +
+#   scale_y_continuous(breaks = 1) +
+#   labs(x = "Intensity", y = "Rate of change") + 
+#   def_theme_paper +
+#   theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
+#         axis.title = element_text(size = 8))
+# 
+# # check understanding of meaning
+# pred_sys_ints %>%
+#   select(Time, TrtAreaSys, Pred) %>%
+#   full_join(pred_sys_ints %>%
+#               filter(Time == 0) %>%
+#               select(TrtAreaSys, Pred) %>%
+#               rename(Pred0 = Pred)) %>%
+#   mutate(RelChange = Pred/Pred0) %>%
+#   ggplot(aes(x = TrtAreaSys, y = RelChange)) +
+#   geom_point() +
+#   facet_wrap(~ Time, scales = "free")
+# 
+# # floating plant PAC
+# change_float_pac <- confint(target_mod3b, parm = c("Time", "Time:FloatPAC", "Time:FloatPACSq")) %>%
+#   cbind(tibble(Term = c("c", "b", "a"))) %>%
+#   select(Term, Estimate) %>%
+#   pivot_wider(names_from = Term, values_from = Estimate) %>%
+#   expand_grid(tibble(PAC = sort(unique(target_dat3$FloatPAC)))) %>%
+#   mutate(Change = a * PAC^2 + b * PAC + c,
+#          ExpChange = exp(Change))
+# 
+# change_float_pac_fig <- ggplot(change_float_pac, aes(x = PAC, y = ExpChange)) +
+#   geom_point() +
+#   scale_y_continuous(breaks = 1) +
+#   labs(x = "Cover", y = "Rate of change") + 
+#   def_theme_paper +
+#   theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
+#         axis.title = element_text(size = 8))
+# 
+# # check understanding of meaning
+# pred_float_pac %>%
+#   select(Time, FloatPAC, Pred) %>%
+#   full_join(pred_float_pac %>%
+#               filter(Time == 0) %>%
+#               select(FloatPAC, Pred) %>%
+#               rename(Pred0 = Pred)) %>%
+#   mutate(RelChange = Pred/Pred0) %>%
+#   ggplot(aes(x = FloatPAC, y = RelChange)) +
+#   geom_point() +
+#   facet_wrap(~ Time, scales = "free")
+# 
+# 
+# #### combine figures ####
+# 
+# method_fig <- method_fig1 + 
+#   method_fig2 + inset_element(change_sys_ints_fig, left = 0.01, bottom = 0.01, right = 0.4, top = 0.45) +
+#   method_fig3 +
+#   plot_layout(ncol = 1) +
+#   plot_annotation(tag_levels = list(c("A", "B", "", "C")))
+# 
+# ggsave("output/methods_figure.png", method_fig,
+#        width = 4, height = 9)
+# 
+# target_fig <- target_fig1 + target_fig2 + target_fig3 + inset_element(change_float_pac_fig, left = 0.01, bottom = 0.01, right = 0.38, top = 0.42) + target_fig4 + target_fig5 +
+#   plot_layout(ncol = 2) +
+#   plot_annotation(tag_levels = list(c("A", "B", "C", "", "D", "E")))
+# 
+# ggsave("output/target_figure.png", target_fig,
+#        width = 7.5, height = 9)
+# 
+# 
 #### variations of target model ####
 
 # remove waterbodies with no management
@@ -1087,38 +1156,17 @@ n_distinct(target_dat3_mgmt$AreaOfInterestID)
 n_distinct(target_dat3$AreaOfInterestID)
 
 # fit model
-target_mod3_mgmt <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
-                                                       HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
-                                                       HydrTrtAreaLog + FloatTrtAreaLog + 
-                                                       OtherTrtArea + OtherTrtAreaSq) +
-                         (1|AreaOfInterestID),
-                       data = target_dat3_mgmt,
-                       family = "poisson",
-                       control=glmmTMBControl(optimizer=optim,
-                                              optArgs=list(method="BFGS")))
+target_mod3_mgmt <- update(target_mod3e, data = target_dat3_mgmt)
 summary(target_mod3_mgmt)
 
-# refit with negative binomial
-# target_mod3a_mgmt <- update(target_mod3_mgmt, family = "nbinom2")
-# couldn't converge
-
-# remove squared terms that aren't needed
-target_mod3b_mgmt <- update(target_mod3_mgmt, .~. -Time:OtherTrtAreaSq)
-
-# compare estimates
-summary(target_mod3b_mgmt)
-summary(target_mod3b)
-# same direction, similar magnitude
+# save model (slow to fit)
+save(target_mod3_mgmt, file = "output/native_richness_target_model_mgmt_only.rda")
+write_csv(tidy(target_mod3_mgmt), "output/target_model_all_mgmt_summary.csv")
 
 # target dataset from "new" management period (used for methods model)
 # remove waterbodies with no management
 target_dat_new2 <- target_dat_new %>%
-  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0)) %>%
-  mutate(HydrPACLog = log(HydrPAC + 0.01),
-         FloatPACSq = FloatPAC^2,
-         HydrTrtAreaLog = log(HydrTrtArea + 0.01),
-         FloatTrtAreaLog = log(FloatTrtArea + 0.01),
-         OtherTrtAreaSq = OtherTrtArea^2)
+  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0))
 
 # compare number of waterbodies
 n_distinct(target_dat_new2$AreaOfInterestID)
@@ -1131,32 +1179,25 @@ nrow(methods_dat3)
 # same
 
 # fit model
-target_mod3_new <- glmmTMB(NativeRichness ~ Time + Time:(HydrPAC + FloatPAC + FloatPACSq +
-                                                            HydrTrtFreq +FloatTrtFreq + OtherTrtFreq + 
-                                                            HydrTrtAreaLog + FloatTrtAreaLog + 
-                                                            OtherTrtArea + OtherTrtAreaSq) +
-                              (1|AreaOfInterestID),
-                            data = target_dat_new2,
-                            family = "poisson",
-                            control=glmmTMBControl(optimizer=optim,
-                                                   optArgs=list(method="BFGS")))
+target_mod3_new <- update(target_mod3e, data = target_dat_new2) # convergence error
+summary(target_mod3_new) # very large dispersion parameter -- > small overdispersion
+target_mod3_new2 <- update(target_mod3e, data = target_dat_new2, 
+                           family = "poisson")
+summary(target_mod3_new2) # this seems to change the estimates substantially
+target_mod3_new3 <- update(target_mod3_new, # try default optimizer
+                           control=glmmTMBControl(optimizer=nlminb,
+                                                  optArgs=list())) # convergence error
 
-# refit with negative binomial
-# target_mod3a_new <- update(target_mod3_new, family = "nbinom2")
-# couldn't converge
+# poisson version of full dataset model
+target_mod3f <- update(target_mod3e, family = "poisson")
 
-# squared term significance are different - keep all in for comparison
-summary(target_mod3_new)
-summary(target_mod3b)
+# model summaries
+summary(target_mod3_new2)
+summary(target_mod3f)
 
-# comparison with same terms
-target_mod3b_new <- update(target_mod3_new, .~. -Time:OtherTrtAreaSq)
-summary(target_mod3b_new)
-summary(target_mod3b)
-
-# export tables
-tidy(target_mod3b_mgmt) %>%
-  write_csv("output/target_model_all_mgmt_summary.csv")
-
-tidy(target_mod3b_new) %>%
-  write_csv("output/target_model_new_mgmt_summary.csv")
+# save model
+save(target_mod3_new2, file = "output/native_richness_target_model_newer_data.rda")
+write_csv(tidy(target_mod3_new2) %>%
+            mutate(dataset = "detailed methods") %>%
+            full_join(tidy(target_mod3f) %>%
+                        mutate(dataset = "full")), "output/target_model_new_mgmt_summary.csv")

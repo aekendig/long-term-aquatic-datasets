@@ -116,58 +116,61 @@ rich_mod_res <- simulateResiduals(rich_mod, n = 1000)
 plot(rich_mod_res)
 confint(rich_mod)
 
+# save
+write_csv(tidy(rich_mod), "output/method_comparison_model_summary.csv")
 
-#### richness over time ####
 
-# change in richness
-dat_rich_change <- dat_rich %>%
-  arrange(PermanentID, Year) %>%
-  group_by(PermanentID) %>%
-  mutate(YearDiff = Year - lag(Year),
-         FwriChange = (FWRI - lag(FWRI)) / YearDiff,
-         FwcChange = (FWC - lag(FWC)) / YearDiff) %>%
-  ungroup() %>%
-  filter(!is.na(FwriChange)) %>%
-  mutate(MethodDiff = FwcChange - FwriChange)
-
-# sample sizes
-n_distinct(dat_rich_change$PermanentID) # 45
-nrow(dat_rich_change) # 124
-
-# ranges of values
-unique(dat_rich_change$YearDiff)
-range(dat_rich_change$FwriChange)
-range(dat_rich_change$FwcChange)
-
-# averages
-mean(dat_rich_change$FwriChange)
-mean(dat_rich_change$FwcChange)
-
-# visualize
-ggplot(dat_rich_change, aes(x = FwriChange, y = FwcChange)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(intercept = 0, slope = 1) +
-  def_theme
-
-ggplot(dat_rich_change) +
-  geom_density(aes(x = FwriChange), color = "blue") +
-  geom_density(aes(x = FwcChange), color = "red") +
-  def_theme
-# more FWC changes ~ 0
-# FWRI changes may be detecting species that were not detected
-# in prior/later survey
-
-ggplot(dat_rich_change, aes(x = MethodDiff)) +
-  geom_histogram() +
-  def_theme
-
-# analysis
-rich_change_mod <- glmmTMB(MethodDiff ~ 1 + (1|PermanentID) + (1|YearF),
-                           data = dat_rich_change)
-summary(rich_change_mod)
-rich_change_mod_res <- simulateResiduals(rich_change_mod, n = 1000)
-plot(rich_change_mod_res)
-confint(rich_change_mod, parm = "(Intercept)")
+# #### richness over time ####
+# 
+# # change in richness
+# dat_rich_change <- dat_rich %>%
+#   arrange(PermanentID, Year) %>%
+#   group_by(PermanentID) %>%
+#   mutate(YearDiff = Year - lag(Year),
+#          FwriChange = (FWRI - lag(FWRI)) / YearDiff,
+#          FwcChange = (FWC - lag(FWC)) / YearDiff) %>%
+#   ungroup() %>%
+#   filter(!is.na(FwriChange)) %>%
+#   mutate(MethodDiff = FwcChange - FwriChange)
+# 
+# # sample sizes
+# n_distinct(dat_rich_change$PermanentID) # 45
+# nrow(dat_rich_change) # 124
+# 
+# # ranges of values
+# unique(dat_rich_change$YearDiff)
+# range(dat_rich_change$FwriChange)
+# range(dat_rich_change$FwcChange)
+# 
+# # averages
+# mean(dat_rich_change$FwriChange)
+# mean(dat_rich_change$FwcChange)
+# 
+# # visualize
+# ggplot(dat_rich_change, aes(x = FwriChange, y = FwcChange)) +
+#   geom_point(alpha = 0.5) +
+#   geom_abline(intercept = 0, slope = 1) +
+#   def_theme
+# 
+# ggplot(dat_rich_change) +
+#   geom_density(aes(x = FwriChange), color = "blue") +
+#   geom_density(aes(x = FwcChange), color = "red") +
+#   def_theme
+# # more FWC changes ~ 0
+# # FWRI changes may be detecting species that were not detected
+# # in prior/later survey
+# 
+# ggplot(dat_rich_change, aes(x = MethodDiff)) +
+#   geom_histogram() +
+#   def_theme
+# 
+# # analysis
+# rich_change_mod <- glmmTMB(MethodDiff ~ 1 + (1|PermanentID) + (1|YearF),
+#                            data = dat_rich_change)
+# summary(rich_change_mod)
+# rich_change_mod_res <- simulateResiduals(rich_change_mod, n = 1000)
+# plot(rich_change_mod_res)
+# confint(rich_change_mod, parm = "(Intercept)")
 
 
 #### taxon-specific detections ####
