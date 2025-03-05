@@ -473,7 +473,7 @@ fwc_plant6 <- fwc_plant5 %>%
 # check for duplicates
 (dup_fwc_plant6 <- get_dupes(fwc_plant6))
 
- # number of waterbodies
+# number of waterbodies
 n_distinct(fwc_plant6$AreaOfInterestID)
 
 
@@ -786,7 +786,15 @@ fwc_plant8_space <- fwc_plant8 %>%
 # should return no rows
 
 
+#### only years with all surveyed ####
+
+# join with key
+fwc_plant9 <- fwc_plant8 %>%
+  inner_join(key_all_pres)
+
+
 #### outputs ####
-write_csv(fwc_plant8, "intermediate-data/FWC_plant_formatted.csv")
+# write_csv(fwc_plant8, "intermediate-data/FWC_plant_formatted.csv")
 write_csv(fwc_plant8_time, "intermediate-data/FWC_plant_formatted_temporal_coverage.csv")
 write_csv(fwc_plant8_space, "intermediate-data/FWC_plant_formatted_spatial_coverage.csv")
+write_csv(fwc_plant9, "intermediate-data/FWC_plant_formatted.csv")
