@@ -32,9 +32,9 @@ timeline_dat <- target_dat %>%
                         endYear = max(fwc_Year),
                         midYear = (endYear + startYear) / 2,
                         waterbodies = n_distinct(PermanentID)) %>%
-              mutate(dataset = "methods\ncomparison")) %>%
+              mutate(dataset = "method\ncomparison")) %>%
   mutate(dataset = fct_relevel(dataset,
-                               "methods\ncomparison", "detailed\nmgmt.\nrecords", "full"))
+                               "method\ncomparison", "detailed\nmgmt.\nrecords", "full"))
 
 # figure
 timeline_fig <- ggplot(timeline_dat, aes(y = dataset)) +

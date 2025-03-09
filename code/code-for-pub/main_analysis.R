@@ -131,31 +131,41 @@ mod_dat_var <- target_dat_var %>%
 # function for native plant model predictions
 pred_fun <- function(variable, xaxis, model, dat){
   
-  tibble(Time = max(dat$Time),
-         HydrCovC = 0, 
-         FloatCovC = 0,
-         HydrTrtFreqC = 0, 
-         FloatTrtFreqC = 0, 
-         OtherTrtFreqC = 0,
-         HydrTrtAreaC = 0, 
-         FloatTrtAreaC = 0, 
-         OtherTrtAreaC = 0,
-         HydrPACc = 0, 
-         FloatPACc = 0,
-         TrtAreaConC = 0, 
-         TrtAreaSysC = 0, 
-         TrtAreaNonC = 0,
-         TrtFreqConC = 0, 
-         TrtFreqSysC = 0, 
-         TrtFreqNonC = 0, 
-         TrtMonthStd = 0) %>%
+  zero_dat <- tibble(Time = min(dat$Time),
+                     HydrCovC = 0, 
+                     FloatCovC = 0,
+                     HydrTrtFreqC = 0, 
+                     FloatTrtFreqC = 0, 
+                     OtherTrtFreqC = 0,
+                     HydrTrtAreaC = 0, 
+                     FloatTrtAreaC = 0, 
+                     OtherTrtAreaC = 0,
+                     HydrPACc = 0, 
+                     FloatPACc = 0,
+                     TrtAreaConC = 0, 
+                     TrtAreaSysC = 0, 
+                     TrtAreaNonC = 0,
+                     TrtFreqConC = 0, 
+                     TrtFreqSysC = 0, 
+                     TrtFreqNonC = 0, 
+                     TrtMonthStd = 0) 
+  
+  zero_dat_pred <- zero_dat %>%
+    mutate(Pred = predict(model, newdata = ., type = "response", 
+                          re.form = NA)) %>%
+    pull(Pred)
+  
+  fin_dat = zero_dat %>%
+    mutate(Time = max(dat$Time)) %>%
     select(-{{variable}}) %>%
     expand_grid(mod_dat_var%>%
                   filter(!is.na({{variable}}))  %>%
                   distinct({{variable}})) %>%
     mutate(Pred = predict(model, newdata = ., type = "response", re.form = NA),
            PredSE = predict(model, newdata = ., type = "response", re.form = NA,
-                            se.fit = T)$se.fit) %>%
+                            se.fit = T)$se.fit,
+           ZeroPred = zero_dat_pred,
+           PredDiff = Pred - ZeroPred) %>%
     left_join(dat %>%
                 distinct({{variable}}, {{xaxis}}))
   
@@ -237,44 +247,44 @@ oth_frq_fig_dat <- pred_fun(OtherTrtFreqC, OtherTrtFreq, target_mod2, target_dat
 hyd_ext_fig_dat <- pred_fun(HydrTrtAreaC, HydrTrtArea, target_mod2, target_dat)
 
 # figures
-flt_pac_fig <- ggplot(flt_pac_fig_dat, aes(x = FloatCov, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), 
+flt_pac_fig <- ggplot(flt_pac_fig_dat, aes(x = FloatCov, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Floating plant cover",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
-hyd_frq_fig <- ggplot(hyd_frq_fig_dat, aes(x = HydrTrtFreq, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), 
+hyd_frq_fig <- ggplot(hyd_frq_fig_dat, aes(x = HydrTrtFreq, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Hydrilla mgmt. frequency",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
-flt_frq_fig <- ggplot(flt_frq_fig_dat, aes(x = FloatTrtFreq, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), 
+flt_frq_fig <- ggplot(flt_frq_fig_dat, aes(x = FloatTrtFreq, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Floating plant mgmt. frequency",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
-oth_frq_fig <- ggplot(oth_frq_fig_dat, aes(x = OtherTrtFreq, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), 
+oth_frq_fig <- ggplot(oth_frq_fig_dat, aes(x = OtherTrtFreq, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Other plant mgmt. frequency",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
-hyd_ext_fig <- ggplot(hyd_ext_fig_dat, aes(x = HydrTrtArea, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), 
+hyd_ext_fig <- ggplot(hyd_ext_fig_dat, aes(x = HydrTrtArea, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Hydrilla mgmt. extent",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
 
@@ -465,7 +475,7 @@ taxa_target_fig <- ggplot(target_taxa_est,
   geom_hline(yintercept = 0, linewidth = 0.25) +
   scale_fill_manual(values = rev(col_pal), name = "Growth form") +
   labs(x = "Covariate interaction with time",
-       y = "Number of native taxa\n(in direction of response)") +
+       y = "Number of native taxa (in direction of response)") +
   def_theme_paper +
   theme(legend.position = "inside",
         legend.position.inside = c(0.5, 0.78))
@@ -474,7 +484,8 @@ taxa_target_fig <- ggplot(target_taxa_est,
 target_fig1 <- hyd_frq_fig + hyd_ext_fig + flt_pac_fig
 target_fig2 <- plot_spacer() + flt_frq_fig + oth_frq_fig + plot_spacer() +
   plot_layout(widths = c(1/4, 1, 1, 1/4))
-target_fig <- target_fig1 / target_fig2 / taxa_target_fig +
+target_fig3 <- target_fig1 / target_fig2
+target_fig <- target_fig3 + taxa_target_fig +
   plot_layout(nrow = 3, heights = c(0.6, 0.6, 1)) &
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & 
   theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
@@ -548,25 +559,28 @@ sys_ext_fig_dat <- pred_fun(TrtAreaSysC, TrtAreaSys, methods_mod2, methods_dat)
 non_freq_fig_dat <- pred_fun(TrtFreqNonC, TrtFreqNon, methods_mod2, methods_dat)
 
 # figures
-cont_ext_fig <- ggplot(cont_ext_fig_dat, aes(x = TrtAreaCon, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+cont_ext_fig <- ggplot(cont_ext_fig_dat, aes(x = TrtAreaCon, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Contact herbicide extent",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
-sys_ext_fig <- ggplot(sys_ext_fig_dat, aes(x = TrtAreaSys, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+sys_ext_fig <- ggplot(sys_ext_fig_dat, aes(x = TrtAreaSys, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Systemic herbicide extent",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
-non_freq_fig <- ggplot(non_freq_fig_dat, aes(x = TrtFreqNon, y = Pred)) +
-  geom_ribbon(aes(ymin = Pred - PredSE, ymax = Pred + PredSE), alpha = 0.3, color = NA) +
+non_freq_fig <- ggplot(non_freq_fig_dat, aes(x = TrtFreqNon, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
   geom_line() +
   labs(x = "Non-herbicide frequency",
-       y = "Native plant richness") +
+       y = "Change in native richness") +
   def_theme_paper
 
 
@@ -756,7 +770,7 @@ taxa_method_fig <- ggplot(method_taxa_est,
   geom_hline(yintercept = 0, linewidth = 0.25) +
   scale_fill_manual(values = rev(col_pal), name = "Growth form") +
   labs(x = "Covariate interaction with time",
-       y = "Number of native taxa\n(in direction of response)") +
+       y = "Number of native taxa (in direction of response)") +
   def_theme_paper +
   theme(legend.position = "inside",
         legend.position.inside = c(0.5, 0.84))
