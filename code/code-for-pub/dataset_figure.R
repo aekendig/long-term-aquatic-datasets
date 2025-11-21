@@ -2,11 +2,13 @@
 
 # load packages
 library(tidyverse)
+library(sf)
 
 # import datasets
 target_dat <- read_csv("intermediate-data/FWC_plant_management_target_analysis_formatted.csv")
 methods_dat <- read_csv("intermediate-data/FWC_plant_management_methods_analysis_formatted.csv")
 comp_dat <- read_csv("intermediate-data/fwc_double_sampling_data.csv")
+loc_dat <- read_csv("intermediate-data/FWC_lakes_formatted.csv")
 
 # figure settings
 source("code/code-for-pub/figure_settings.R")
