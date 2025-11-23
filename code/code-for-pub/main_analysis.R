@@ -34,7 +34,7 @@ target_dat_var <- target_dat %>%
   distinct(AreaOfInterestID, HydrCovC, FloatCovC, 
            HydrTrtFreqC, HydrTrtAreaC, FloatTrtFreqC, 
            FloatTrtAreaC, OtherTrtFreqC, OtherTrtAreaC,
-           HydrTrt, FloatTrt, HydrProp, FloatProp)
+           HydrTrt, FloatTrt, HydrProp, FloatProp, LatitudeC)
 
 # correlations among explanatory variables
 target_dat_var %>%
@@ -53,7 +53,7 @@ methods_dat_var <- methods_dat %>%
   distinct(AreaOfInterestID, HydrPACc, FloatPACc, 
            TrtAreaConC, TrtAreaSysC, TrtAreaNonC, TrtAreaHerbC, 
            TrtFreqConC, TrtFreqSysC, TrtFreqNonC, TrtFreqHerbC, 
-           TrtMonth, TrtMonthStd)
+           TrtMonth, TrtMonthStd, LatitudeC)
 
 # correlations among explanatory variables
 methods_dat_var %>%
@@ -85,7 +85,7 @@ write_csv(tidy(day_mod2), "output/survey_date_model_summary.csv")
 #### management efficacy models ####
 
 # hydrilla binary model
-hydr_mod1 <- betareg(HydrProp ~ HydrTrt, data = target_dat_var)
+hydr_mod1 <- betareg(HydrProp ~ HydrTrt + LatitudeC, data = target_dat_var)
 plot(hydr_mod1)
 summary(hydr_mod1)
 
@@ -94,7 +94,7 @@ write_csv(tidy(hydr_mod1),
           "output/hydrilla_mgmt_efficacy_binary_model_summary.csv")
 
 # hydrilla continuous model
-hydr_mod2 <- betareg(HydrProp ~ HydrTrtFreq + HydrTrtArea, 
+hydr_mod2 <- betareg(HydrProp ~ HydrTrtFreqC + HydrTrtAreaC + LatitudeC, 
                      data = target_dat_var)
 plot(hydr_mod2)
 summary(hydr_mod2)
@@ -104,7 +104,7 @@ write_csv(tidy(hydr_mod2),
           "output/hydrilla_mgmt_efficacy_continuous_model_summary.csv")
 
 # floating plant binary model
-float_mod1 <- betareg(FloatProp ~ FloatTrt, data = target_dat_var)
+float_mod1 <- betareg(FloatProp ~ FloatTrt + LatitudeC, data = target_dat_var)
 plot(float_mod1)
 summary(float_mod1)
 
@@ -113,7 +113,8 @@ write_csv(tidy(float_mod1),
           "output/floating_mgmt_efficacy_binary_model_summary.csv")
 
 # floating plant continuous model
-float_mod2 <- betareg(FloatProp ~ FloatTrtFreq + FloatTrtArea, data = target_dat_var)
+float_mod2 <- betareg(FloatProp ~ FloatTrtFreqC + FloatTrtAreaC + LatitudeC, 
+                      data = target_dat_var)
 plot(float_mod2)
 summary(float_mod2)
 
@@ -148,7 +149,8 @@ pred_fun <- function(variable, xaxis, model, dat){
                      TrtFreqConC = 0, 
                      TrtFreqSysC = 0, 
                      TrtFreqNonC = 0, 
-                     TrtMonthStd = 0) 
+                     TrtMonthStd = 0,
+                     LatitudeC = 0) 
   
   zero_dat_pred <- zero_dat %>%
     mutate(Pred = predict(model, newdata = ., type = "response", 
@@ -158,7 +160,7 @@ pred_fun <- function(variable, xaxis, model, dat){
   fin_dat = zero_dat %>%
     mutate(Time = max(dat$Time)) %>%
     select(-{{variable}}) %>%
-    expand_grid(mod_dat_var%>%
+    expand_grid(mod_dat_var %>%
                   filter(!is.na({{variable}}))  %>%
                   distinct({{variable}})) %>%
     mutate(Pred = predict(model, newdata = ., type = "response", re.form = NA),
@@ -189,7 +191,8 @@ target_mod1 <- glmmTMB(NativeRichness ~ Time + Time:(HydrCovC +
                                                        OtherTrtFreqC + 
                                                        HydrTrtAreaC +
                                                        FloatTrtAreaC + 
-                                                       OtherTrtAreaC) +
+                                                       OtherTrtAreaC +
+                                                       LatitudeC) +
                          (1|AreaOfInterestID),
                        data = target_dat, family = "poisson",
                        control = glmmTMBControl(optimizer = optim,
@@ -323,7 +326,8 @@ target_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrCovC + FloatCovC +
                                                      OtherTrtFreqC + 
                                                      HydrTrtAreaC + 
                                                      FloatTrtAreaC + 
-                                                     OtherTrtAreaC) + 
+                                                     OtherTrtAreaC +
+                                                     LatitudeC) + 
                              (1|AreaOfInterestID),
                            data = target_taxa_sub, family = "binomial")
 
@@ -344,14 +348,13 @@ save(target_taxa_mod, file = paste0("output/target_model_",
 
 # save results when i <- 1
 target_taxa_coefs <- tidy(target_taxa_mod) %>%
-  filter(str_detect(term, "Time:")) %>%
   mutate(TaxonName = target_taxa[1]) %>%
   relocate(TaxonName)
 
 # loop through taxa
 pdf("output/taxa_specific_target_models.pdf")
 
-for(i in target_taxa) {
+for(i in target_taxa[-1]) {
   
   # subset data
   target_taxa_sub <- filter(target_taxa_dat2, TaxonName == i)
@@ -363,7 +366,8 @@ for(i in target_taxa) {
                                                        OtherTrtFreqC + 
                                                        HydrTrtAreaC + 
                                                        FloatTrtAreaC + 
-                                                       OtherTrtAreaC) + 
+                                                       OtherTrtAreaC +
+                                                       LatitudeC) + 
                                (1|AreaOfInterestID),
                              data = target_taxa_sub, family = "binomial")
   
@@ -432,11 +436,11 @@ target_taxa_tab <- target_taxa_coefs3 %>%
   arrange(Habitat, TaxonName) %>%
   relocate(c(HydrCovC, HydrTrtFreqC, HydrTrtAreaC, 
              FloatCovC, FloatTrtFreqC, FloatTrtAreaC, 
-             OtherTrtFreqC, OtherTrtAreaC), 
+             OtherTrtFreqC, OtherTrtAreaC, LatitudeC), 
            .after = TaxonName) %>%
   mutate(across(.cols = c(HydrCovC, HydrTrtFreqC, HydrTrtAreaC, 
                           FloatCovC, FloatTrtFreqC, FloatTrtAreaC, 
-                          OtherTrtFreqC, OtherTrtAreaC),
+                          OtherTrtFreqC, OtherTrtAreaC, LatitudeC),
                 .fns = ~replace_na(.x, "")),
          TaxonName = str_replace_all(TaxonName, " ", "\n") %>%
            str_replace_all("\\/", "\\/\n"))
@@ -445,6 +449,7 @@ write_csv(target_taxa_tab, "output/target_model_taxa_interactions_table.csv")
 
 # format estimates for figure
 target_taxa_est <- target_taxa_coefs3 %>%
+  filter(term != "Time:LatitudeC") %>% 
   mutate(term = fct_recode(term,
                            "hydrilla\ncover" = "Time:HydrCovC",
                            "hydrilla\nmgmt.\nfrequency" = "Time:HydrTrtFreqC",
@@ -487,11 +492,13 @@ target_fig2 <- plot_spacer() + flt_frq_fig + oth_frq_fig + plot_spacer() +
 target_fig3 <- target_fig1 / target_fig2
 target_fig <- target_fig3 + taxa_target_fig +
   plot_layout(nrow = 3, heights = c(0.6, 0.6, 1)) &
-  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & 
-  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")",
+                  title = "Figure 3") & 
+  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
+        plot.title = element_text(size = 12))
 
-ggsave("output/target_figure.png", target_fig,
-       width = 6.5, height = 8)
+ggsave("output/target_figure.png", target_fig, dpi = 600,
+       width = 18, height = 20, units = "cm")
 
 
 #### native richness methods model ####
@@ -504,13 +511,14 @@ var(methods_dat$NativeRichness)
 
 # fit model
 methods_mod1 <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACc + FloatPACc +
-                                                       TrtAreaConC + 
-                                                       TrtAreaSysC + 
-                                                       TrtAreaNonC +
-                                                       TrtFreqConC + 
-                                                       TrtFreqSysC + 
-                                                       TrtFreqNonC +
-                                                       TrtMonthStd) +
+                                                        TrtAreaConC + 
+                                                        TrtAreaSysC + 
+                                                        TrtAreaNonC +
+                                                        TrtFreqConC + 
+                                                        TrtFreqSysC + 
+                                                        TrtFreqNonC +
+                                                        TrtMonthStd +
+                                                        LatitudeC) +
                          (1|AreaOfInterestID),
                        data = methods_dat,
                        family = poisson,
@@ -619,7 +627,8 @@ methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrPACc + FloatPACc +
                                                       TrtFreqConC + 
                                                       TrtFreqSysC + 
                                                       TrtFreqNonC +
-                                                      TrtMonthStd) +
+                                                      TrtMonthStd +
+                                                      LatitudeC) +
                               (1|AreaOfInterestID),
                             data = methods_taxa_sub, family = "binomial")
 
@@ -628,7 +637,7 @@ methods_taxa_mod <- glmmTMB(Detected ~ Time + Time:(HydrPACc + FloatPACc +
 # taxa with model convergence issues:
 # 22: Fontinalis spp.
 # 43: Najas marina
-# 60: Proserpinaca spp.
+# 70: Sparganium americanum
 
 # # look at models
 summary(methods_taxa_mod)
@@ -649,7 +658,7 @@ methods_taxa_coefs <- tidy(methods_taxa_mod) %>%
 # loop through taxa
 pdf("output/taxa_specific_methods_models.pdf")
 
-for(i in methods_taxa[-c(22, 43, 60)]) {
+for(i in methods_taxa[-c(1, 22, 43, 70)]) {
   
   # subset data
   methods_taxa_sub <- filter(methods_taxa_dat2, TaxonName == i)
@@ -662,7 +671,8 @@ for(i in methods_taxa[-c(22, 43, 60)]) {
                                                         TrtFreqConC + 
                                                         TrtFreqSysC + 
                                                         TrtFreqNonC +
-                                                        TrtMonthStd) +
+                                                        TrtMonthStd +
+                                                        LatitudeC) +
                                 (1|AreaOfInterestID),
                               data = methods_taxa_sub, family = "binomial")
   
@@ -737,15 +747,14 @@ write_csv(methods_taxa_tab, "output/methods_model_taxa_interactions_table.csv")
 
 # format estimates for figure
 method_taxa_est <- methods_taxa_coefs3 %>%
+  filter(term != "Time:LatitudeC" & str_detect(term, "Non") == F) %>% 
   mutate(term = fct_recode(term,
                            "hydrilla\ncover" = "Time:HydrPACc",
                            "floating\nplant\ncover" = "Time:FloatPACc",
                            "contact\nherbicide\nextent" = "Time:TrtAreaConC",
                            "systemic\nherbicide\nextent" = "Time:TrtAreaSysC",
-                           "non-\nherbicide\nextent" = "Time:TrtAreaNonC",
                            "contact\nherbicide\nfrequency" = "Time:TrtFreqConC",
                            "systemic\nherbicide\nfrequency" = "Time:TrtFreqSysC",
-                           "non-\nherbicide\nfrequency" = "Time:TrtFreqNonC",
                            "average\nmanagement\nmonth" = "Time:TrtMonthStd"),
          sign = if_else(estimate > 0, "pos", "neg")) %>%
   count(term, sign, Habitat) %>%
@@ -759,8 +768,6 @@ method_taxa_est <- methods_taxa_coefs3 %>%
                             "contact\nherbicide\nextent",
                             "systemic\nherbicide\nfrequency",
                             "systemic\nherbicide\nextent",
-                            "non-\nherbicide\nfrequency",
-                            "non-\nherbicide\nextent",
                             "average\nmanagement\nmonth"))
 
 # figure
@@ -779,8 +786,10 @@ taxa_method_fig <- ggplot(method_taxa_est,
 method_fig <- (cont_ext_fig + sys_ext_fig + non_freq_fig) /
   taxa_method_fig +
   plot_layout(heights = c(0.6, 1)) &
-  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & 
-  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")",
+                  title = "Figure 5") & 
+  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
+        plot.title = element_text(size = 12))
 
 ggsave("output/method_figure.png", method_fig,
        width = 18, height = 16, units = "cm", dpi = 600)
@@ -789,8 +798,18 @@ ggsave("output/method_figure.png", method_fig,
 #### variations of target model ####
 
 # remove waterbodies with no management
+# re-center variables
 target_dat_mgmt <- target_dat %>%
-  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0))
+  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0)) %>%
+  mutate(HydrCovC = HydrCov - mean(HydrCov),
+         FloatCovC = FloatCov - mean(FloatCov),
+         HydrTrtFreqC = HydrTrtFreq - mean(HydrTrtFreq),
+         FloatTrtFreqC = FloatTrtFreq - mean(FloatTrtFreq),
+         OtherTrtFreqC = OtherTrtFreq - mean(OtherTrtFreq),
+         HydrTrtAreaC = HydrTrtArea - mean(HydrTrtArea),
+         FloatTrtAreaC = FloatTrtArea - mean(FloatTrtArea),
+         OtherTrtAreaC = OtherTrtArea - mean(OtherTrtArea),
+         LatitudeC = Latitude - mean(Latitude))
 
 # compare number of waterbodies
 n_distinct(target_dat_mgmt$AreaOfInterestID)
@@ -799,29 +818,26 @@ n_distinct(target_dat$AreaOfInterestID)
 # fit model
 target_mod_mgmt <- update(target_mod2, data = target_dat_mgmt)
 summary(target_mod_mgmt)
+summary(target_mod2)
 
 # save model
 save(target_mod_mgmt, file = "output/native_richness_target_model_mgmt_only.rda")
 write_csv(tidy(target_mod_mgmt), "output/target_model_all_mgmt_summary.csv")
 
-# target dataset from "new" management period (used for methods model)
-# remove waterbodies with no management
-target_dat_new2 <- target_dat_new %>%
-  filter(!(HydrTrtFreq == 0 & FloatTrtFreq == 0 & OtherTrtFreq == 0))
-
-# compare number of waterbodies
-n_distinct(target_dat_new2$AreaOfInterestID)
-n_distinct(methods_dat3$AreaOfInterestID)
+# compare number of waterbodies target dataset from "new" management period 
+# (used for methods model)
+n_distinct(target_dat_new$AreaOfInterestID)
+n_distinct(methods_dat$AreaOfInterestID)
 # same
 
 # compare sample size
-nrow(target_dat_new2)
+nrow(target_dat_new)
 nrow(methods_dat)
 # same
 
 # check for all waterbodies
 anti_join(methods_dat %>% distinct(AreaOfInterestID, SurveyYear),
-          target_dat_new2 %>% distinct(AreaOfInterestID, SurveyYear))
+          target_dat_new %>% distinct(AreaOfInterestID, SurveyYear))
 
 # fit model
 target_mod_new <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACc + 
@@ -831,12 +847,14 @@ target_mod_new <- glmmTMB(NativeRichness ~ Time + Time:(HydrPACc +
                                                           OtherTrtFreqC + 
                                                           HydrTrtAreaC +
                                                           FloatTrtAreaC + 
-                                                          OtherTrtAreaC) +
+                                                          OtherTrtAreaC +
+                                                          LatitudeC) +
                             (1|AreaOfInterestID),
-                          data = target_dat_new2, family = "nbinom2",
+                          data = target_dat_new, family = "nbinom2",
                           control = glmmTMBControl(optimizer = optim,
                                                    optArgs = list(method = "BFGS"))) 
 summary(target_mod_new) 
+summary(target_mod2)
 
 # save model
 save(target_mod_new, file = "output/native_richness_target_model_newer_data.rda")

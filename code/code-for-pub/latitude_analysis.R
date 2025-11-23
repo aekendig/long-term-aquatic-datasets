@@ -25,18 +25,32 @@ source("code/code-for-pub/figure_settings.R")
 # variables in target mod
 summary(target_mod2)
 
+# waterbody-specific change in native richness
+waterbodies <- sort(unique(target_dat$AreaOfInterestID))
+target_changes <- NULL
+for (i in waterbodies) {
+  target_sub_dat <- filter(target_dat, AreaOfInterestID == i)
+  model  <- lm(NativeRichness  ~  Time, data = target_sub_dat)
+  bmodel <- broom::tidy(model) # convert to table
+  bmodel$AreaOfInterestID <- i # add waterbody ID
+  bmodel <- bmodel[2,] # get latitude row
+  target_changes <- rbind(target_changes, bmodel) # combine
+}
+target_changes
+
 # format data
 target_dat2 <- target_dat %>% 
-  group_by(AreaOfInterestID, HydrCov, FloatCov, HydrTrtFreq, FloatTrtFreq,
+  distinct(AreaOfInterestID, HydrCov, FloatCov, HydrTrtFreq, FloatTrtFreq,
            OtherTrtFreq, HydrTrtArea, FloatTrtArea, OtherTrtArea) %>% 
-  summarize(MeanNativeRichness = mean(NativeRichness),
-            .groups = "drop") %>% 
+  left_join(target_changes %>% 
+              select(AreaOfInterestID, estimate) %>% 
+              rename(NativeChange = estimate)) %>% 
   left_join(loc_dat %>% 
               select(AreaOfInterestID, Latitude))
 
 # correlations
 target_dat2 %>% 
-  select(-c(AreaOfInterestID, LatitudeC)) %>% 
+  select(-AreaOfInterestID) %>% 
   ggpairs()
 
 # regressions 
@@ -152,7 +166,7 @@ hyd_ext_fig <- ggplot(target_dat2, aes(x = Latitude, y = HydrTrtArea)) +
        x = "Latitude") +
   def_theme_paper
 
-nat_targ_fig <- ggplot(target_dat2, aes(x = Latitude, y = MeanNativeRichness)) +
+nat_targ_fig <- ggplot(target_dat2, aes(x = Latitude, y = NativeChange)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "lm", se = F) +
   stat_poly_eq(formula = y ~ x, 
@@ -168,7 +182,7 @@ nat_targ_fig <- ggplot(target_dat2, aes(x = Latitude, y = MeanNativeRichness)) +
                color = "blue",
                size = 3.5,
                geom = "label_npc") +
-  labs(y = "Floating plant cover",
+  labs(y = "Change in native richness",
        x = "Latitude") +
   def_theme_paper
 
@@ -188,12 +202,26 @@ ggsave("output/target_latitude_figure.png", target_lat_fig,
 # variables in methods mod
 summary(methods_mod2)
 
+# waterbody-specific change in native richness
+waterbodies2 <- sort(unique(methods_dat$AreaOfInterestID))
+methods_changes <- NULL
+for (i in waterbodies2) {
+  methods_sub_dat <- filter(methods_dat, AreaOfInterestID == i)
+  model  <- lm(NativeRichness  ~  Time, data = methods_sub_dat)
+  bmodel <- broom::tidy(model) # convert to table
+  bmodel$AreaOfInterestID <- i # add waterbody ID
+  bmodel <- bmodel[2,] # get latitude row
+  methods_changes <- rbind(methods_changes, bmodel) # combine
+}
+methods_changes
+
 # format data
 methods_dat2 <- methods_dat %>% 
-  group_by(AreaOfInterestID, HydrPAC, FloatPAC, TrtAreaCon, TrtAreaSys,
+  distinct(AreaOfInterestID, HydrPAC, FloatPAC, TrtAreaCon, TrtAreaSys,
            TrtAreaNon, TrtFreqCon, TrtFreqSys, TrtFreqNon) %>% 
-  summarize(MeanNativeRichness = mean(NativeRichness),
-            .groups = "drop") %>% 
+  left_join(methods_changes %>% 
+              select(AreaOfInterestID, estimate) %>% 
+              rename(NativeChange = estimate)) %>% 
   left_join(loc_dat %>% 
               select(AreaOfInterestID, Latitude))
 
@@ -275,7 +303,7 @@ sys_ext_fig <- ggplot(methods_dat2, aes(x = Latitude, y = TrtAreaSys)) +
        x = "Latitude") +
   def_theme_paper
 
-non_freq_fig <- ggplot(methods_dat2, aes(x = Latitude, y = TrtFreqNon)) +
+nat_meth_fig <- ggplot(methods_dat2, aes(x = Latitude, y = NativeChange)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "lm", se = F) +
   stat_poly_eq(formula = y ~ x, 
@@ -291,12 +319,12 @@ non_freq_fig <- ggplot(methods_dat2, aes(x = Latitude, y = TrtFreqNon)) +
                color = "blue",
                size = 3.5,
                geom = "label_npc") +
-  labs(y = "Non-herbicide frequency",
+  labs(y = "Change in native richness",
        x = "Latitude") +
   def_theme_paper
 
 # combine figures
-methods_lat_fig <- flt_pac_fig2 + cont_ext_fig + sys_ext_fig + non_freq_fig +
+methods_lat_fig <- flt_pac_fig2 + cont_ext_fig + sys_ext_fig + nat_meth_fig +
   plot_layout(nrow = 2) &
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & 
   theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0))

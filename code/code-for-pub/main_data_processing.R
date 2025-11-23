@@ -1,3 +1,6 @@
+#### to do ####
+# double check no fluridone used here
+
 #### description ####
 
 # processes raw data into dataset for target and methods analyses
@@ -14,6 +17,7 @@ library(patchwork)
 # import data
 plants <- read_csv("intermediate-data/FWC_plant_formatted.csv")
 mgmt <- read_csv("intermediate-data/FWC_management_formatted.csv")
+loc_dat <- read_csv("intermediate-data/FWC_lakes_formatted.csv")
 
 # figure settings
 source("code/code-for-pub/figure_settings.R")
@@ -95,7 +99,7 @@ mgmt_new2 <- mgmt_new %>%
   inner_join(waterbodies_new) %>%
   filter(TreatmentYear >= MinSurveyYear & TreatmentYear <= MaxSurveyYear) %>%
   mutate(Method = case_when(MethodHerbicide == "yes" & Contact == 1 ~ "Con", # contact
-                            MethodHerbicide == "yes" & Contact == 0 ~ "Sys", # systemtic
+                            MethodHerbicide == "yes" & Contact == 0 ~ "Sys", # systemic
                             MethodHerbicide == "no" ~ "Non", # non-herbicide
                             TRUE ~ "Unk"), # unknown
          SurveyYears = MaxSurveyYear - MinSurveyYear + 1,
@@ -170,20 +174,29 @@ mgmt_target_sum <- mgmt2 %>%
          FloatTrtAreaC = FloatTrtArea - mean(FloatTrtArea),
          OtherTrtAreaC = OtherTrtArea - mean(OtherTrtArea))
 
+# latitude
+lat_target_sum <- loc_dat %>% 
+  filter(AreaOfInterestID %in% mgmt_target_sum$AreaOfInterestID) %>% 
+  mutate(LatitudeC = Latitude - mean(Latitude)) 
+
 # combine data
 # create a time variable
 target_dat <- plant_target_sum %>%
   full_join(inv_target_sum) %>%
   full_join(mgmt_target_sum) %>%
+  left_join(lat_target_sum %>% 
+              select(AreaOfInterestID, Latitude, LatitudeC)) %>% 
   mutate(Time = SurveyYear - min(SurveyYear),
          SurveyDay = yday(SurveyDate))
 
 # for individual species
 target_taxa_dat <- plants2 %>%
-  filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
+  filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", 
+                            "Pistia stratiotes"))) %>%
+  select(AreaOfInterestID, SurveyYear, TaxonName, Origin, Habitat, 
+         IsDetected) %>% 
   inner_join(target_dat) %>%
-  mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
-  mutate(Time = SurveyYear - min(SurveyYear))
+  mutate(Detected = if_else(IsDetected == "Yes", 1, 0))
 
 # save
 write_csv(target_dat, 
@@ -264,7 +277,10 @@ ggsave("output/management_target_time_series.png",
 
 # richness
 plant_methods_sum <- plants_new %>%
-  filter(IsDetected == "Yes" & !(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
+  filter(IsDetected == "Yes" & !(TaxonName %in% c("Hydrilla verticillata", 
+                                                  "Eichhornia crassipes", 
+                                                  "Pistia stratiotes")) &
+           AreaOfInterestID %in% mgmt_new2$AreaOfInterestID) %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, FType, SurveyYear, SurveyDate) %>%
   summarize(NativeRichness = sum(Origin == "Native"),
             .groups = "drop") %>%
@@ -276,7 +292,10 @@ plant_methods_sum <- plants_new %>%
 
 # invasive cover
 inv_methods_sum <- plants_new %>%
-  filter(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes")) %>%
+  filter(TaxonName %in% c("Hydrilla verticillata", 
+                          "Eichhornia crassipes", 
+                          "Pistia stratiotes")&
+           AreaOfInterestID %in% mgmt_new2$AreaOfInterestID) %>%
   mutate(Invasive = case_when(TaxonName == "Hydrilla verticillata" ~ "Hydr", 
                               TaxonName == "Eichhornia crassipes" ~ "Hyac", 
                               TaxonName == "Pistia stratiotes" ~ "Lett")) %>%
@@ -333,20 +352,29 @@ mgmt_methods_month_sum <- mgmt_new2 %>%
             .groups = "drop") %>%
   mutate(TrtMonthStd = TrtMonth - mean(TrtMonth))
 
+# latitude
+lat_methods_sum <- loc_dat %>% 
+  filter(AreaOfInterestID %in% mgmt_methods_sum$AreaOfInterestID) %>% 
+  mutate(LatitudeC = Latitude - mean(Latitude)) 
+
 # combine data
 methods_dat <- plant_methods_sum %>%
   full_join(inv_methods_sum) %>%
-  inner_join(mgmt_methods_sum %>% 
+  full_join(mgmt_methods_sum %>% 
                full_join(mgmt_herb_sum) %>%
                full_join(mgmt_methods_month_sum)) %>%
+  left_join(lat_methods_sum %>% 
+              select(AreaOfInterestID, Latitude, LatitudeC)) %>% 
   mutate(Time = SurveyYear - min(SurveyYear))
 
 # taxa dat for specific methods
 methods_taxa_dat <- plants_new %>%
-  filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", "Pistia stratiotes"))) %>%
+  filter(!(TaxonName %in% c("Hydrilla verticillata", "Eichhornia crassipes", 
+                            "Pistia stratiotes"))) %>%
+  select(AreaOfInterestID, SurveyYear, TaxonName, Origin, Habitat, 
+         IsDetected) %>% 
   mutate(Detected = if_else(IsDetected == "Yes", 1, 0)) %>%
-  inner_join(methods_dat) %>%
-  mutate(Time = SurveyYear - min(SurveyYear))
+  inner_join(methods_dat)
 
 # save
 write_csv(methods_dat, 
@@ -398,14 +426,31 @@ ggsave("output/management_methods_time_series.png",
 
 #### smaller management target dataset ####
 
+mgmt_methods_sum <- mgmt_new2 %>%
+  group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, Method) %>%
+  summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
+            TrtArea = mean(100 * PropTreated),
+            .groups = "drop") %>%
+  pivot_wider(names_from = Method,
+              values_from = c(TrtArea, TrtFreq),
+              names_glue = "{.value}{Method}") %>%
+  mutate(across(.cols = starts_with("Trt"), 
+                .fns = ~replace_na(.x, 0)),
+         TrtAreaConC = TrtAreaCon - mean(TrtAreaCon),
+         TrtAreaSysC = TrtAreaSys - mean(TrtAreaSys),
+         TrtAreaNonC = TrtAreaNon - mean(TrtAreaNon),
+         TrtFreqConC = TrtFreqCon - mean(TrtFreqCon),
+         TrtFreqSysC = TrtFreqSys - mean(TrtFreqSys),
+         TrtFreqNonC = TrtFreqNon - mean(TrtFreqNon)) 
+
 # management target (for the new dataset)
 mgmt_target_sum_new <- mgmt_new2 %>%
   group_by(PermanentID, AreaOfInterestID, AreaOfInterest, County, Target) %>%
   summarize(TrtFreq = 100 * n_distinct(TreatmentYear) / unique(SurveyYears),
             TrtArea = mean(100 * PropTreated),
             .groups = "drop") %>%
-  full_join(waterbodies_new %>% # add in waterbodies without management
-              select(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
+  full_join(mgmt_new2 %>% # add in all waterbodies, all targets
+              distinct(PermanentID, AreaOfInterestID, AreaOfInterest, County) %>%
               expand_grid(Target = c("Float", "Hydr", "Other"))) %>%
   mutate(TrtFreq = replace_na(TrtFreq, 0),
          TrtArea = replace_na(TrtArea, 0)) %>%
@@ -419,10 +464,17 @@ mgmt_target_sum_new <- mgmt_new2 %>%
          FloatTrtAreaC = FloatTrtArea - mean(FloatTrtArea),
          OtherTrtAreaC = OtherTrtArea - mean(OtherTrtArea))
 
+# latitude
+lat_methods_sum_new <- loc_dat %>% 
+  filter(AreaOfInterestID %in% mgmt_target_sum_new$AreaOfInterestID) %>% 
+  mutate(LatitudeC = Latitude - mean(Latitude)) 
+
 # combine (same plant data as method daaset)
 target_dat_new <- plant_methods_sum %>%
   full_join(inv_methods_sum) %>%
   full_join(mgmt_target_sum_new) %>%
+  left_join(lat_methods_sum_new %>% 
+              select(AreaOfInterestID, Latitude, LatitudeC)) %>% 
   mutate(Time = SurveyYear - min(SurveyYear))
 
 # save
