@@ -242,6 +242,8 @@ summary(target_mod2)
 # table
 write_csv(tidy(target_mod2), "output/native_richness_target_model_summary.csv")
 
+#### to do: all 8 cover/mgmt variables ####
+
 # data for figures
 flt_pac_fig_dat <- pred_fun(FloatCovC, FloatCov, target_mod2, target_dat)
 hyd_frq_fig_dat <- pred_fun(HydrTrtFreqC, HydrTrtFreq, target_mod2, target_dat)
@@ -560,6 +562,8 @@ summary(methods_mod2)
 # table
 write_csv(tidy(methods_mod2), 
           "output/native_richness_methods_model_summary.csv")
+
+#### to do: all cover and herbicide variables + latitude ####
 
 # data for figures
 cont_ext_fig_dat <- pred_fun(TrtAreaConC, TrtAreaCon, methods_mod2, methods_dat)

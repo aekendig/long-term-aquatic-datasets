@@ -1,6 +1,3 @@
-#### to do ####
-# double check no fluridone used here
-
 #### description ####
 
 # processes raw data into dataset for target and methods analyses
@@ -222,12 +219,13 @@ mgmt_time_fig <- ggplot(mgmt_target_year_sum, aes(x = TreatmentYear, y = n, colo
   geom_line() + 
   geom_point() +
   scale_color_manual(values = col_pal) +
-  labs(x = "Year", y = "Number of waterbodies managed") +
+  labs(x = "Year", y = "Number of waterbodies with management records") +
   def_theme_paper +
   theme(legend.position = "inside",
         legend.position.inside = c(0.75, 0.15),
         legend.text = element_markdown(),
-        axis.text.x = element_text(hjust = 0.7))
+        axis.text.x = element_text(hjust = 0.7),
+        axis.title.y = element_text(hjust = 0))
 
 # expand on other species
 mgmt_target_other_sum <- mgmt2 %>%
@@ -256,20 +254,23 @@ mgmt_other_fig <- mgmt_target_other_sum %>%
   filter(n >= 20) %>%
   ggplot(aes(y = Taxon, x = n)) +
   geom_col(fill = col_pal[2]) +
-  labs(y = "Other plants", x = "Number of management events") +
+  labs(y = "Other plants", x = "Number of recorded management events") +
   def_theme_paper +
-  theme(axis.text.y = element_markdown())
+  theme(axis.text.y = element_markdown(),
+        axis.title.x = element_text(hjust = 1))
 
 # save figures
 mgmt_target_fig <- mgmt_time_fig + mgmt_other_fig +
   plot_layout(nrow = 1, widths = c(1, 0.7)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(",
-                  tag_suffix = ")") & 
+                  tag_suffix = ")",
+                  title = "Figure 2") & 
   theme(plot.tag.position = c(0, 1),
-        plot.tag = element_text(size = 12, hjust = 0, vjust = 0))
+        plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
+        plot.title = element_text(size = 12))
 
 ggsave("output/management_target_time_series.png",
-       mgmt_target_fig, width = 18, height = 9,
+       mgmt_target_fig, width = 18, height = 9.5,
        units = "cm", dpi = 600)
 
 
@@ -411,7 +412,7 @@ mgmt_methods_fig <- mgmt_methods_prop %>%
   geom_col(color = "white", linewidth = 0.2) +
   facet_wrap(~ Target) +
   scale_fill_manual(values = col_pal) +
-  labs(x = "Year", y = "Proportion of management events") +
+  labs(x = "Year", y = "Proportion of recorded management events") +
   def_theme_paper +
   theme(strip.text = element_markdown(),
         axis.text.x = element_text(angle = 45, hjust = 1),
@@ -483,6 +484,48 @@ write_csv(target_dat_new,
 
 
 #### values for text ####
+
+# proportion events with fluridone
+mgmt_new2 %>% 
+  filter(str_detect(ControlMethod, "Fluridone") & 
+           Species == "Hydrilla verticillata") %>% 
+  nrow() /
+  mgmt_new2 %>% 
+  filter(Species == "Hydrilla verticillata") %>% 
+  nrow()
+
+# systemic herbicides
+mgmt_new2 %>% 
+  filter(Method == "Sys") %>% 
+  count(ControlMethod) %>% 
+  arrange(desc(n))
+
+# contact herbicides
+mgmt_new2 %>% 
+  filter(Method == "Con") %>% 
+  count(ControlMethod) %>% 
+  arrange(desc(n))
+
+# non-herbicides
+mgmt_new2 %>% 
+  filter(Method == "Non") %>% 
+  count(ControlMethod) %>% 
+  arrange(desc(n))
+
+# proportion mechanical
+mgmt_new2 %>% 
+  filter(ControlMethod != "Grass Carp" & 
+           Method == "Non") %>% 
+  nrow() /
+  mgmt_new2 %>% 
+  filter(Method == "Non") %>% 
+  nrow()
+
+# unknown
+mgmt_new2 %>% 
+  filter(Method == "Unk") %>% 
+  count(ControlMethod) %>% 
+  arrange(desc(n))
 
 # summarize taxa by habitat
 plants2 %>%
