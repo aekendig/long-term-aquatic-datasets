@@ -665,6 +665,11 @@ outliers <- tibble(AreaOfInterest = NA,
                    AreaOfInterestID = NA,
                    SurveyYear = NA,
                    DevRich = NA)
+outliers2 <- tibble(AreaOfInterest = NA,
+                   AreaOfInterestID = NA,
+                   SurveyYear = NA,
+                   DevRich = NA)
+
 
 # list of AOIs
 AOIs <- sort(unique(fwc_plant7$AreaOfInterestID))
@@ -678,8 +683,8 @@ for(i in AOIs){
   # filter data
   dat_sub <- filter(fwc_plant7, AreaOfInterestID == i)
   
-  # get name
-  dat_name <- unique(dat_sub$AreaOfInterest)
+  # # get name
+  # dat_name <- unique(dat_sub$AreaOfInterest)
   
   # summarize data
   dat_rich <- dat_sub %>%
@@ -695,27 +700,30 @@ for(i in AOIs){
                                  Richness == MinSurvey ~ "outlier",
                                (PrevRich - Richness)/PrevRich >= 0.8 &
                                  (NextRich - Richness)/NextRich >= 0.8 ~ "deviation",
-                              TRUE ~ "consistent"))
+                              TRUE ~ "consistent"),
+           LowRich = mean(Richness) - 3 * sd(Richness),
+           OutRich = if_else(Richness < LowRich, 1, 0))
   
-  dat_acre <- dat_sub %>%
-    inner_join(key_exotic_acre2) %>%
-    filter(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))
+  # dat_acre <- dat_sub %>%
+  #   inner_join(key_exotic_acre2) %>%
+  #   filter(TaxonName %in% c("Hydrilla verticillata", "Pistia stratiotes", "Eichhornia crassipes"))
   
-  # plot
-  print(ggplot(dat_rich, aes(x = SurveyYear, y = Richness)) +
-          geom_point(aes(color = DevRich)) +
-          geom_line() +
-          ggtitle(dat_name) +
-          theme_bw())
-  
-  print(ggplot(dat_acre, aes(x = SurveyYear, y = SpeciesAcres, color = TaxonName)) +
-          geom_point() +
-          geom_line() +
-          ggtitle(dat_name) +
-          theme_bw())
+  # # plot
+  # print(ggplot(dat_rich, aes(x = SurveyYear, y = Richness)) +
+  #         geom_point(aes(color = DevRich)) +
+  #         geom_line() +
+  #         ggtitle(dat_name) +
+  #         theme_bw())
+  # 
+  # print(ggplot(dat_acre, aes(x = SurveyYear, y = SpeciesAcres, color = TaxonName)) +
+  #         geom_point() +
+  #         geom_line() +
+  #         ggtitle(dat_name) +
+  #         theme_bw())
   
   # save outliers
   dat_outliers = filter(dat_rich, DevRich != "consistent")
+  dat_outliers2 = filter(dat_rich, OutRich == 1)
   
   if(nrow(dat_outliers >= 1)){
     
@@ -725,9 +733,21 @@ for(i in AOIs){
     
   }
   
+  if(nrow(dat_outliers2 >= 1)){
+    
+    outliers2 <- dat_outliers2 %>%
+      select(AreaOfInterest, AreaOfInterestID, SurveyYear) %>%
+      full_join(outliers2)
+    
+  }
+  
 }
 
 dev.off()
+
+# examine outliers
+outliers
+outliers2
 
 # indicate outliers
 fwc_plant8 <- fwc_plant7 %>%
