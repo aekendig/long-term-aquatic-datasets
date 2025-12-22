@@ -35,6 +35,27 @@ n_distinct(dat$Year) # 5 years
 distinct(dat, PermanentID, Year) %>% nrow() # 210 lake-years
 211*62 - 62 # each row is each species in each lake-year combo
 
+# point density
+point_dens <- dat %>% 
+  distinct(Year, PermanentID, fwri_TotalPoints, fwc_WaterbodyAcres) %>% 
+  mutate(WaterbodyKm2 = fwc_WaterbodyAcres * 0.00404686) %>% 
+  mutate(fwri_Dens = fwri_TotalPoints / WaterbodyKm2)
+
+ggplot(point_dens, aes(x = Year, y = fwri_Dens, color = PermanentID)) +
+  geom_line() +
+  theme(legend.position = "none")
+# fairly consistent
+
+range(point_dens$fwri_Dens)
+
+point_dens_sum <- point_dens %>% 
+  group_by(PermanentID) %>% 
+  summarize(sd = sd(fwri_Dens),
+            n = n(),
+            .groups = "drop")
+
+range(point_dens_sum$sd, na.rm = T)
+
 
 #### richness ####
 
@@ -253,7 +274,7 @@ dev.off()
 
 # remove redundancy from first taxon
 # correct method p-values
-taxa_coefs_method <- taxa_coefs[-c(1:2),] %>%
+taxa_coefs_method <- taxa_coefs %>%
   filter(term == "Methodfwri") %>%
   mutate(q.value = p.adjust(p.value, method = "fdr"),
          lower = estimate - 1.96 * std.error,
@@ -287,6 +308,12 @@ taxa_coefs_method %>%
 
 taxa_coefs_method %>%
   filter(p.value < 0.05 & estimate > 0)
+
+# save full list
+taxa_coefs_method %>% 
+  select(TaxonName, estimate, std.error, statistic, p.value, q.value) %>% 
+  write_csv("output/method_comparison_detection_model_summaries.csv")
+
 
 
 #### invasive species abundance ####

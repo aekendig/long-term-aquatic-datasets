@@ -412,14 +412,16 @@ mgmt_methods_fig <- mgmt_methods_prop %>%
   geom_col(color = "white", linewidth = 0.2) +
   facet_wrap(~ Target) +
   scale_fill_manual(values = col_pal) +
-  labs(x = "Year", y = "Proportion of recorded management events") +
+  labs(x = "Year", y = "Proportion of recorded management events",
+       title = "Figure 4") +
   def_theme_paper +
   theme(strip.text = element_markdown(),
         axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "inside",
         legend.position.inside = c(0.114, 0.7),
         legend.background = element_rect(fill = "white", color = NA),
-        legend.margin = margin(0, 0, 0, 0, unit = "cm"))
+        legend.margin = margin(0, 0, 0, 0, unit = "cm"),
+        plot.title = element_text(size = 12))
 
 ggsave("output/management_methods_time_series.png",
        mgmt_methods_fig, width = 18, height = 9.5, units = "cm", dpi = 600)

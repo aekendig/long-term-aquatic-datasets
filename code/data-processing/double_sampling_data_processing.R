@@ -333,15 +333,29 @@ fwri8 <- fwri7 %>%
          fwri_PAC2 = fwri_Abundance2/fwri_TotalPoints,
          fwri_PAC3 = fwri_Abundance3/fwri_TotalPoints)
 
+# fwc sample area
+fwc_samples <- fwc5 %>% 
+  distinct(fwc_Year, PermanentID, fwc_ShapeArea, fwc_AOIs, 
+           fwc_WaterbodyAcres) %>% 
+  group_by(fwc_Year, PermanentID, fwc_ShapeArea, fwc_AOIs) %>% 
+  summarize(fwc_WaterbodyAcres = sum(fwc_WaterbodyAcres),
+            .groups = "drop")
+
+# check for consistency in area across years
+fwc_samples %>% 
+  distinct(PermanentID, fwc_WaterbodyAcres) %>% 
+  get_dupes(PermanentID)
+# none
+
 # presence in any AOI counts as detected
 # sum acres across AOIs within permanent ID
 fwc6 <- fwc5 %>%
-  group_by(fwc_Year, PermanentID, fwc_ShapeArea, fwc_AOIs, TaxonName, fwc_Habitat) %>%
+  group_by(fwc_Year, PermanentID, TaxonName, fwc_Habitat) %>%
   summarize(fwc_IsDetected = if_else("Yes" %in% fwc_IsDetected, "Yes", "No"),
             fwc_SpeciesAcres = sum(fwc_SpeciesAcres, na.rm = T),
-            fwc_WaterbodyAcres = sum(fwc_WaterbodyAcres),
             fwc_Date = max(fwc_Date),
             .groups = "drop") %>%
+  left_join(fwc_samples) %>% 
   mutate(fwc_PAC = fwc_SpeciesAcres/fwc_WaterbodyAcres)
 
 

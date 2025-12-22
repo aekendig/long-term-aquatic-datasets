@@ -10,6 +10,7 @@ library(betareg)
 library(janitor)
 library(patchwork)
 library(performance)
+library(ggtext)
 
 # figure settings
 source("code/code-for-pub/figure_settings.R")
@@ -127,6 +128,7 @@ write_csv(tidy(float_mod2),
 
 # combine model variables without time component
 mod_dat_var <- target_dat_var %>%
+  select(-LatitudeC) %>% # only use methods dat to show latitude results
   full_join(methods_dat_var)
 
 # function for native plant model predictions
@@ -242,21 +244,22 @@ summary(target_mod2)
 # table
 write_csv(tidy(target_mod2), "output/native_richness_target_model_summary.csv")
 
-#### to do: all 8 cover/mgmt variables ####
-
 # data for figures
-flt_pac_fig_dat <- pred_fun(FloatCovC, FloatCov, target_mod2, target_dat)
+hyd_cov_fig_dat <- pred_fun(HydrCovC, HydrCov, target_mod2, target_dat)
 hyd_frq_fig_dat <- pred_fun(HydrTrtFreqC, HydrTrtFreq, target_mod2, target_dat)
-flt_frq_fig_dat <- pred_fun(FloatTrtFreqC, FloatTrtFreq, target_mod2, target_dat)
-oth_frq_fig_dat <- pred_fun(OtherTrtFreqC, OtherTrtFreq, target_mod2, target_dat)
 hyd_ext_fig_dat <- pred_fun(HydrTrtAreaC, HydrTrtArea, target_mod2, target_dat)
+flt_cov_fig_dat <- pred_fun(FloatCovC, FloatCov, target_mod2, target_dat)
+flt_frq_fig_dat <- pred_fun(FloatTrtFreqC, FloatTrtFreq, target_mod2, target_dat)
+flt_ext_fig_dat <- pred_fun(FloatTrtAreaC, FloatTrtArea, target_mod2, target_dat)
+oth_frq_fig_dat <- pred_fun(OtherTrtFreqC, OtherTrtFreq, target_mod2, target_dat)
+oth_ext_fig_dat <- pred_fun(OtherTrtAreaC, OtherTrtArea, target_mod2, target_dat)
 
 # figures
-flt_pac_fig <- ggplot(flt_pac_fig_dat, aes(x = FloatCov, y = PredDiff)) +
+hyd_cov_fig <- ggplot(hyd_cov_fig_dat, aes(x = HydrCov, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
-  geom_line() +
-  labs(x = "Floating plant cover",
+  geom_line(linetype = "dashed") +
+  labs(x = "Hydrilla cover",
        y = "Change in native richness") +
   def_theme_paper
 
@@ -264,7 +267,23 @@ hyd_frq_fig <- ggplot(hyd_frq_fig_dat, aes(x = HydrTrtFreq, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
-  labs(x = "Hydrilla mgmt. frequency",
+  labs(x = "Hydrilla mgmt.\nfrequency",
+       y = "Change in native richness") +
+  def_theme_paper
+
+hyd_ext_fig <- ggplot(hyd_ext_fig_dat, aes(x = HydrTrtArea, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line(linetype = "dashed") +
+  labs(x = "Hydrilla mgmt.\nextent",
+       y = "Change in native richness") +
+  def_theme_paper
+
+flt_cov_fig <- ggplot(flt_cov_fig_dat, aes(x = FloatCov, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Floating plant cover",
        y = "Change in native richness") +
   def_theme_paper
 
@@ -272,7 +291,15 @@ flt_frq_fig <- ggplot(flt_frq_fig_dat, aes(x = FloatTrtFreq, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
-  labs(x = "Floating plant mgmt. frequency",
+  labs(x = "Floating plant mgmt.\nfrequency",
+       y = "Change in native richness") +
+  def_theme_paper
+
+flt_ext_fig <- ggplot(flt_ext_fig_dat, aes(x = FloatTrtArea, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line(linetype = "dashed") +
+  labs(x = "Floating plant mgmt.\nextent",
        y = "Change in native richness") +
   def_theme_paper
 
@@ -280,15 +307,15 @@ oth_frq_fig <- ggplot(oth_frq_fig_dat, aes(x = OtherTrtFreq, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
-  labs(x = "Other plant mgmt. frequency",
+  labs(x = "Other plant mgmt.\nfrequency",
        y = "Change in native richness") +
   def_theme_paper
 
-hyd_ext_fig <- ggplot(hyd_ext_fig_dat, aes(x = HydrTrtArea, y = PredDiff)) +
+oth_ext_fig <- ggplot(oth_ext_fig_dat, aes(x = OtherTrtArea, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
-  geom_line() +
-  labs(x = "Hydrilla mgmt. extent",
+  geom_line(linetype = "dashed") +
+  labs(x = "Other plant mgmt.\nextent",
        y = "Change in native richness") +
   def_theme_paper
 
@@ -416,7 +443,7 @@ write_csv(target_taxa_coefs2,
 
 # significant interactions
 target_taxa_coefs3 <- target_taxa_coefs2 %>%
-  filter(q.value < 0.05) %>% 
+  filter(q.value < 0.05 & term != "Time:LatitudeC") %>% 
   select(TaxonName, estimate, std.error, q.value, term) %>%
   left_join(target_taxa_dat2 %>%
               distinct(TaxonName, Habitat)) %>%
@@ -438,11 +465,11 @@ target_taxa_tab <- target_taxa_coefs3 %>%
   arrange(Habitat, TaxonName) %>%
   relocate(c(HydrCovC, HydrTrtFreqC, HydrTrtAreaC, 
              FloatCovC, FloatTrtFreqC, FloatTrtAreaC, 
-             OtherTrtFreqC, OtherTrtAreaC, LatitudeC), 
+             OtherTrtFreqC, OtherTrtAreaC), 
            .after = TaxonName) %>%
   mutate(across(.cols = c(HydrCovC, HydrTrtFreqC, HydrTrtAreaC, 
                           FloatCovC, FloatTrtFreqC, FloatTrtAreaC, 
-                          OtherTrtFreqC, OtherTrtAreaC, LatitudeC),
+                          OtherTrtFreqC, OtherTrtAreaC),
                 .fns = ~replace_na(.x, "")),
          TaxonName = str_replace_all(TaxonName, " ", "\n") %>%
            str_replace_all("\\/", "\\/\n"))
@@ -451,7 +478,6 @@ write_csv(target_taxa_tab, "output/target_model_taxa_interactions_table.csv")
 
 # format estimates for figure
 target_taxa_est <- target_taxa_coefs3 %>%
-  filter(term != "Time:LatitudeC") %>% 
   mutate(term = fct_recode(term,
                            "hydrilla\ncover" = "Time:HydrCovC",
                            "hydrilla\nmgmt.\nfrequency" = "Time:HydrTrtFreqC",
@@ -475,6 +501,11 @@ target_taxa_est <- target_taxa_coefs3 %>%
                             "other\nplant\nmgmt.\nfrequency",
                             "other\nplant\nmgmt.\nextent"))
 
+# counts for text
+target_taxa_est %>%
+  group_by(term, sign) %>% 
+  summarize(sum = sum(n))
+
 # figure
 taxa_target_fig <- ggplot(target_taxa_est,
                           aes(x = term, y = n, fill = Habitat)) +
@@ -488,14 +519,14 @@ taxa_target_fig <- ggplot(target_taxa_est,
         legend.position.inside = c(0.5, 0.78))
 
 # combine figures
-target_fig1 <- hyd_frq_fig + hyd_ext_fig + flt_pac_fig
-target_fig2 <- plot_spacer() + flt_frq_fig + oth_frq_fig + plot_spacer() +
-  plot_layout(widths = c(1/4, 1, 1, 1/4))
-target_fig3 <- target_fig1 / target_fig2
-target_fig <- target_fig3 + taxa_target_fig +
-  plot_layout(nrow = 3, heights = c(0.6, 0.6, 1)) &
+target_fig1 <- hyd_cov_fig + hyd_frq_fig + hyd_ext_fig + flt_cov_fig +
+  plot_layout(nrow = 1, axis_titles = "collect_y")
+target_fig2 <- flt_frq_fig + flt_ext_fig + oth_frq_fig + oth_ext_fig +
+  plot_layout(nrow = 1, axis_titles = "collect_y")
+target_fig <- target_fig1 / target_fig2 / taxa_target_fig +
+  plot_layout(nrow = 3, heights = c(0.6, 0.6, 1)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")",
-                  title = "Figure 3") & 
+                  title = "Figure 3") + 
   theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
         plot.title = element_text(size = 12))
 
@@ -563,19 +594,54 @@ summary(methods_mod2)
 write_csv(tidy(methods_mod2), 
           "output/native_richness_methods_model_summary.csv")
 
-#### to do: all cover and herbicide variables + latitude ####
-
 # data for figures
+hyd_pac_fig_dat <- pred_fun(HydrPACc, HydrPAC, methods_mod2, methods_dat)
+flt_pac_fig_dat <- pred_fun(FloatPACc, FloatPAC, methods_mod2, methods_dat)
+cont_freq_fig_dat <- pred_fun(TrtFreqConC, TrtFreqCon, methods_mod2, methods_dat)
 cont_ext_fig_dat <- pred_fun(TrtAreaConC, TrtAreaCon, methods_mod2, methods_dat)
+sys_freq_fig_dat <- pred_fun(TrtFreqSysC, TrtFreqSys, methods_mod2, methods_dat)
 sys_ext_fig_dat <- pred_fun(TrtAreaSysC, TrtAreaSys, methods_mod2, methods_dat)
-non_freq_fig_dat <- pred_fun(TrtFreqNonC, TrtFreqNon, methods_mod2, methods_dat)
+month_fig_dat <- pred_fun(TrtMonthStd, TrtMonth, methods_mod2, methods_dat)
+meth_lat_fig_dat <- pred_fun(LatitudeC, Latitude, methods_mod2, methods_dat)
 
 # figures
+hyd_pac_fig <- ggplot(hyd_pac_fig_dat, aes(x = HydrPAC, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line(linetype = "dashed") +
+  labs(x = "Hydrilla cover",
+       y = "Change in native richness") +
+  def_theme_paper
+
+flt_pac_fig <- ggplot(flt_pac_fig_dat, aes(x = FloatPAC, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line() +
+  labs(x = "Floating plant cover",
+       y = "Change in native richness") +
+  def_theme_paper
+
+cont_freq_fig <- ggplot(cont_freq_fig_dat, aes(x = TrtFreqCon, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line(linetype = "dashed") +
+  labs(x = "Contact herbicide\nfrequency",
+       y = "Change in native richness") +
+  def_theme_paper
+
 cont_ext_fig <- ggplot(cont_ext_fig_dat, aes(x = TrtAreaCon, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
-  labs(x = "Contact herbicide extent",
+  labs(x = "Contact herbicide\nextent",
+       y = "Change in native richness") +
+  def_theme_paper
+
+sys_freq_fig <- ggplot(sys_freq_fig_dat, aes(x = TrtFreqSys, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line(linetype = "dashed") +
+  labs(x = "Systemic herbicide\nfrequency",
        y = "Change in native richness") +
   def_theme_paper
 
@@ -583,15 +649,26 @@ sys_ext_fig <- ggplot(sys_ext_fig_dat, aes(x = TrtAreaSys, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
-  labs(x = "Systemic herbicide extent",
+  labs(x = "Systemic herbicide\nextent",
        y = "Change in native richness") +
   def_theme_paper
 
-non_freq_fig <- ggplot(non_freq_fig_dat, aes(x = TrtFreqNon, y = PredDiff)) +
+month_labs <- c(3, 6, 9, 12)
+
+month_fig <- ggplot(month_fig_dat, aes(x = TrtMonth, y = PredDiff)) +
+  geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
+              alpha = 0.3, color = NA) +
+  geom_line(linetype = "dashed") +
+  scale_x_continuous(breaks = month_labs, labels = month.abb[month_labs]) +
+  labs(x = "Average mgmt.\nmonth",
+       y = "Change in native richness") +
+  def_theme_paper
+
+meth_lat_fig <- ggplot(meth_lat_fig_dat, aes(x = Latitude, y = PredDiff)) +
   geom_ribbon(aes(ymin = PredDiff - PredSE, ymax = PredDiff + PredSE), 
               alpha = 0.3, color = NA) +
   geom_line() +
-  labs(x = "Non-herbicide frequency",
+  labs(x = "Latitude",
        y = "Change in native richness") +
   def_theme_paper
 
@@ -722,7 +799,7 @@ write_csv(methods_taxa_coefs2, "output/methods_model_taxa_interaction_coefficien
 
 # significant interactions
 methods_taxa_coefs3 <- methods_taxa_coefs2 %>%
-  filter(q.value < 0.05) %>% 
+  filter(q.value < 0.05 & str_detect(term, "Non") == F) %>% 
   select(TaxonName, estimate, std.error, q.value, term) %>%
   left_join(methods_taxa_dat2 %>%
               distinct(TaxonName, Habitat)) %>%
@@ -740,9 +817,9 @@ methods_taxa_tab <- methods_taxa_coefs3 %>%
               values_from = "response") %>%
   arrange(Habitat, TaxonName) %>%
   relocate(c(HydrPACc, FloatPACc, FreqConC, AreaConC, FreqSysC, AreaSysC, 
-             FreqNonC, AreaNonC, MonthStd), .after = TaxonName) %>%
+             MonthStd, LatitudeC), .after = TaxonName) %>%
   mutate(across(.cols = c(HydrPACc, FloatPACc, FreqConC, AreaConC, FreqSysC, 
-                          AreaSysC, FreqNonC, AreaNonC, MonthStd),
+                          AreaSysC, MonthStd, LatitudeC),
                 .fns = ~replace_na(.x, "")),
          TaxonName = str_replace_all(TaxonName, " ", "\n") %>%
            str_replace_all("\\/", "\\/\n"))
@@ -751,7 +828,6 @@ write_csv(methods_taxa_tab, "output/methods_model_taxa_interactions_table.csv")
 
 # format estimates for figure
 method_taxa_est <- methods_taxa_coefs3 %>%
-  filter(term != "Time:LatitudeC" & str_detect(term, "Non") == F) %>% 
   mutate(term = fct_recode(term,
                            "hydrilla\ncover" = "Time:HydrPACc",
                            "floating\nplant\ncover" = "Time:FloatPACc",
@@ -759,7 +835,8 @@ method_taxa_est <- methods_taxa_coefs3 %>%
                            "systemic\nherbicide\nextent" = "Time:TrtAreaSysC",
                            "contact\nherbicide\nfrequency" = "Time:TrtFreqConC",
                            "systemic\nherbicide\nfrequency" = "Time:TrtFreqSysC",
-                           "average\nmanagement\nmonth" = "Time:TrtMonthStd"),
+                           "average\nmanagement\nmonth" = "Time:TrtMonthStd",
+                           "latitude" = "Time:LatitudeC"),
          sign = if_else(estimate > 0, "pos", "neg")) %>%
   count(term, sign, Habitat) %>%
   complete(term, sign, Habitat) %>%
@@ -772,7 +849,13 @@ method_taxa_est <- methods_taxa_coefs3 %>%
                             "contact\nherbicide\nextent",
                             "systemic\nherbicide\nfrequency",
                             "systemic\nherbicide\nextent",
-                            "average\nmanagement\nmonth"))
+                            "average\nmanagement\nmonth",
+                            "latitude"))
+
+# counts for text
+method_taxa_est %>%
+  group_by(term, sign) %>% 
+  summarize(sum = sum(n))
 
 # figure
 taxa_method_fig <- ggplot(method_taxa_est,
@@ -784,19 +867,22 @@ taxa_method_fig <- ggplot(method_taxa_est,
        y = "Number of native taxa (in direction of response)") +
   def_theme_paper +
   theme(legend.position = "inside",
-        legend.position.inside = c(0.5, 0.84))
+        legend.position.inside = c(0.7, 0.78))
 
 # combine figures
-method_fig <- (cont_ext_fig + sys_ext_fig + non_freq_fig) /
-  taxa_method_fig +
-  plot_layout(heights = c(0.6, 1)) &
+method_fig1 <- hyd_pac_fig + flt_pac_fig + cont_freq_fig + cont_ext_fig +
+  plot_layout(nrow = 1, axis_titles = "collect_y")
+method_fig2 <- sys_freq_fig + sys_ext_fig + month_fig + meth_lat_fig +
+  plot_layout(nrow = 1, axis_titles = "collect_y")
+method_fig <- method_fig1 / method_fig2 / taxa_method_fig +
+  plot_layout(heights = c(0.6, 0.6, 1)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")",
-                  title = "Figure 5") & 
+                  title = "Figure 5") + 
   theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
         plot.title = element_text(size = 12))
 
 ggsave("output/method_figure.png", method_fig,
-       width = 18, height = 16, units = "cm", dpi = 600)
+       width = 18, height = 20, units = "cm", dpi = 600)
 
 
 #### variations of target model ####

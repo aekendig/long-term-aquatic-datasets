@@ -1,182 +1,171 @@
-Habitat,TaxonName,HydrPACc,FloatPACc,FreqConC,AreaConC,FreqSysC,AreaSysC,FreqNonC,AreaNonC,MonthStd,LatitudeC
+Habitat,TaxonName,HydrPACc,FloatPACc,FreqConC,AreaConC,FreqSysC,AreaSysC,MonthStd,LatitudeC
 floating,"Filamentous
 algae","0.015 (0.005)
 0.02",,"0.002 (0.001)
 0.005","-0.014 (0.004)
-0.02",,,,,,NA
+0.02",,,,
 floating,"Lemna/
 Spirodela
 spp.",,,"0.002 (0.001)
 0.026","-0.018 (0.005)
-0.004",,,"0.01 (0.003)
-0.004",,,NA
-floating,"Limnobium
-spongia",,,,,,,"0.01 (0.003)
-0.016",,,NA
+0.004",,,,
 floating,"Wolffia
 spp.",,,"0.006 (0.002)
-0.009",,,,,,,"0.16 (0.042)
+0.009",,,,,"0.16 (0.042)
 0.005"
 emergent,"Bacopa
 monnieri",,,,,,"-0.009 (0.003)
-0.018",,,"-0.093 (0.016)
+0.018","-0.093 (0.016)
 < 0.001","-0.172 (0.024)
 < 0.001"
 emergent,"Bidens
 spp.",,"0.06 (0.017)
 0.011",,"-0.039 (0.007)
-< 0.001",,,,,,NA
+< 0.001",,,,
 emergent,"Carex
-spp.",,,,,,,,"-0.008 (0.002)
-0.004",,"0.103 (0.028)
+spp.",,,,,,,,"0.103 (0.028)
 0.005"
 emergent,"Cephalanthus
 occidentalis",,,"0.003 (0.001)
 0.016","-0.026 (0.007)
-0.004",,,,,,NA
+0.004",,,,
 emergent,"Cicuta
-maculata",,,,,,,,,,"0.114 (0.037)
+maculata",,,,,,,,"0.114 (0.037)
 0.026"
 emergent,"Cladium
 jamaicense",,"-0.132 (0.031)
-0.001",,,,,,,,NA
+0.001",,,,,,
 emergent,"Cyperus
 spp.
 (other
-natives)",,,,,,,,,,"-0.09 (0.015)
+natives)",,,,,,,,"-0.09 (0.015)
 < 0.001"
 emergent,"Decodon
 verticillatus",,,,,"0.004 (0.001)
-0.048",,"0.011 (0.004)
-0.042","-0.01 (0.004)
-0.039","-0.121 (0.031)
+0.048",,"-0.121 (0.031)
 0.004","0.115 (0.04)
 0.04"
 emergent,"Echinochloa
 spp.",,,"0.002 (0.001)
 0.022","-0.017 (0.005)
-0.02",,,,,,"-0.115 (0.019)
+0.02",,,,"-0.115 (0.019)
 < 0.001"
 emergent,"Eleocharis
 spp.,
 emersed",,"-0.064 (0.017)
 0.004","0.003 (0.001)
-0.007",,,,,,,"-0.065 (0.021)
+0.007",,,,,"-0.065 (0.021)
 0.026"
 emergent,"Fuirena
 spp.","0.01 (0.003)
 0.015",,,"-0.036 (0.009)
-0.002",,,,,,NA
+0.002",,,,
 emergent,"Hydrocotyle
-spp.",,,,,,,"0.03 (0.01)
-0.026",,,"-0.076 (0.026)
+spp.",,,,,,,,"-0.076 (0.026)
 0.039"
 emergent,"Hymenocallis
-spp.",,,,,,,,,,"0.154 (0.053)
+spp.",,,,,,,,"0.154 (0.053)
 0.039"
 emergent,"Hypericum
 spp.","-0.018 (0.006)
-0.018",,,,,,,,,NA
+0.018",,,,,,,
 emergent,"Juncus
 effusus",,,"0.002 (0.001)
 0.041","-0.032 (0.007)
-< 0.001",,,,,,NA
+< 0.001",,,,
 emergent,"Ludwigia
 palustris/
-repens",,,,,,,"0.005 (0.001)
-0.005",,"-0.06 (0.016)
-0.004",NA
+repens",,,,,,,"-0.06 (0.016)
+0.004",
 emergent,"Nymphaea
 mexicana",,"-0.17 (0.049)
-0.011",,,,,,,,NA
+0.011",,,,,,
 emergent,"Nymphaea
 odorata",,"-0.085 (0.025)
-0.016",,,,,,,,NA
+0.016",,,,,,
 emergent,"Panicum
 hemitomon",,,"0.002 (0.001)
 0.043","-0.036 (0.007)
-< 0.001",,,,,,NA
+< 0.001",,,,
 emergent,"Paspalidium
 geminatum",,,"0.003 (0.001)
-0.022",,,,,,,"-0.091 (0.03)
+0.022",,,,,"-0.091 (0.03)
 0.026"
 emergent,"Rhynchospora
 spp.",,,,"-0.038 (0.012)
-0.016",,,,,,NA
+0.016",,,,
 emergent,"Sacciolepis
-striata",,,,,,,,,,"-0.082 (0.02)
+striata",,,,,,,,"-0.082 (0.02)
 0.002"
 emergent,"Sagittaria
 lancifolia",,,,,,"-0.01 (0.003)
-0.037",,,,"-0.084 (0.027)
+0.037",,"-0.084 (0.027)
 0.022"
 emergent,"Sagittaria
 latifolia",,,"0.005 (0.001)
 < 0.001",,"-0.003 (0.001)
-0.006",,,,,NA
+0.006",,,
 emergent,"Salix
 spp.",,,,,"0.003 (0.001)
-0.009",,,,,"-0.098 (0.026)
+0.009",,,"-0.098 (0.026)
 0.005"
 emergent,"Saururus
 cernuus",,,,"-0.032 (0.011)
-0.039",,,,,,NA
+0.039",,,,
 emergent,"Spartina
 bakeri",,,,"-0.043 (0.012)
-0.011",,,,,,NA
+0.011",,,,
 emergent,"Thalia
 geniculata",,"-0.096 (0.024)
 0.003",,"0.03 (0.011)
-0.044",,,,,,NA
+0.044",,,,
 emergent,"Typha
 spp.",,"-0.072 (0.024)
-0.031",,,,,,,,NA
+0.031",,,,,,
 submersed,"Cabomba
 caroliniana","0.012 (0.004)
 0.026",,,,"-0.005 (0.001)
-0.013",,,,,NA
+0.013",,,
 submersed,"Ceratophyllum
 demersum","0.016 (0.004)
 0.009","-0.041 (0.013)
 0.025",,,"0.002 (0.001)
-0.011",,,,,NA
+0.011",,,
 submersed,"Eleocharis
 spp.,
 sub/
 floating","0.008 (0.002)
 0.018","-0.058 (0.017)
-0.011",,,,,,,,NA
+0.011",,,,,,
 submersed,"Luziola
 fluitans",,,,"-0.043 (0.012)
-0.007",,,,,,"0.09 (0.024)
+0.007",,,,"0.09 (0.024)
 0.005"
 submersed,"Micranthemum
-glomeratum",,,,,,,,,"-0.067 (0.021)
+glomeratum",,,,,,,"-0.067 (0.021)
 0.02","-0.176 (0.031)
 < 0.001"
 submersed,"Najas
-guadalupensis",,,,,,,,,,"-0.126 (0.022)
+guadalupensis",,,,,,,,"-0.126 (0.022)
 < 0.001"
 submersed,"Nitella
 spp.",,"-0.272 (0.084)
-0.018",,,,,,,,NA
+0.018",,,,,,
 submersed,"Potamogeton
 diversifolius",,,,"-0.184 (0.063)
-0.037",,,,,,NA
+0.037",,,,
 submersed,"Potamogeton
 illinoensis",,,"0.005 (0.002)
 0.026",,"-0.004 (0.001)
-0.039",,,,,NA
+0.039",,,
 submersed,"Utricularia
 foliosa","0.02 (0.005)
 0.001","-0.133 (0.028)
 < 0.001","-0.003 (0.001)
-0.006",,,,,,,NA
+0.006",,,,,
 submersed,"Utricularia
-gibba",,,,,,,"0.007 (0.002)
-0.031",,,"-0.056 (0.019)
+gibba",,,,,,,,"-0.056 (0.019)
 0.037"
 submersed,"Vallisneria
-americana",,,,,,,,"0.009 (0.002)
-0.005","0.069 (0.022)
-0.022",NA
+americana",,,,,,,"0.069 (0.022)
+0.022",
