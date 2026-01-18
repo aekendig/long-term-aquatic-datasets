@@ -269,8 +269,8 @@ mgmt_target_fig <- mgmt_time_fig + mgmt_other_fig +
         plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
         plot.title = element_text(size = 12))
 
-ggsave("output/management_target_time_series.png",
-       mgmt_target_fig, width = 18, height = 9.5,
+ggsave("output/figure_2.tiff", mgmt_target_fig, 
+       device = "tiff", width = 18, height = 9.5,
        units = "cm", dpi = 600)
 
 
@@ -423,8 +423,8 @@ mgmt_methods_fig <- mgmt_methods_prop %>%
         legend.margin = margin(0, 0, 0, 0, unit = "cm"),
         plot.title = element_text(size = 12))
 
-ggsave("output/management_methods_time_series.png",
-       mgmt_methods_fig, width = 18, height = 9.5, units = "cm", dpi = 600)
+ggsave("output/figure_4.tiff", mgmt_methods_fig, device = "tiff",
+       width = 18, height = 9.5, units = "cm", dpi = 600)
 
 
 #### smaller management target dataset ####
