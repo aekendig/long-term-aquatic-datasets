@@ -3,7 +3,7 @@ library(khroma)
 
 # figure settings
 def_theme_paper <- theme_bw() +
-  theme(axis.text = element_text(size = 8, color="black"),
+  theme(axis.text = element_text(size = 7, color="black"),
         axis.title = element_text(size = 9, color="black"),
         panel.background = element_blank(),
         panel.grid.major = element_blank(),

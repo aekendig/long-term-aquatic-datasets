@@ -527,8 +527,8 @@ target_fig <- target_fig1 / target_fig2 / taxa_target_fig +
   plot_layout(nrow = 3, heights = c(0.6, 0.6, 1)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")",
                   title = "Figure 3") + 
-  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
-        plot.title = element_text(size = 12))
+  theme(plot.tag = element_text(size = 10, hjust = 0, vjust = 0),
+        plot.title = element_text(size = 10))
 
 ggsave("output/figure_3.tiff", target_fig, device = "tiff", dpi = 600,
        width = 18, height = 20, units = "cm")
@@ -878,8 +878,8 @@ method_fig <- method_fig1 / method_fig2 / taxa_method_fig +
   plot_layout(heights = c(0.6, 0.6, 1)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")",
                   title = "Figure 5") + 
-  theme(plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
-        plot.title = element_text(size = 12))
+  theme(plot.tag = element_text(size = 10, hjust = 0, vjust = 0),
+        plot.title = element_text(size = 10))
 
 ggsave("output/figure_5.tiff", method_fig, device = "tiff",
        width = 18, height = 20, units = "cm", dpi = 600)

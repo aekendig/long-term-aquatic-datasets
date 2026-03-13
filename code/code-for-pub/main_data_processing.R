@@ -266,8 +266,8 @@ mgmt_target_fig <- mgmt_time_fig + mgmt_other_fig +
                   tag_suffix = ")",
                   title = "Figure 2") & 
   theme(plot.tag.position = c(0, 1),
-        plot.tag = element_text(size = 12, hjust = 0, vjust = 0),
-        plot.title = element_text(size = 12))
+        plot.tag = element_text(size = 10, hjust = 0, vjust = 0),
+        plot.title = element_text(size = 10))
 
 ggsave("output/figure_2.tiff", mgmt_target_fig, 
        device = "tiff", width = 18, height = 9.5,
